@@ -1,0 +1,9 @@
+$path = "android/settings.gradle"
+$content = Get-Content $path
+$newLines = @(
+    "include ':react-native-gesture-handler'",
+    "project(':react-native-gesture-handler').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-gesture-handler/android')",
+    "include ':react-native-reanimated'",
+    "project(':react-native-reanimated').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-reanimated/android')"
+)
+$content + $newLines | Set-Content $path

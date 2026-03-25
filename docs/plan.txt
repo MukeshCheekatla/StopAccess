@@ -1,0 +1,371 @@
+Here’s the clean, final version of what you’re building—no confusion, no detours.
+
+
+---
+
+🧠 Product Definition
+
+> A distraction-control app that blocks selected apps after a usage limit using NextDNS denylist.
+
+
+
+
+---
+
+⚙️ Core Idea
+
+User selects apps (Instagram, YouTube, etc.)
+
+Sets usage limit (e.g. 20 mins)
+
+App tracks usage (Android)
+
+When limit hit → your system:
+
+updates NextDNS denylist
+
+blocks those apps (via domains)
+
+
+
+
+---
+
+🔁 Full Flow
+
+1) Setup (one-time)
+
+User:
+
+connects NextDNS
+
+selects apps to control
+
+sets time limits
+
+
+
+---
+
+2) Runtime
+
+App:
+
+tracks usage (Android only)
+
+
+When:
+
+Instagram ≥ 20 mins
+
+
+👉 Trigger:
+
+enable denylist → app breaks
+
+
+
+---
+
+3) Reset (optional)
+
+next day / manual reset
+
+disable denylist
+
+
+
+---
+
+🧩 Key Components
+
+1) App → Domain Mapping (CRITICAL)
+
+Example:
+
+Instagram →
+
+instagram.com
+
+cdninstagram.com
+
+fbcdn.net
+
+
+
+👉 This is your core dataset
+
+
+---
+
+2) Usage Tracking (Android)
+
+Use:
+
+UsageStatsManager
+
+
+Permission:
+
+PACKAGE_USAGE_STATS
+
+
+
+---
+
+3) Enforcement Layer
+
+NextDNS denylist ON/OFF
+
+domains added/removed
+
+
+
+---
+
+4) Trigger System
+
+usage-based (main)
+
+optional:
+
+manual focus button
+
+time fallback
+
+
+
+
+---
+
+🏗️ Tech Stack
+
+Frontend
+
+React Native (Expo → eject)
+
+
+Native (Android)
+
+Kotlin module
+
+UsageStatsManager
+
+
+Backend (minimal)
+
+Firebase / Supabase
+
+Handles:
+
+NextDNS control
+
+scheduling (if needed)
+
+
+
+
+---
+
+🔐 Permissions
+
+Required (Android)
+
+Usage access (PACKAGE_USAGE_STATS)
+
+
+Not needed
+
+Accessibility (avoid for now)
+
+VPN
+
+heavy tracking
+
+
+
+---
+
+🍎 iOS Reality
+
+❌ No usage tracking
+
+❌ Feature won’t work fully
+
+
+👉 Options:
+
+limited version
+
+or Android-first product
+
+
+
+---
+
+🔥 Hard Problem (Biggest Risk)
+
+NextDNS control
+
+❌ No official API
+
+You must:
+
+reverse engineer dashboard calls
+
+
+
+👉 This is your biggest technical risk
+
+
+---
+
+💸 Cost
+
+MVP
+
+₹0 (Firebase + NextDNS free tier)
+
+
+Early scale
+
+₹500–₹2000/month
+
+
+
+---
+
+⏱️ Build Time
+
+MVP
+
+7–10 days
+
+
+Solid version
+
+15–25 days
+
+
+
+---
+
+❌ What you are NOT building
+
+DNS server
+
+VPN
+
+full wellbeing tracker
+
+heavy analytics
+
+
+
+---
+
+🎯 What makes your app different
+
+Compared to Regain:
+
+no intrusive permissions
+
+no tracking obsession
+
+simple: “use limit → block”
+
+clean UX
+
+
+
+---
+
+⚠️ Limitations (accept these)
+
+blocking not perfect (CDNs etc.)
+
+user can bypass by changing DNS
+
+Android-first product
+
+NextDNS dependency risk
+
+
+
+---
+
+🚀 Execution Plan (tight)
+
+Step 1
+
+Build UI (app selection + timer)
+
+
+Step 2
+
+Hardcode domain mapping (top apps)
+
+
+Step 3
+
+Implement usage tracking (Android)
+
+
+Step 4
+
+Detect threshold
+
+
+Step 5
+
+Reverse NextDNS API
+
+toggle denylist
+
+
+Step 6
+
+Test real-world behavior
+
+
+
+---
+
+🧭 Strategic Plan
+
+Phase 1
+
+Ship fast using NextDNS (even if hacky)
+
+
+Phase 2 (if it works)
+
+reduce dependency
+
+possibly build own control layer
+
+
+
+---
+
+🧱 Final Truth
+
+You are building:
+
+> A behavior-control app powered by DNS blocking—not a DNS product
+
+
+
+
+---
+
+If you want next step: I can give you:
+
+exact domain list for top apps
+
+NextDNS request patterns to capture
+
+Android usage tracking code
+
+
+Just say which part.
