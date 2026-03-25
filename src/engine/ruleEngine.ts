@@ -4,6 +4,7 @@ import { getAppMinutesToday, refreshTodayUsage } from '../modules/usageStats';
 import * as nextDNS from '../api/nextdns';
 import { storage } from '../store/storage';
 import { notifyWarning, notifyBlocked } from '../services/notifications';
+import { addLog } from '../services/logger';
 
 let engineInterval: ReturnType<typeof setInterval> | null = null;
 const FOCUS_END_KEY = 'focus_mode_end_time';
@@ -12,13 +13,16 @@ export function stopRuleEngine(): void {
   if (engineInterval) {
     clearInterval(engineInterval);
     engineInterval = null;
+    addLog('info', 'Rule engine stopped');
   }
 }
 
 export function startRuleEngine(): void {
   if (engineInterval) {
+    addLog('warn', 'Rule engine start ignored', 'Engine already running');
     return;
   }
+  addLog('info', 'Rule engine started', 'Evaluates rules every 60 seconds');
   refreshTodayUsage().catch(() => {});
   // Run primary check loop
   runEngineCycle();
@@ -26,10 +30,17 @@ export function startRuleEngine(): void {
 }
 
 async function runEngineCycle() {
+  addLog('sync', 'Rule engine cycle started');
+
   // Check for Midnight Reset
   const today = new Date().toDateString();
   const lastReset = storage.getString('last_reset_day');
   if (lastReset !== today) {
+    addLog(
+      'info',
+      'Daily reset triggered',
+      `Previous reset day: ${lastReset ?? 'none'}`,
+    );
     await resetDailyBlocks().catch(() => {});
     storage.set('last_reset_day', today);
   }
@@ -39,6 +50,12 @@ async function runEngineCycle() {
 
   // 1. Check Manual Blocks & Limits
   const rules = getRules();
+  const schedules = getSchedules();
+  addLog(
+    'info',
+    'Evaluating protection rules',
+    `${rules.length} rules, ${schedules.length} schedules`,
+  );
   for (const rule of rules) {
     let usedMinutes = rule.usedMinutesToday || 0;
     if (rule.mode === 'limit' && rule.dailyLimitMinutes > 0) {
@@ -62,6 +79,11 @@ async function runEngineCycle() {
       if (!rule.blockedToday) {
         updated.blockedToday = true;
         if (isOverLimit) {
+          addLog(
+            'warn',
+            'App limit reached',
+            `${rule.appName}: ${usedMinutes}/${rule.dailyLimitMinutes} minutes`,
+          );
           notifyBlocked(rule.appName).catch(() => {});
         }
       }
@@ -71,6 +93,11 @@ async function runEngineCycle() {
       if (rule.mode === 'limit' && rule.dailyLimitMinutes > 0) {
         const pct = usedMinutes / rule.dailyLimitMinutes;
         if (pct >= 0.8 && pct < 1.0 && !rule.warningSent) {
+          addLog(
+            'warn',
+            'App nearing limit',
+            `${rule.appName}: ${usedMinutes}/${rule.dailyLimitMinutes} minutes`,
+          );
           notifyWarning(
             rule.appName,
             usedMinutes,
@@ -84,7 +111,6 @@ async function runEngineCycle() {
   }
 
   // 2. Check Schedules
-  const schedules = getSchedules();
   const now = new Date();
   const currentDay = now.getDay();
   const currentMin = now.getHours() * 60 + now.getMinutes();
@@ -105,6 +131,11 @@ async function runEngineCycle() {
   if (Date.now() < focusEndTime) {
     // Block ALL controlled apps during focus
     rules.forEach((r) => masterBlockList.add(r.appName));
+    addLog(
+      'info',
+      'Focus mode active',
+      `${rules.length} controlled apps enforced`,
+    );
   }
 
   // 4. Sync with NextDNS
@@ -113,15 +144,23 @@ async function runEngineCycle() {
 
 async function syncMasterList(names: string[]) {
   if (!nextDNS.isConfigured()) {
+    addLog('warn', 'Master sync skipped', 'NextDNS is not configured');
     return;
   }
+  addLog(
+    'sync',
+    'Syncing master block list',
+    names.length > 0 ? names.join(', ') : 'No blocked apps currently active',
+  );
   await nextDNS.blockApps(names).catch(() => {});
 }
 
 export async function resetDailyBlocks(): Promise<void> {
   const rules = getRules();
+  let resetCount = 0;
   for (const rule of rules) {
     if (rule.blockedToday || rule.usedMinutesToday > 0) {
+      resetCount += 1;
       updateRule({
         ...rule,
         blockedToday: false,
@@ -130,6 +169,7 @@ export async function resetDailyBlocks(): Promise<void> {
       });
     }
   }
+  addLog('info', 'Daily blocks reset', `${resetCount} rules cleared`);
   await nextDNS.unblockAll().catch(() => {});
 }
 

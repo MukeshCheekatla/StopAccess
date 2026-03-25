@@ -242,7 +242,7 @@ export default function SettingsScreen() {
           </SettingRow>
 
           <SettingRow
-            icon="restore-clock"
+            icon="restore"
             label="Daily Auto-Reset"
             sub="Clear block limits at midnight"
           >
@@ -283,7 +283,7 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>DIAGNOSTICS</Text>
           <SettingRow
-            icon="math-log"
+            icon="text-box-search-outline"
             label="System Logs"
             sub="Check background sync events"
             onPress={() => {

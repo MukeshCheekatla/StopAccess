@@ -17,6 +17,7 @@ export function getConfig(): NextDNSConfig | null {
 
 export function saveConfig(config: NextDNSConfig): void {
   storage.set(CONFIG_KEY, JSON.stringify(config));
+  addLog('info', 'NextDNS configuration saved', `Profile ${config.profileId}`);
 }
 
 export function isConfigured(): boolean {
@@ -27,14 +28,28 @@ export function isConfigured(): boolean {
 export async function testConnection(): Promise<boolean> {
   const cfg = getConfig();
   if (!cfg) {
+    addLog('warn', 'NextDNS test skipped', 'No configuration found');
     return false;
   }
   try {
+    addLog('sync', 'Testing NextDNS connection', `Profile ${cfg.profileId}`);
     const res = await fetch(`${BASE_URL}/profiles/${cfg.profileId}/denylist`, {
       headers: { 'X-Api-Key': cfg.apiKey },
     });
+    addLog(
+      res.ok ? 'info' : 'error',
+      res.ok
+        ? 'NextDNS connection test passed'
+        : 'NextDNS connection test failed',
+      `HTTP ${res.status}`,
+    );
     return res.ok;
-  } catch {
+  } catch (e) {
+    addLog(
+      'error',
+      'NextDNS connection test exception',
+      e instanceof Error ? e.message : String(e),
+    );
     return false;
   }
 }
@@ -74,6 +89,7 @@ function getDomainsForApp(appName: string): string[] {
 export async function blockApps(names: string[]): Promise<void> {
   const cfg = getConfig();
   if (!cfg) {
+    addLog('warn', 'NextDNS sync skipped', 'No configuration found');
     return;
   }
 
@@ -81,6 +97,11 @@ export async function blockApps(names: string[]): Promise<void> {
   const uniqueDomains = Array.from(new Set(allDomains));
 
   if (uniqueDomains.length === 0) {
+    addLog(
+      'info',
+      'NextDNS sync skipped',
+      'No domains resolved from current app set',
+    );
     return;
   }
 
@@ -168,6 +189,7 @@ export async function unblockApp(appName: string): Promise<void> {
 export async function unblockAll(): Promise<void> {
   const cfg = getConfig();
   if (!cfg) {
+    addLog('warn', 'NextDNS clear skipped', 'No configuration found');
     return;
   }
 

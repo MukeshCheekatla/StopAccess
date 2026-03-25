@@ -10,6 +10,13 @@ export interface LogEntry {
   details?: string;
 }
 
+function formatConsolePrefix(entry: LogEntry): string {
+  const time = new Date(entry.timestamp).toLocaleTimeString('en-IN', {
+    hour12: false,
+  });
+  return `[FocusGate][${time}][${entry.level.toUpperCase()}] ${entry.message}`;
+}
+
 export function addLog(
   level: LogEntry['level'],
   message: string,
@@ -26,11 +33,19 @@ export function addLog(
   const updatedLogs = [newEntry, ...logs].slice(0, MAX_LOGS);
   storage.set(LOG_KEY, JSON.stringify(updatedLogs));
 
-  // Also log to console for dev
+  const prefix = formatConsolePrefix(newEntry);
   if (level === 'error') {
-    console.error(`[${level}] ${message}`, details);
+    if (details) {
+      console.error(prefix, details);
+    } else {
+      console.error(prefix);
+    }
   } else {
-    console.log(`[${level}] ${message}`, details);
+    if (details) {
+      console.log(prefix, details);
+    } else {
+      console.log(prefix);
+    }
   }
 }
 
