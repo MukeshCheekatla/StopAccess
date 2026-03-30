@@ -55,6 +55,29 @@ export const extensionAdapter = {
       [STORAGE_KEYS.RULES]: JSON.stringify(rules),
     });
   },
+
+  getSyncState: async () => {
+    const res = await chrome.storage.local.get('sync_state');
+    return res.sync_state
+      ? JSON.parse(res.sync_state)
+      : {
+          status: 'idle',
+          lastSyncAt: null,
+          lastAttemptAt: null,
+          lastError: null,
+          pendingOps: 0,
+          telemetry: {
+            changedCount: 0,
+            errors: [],
+          },
+        };
+  },
+
+  saveSyncState: async (state) => {
+    await chrome.storage.local.set({
+      sync_state: JSON.stringify(state),
+    });
+  },
 };
 
 export const extensionLogger = {
@@ -161,5 +184,13 @@ export const nextDNSApi = {
   getTopBlockedDomains: async (limit) => {
     const cfg = await nextDNSApi.getConfig();
     return ndnsCore.getTopBlockedDomains(cfg, extensionLogger.add, limit);
+  },
+
+  testConnection: async () => {
+    const cfg = await nextDNSApi.getConfig();
+    if (!cfg.profileId || !cfg.apiKey) {
+      return false;
+    }
+    return ndnsCore.testConnection(cfg, extensionLogger.add);
   },
 };

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const EXCLUDES = [
+const EXCLUDES = new Set([
   '.git',
   'node_modules',
   '.turbo',
@@ -14,48 +14,57 @@ const EXCLUDES = [
   '.idea',
   '__pycache__',
   'docs',
+]);
+
+const SKIP_PATTERNS = [
+  /android[\\/]+app[\\/]+src[\\/]+main[\\/]+assets[\\/]+index\.android\.bundle$/,
+  /android[\\/]+app[\\/]+src[\\/]+main[\\/]+res[\\/]+drawable-[^\\/]+[\\/]node_modules_/,
+  /extension[\\/]+dist[\\/]/,
 ];
 
+function shouldSkip(fullPath) {
+  return SKIP_PATTERNS.some((pattern) => pattern.test(fullPath));
+}
+
 function generateTree(dir, prefix = '') {
-  const files = fs
+  const items = fs
     .readdirSync(dir)
-    .filter((file) => !EXCLUDES.includes(file))
+    .filter((name) => !EXCLUDES.has(name))
+    .map((name) => path.join(dir, name))
+    .filter((fullPath) => !shouldSkip(fullPath))
     .sort((a, b) => {
-      const aIsDir = fs.statSync(path.join(dir, a)).isDirectory();
-      const bIsDir = fs.statSync(path.join(dir, b)).isDirectory();
-      if (aIsDir && !bIsDir) {
-        return -1;
+      const aIsDir = fs.statSync(a).isDirectory();
+      const bIsDir = fs.statSync(b).isDirectory();
+      if (aIsDir !== bIsDir) {
+        return aIsDir ? -1 : 1;
       }
-      if (!aIsDir && bIsDir) {
-        return 1;
-      }
-      return a.localeCompare(b);
+      return path.basename(a).localeCompare(path.basename(b));
     });
 
-  let tree = '';
-  files.forEach((file, index) => {
-    const isLast = index === files.length - 1;
-    const fullPath = path.join(dir, file);
-    const isDir = fs.statSync(fullPath).isDirectory();
+  let output = '';
 
-    tree += `${prefix}${isLast ? '└── ' : '├── '}${file}\n`;
+  items.forEach((fullPath, index) => {
+    const name = path.basename(fullPath);
+    const isDir = fs.statSync(fullPath).isDirectory();
+    const isLast = index === items.length - 1;
+    const branch = isLast ? '\\-- ' : '|-- ';
+    const childPrefix = `${prefix}${isLast ? '    ' : '|   '}`;
+
+    output += `${prefix}${branch}${name}\n`;
 
     if (isDir) {
-      tree += generateTree(fullPath, `${prefix}${isLast ? '    ' : '│   '}`);
+      output += generateTree(fullPath, childPrefix);
     }
   });
-  return tree;
+
+  return output;
 }
 
 const rootDir = process.cwd();
 const tree = generateTree(rootDir);
-const header = '# Project Structure\n\n```text\n';
-const footer = '```\n';
+const content = `# Project Structure\n\n\`\`\`text\n${tree}\`\`\`\n`;
 
 const outDir = path.join(rootDir, 'docs', 'imp', 'reference');
 fs.mkdirSync(outDir, { recursive: true });
-fs.writeFileSync(
-  path.join(outDir, 'PROJECT_STRUCTURE.md'),
-  header + tree + footer,
-);
-console.log('Tree updated!');
+fs.writeFileSync(path.join(outDir, 'PROJECT_STRUCTURE.md'), content, 'utf8');
+console.log('Project structure updated.');

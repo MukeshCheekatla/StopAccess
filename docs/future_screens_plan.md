@@ -1,119 +1,205 @@
 # Future Screens Plan
-> Scope: Android app screens, extension screens, and missing product surfaces
+> Updated: 30 Mar 2026
+> Scope: Android screens, extension popup screens, and missing product surfaces
 
-## Goal
+## Purpose
 
-Turn FocusGate from a functional tool into a product with clear, trustworthy, low-friction workflows.
+This document explains what each user-facing surface should do, what is missing today, and which files will likely carry the work.
 
 ## Android Screens
 
 ### Dashboard
 
-- Add a protection health card with:
-  sync status, last successful enforcement, current focus mode, and pending issues
-- Add a today timeline:
-  warnings sent, blocks triggered, focus sessions started, sync failures
-- Add quick actions:
-  start focus, pause enforcement, test block, retry sync
+Current role:
+- high-level summary
+- quick trust signal
+
+What it should become:
+- protection health summary
+- current focus state
+- active rule count
+- most recent sync result
+- clear “what happened today” view
+
+Likely files:
+- `src/screens/DashboardScreen.tsx`
+- `src/services/logger.ts`
+- `src/store/syncState.ts`
 
 ### Apps
 
-- Split into tabs:
-  installed apps, controlled apps, blocked now, suggestions
-- Add presets:
-  social, short video, shopping, gaming, work-safe
-- Add explainability:
-  why each app maps to a domain or NextDNS service
+Current role:
+- rule management
+
+What it should become:
+- controlled apps
+- recommended distractions
+- presets
+- explainability for how an app maps to a domain or service
+- better “blocked now” visibility
+
+Likely files:
+- `src/screens/AppsScreen.tsx`
+- `src/components/AppPickerModal.tsx`
+- `src/data/appDomains.json`
 
 ### Focus
 
-- Make it a real commitment screen:
-  countdown, reason, targets affected, friction to exit
-- Add modes:
-  light focus, hard lock, scheduled focus, emergency allow
+Current role:
+- manual focus session entry point
+
+What it should become:
+- commitment mode screen
+- visible countdown
+- stronger stop/override friction
+- summary of affected targets
+
+Likely files:
+- `src/screens/FocusScreen.tsx`
+- `packages/core/src/engine.ts`
 
 ### Schedule
 
-- Add a real weekly planner
-- Add reusable templates:
-  workday, study block, sleep, deep work
-- Add schedule conflict handling and preview
+Current role:
+- time-window blocking
+
+What it should become:
+- weekly planner
+- reusable templates
+- conflict preview
+- clearer visual explanation of schedule coverage
+
+Likely files:
+- `src/screens/ScheduleScreen.tsx`
+- `packages/state/src/schedules.ts`
 
 ### Insights
 
-- Add daily, weekly, and 30-day views
-- Add saved time, top distractions, strongest hours, and relapse patterns
-- Add comparison:
-  this week vs last week
+Current role:
+- usage summary
+
+What it should become:
+- daily trends
+- weekly comparisons
+- strongest distraction windows
+- most blocked targets
+- saved-time narrative
+
+Likely files:
+- `src/screens/InsightsScreen.tsx`
+- `packages/core/src/insights.ts`
 
 ### Settings
 
-- Add setup checklist
-- Add diagnostics center
-- Add export/import of config
-- Add anti-bypass and guardian controls
+Current role:
+- credentials, diagnostics, controls
+
+What it should become:
+- full diagnostics center
+- protection health
+- sync recovery
+- guardian and strict mode configuration
+- maintenance actions
+
+Likely files:
+- `src/screens/SettingsScreen.tsx`
+- `src/store/storageAdapter.ts`
 
 ## Missing Android Screens
 
 ### Onboarding
 
-- Welcome
-- Why FocusGate works
+Needs:
+- product explanation
 - NextDNS setup
-- Permissions
-- First rule setup
-- Success verification
+- permissions
+- first success
+
+Likely files:
+- `src/screens/OnboardingScreen.tsx`
+- `src/components/AutoSetupModal.tsx`
 
 ### Protection Health
 
-- Dedicated diagnostics screen
+Needs:
 - DNS connected?
-- rules active?
-- usage access granted?
-- last successful block?
-- reboot recovery status?
+- sync healthy?
+- permissions granted?
+- last real block succeeded?
 
-### Rule Explainability
+Likely files:
+- could begin inside `src/screens/SettingsScreen.tsx`
+- could later become its own screen
 
-- Per-target screen showing:
-  rule type, source, scope, mapped domain, remote service state, recent blocks
-
-### Subscription / Pricing
-
-- Keep free tier credible
-- Show what paid unlocks only after core trust is strong
-
-## Extension Screens
+## Extension Popup Screens
 
 ### Dashboard
 
-- Add stronger sync telemetry
-- Add top blocked services
-- Add current active browser block count
+Should answer:
+- is protection active?
+- what mode am I in?
+- what changed recently?
+
+Likely files:
+- `extension/src/screens/DashboardScreen.js`
+- `extension/src/background/platformAdapter.js`
 
 ### Apps
 
-- Separate:
-  custom domains, NextDNS apps, categories, recommended distractions
-- Add multi-select presets for common services
+Should be the main extension control surface.
+
+Needs:
+- custom domains
+- NextDNS app toggles
+- category toggles
+- recommendations
+- real browser-only vs profile-wide explanation
+
+Likely files:
+- `extension/src/screens/AppsScreen.js`
+- `extension/src/lib/appCatalog.js`
+
+### Focus
+
+Should become:
+- browser focus presets
+- timer state
+- quick stop path
+
+Likely files:
+- `extension/src/screens/FocusScreen.js`
+- `extension/src/background/lifecycle.js`
 
 ### Insights
 
-- Add recent block events grouped by service
-- Add domain/session trends
+Should become:
+- recent blocks
+- top blocked domains
+- top blocked services
+- recent sync/errors
+
+Likely files:
+- `extension/src/screens/InsightsScreen.js`
+- `packages/core/src/api.ts`
 
 ### Settings
 
-- Add connection test
-- Add profile-wide warning copy
-- Add mode selector with clearer tradeoffs
+Should become:
+- NextDNS connection control
+- mode selector
+- connection test
+- maintenance
+- warnings for profile-wide toggles
 
-## Suggested Build Order
+Likely files:
+- `extension/src/screens/SettingsScreen.js`
+- `extension/src/background/platformAdapter.js`
 
-1. Onboarding
-2. Protection Health
-3. Better Dashboard
-4. Better Apps management
+## Build Order Recommendation
+
+1. Settings and diagnostics
+2. Better Dashboard
+3. Better Apps control surface
+4. Better Focus behavior
 5. Better Insights
-6. Focus hardening
-7. Schedule planner
+6. Schedule improvements

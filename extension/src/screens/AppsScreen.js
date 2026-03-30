@@ -2,12 +2,14 @@ import { getRules, updateRule, deleteRule } from '@focusgate/state/rules';
 import {
   extensionAdapter as storage,
   nextDNSApi,
+  STORAGE_KEYS,
 } from '../background/platformAdapter.js';
 import {
   getServiceIcon,
   getCategoryBadge,
   getDomainIcon,
 } from '../lib/appCatalog.js';
+import { addActionLog } from '../lib/logger.js';
 
 let activeTab = 'domains';
 let availableServices = [];
@@ -19,6 +21,7 @@ let isConfigured = false;
 export async function renderAppsScreen(container) {
   const rules = await getRules(storage);
   isConfigured = await nextDNSApi.isConfigured();
+  const syncMode = (await storage.getString('fg_sync_mode')) || 'hybrid';
 
   if (availableServices.length === 0 || availableCategories.length === 0) {
     const cached = await chrome.storage.local.get(['cached_ndns_metadata']);
@@ -48,6 +51,27 @@ export async function renderAppsScreen(container) {
     </div>
 
     <div id="tabContent">
+      <div class="app-card" style="background: rgba(255, 71, 87, 0.05); border-color: rgba(255, 71, 87, 0.2); margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="flex: 1;">
+          <div style="font-weight: 700; color: var(--red); font-size: 12px; text-transform: uppercase; margin-bottom: 4px;">Emergency Protocol</div>
+          <div style="font-size: 11px; color: var(--muted); line-height: 1.4;">Bypass all active blocks across all synchronized devices temporarily.</div>
+        </div>
+        <button class="btn btn-outline" id="panicButton" style="border-color: var(--red); color: var(--red); padding: 8px 16px; font-size: 12px;">Reset All</button>
+      </div>
+
+      ${
+        syncMode === 'profile' || syncMode === 'hybrid'
+          ? `
+        <div class="app-card" style="background: rgba(255, 184, 0, 0.08); border-color: rgba(255, 184, 0, 0.3); margin-bottom: 24px; display: flex; align-items: center; gap: 12px; padding: 12px 16px;">
+          <div style="font-size: 20px;">⚠️</div>
+          <div style="font-size: 11px; line-height: 1.5; color: var(--text);">
+            <strong style="color: var(--yellow);">Profile-Wide Enforcement Active.</strong> Changes to services and categories affect <strong>all devices</strong> linked to this NextDNS profile.
+          </div>
+        </div>
+      `
+          : ''
+      }
+
       ${await renderSubTab(rules)}
     </div>
   `;
@@ -84,14 +108,44 @@ async function renderSubTab(rules) {
         </div>
         <div class="stat-lbl">If NextDNS is connected, this also updates your denylist.</div>
       </div>
-      <div class="section-title">Custom Domain Rules (${
+      <div class="section-title">Popular Distractions</div>
+      <div class="empty-state" style="height: auto; padding: 20px 0; border-style: dashed; background: transparent; opacity: 0.8; margin-bottom: 24px;">
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 12px;">Quick Add Recommended</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 0 10px;">
+          ${[
+            { id: 'facebook.com', name: 'Facebook' },
+            { id: 'instagram.com', name: 'Instagram' },
+            { id: 'reddit.com', name: 'Reddit' },
+            { id: 'youtube.com', name: 'YouTube' },
+            { id: 'x.com', name: 'X / Twitter' },
+            { id: 'tiktok.com', name: 'TikTok' },
+            { id: 'netflix.com', name: 'Netflix' },
+            { id: 'twitch.tv', name: 'Twitch' },
+            { id: 'discord.com', name: 'Discord' },
+            { id: 'amazon.com', name: 'Amazon' },
+          ]
+            .filter((d) => !rules.some((r) => r.customDomain === d.id))
+            .map(
+              (d) =>
+                `<button class="btn btn-outline quick-add-domain" data-domain="${d.id}" data-name="${d.name}" style="padding: 6px 14px; font-size: 11px; border-radius: 20px; border-color: rgba(255,255,255,0.1); color: var(--text);">+ ${d.name}</button>`,
+            )
+            .join('')}
+        </div>
+      </div>
+
+      <div class="section-title">Your Custom Rules (${
         visibleRules.length
       })</div>
-      <div class="app-list">
         ${
           visibleRules.length
             ? visibleRules.map((rule) => renderDomainRuleCard(rule)).join('')
-            : '<div class="empty-state" style="height: 120px;">No matching domain rules yet.</div>'
+            : `
+            <div class="empty-state" style="height: 160px; border-style: dashed; background: transparent; opacity: 0.8;">
+              <div style="font-size: 32px; margin-bottom: 12px;">🛡️</div>
+              <div style="font-weight: 700;">Shield Is Idle</div>
+              <div style="font-size: 11px; color: var(--muted); margin-top: 4px; max-width: 200px; text-align: center;">Add your first custom domain or NextDNS app to start enforcing focus.</div>
+            </div>
+            `
         }
       </div>
     `;
@@ -164,33 +218,60 @@ function renderNeedsLoginState(copy) {
 
 function renderDomainRuleCard(rule) {
   const domain = rule.customDomain || rule.packageName;
-  const active = rule.mode === 'block' && rule.blockedToday;
+  const active = rule.blockedToday;
+  const limitValue = rule.dailyLimitMinutes || 0;
+
   return `
     <div class="app-card rule-card" data-pkg="${escapeHtml(
       rule.packageName,
     )}" data-name="${escapeHtml(
     rule.appName,
-  )}" style="display:flex; align-items:center; justify-content:space-between; gap: 12px;">
-      <div style="display:flex; align-items:center; gap: 12px; min-width: 0;">
-        <img src="${getDomainIcon(domain)}" alt="" class="app-icon">
-        <div class="app-info" style="min-width: 0;">
-          <div class="stat-val" style="font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(
-            rule.appName,
-          )}</div>
-          <div class="stat-lbl">${escapeHtml(domain)}</div>
+  )}" style="display:flex; flex-direction:column; gap: 12px; padding: 16px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap: 12px;">
+        <div style="display:flex; align-items:center; gap: 12px; min-width: 0;">
+          <img src="${getDomainIcon(domain)}" alt="" class="app-icon">
+          <div class="app-info" style="min-width: 0;">
+            <div class="stat-val" style="font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(
+              rule.appName,
+            )}</div>
+            <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
+              <div class="stat-lbl">${escapeHtml(domain)}</div>
+              <div style="font-size: 8px; padding: 2px 6px; border-radius: 4px; background: ${
+                rule.scope === 'profile'
+                  ? 'var(--accent)'
+                  : 'rgba(255,255,255,0.05)'
+              }; color: ${
+    rule.scope === 'profile' ? '#fff' : 'var(--muted)'
+  }; font-weight: 800; border: 1px solid ${
+    rule.scope === 'profile' ? 'transparent' : 'rgba(255,255,255,0.1)'
+  };">
+                ${rule.scope === 'profile' ? 'NEXTDNS' : 'LOCAL'}
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="app-controls" style="display:flex; align-items:center; gap: 10px;">
-        <button class="toggle-switch-btn ${
-          active ? 'active' : ''
-        }" data-kind="domain" data-id="${escapeHtml(
+        <div class="app-controls" style="display:flex; align-items:center; gap: 10px;">
+          <button class="toggle-switch-btn ${
+            active ? 'active' : ''
+          }" data-kind="domain" data-id="${escapeHtml(
     domain,
   )}" data-pkg="${escapeHtml(rule.packageName)}">
-          <span>${active ? 'ON' : 'OFF'}</span>
-        </button>
-        <button class="btn-outline delete-rule" data-pkg="${escapeHtml(
-          rule.packageName,
-        )}" style="padding: 6px;">Delete</button>
+            <span>${active ? 'BLOCK' : 'ALLOW'}</span>
+          </button>
+          <button class="btn-outline delete-rule" data-pkg="${escapeHtml(
+            rule.packageName,
+          )}" style="padding: 6px;">Delete</button>
+        </div>
+      </div>
+      
+      <div style="display:flex; align-items:center; justify-content:space-between; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05);">
+        <div style="font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase;">Daily Limit (Minutes)</div>
+        <div style="display:flex; align-items:center; gap: 8px;">
+           <input type="number" class="input edit-limit" value="${limitValue}" data-pkg="${escapeHtml(
+    rule.packageName,
+  )}" style="width: 60px; padding: 4px 8px; font-size: 12px; text-align: center;">
+           <span style="font-size: 11px; color: var(--muted);">min</span>
+        </div>
       </div>
     </div>
   `;
@@ -202,6 +283,8 @@ function renderServiceCard(service, rules) {
     (rule) => rule.packageName === service.id && rule.type === 'service',
   );
   const active = service.active ?? localRule?.blockedToday ?? false;
+  const limitValue = localRule?.dailyLimitMinutes || 0;
+
   const iconNode =
     icon.kind === 'remote'
       ? `<img src="${icon.url}" alt="" class="app-icon" style="background:${icon.accent}15;">`
@@ -210,21 +293,40 @@ function renderServiceCard(service, rules) {
   return `
     <div class="service-card ${active ? 'active' : ''}" data-id="${escapeHtml(
     service.id,
-  )}" data-type="service" data-name="${escapeHtml(service.name)}">
-      ${iconNode}
-      <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
-        <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(
-          service.name,
-        )}</div>
-        <div class="stat-lbl">NextDNS parental control</div>
-      </div>
-      <button class="toggle-switch-btn ${
-        active ? 'active' : ''
-      }" data-kind="service" data-id="${escapeHtml(
+  )}" data-type="service" data-name="${escapeHtml(
+    service.name,
+  )}" style="display:flex; flex-direction:column; gap: 12px; height: auto; min-height: 140px; padding: 16px;">
+      <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%;">
+        <div style="display:flex; align-items:center; gap: 12px; min-width: 0;">
+          ${iconNode}
+          <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
+            <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">${escapeHtml(
+              service.name,
+            )}</div>
+            <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
+              <div class="stat-lbl" style="font-size: 10px;">NextDNS App</div>
+              <div style="font-size: 8px; padding: 1px 4px; border-radius: 4px; background: var(--accent); color: #fff; font-weight: 800;">PROFILE</div>
+            </div>
+          </div>
+        </div>
+        <button class="toggle-switch-btn ${
+          active ? 'active' : ''
+        }" data-kind="service" data-id="${escapeHtml(
     service.id,
   )}" data-name="${escapeHtml(service.name)}">
-        <span>${active ? 'ON' : 'OFF'}</span>
-      </button>
+          <span>${active ? 'ON' : 'OFF'}</span>
+        </button>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
+        <div style="display:flex; align-items:center; gap: 8px;">
+           <input type="number" class="input edit-limit" value="${limitValue}" data-pkg="${escapeHtml(
+    service.id,
+  )}" style="width: 50px; padding: 4px; font-size: 11px; text-align: center;">
+           <span style="font-size: 10px; color: var(--muted); font-weight: 700;">MIN</span>
+        </div>
+        <div style="font-size: 9px; color: var(--muted); text-transform: uppercase;">Daily Limit</div>
+      </div>
     </div>
   `;
 }
@@ -234,26 +336,44 @@ function renderCategoryCard(category, rules) {
     (rule) => rule.packageName === category.id && rule.type === 'category',
   );
   const active = category.active ?? localRule?.blockedToday ?? false;
+  const limitValue = localRule?.dailyLimitMinutes || 0;
+
   return `
     <div class="service-card ${active ? 'active' : ''}" data-id="${escapeHtml(
     category.id,
-  )}" data-type="category" data-name="${escapeHtml(category.name)}">
-      <div class="app-icon app-icon-fallback" style="background: rgba(124, 111, 247, 0.16); color: var(--accent);">
-        ${escapeHtml(getCategoryBadge(category))}
-      </div>
-      <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
-        <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(
-          category.name,
-        )}</div>
-        <div class="stat-lbl">${escapeHtml(category.id)}</div>
-      </div>
-      <button class="toggle-switch-btn ${
-        active ? 'active' : ''
-      }" data-kind="category" data-id="${escapeHtml(
+  )}" data-type="category" data-name="${escapeHtml(
+    category.name,
+  )}" style="display:flex; flex-direction:column; gap: 12px; height: auto; min-height: 140px; padding: 16px;">
+      <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%;">
+        <div style="display:flex; align-items:center; gap: 12px; min-width: 0;">
+          <div class="app-icon app-icon-fallback" style="background: rgba(124, 111, 247, 0.16); color: var(--accent);">
+            ${escapeHtml(getCategoryBadge(category))}
+          </div>
+          <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
+            <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">${escapeHtml(
+              category.name,
+            )}</div>
+            <div class="stat-lbl" style="font-size: 10px;">Category</div>
+          </div>
+        </div>
+        <button class="toggle-switch-btn ${
+          active ? 'active' : ''
+        }" data-kind="category" data-id="${escapeHtml(
     category.id,
   )}" data-name="${escapeHtml(category.name)}">
-        <span>${active ? 'ON' : 'OFF'}</span>
-      </button>
+          <span>${active ? 'ON' : 'OFF'}</span>
+        </button>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
+        <div style="display:flex; align-items:center; gap: 8px;">
+           <input type="number" class="input edit-limit" value="${limitValue}" data-pkg="${escapeHtml(
+    category.id,
+  )}" style="width: 50px; padding: 4px; font-size: 11px; text-align: center;">
+           <span style="font-size: 10px; color: var(--muted); font-weight: 700;">MIN</span>
+        </div>
+        <div style="font-size: 9px; color: var(--muted); text-transform: uppercase;">Daily Limit</div>
+      </div>
     </div>
   `;
 }
@@ -272,8 +392,23 @@ async function setupHandlers(container, rules) {
     if (isConfigured) {
       await nextDNSApi.setDenylistDomainState(domain, true);
     }
+    await addActionLog(`Added and blocked custom domain: ${domain}`, 'success');
     chrome.runtime.sendMessage({ action: 'manualSync' });
     renderAppsScreen(container);
+  });
+
+  container.querySelectorAll('.quick-add-domain').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const domain = btn.getAttribute('data-domain');
+      const name = btn.getAttribute('data-name') || domain;
+      await updateRule(storage, buildRule(domain, 'domain', name, true));
+      if (isConfigured) {
+        await nextDNSApi.setDenylistDomainState(domain, true);
+      }
+      await addActionLog(`Quick added and blocked: ${name}`, 'success');
+      chrome.runtime.sendMessage({ action: 'manualSync' });
+      renderAppsScreen(container);
+    });
   });
 
   container.querySelectorAll('.delete-rule').forEach((btn) => {
@@ -287,6 +422,7 @@ async function setupHandlers(container, rules) {
         );
       }
       await deleteRule(storage, packageName);
+      await addActionLog(`Deleted rule for: ${rule?.appName || packageName}`);
       chrome.runtime.sendMessage({ action: 'manualSync' });
       renderAppsScreen(container);
     });
@@ -326,6 +462,7 @@ async function setupHandlers(container, rules) {
             ...domainRule,
             mode: nextActive ? 'block' : 'allow',
             blockedToday: nextActive,
+            desiredBlockingState: nextActive, // Capture intent
             updatedAt: Date.now(),
           });
           if (isConfigured) {
@@ -334,10 +471,66 @@ async function setupHandlers(container, rules) {
         }
 
         chrome.runtime.sendMessage({ action: 'manualSync' });
+        await addActionLog(
+          `Toggled ${kind} ${name} to ${nextActive ? 'ON' : 'OFF'}`,
+          nextActive ? 'success' : 'info',
+        );
         renderAppsScreen(container);
       } catch (error) {
+        await addActionLog(
+          `Failed to toggle ${name}: ${error.message}`,
+          'error',
+        );
         alert(`Toggle failed: ${error.message}`);
         btn.removeAttribute('disabled');
+      }
+    });
+  });
+
+  container
+    .querySelector('#panicButton')
+    ?.addEventListener('click', async () => {
+      const confirmed = confirm(
+        'EMERGENCY RESET: This will delete all local rules and reset NextDNS parental controls. Continue?',
+      );
+      if (confirmed) {
+        const btn = container.querySelector('#panicButton');
+        btn.innerText = 'Resetting...';
+        btn.disabled = true;
+
+        try {
+          // 1. Clear Local Rules
+          await storage.set(STORAGE_KEYS.RULES, JSON.stringify([]));
+
+          // 2. NextDNS unblock all
+          if (isConfigured) {
+            await nextDNSApi.unblockAll();
+          }
+
+          // 3. Sync
+          chrome.runtime.sendMessage({ action: 'manualSync' });
+          renderAppsScreen(container);
+        } catch (err) {
+          alert(`Reset failed: ${err.message}`);
+          btn.innerText = 'Reset All';
+          btn.disabled = false;
+        }
+      }
+    });
+
+  container.querySelectorAll('.edit-limit').forEach((input) => {
+    input.addEventListener('change', async () => {
+      const pkg = input.getAttribute('data-pkg');
+      const val = parseInt(input.value, 10) || 0;
+      const rule = rules.find((r) => r.packageName === pkg);
+      if (rule) {
+        await updateRule(storage, {
+          ...rule,
+          dailyLimitMinutes: val,
+          mode: val > 0 ? 'limit' : rule.mode === 'limit' ? 'allow' : rule.mode,
+          updatedAt: Date.now(),
+        });
+        chrome.runtime.sendMessage({ action: 'manualSync' });
       }
     });
   });
@@ -393,6 +586,7 @@ function buildRule(id, type, name, active) {
     mode: active ? 'block' : 'allow',
     addedByUser: true,
     blockedToday: active,
+    desiredBlockingState: active,
     dailyLimitMinutes: 0,
     usedMinutesToday: 0,
     updatedAt: Date.now(),

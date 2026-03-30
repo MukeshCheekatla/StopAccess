@@ -6,3 +6,4 @@
 export * from './rules.ts';
 export * from './schedules.ts';
 export * from './insights.ts';
+export * from './sync.ts';

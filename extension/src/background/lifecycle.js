@@ -2,16 +2,19 @@
  * Extension Service Worker Entry Point (Thin Lifecycle Wrapper)
  * Implementation of "Analytics-Grade Tab Tracking" Strategy.
  */
-import { runFullEngineCycle, recordDailySnapshot } from '@focusgate/core';
+import {
+  runFullEngineCycle,
+  recordDailySnapshot,
+  NextDNSClient,
+} from '@focusgate/core';
 import { SyncOrchestrator } from '@focusgate/sync';
 import { getRules, saveRules } from '@focusgate/state/rules';
 import {
   extensionAdapter,
   extensionLogger,
   STORAGE_KEYS,
-  nextDNSApi,
 } from './platformAdapter.js';
-import * as ndnsCore from '@focusgate/core';
+import { syncDNRRules } from './dnrAdapter.js';
 
 // --- Local-First Tracking State ---
 let current = null;
@@ -185,17 +188,16 @@ async function runCycle(forceSync = false) {
 
     const syncMode = cfg.fg_sync_mode || 'hybrid';
 
-    // Authoritative API context (Flattened)
-    const apiCtx = {
-      ...nextDNSApi,
-      ...ndnsCore,
+    // Modern Client Context
+    const nextdns_cfg = {
       profileId: cfg[STORAGE_KEYS.PROFILE_ID],
       apiKey: cfg[STORAGE_KEYS.API_KEY],
     };
+    const client = new NextDNSClient(nextdns_cfg, extensionLogger.add);
 
     const ctx = {
       storage: extensionAdapter,
-      api: apiCtx,
+      api: client,
       logger: extensionLogger,
       notifications: {
         notifyBlocked: (name) => {
@@ -216,7 +218,7 @@ async function runCycle(forceSync = false) {
         await sync.onLaunch();
       } else {
         sync.ctx = ctx;
-        sync.adapter.api = apiCtx;
+        sync.adapter.client = client;
       }
 
       if (forceSync) {
@@ -225,10 +227,8 @@ async function runCycle(forceSync = false) {
 
       // Heartbeat
       try {
-        const connected = await apiCtx.testConnection(
-          apiCtx,
-          extensionLogger.add,
-        );
+        const connectedRes = await client.testConnection();
+        const connected = connectedRes.ok;
         await extensionAdapter.set(
           'nextdns_connection_status',
           connected ? 'connected' : 'error',
@@ -243,29 +243,8 @@ async function runCycle(forceSync = false) {
     // 2. Engine Logic (DNR Sync - All Levels)
     const result = await runFullEngineCycle(ctx);
 
-    // Update Sync Telemetry
-    await extensionAdapter.set(
-      'fg_last_sync_at',
-      new Date().toLocaleTimeString(),
-    );
-
     if (result?.ok && result?.domains) {
-      // Map domains to Chrome Dynamic Rules
-      const netRules = result.domains.map((d, i) => ({
-        id: i + 1,
-        priority: 1,
-        action: { type: 'block' },
-        condition: {
-          urlFilter: `*://${d}/*`,
-          resourceTypes: ['main_frame', 'sub_frame'],
-        },
-      }));
-
-      const oldRules = await chrome.declarativeNetRequest.getDynamicRules();
-      await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: oldRules.map((r) => r.id),
-        addRules: netRules,
-      });
+      await syncDNRRules(result.domains);
     }
   } catch (e) {
     extensionLogger.add('error', 'Lifecycle Engine Fail', String(e));
@@ -317,6 +296,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       usage: {},
       fg_sync_mode: 'hybrid',
     });
+    // Open full-page dashboard on install
+    const url = chrome.runtime.getURL('dist/dashboard.html');
+    chrome.tabs.create({ url });
   }
   await initActiveTab();
   chrome.alarms.create('focusgate_engine', {

@@ -1,190 +1,186 @@
 # Extension Execution Backlog
-> Written: 29 Mar 2026
-> Goal: give a buildable order of work for the next implementation sprint
+> Updated: 30 Mar 2026
+> Scope: concrete extension-first build order, with emphasis on getting to a stable and usable product surface quickly
 
----
+## Purpose
 
-## Sprint 1
+This file is the working backlog for the browser extension.
+It turns the extension product plan into an ordered list of implementation priorities.
 
-### 1. Stabilize the extension runtime
+The backlog is grouped into:
 
-- make popup imports and background imports final
-- ensure `npm run extension:check` passes
-- ensure `extension/build.js` produces a loadable unpacked extension
-- add one command in root README for loading extension in Chrome
+- `Now`: work that is blocking extension reliability or usefulness
+- `Next`: work that improves the extension into a real daily-use surface
+- `Later`: work that should wait until the foundation is stronger
 
-### 2. Unify extension storage contract
+## Now
 
-- define canonical storage keys
-- ensure popup, background, and shared services use same keys
-- remove duplicate state transforms in popup/background
+### 1. Finish typed NextDNS exports
 
-### 3. Add browser-only block engine
+Problem:
+the extension background adapter depends on shared API functions that have drifted or disappeared.
 
-- map rule list to DNR dynamic rules
-- support add, toggle, delete for custom domains
-- show active block count on dashboard
+Why it matters:
+if these functions are undefined at runtime, the extension may build but fail during actual user actions.
 
-### Deliverable
+Main work:
 
-- unpacked extension works
-- browser-only blocking works for custom domains
+- align `packages/core/src/api.ts` exports with extension callers
+- align `packages/core/src/index.ts` barrel exports
+- make return types explicit for empty-body success responses
+- remove stale call sites or rename them coherently
 
----
+Likely files:
 
-## Sprint 2
+- `packages/core/src/api.ts`
+- `packages/core/src/index.ts`
+- `extension/src/background/platformAdapter.js`
 
-### 1. Build focus mode for browser
+### 2. Finish sync-state persistence
 
-- start focus session
-- stop focus session
-- countdown persistence
-- auto-apply local browser block rules during session
+Problem:
+the extension needs stable local knowledge of what it last asked NextDNS to do and what actually succeeded.
 
-### 2. Add diagnostics panel
+Why it matters:
+without this, the UI can show toggles that look correct while the remote profile is different.
 
-- NextDNS configured / not configured
-- last sync success
-- last sync failure
-- local DNR rule count
-- current mode: browser-only / profile-wide
+Main work:
 
-### 3. Add connection test UX
+- store last sync attempt time
+- store last sync success time
+- store last error summary
+- store last-known service states
 
-- save API key/profile ID
-- test connection action
-- clear error messaging
+Likely files:
 
-### Deliverable
+- `packages/state/src/sync.ts`
+- `extension/src/background/index.js`
+- `extension/src/screens/DashboardScreen.js`
 
-- browser focus mode is reliable
-- diagnostics explain current state
+### 3. Add a real connection test button
 
----
+Problem:
+users can enter credentials but still not know whether the profile is reachable and usable.
 
-## Sprint 3
+Main work:
 
-### 1. Integrate NextDNS denylist sync
+- add a settings action that calls a lightweight profile endpoint
+- show success, unauthorized, missing profile, and network-failure states separately
+- log the result in recent actions
 
-- push custom blocked domains to denylist
-- pull existing denylist state where useful
-- keep browser rules and denylist changes explainable
+Likely files:
 
-### 2. Integrate parental control services
+- `extension/src/screens/SettingsScreen.js`
+- `packages/core/src/api.ts`
 
-- fetch services list from profile
-- support toggling service rules
-- mark these as profile-wide
+### 4. Add a recent actions feed
 
-### 3. Integrate parental control categories
+Problem:
+the extension currently has weak trust feedback.
 
-- fetch categories list
-- support toggling category rules
-- add warning copy before enabling profile-wide categories
+Main work:
 
-### Deliverable
+- log service toggles
+- log focus start/stop
+- log sync success/failure
+- log connection tests
 
-- hybrid blocking mode works
-- service/category rules are available in UI
+Likely files:
 
----
+- `extension/src/screens/DashboardScreen.js`
+- `extension/src/background/index.js`
+- `packages/state/src/history.ts`
 
-## Sprint 4
+### 5. Add recommended distractions in Apps
 
-### 1. Insights
+Problem:
+raw toggles alone are functional but not productized.
 
-- blocked request count
-- most blocked domains
-- recent focus sessions
-- latest NextDNS log highlights
+Main work:
 
-### 2. Logs and audit trail
+- curate a default list using the NextDNS parental-control service set
+- add search and grouping
+- highlight popular targets such as Instagram, YouTube, Reddit, TikTok, Discord, ChatGPT, Zoom, Spotify
 
-- local event log
-- sync events
-- rule changes
-- emergency unblock events
+Likely files:
 
-### 3. Presets
+- `extension/src/lib/appCatalog.js`
+- `extension/src/screens/AppsScreen.js`
 
-- social detox
-- deep work
-- video blackout
-- late-night shutdown
+## Next
 
-### Deliverable
+### 1. Improve Insights
 
-- extension starts feeling like a complete product
+Build a lightweight insights surface using:
 
----
+- recent blocked services
+- recent blocked domains
+- simple counts over time
 
-## Sprint 5
+### 2. Improve presets
 
-### 1. Safety and trust
+Add a small set of strong, understandable presets such as:
 
-- emergency unblock flow
-- profile-wide warning banners
-- explicit explanation of what affects all devices
+- Deep Work
+- Social Detox
+- Study Session
+- Sleep Wind-Down
 
-### 2. Polish
+### 3. Improve onboarding
 
-- clean empty states
-- onboarding
-- keyboard-safe popup UX
-- store listing preparation
+Add a first-run path that explains:
 
-### 3. Release checks
+- what the extension can do on its own
+- what requires NextDNS
+- how profile-wide toggles differ from browser-only blocking
 
-- extension structural check
-- extension build check
-- manual browser smoke checklist
+### 4. Add export/import
 
-### Deliverable
+Let users export local preset/state configuration later, once the model is stable.
 
-- launch-ready beta extension
+### 5. Strengthen scope messaging
 
----
+Every place that controls NextDNS profile-wide state should include clearer, repeated copy about the scope of the action.
 
-## Parallel Mobile Work
+## Later
 
-While extension work moves, keep Android limited to:
+### 1. Better multi-device reconciliation
 
-- build stability
-- shared rules/types/core package maintenance
-- diagnostics parity
+Eventually the extension should handle drift between:
 
-Do not expand Android feature scope until extension MVP is solid.
+- extension local state
+- Android state
+- remote NextDNS profile state
 
----
+### 2. Shared rule packs
+
+Later we can support curated packs such as:
+
+- Creator mode
+- Exam mode
+- Zero-social mode
+
+### 3. Additional browser support
+
+Only pursue this after the current Chrome-based architecture is stable and the shared code boundaries are clean enough to reuse.
 
 ## First Files To Touch
 
-### Extension runtime
+If work needs to start immediately, begin with:
 
-- `extension/src/background/lifecycle.js`
-- `extension/src/background/platformAdapter.js`
-- `extension/src/popup/popup.js`
+1. `packages/core/src/api.ts`
+2. `packages/core/src/index.ts`
+3. `extension/src/background/platformAdapter.js`
+4. `extension/src/screens/SettingsScreen.js`
+5. `extension/src/screens/AppsScreen.js`
+6. `extension/src/screens/DashboardScreen.js`
 
-### Extension UI
+## Definition Of Done For Extension Baseline
 
-- `extension/src/screens/DashboardScreen.js`
-- `extension/src/screens/AppsScreen.js`
-- `extension/src/screens/SettingsScreen.js`
+The extension reaches a healthy baseline when:
 
-### Shared packages
-
-- `packages/core/src/api.ts`
-- `packages/core/src/engine.ts`
-- `packages/state/src/rules.ts`
-- `packages/state/src/schedules.ts`
-- `packages/sync/src/index.ts`
-
----
-
-## Immediate Next 5 Tasks
-
-1. Add extension build verification to root scripts.
-2. Build rule editor for `domain | service | category`.
-3. Add DNR sync adapter for browser-only enforcement.
-4. Add NextDNS services/categories fetch layer.
-5. Add dashboard diagnostics and mode banner.
+- login and profile setup are understandable
+- service toggles hit real NextDNS state reliably
+- the UI clearly separates browser-only and profile-wide behavior
+- recent actions and health are visible
+- the extension feels like a real product surface, not only a developer tool

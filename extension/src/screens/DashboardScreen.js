@@ -1,194 +1,264 @@
-import { getRecentSnapshots, getFocusStreak } from '@focusgate/core';
 import { getRules } from '@focusgate/state/rules';
 import { extensionAdapter as storage } from '../background/platformAdapter.js';
+import { getDomainIcon } from '../lib/appCatalog.js';
 
-// --- Accurate Time Formatter (StayFree Logic) ---
-function formatTime(ms) {
-  const totalSeconds = Math.floor(ms / 1000);
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-
+function fmtTime(ms) {
+  const h = Math.floor(ms / 3600000);
+  const m = Math.floor((ms % 3600000) / 60000);
   if (h > 0) {
-    return `${h}h ${m}m ${s}s`;
+    return `${h}h ${m}m`;
   }
   if (m > 0) {
-    return `${m}m ${s}s`;
+    return `${m}m`;
   }
-  return `${s}s`;
+  return `${Math.floor(ms / 1000)}s`;
 }
 
-let cachedUsage = null;
+function fmtDate(iso) {
+  if (!iso || iso === 'Never') {
+    return 'Never';
+  }
+  try {
+    return new Date(iso).toLocaleString([], {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
+
+function openSettingsPage() {
+  const url = chrome.runtime.getURL('dist/dashboard.html') + '?tab=settings';
+  chrome.tabs.create({ url });
+}
 
 export async function renderDashboard(container) {
-  // 1. Loading Tone Change
-  if (!cachedUsage) {
-    container.innerHTML = '<div class="loader">Loading...</div>';
+  if (!container) {
+    return;
   }
 
+  container.innerHTML = '<div class="loader">Loading...</div>';
+
   try {
-    let snapshots = await getRecentSnapshots(storage, 7);
-    if (!Array.isArray(snapshots)) {
-      snapshots = [];
-    }
+    // ── Data ──────────────────────────────────────────
+    let rules = [];
+    try {
+      rules = await getRules(storage);
+    } catch {}
 
-    const streak = await getFocusStreak(storage);
-    const rules = await getRules(storage);
-    const blockedCount = rules.filter(
-      (r) => r.mode === 'block' || r.blockedToday,
-    ).length;
-
-    // Domain usage from local storage (Accuracy Layer)
-    const { usage = {} } = await chrome.storage.local.get(['usage']);
-    cachedUsage = usage;
+    const usageRes = await chrome.storage.local.get(['usage', 'fg_logs']);
+    const usage = usageRes.usage || {};
+    const fgLogs = (usageRes.fg_logs || []).slice(-3).reverse();
 
     const allTotalMs = Object.values(usage).reduce(
       (a, b) => a + (b.time || 0),
       0,
     );
-
     const domainList = Object.entries(usage)
-      .map(([domain, data]) => ({
+      .map(([domain, d]) => ({
         domain,
-        timeMs: data.time || 0,
-        sessions: data.sessions || 0,
+        timeMs: d.time || 0,
+        sessions: d.sessions || 0,
       }))
       .filter((d) => d.timeMs > 0)
       .sort((a, b) => b.timeMs - a.timeMs)
       .slice(0, 5);
 
-    const totalMs = domainList.reduce((sum, d) => sum + d.timeMs, 0);
-    const maxMins =
-      snapshots.length > 0
-        ? Math.max(...snapshots.map((s) => s.screenTimeMinutes || 0), 60)
-        : 60;
-
     const syncStatus = await storage.getString('nextdns_connection_status');
-    const syncMode = (await storage.getString('fg_sync_mode')) || 'hybrid';
-    const lastSyncAt = (await storage.getString('fg_last_sync_at')) || 'Never';
+    const syncMode = (await storage.getString('fg_sync_mode')) || 'browser';
+    const lastSync = await storage.getString('fg_last_sync_at');
+    const isNew = rules.length === 0 && !syncStatus;
 
-    let shieldClass = 'shield-inactive';
-    let shieldText = 'ENGINE INACTIVE';
+    const blockedCount = rules.filter(
+      (r) => r.blockedToday || r.mode === 'block',
+    ).length;
+    const limitCount = rules.filter((r) => r.mode === 'limit').length;
+
+    // ── Shield state ──────────────────────────────────
+    let shieldClass = '';
+    let shieldIcon = '🔴';
+    let shieldTitle = 'Not Connected';
+    let shieldSub = 'Open Settings to link your NextDNS account';
+
     if (syncStatus === 'connected') {
-      shieldClass = 'shield-active';
-      shieldText = 'ENGINE ACTIVE';
+      shieldClass = 'active';
+      shieldIcon = '🛡️';
+      shieldTitle = 'Shield Active';
+      shieldSub = `${syncMode.toUpperCase()} · Last sync ${fmtDate(lastSync)}`;
     } else if (syncStatus === 'error') {
-      shieldClass = 'shield-error';
-      shieldText = 'AUTH FAILED';
-    } else if (!syncStatus) {
-      shieldText = 'NOT CONFIGURED';
+      shieldClass = 'error';
+      shieldIcon = '⚠️';
+      shieldTitle = 'Auth Error';
+      shieldSub = 'Check your API credentials in Settings';
     }
 
+    // ── Render ────────────────────────────────────────
     container.innerHTML = `
-      <div class="shield-status ${shieldClass}">
-        <div class="shield-icon">🛡️</div>
-        <div class="shield-info">
-          <div class="shield-title">${shieldText}</div>
-          <div class="shield-sync">Mode: ${syncMode.toUpperCase()} &bull; Last Sync: ${lastSyncAt}</div>
+
+      ${
+        isNew
+          ? `
+        <div class="welcome-banner">
+          <div class="welcome-emoji">🛡️</div>
+          <div class="welcome-title">Welcome to FocusGate</div>
+          <div class="welcome-sub">Add your first block rule or connect NextDNS to start protecting your focus time.</div>
+          <div style="display:flex; gap:8px; justify-content:center; flex-wrap:wrap;">
+            <button class="btn" id="wb_settings">Connect NextDNS</button>
+            <button class="btn-outline" id="wb_apps">Add Block Rule</button>
+          </div>
+        </div>
+      `
+          : `
+        <div class="shield-bar ${shieldClass}" style="margin-bottom:14px;">
+          <div class="shield-icon">${shieldIcon}</div>
+          <div>
+            <div class="shield-label">${shieldTitle}</div>
+            <div class="shield-sub">${shieldSub}</div>
+          </div>
+          ${
+            syncStatus !== 'connected'
+              ? `
+            <button class="btn-outline" id="btn_fix_settings" style="margin-left:auto; padding:6px 12px; font-size:11px;">Fix →</button>
+          `
+              : ''
+          }
+        </div>
+      `
+      }
+
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-val">${fmtTime(allTotalMs) || '0m'}</div>
+          <div class="stat-lbl">Screen Time Today</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" style="color:var(--red);">${blockedCount}</div>
+          <div class="stat-lbl">Active Blocks</div>
         </div>
       </div>
 
-      <div class="dash-hero">
-        <div class="hero-info">
-          <div class="title">Current Streak</div>
-          <div class="sub">Keep it up! You're doing great.</div>
-        </div>
-        <div class="hero-stat">
-          <div class="val">${streak}</div>
-          <div class="lbl">DAYS FOCUS</div>
-        </div>
-      </div>
-      
-      <div class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-val">${
-            Math.floor(allTotalMs / 3600000) > 0
-              ? `${Math.floor(allTotalMs / 3600000)}h ${Math.floor(
-                  (allTotalMs % 3600000) / 60000,
-                )}m`
-              : `${Math.round(allTotalMs / 60000)}m`
-          }</span>
-          <span class="stat-lbl">Usage Today</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-val" style="color: var(--red);">${blockedCount}</span>
-          <span class="stat-lbl">Targets Blocked</span>
-        </div>
-      </div>
-
-      <div class="section-title">Dominant Domains</div>
-      <div class="app-list">
-        ${
-          domainList.length === 0
-            ? '<div class="empty-state">No domain activity tracked yet.</div>'
-            : ''
-        }
-        ${domainList
-          .map(
-            (d) => `
-          <div class="app-card" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
-            <div style="display: flex; flex-direction: column;">
-              <div style="font-weight: 700;">${d.domain}</div>
-              <div style="font-size: 11px; color: var(--muted);">${
-                d.sessions
-              } sessions</div>
+      ${
+        limitCount > 0
+          ? `
+        <div class="stats-row" style="margin-top:-4px;">
+          <div class="stat-card" style="grid-column:1/-1; flex-direction:row; display:flex; align-items:center; justify-content:space-between;">
+            <div>
+              <div class="stat-val" style="font-size:16px; color:var(--yellow);">${limitCount}</div>
+              <div class="stat-lbl">Time Limits Active</div>
             </div>
-            <div style="width: 120px;">
-              <div style="height: 4px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
-                <div style="
-                  height: 100%;
-                  width: ${totalMs ? (d.timeMs / totalMs) * 100 : 0}%;
-                  background: var(--accent);
-                  border-radius: 4px;
-                "></div>
-              </div>
-              <div style="font-size: 10px; margin-top: 4px; text-align: right; color: var(--muted); font-weight: 700;">
-                ${formatTime(d.timeMs)}
-              </div>
+            <div style="font-size:10px; color:var(--muted); text-align:right; line-height:1.5;">
+              Apps with daily limits<br>will auto-block when reached
             </div>
           </div>
-        `,
-          )
-          .join('')}
-      </div>
+        </div>
+      `
+          : ''
+      }
 
-      <div class="chart-container">
-        <div class="section-title" style="margin-top: 0;">Weekly Productivity</div>
-        <div class="bar-chart">
-          ${[...snapshots]
-            .reverse()
-            .map(
-              (s, i) => `
-            <div class="bar-col">
-              <div class="bar-track">
-                <div class="bar-fill ${
-                  i === snapshots.length - 1 ? 'active' : ''
-                }" 
-                     style="height: ${Math.max(
-                       2,
-                       (s.screenTimeMinutes / maxMins) * 100,
-                     )}%;">
+      <div class="section-label">Top Domains Today</div>
+      <div class="card" style="padding: 4px 14px;">
+        ${
+          domainList.length === 0
+            ? `
+          <div style="text-align:center; padding:20px; color:var(--muted); font-size:12px;">
+            No browsing data yet — browse some sites to see usage here.
+          </div>
+        `
+            : domainList
+                .map((d) => {
+                  const isBlocked = rules.some(
+                    (r) =>
+                      (r.customDomain || r.packageName) === d.domain &&
+                      (r.blockedToday || r.mode === 'block'),
+                  );
+                  return `
+            <div class="domain-row">
+              <div class="domain-info">
+                <img src="${getDomainIcon(
+                  d.domain,
+                )}" class="domain-icon" alt="">
+                <div>
+                  <div class="domain-name" style="${
+                    isBlocked
+                      ? 'color:var(--red);text-decoration:line-through;'
+                      : ''
+                  }">${d.domain}</div>
+                  <div class="domain-sessions">${d.sessions} session${
+                    d.sessions !== 1 ? 's' : ''
+                  }</div>
                 </div>
               </div>
-              <span class="bar-label">${s.date.slice(8, 10)}</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                ${
+                  isBlocked
+                    ? '<span style="font-size:9px; font-weight:800; color:var(--red); background:rgba(255,71,87,0.08); border:1px solid rgba(255,71,87,0.2); padding:2px 7px; border-radius:20px;">BLOCKED</span>'
+                    : ''
+                }
+                <div class="domain-time">${fmtTime(d.timeMs)}</div>
+              </div>
+            </div>
+          `;
+                })
+                .join('')
+        }
+      </div>
+
+      ${
+        fgLogs.length > 0
+          ? `
+        <div class="section-label">Engine Log</div>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          ${fgLogs
+            .map(
+              (log) => `
+            <div style="display:flex; gap:10px; padding:9px 12px; border-radius:9px; background:rgba(255,255,255,0.02); border-left:2px solid ${
+              log.type === 'error' ? 'var(--red)' : 'var(--accent)'
+            }; font-size:11px;">
+              <div style="flex:1; color:var(--text);">${log.message}</div>
+              <div style="color:var(--muted); flex-shrink:0;">${new Date(
+                log.timestamp,
+              ).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+              })}</div>
             </div>
           `,
             )
             .join('')}
         </div>
-      </div>
+      `
+          : ''
+      }
+
     `;
 
-    // 2. Real-Time Refresh (StayFree Feel)
-    if (window.__dashInterval) {
-      clearInterval(window.__dashInterval);
-    }
-    window.__dashInterval = setInterval(() => {
-      if (document.querySelector('[data-tab="dash"].active')) {
+    // ── Wire new-user buttons ─────────────────────────
+    container
+      .querySelector('#wb_settings')
+      ?.addEventListener('click', openSettingsPage);
+    container.querySelector('#wb_apps')?.addEventListener('click', () => {
+      document.querySelector('[data-tab="apps"]')?.click();
+    });
+    container
+      .querySelector('#btn_fix_settings')
+      ?.addEventListener('click', openSettingsPage);
+
+    // ── Refresh loop ──────────────────────────────────
+    clearInterval(window.__dashTimer);
+    window.__dashTimer = setInterval(() => {
+      if (document.querySelector('.nav-item[data-tab="dash"].active')) {
         renderDashboard(container);
       }
-    }, 2000);
+    }, 6000);
   } catch (e) {
-    container.innerHTML = `<div class="empty-state">Error loading dashboard: ${e.message}</div>`;
+    container.innerHTML = `
+      <div style="text-align:center; padding:40px 20px;">
+        <div style="font-size:36px; margin-bottom:12px;">⚠️</div>
+        <div style="font-weight:800; color:var(--red);">Dashboard unavailable</div>
+        <div style="font-size:11px; color:var(--muted); margin-top:6px;">${e.message}</div>
+      </div>`;
   }
 }

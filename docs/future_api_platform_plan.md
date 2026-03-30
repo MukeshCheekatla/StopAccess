@@ -1,67 +1,96 @@
 # Future API And Platform Plan
-> Scope: NextDNS integration, sync model, contracts, diagnostics, and reliability
+> Updated: 30 Mar 2026
+> Scope: shared packages, NextDNS integration, sync architecture, diagnostics, and recovery
 
-## Goal
+## Purpose
 
-Make FocusGate’s platform layer resilient enough that users trust enforcement, understand failures, and can recover without guessing.
+This document explains the platform layer we want, not just the features we want.
 
-## NextDNS Roadmap
+The main objective is to make Android and extension rely on the same trustworthy contracts instead of growing separate logic.
 
-### Connection Layer
+## Shared Package Responsibilities
 
-- Add a single typed API client contract for:
-  test connection, denylist, services, categories, logs, analytics
-- Normalize responses and errors
-- Distinguish:
-  auth error, rate limit, validation error, network failure, profile mismatch
+### `packages/core`
 
-### Sync Layer
+Should contain:
+- pure business logic
+- NextDNS client and helpers
+- domain/service/category mapping logic
+- insights logic
+- rule evaluation
 
-- Make sync intent explicit:
-  browser-only, hybrid, profile-wide
-- Track local desired state separately from remote observed state
-- Add reconciliation jobs instead of only immediate fire-and-forget sync
+Should not contain:
+- React Native UI assumptions
+- Chrome-specific UI assumptions
 
-### Diagnostics
+### `packages/state`
 
-- Persist:
-  last success, last failure, last push, last pull, changed items count
-- Add structured sync events for every operation
-- Add a user-facing explanation for partial success
+Should contain:
+- persistence helpers
+- rule/schedule/sync-state storage adapters
+- merge-safe local data helpers
 
-## Contract Work
+### `packages/sync`
 
-### Shared Types
+Should contain:
+- orchestration
+- push/pull and reconciliation flows
+- sync-state updates
+- retry-safe sequencing
 
-- tighten `AppRule`, `ScheduleRule`, sync-state, diagnostics-state, and remote-toggle types
-- add explicit types for NextDNS services/categories/logs rows
+### `packages/types`
 
-### Package Boundaries
+Should contain:
+- rule contracts
+- sync contracts
+- NextDNS entity types
+- diagnostics types
 
-- keep `packages/core` pure business logic
-- keep `packages/state` focused on persistence helpers
-- keep `packages/sync` focused on orchestration and reconciliation
-- avoid UI-specific assumptions in shared packages
+## NextDNS Client Direction
 
-## Android Platform Work
+The shared NextDNS layer should:
 
-- boot recovery hardening
-- background reliability validation
-- usage access verification flow
-- notification reliability for warnings and hard blocks
+- expose typed success/error results
+- handle empty-body success responses safely
+- distinguish:
+  auth error, validation error, rate limit, server error, network failure, profile mismatch
+- keep low-level HTTP separate from higher-level product helpers
 
-## Extension Platform Work
+## Sync Model Direction
 
-- better service-worker lifecycle recovery
-- persistent sync queue for extension-side state changes
-- stronger DNR rule management and audit
-- optional streaming/log-based verification if NextDNS usage supports it
+The sync model should track:
 
-## Suggested Build Order
+- local desired state
+- remote observed state
+- last successful sync
+- last failed sync
+- last push
+- last pull
+- changed item count
+- recent errors
 
-1. Typed NextDNS entities
-2. Unified error model
-3. Sync telemetry state
-4. Reconciliation engine
-5. Better diagnostics UI
-6. Optional streaming/log enhancements
+This should be visible in both Android and extension.
+
+## Diagnostics Direction
+
+We should be able to answer:
+
+- what the user asked the product to do
+- what was sent to NextDNS
+- what NextDNS returned
+- what the current enforced state is
+- why the UI thinks protection is active or broken
+
+## High-Priority Work
+
+1. settle exports used by Android and extension
+2. settle sync-state contract and persistence
+3. settle diagnostics presentation
+4. settle manual sync and reconciliation behavior
+
+## High-Risk Areas
+
+- silent export drift between package APIs and consumers
+- extension background logic calling missing shared methods
+- Android and extension modeling sync differently
+- stale docs referencing deleted pre-package files

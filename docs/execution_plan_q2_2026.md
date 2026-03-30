@@ -1,214 +1,252 @@
-# FocusGate Execution Plan Q2 2026
-> Written: 25 Mar 2026
-> Scope: practical build order for turning the current codebase into a launchable product
+# Execution Plan Q2 2026
+> Updated: 30 Mar 2026
+> Scope: practical build order for the next product cycle using the current monorepo
 
----
+## Purpose
 
-## Planning Rules
+This file translates the product roadmap into execution order.
+It is meant to answer:
 
-- Focus on features that improve trust, activation, and retention first.
-- Prefer shipping complete vertical slices over partial infrastructure.
-- Every phase should leave the product in a better usable state.
-- Avoid starting cloud or premium work before local reliability is solid.
+- what should be built first
+- what each phase is trying to prove
+- which files or modules are likely to move
+- what “done” looks like for each milestone
 
----
+## Working Rules
 
-## Phase A: Reliability Sprint
-**Target:** 1-2 weeks
+- finish vertical slices, not disconnected feature fragments
+- reduce silent failure before adding new complexity
+- keep Android, extension, and shared packages in sync
+- ship trust and activation improvements before premium ideas
 
-### Objectives
-- make protection survive real-world device conditions
-- remove silent failure modes
+## Phase A: Reliability Foundation
 
-### Work items
-- Add explicit sync state store:
-  last sync time, last error, pending operation count, status enum
-- Improve `nextdns.ts` with:
-  retry/backoff, better error parsing, and unified response handling
-- Extend `ruleEngine.ts` with:
-  safe resume behavior, boot restore handling, and clearer separation between rule evaluation and sync
-- Add boot recovery checks in Android:
-  restart notifications or sync tasks after reboot
-- Add persistent diagnostic entries for:
-  rule evaluation, sync attempts, sync failures, reset events, focus start/end
+### Goal
 
-### Deliverables
-- visible sync health on Settings and Dashboard
-- reproducible logs for every important enforcement action
-- reliable re-entry after reboot
+Make Android enforcement, extension enforcement, and NextDNS sync predictable enough that the rest of the roadmap has something stable to build on.
 
-### Suggested files
+### Why this comes first
+
+The repo has already shown signs of drift between:
+
+- shared package exports
+- Android app imports
+- extension background adapters
+- local install state and build tooling
+
+If this layer is unstable, onboarding, insights, and UI work will only sit on top of broken plumbing.
+
+### Main work
+
+- stabilize the shared NextDNS API surface in `packages/core/src/api.ts`
+- align sync orchestration in `packages/sync/src/index.ts`
+- settle sync persistence and last-known-state handling in `packages/state/src/sync.ts`
+- harden Android recovery flows in `android/app/src/main/java/com/focusgate/BootReceiver.kt`
+- improve structured logs and visible sync diagnostics across app and extension
+
+### Likely files
+
+- `packages/core/src/api.ts`
+- `packages/core/src/index.ts`
+- `packages/sync/src/index.ts`
+- `packages/state/src/sync.ts`
 - `src/api/nextdns.ts`
-- `src/engine/ruleEngine.ts`
 - `src/services/logger.ts`
-- `src/store/storage.ts`
-- `android/app/src/main/java/com/focusgate/BootReceiver.kt`
+- `extension/src/background/platformAdapter.js`
+- `extension/src/background/index.js`
 
----
+### Exit criteria
 
-## Phase B: Activation Sprint
-**Target:** 1 week
+- shared API exports are coherent and typed
+- manual sync works again from both Android and extension
+- sync status has meaningful states such as idle, syncing, success, error
+- recent sync failures are user-visible instead of silent
 
-### Objectives
-- reduce setup abandonment
-- create first-success experience quickly
+## Phase B: Activation And Setup
 
-### Work items
-- Build onboarding checklist state
-- Add "first rule" flow with recommended apps and starter presets
-- Add DNS verification action and clearer failure messages
-- Add notification-permission request into onboarding
-- Improve empty states across dashboard, apps, and schedule screens
+### Goal
 
-### Deliverables
-- user can complete setup without leaving the app confused
-- user gets a clear success state after first working configuration
+Make the product feel understandable and usable during the first session.
 
-### Suggested files
+### Main work
+
+- strengthen onboarding in `src/screens/OnboardingScreen.tsx`
+- improve settings clarity in `src/screens/SettingsScreen.tsx`
+- add recommended targets and starter presets in `src/screens/AppsScreen.tsx`
+- add first-success status cards on Android dashboard and extension popup
+- make NextDNS connection steps clearer in both app and extension settings
+
+### Likely files
+
 - `src/screens/OnboardingScreen.tsx`
 - `src/screens/SettingsScreen.tsx`
 - `src/screens/AppsScreen.tsx`
 - `src/screens/DashboardScreen.tsx`
+- `extension/src/screens/SettingsScreen.js`
+- `extension/src/screens/DashboardScreen.js`
 
----
+### Exit criteria
 
-## Phase C: Diagnostics And Trust Sprint
-**Target:** 1 week
+- a new user can complete setup without outside instructions
+- the app can clearly explain why blocking is not active
+- browser-only and profile-wide modes are explained in plain language
 
-### Objectives
-- help users self-diagnose issues
-- reduce support burden
+## Phase C: Diagnostics And Trust
 
-### Work items
-- Add "Protection Health" card:
-  config ok, DNS active, permission ok, last sync ok
-- Add test-block tool:
-  attempt a known test domain and log result path
-- Expand logs screen filters:
-  sync, permission, focus, schedule, rule changes
-- Add copy/export logs action for debugging
+### Goal
 
-### Deliverables
-- a user can answer "is FocusGate working right now?" from inside the app
+Help users answer “is FocusGate working right now?” without leaving the product.
 
-### Suggested files
+### Main work
+
+- add a Protection Health summary on Android and in the extension
+- add diagnostics for config health, permissions, DNS health, and last sync
+- build a recent actions feed for rule changes, sync attempts, and enforcement events
+- improve logs filtering and exportability for support/debugging
+
+### Likely files
+
 - `src/screens/SettingsScreen.tsx`
+- `src/screens/DashboardScreen.tsx`
 - `src/services/logger.ts`
 - `src/api/nextdns.ts`
+- `extension/src/screens/DashboardScreen.js`
+- `extension/src/screens/SettingsScreen.js`
+- `packages/state/src/sync.ts`
 
----
+### Exit criteria
 
-## Phase D: Commitment Features Sprint
-**Target:** 1 week
+- a user can tell whether protection is active
+- sync and permission failures are visible
+- support/debugging no longer depends only on terminal logs
 
-### Objectives
-- strengthen anti-bypass behavior
-- support serious users with higher-friction modes
+## Phase D: Commitment Features
 
-### Work items
-- Finish Guardian PIN coverage for all sensitive actions
-- Add Strict Mode cooldown logic
-- Add emergency override flow with friction and logging
-- Add warning when permissions or DNS protection are disabled
+### Goal
 
-### Deliverables
-- strong mode that feels materially different from standard screen-time controls
+Make the product materially stronger for users who want real friction.
 
-### Suggested files
+### Main work
+
+- finish guardian coverage for sensitive actions
+- add strict mode cooldown logic
+- build an emergency override flow with explicit friction
+- warn when key permissions or DNS protection are disabled
+
+### Likely files
+
 - `src/screens/SettingsScreen.tsx`
 - `src/screens/AppsScreen.tsx`
 - `src/engine/ruleEngine.ts`
 - `src/store/storage.ts`
+- `packages/types/src/index.ts`
 
----
+### Exit criteria
 
-## Phase E: Insights Sprint
-**Target:** 1-2 weeks
+- disabling or weakening protection requires deliberate action
+- users can opt into stronger commitment without ambiguity
 
-### Objectives
-- increase retention with visible progress
-- make the app useful beyond blocking
+## Phase E: Insights And Retention
 
-### Work items
-- Store daily snapshots
-- Build weekly trends screen or dashboard section
-- Show block count, time saved estimate, and streaks
-- Add simple presets:
-  deep work, sleep, social detox
+### Goal
 
-### Deliverables
-- dashboard becomes a progress surface, not only a monitoring surface
+Turn raw enforcement events into meaningful product value that keeps users coming back.
 
-### Suggested files
+### Main work
+
+- store daily snapshots and weekly summaries
+- add top distractions, block counts, and trend views
+- introduce saved-time estimate carefully and transparently
+- add preset modes such as deep work, sleep, social detox
+
+### Likely files
+
 - `src/modules/usageStats.ts`
 - `src/screens/DashboardScreen.tsx`
 - `src/screens/FocusScreen.tsx`
-- `src/types/index.ts`
+- `extension/src/screens/InsightsScreen.js`
+- `packages/types/src/index.ts`
+- `packages/state/src/history.ts`
 
----
+### Exit criteria
 
-## Phase F: Launch Sprint
-**Target:** 1 week
+- a user can understand progress across days, not only right now
+- the product offers value even when the user did not hit a hard block today
 
-### Objectives
-- make the app shippable outside the dev environment
+## Phase F: Launch Preparation
 
-### Work items
-- release signing and build docs
-- privacy policy and permissions explanation
-- Play Store listing assets
-- support email / issue channel
-- minimal product analytics
-- crash reporting integration
+### Goal
 
-### Deliverables
-- internal release candidate
-- repeatable release checklist
+Make the product releasable and supportable outside the current development flow.
 
-### Suggested files
+### Main work
+
+- stabilize release checklist and build steps
+- polish privacy and permission explanations
+- prepare app store listing assets and support materials
+- define a minimum support/debugging workflow
+
+### Likely files
+
 - `README.md`
 - `docs/release_checklist.md`
+- `docs/privacy_policy.md`
 - Android release config files
+- extension packaging files
 
----
+### Exit criteria
 
-## Acceptance Criteria By Milestone
-
-### Milestone 1: Trust
-- lint, tests, and Android debug build stay green
-- app can explain sync failures
-- reboot does not leave protection in a broken unknown state
-
-### Milestone 2: Activation
-- new user can reach first successful block in one session
-- setup blockers are surfaced with clear next actions
-
-### Milestone 3: Retention
-- users can view trends and daily summaries
-- app gives value even on days without hard blocks
-
-### Milestone 4: Launch
 - release build process is documented and repeatable
-- support and privacy surfaces exist
+- the product can be handed to an external tester without constant developer help
 
----
+## Milestones
 
-## Recommended Next Build Order
+### Milestone 1: Trust baseline
 
-1. Sync state + diagnostics foundation
-2. Onboarding checklist + first-rule wizard
-3. DNS health and test-block tooling
-4. Strict mode and guardian coverage
-5. Daily/weekly insights
-6. Release checklist and store prep
+Success means:
 
----
+- core checks pass consistently
+- the sync layer is coherent
+- Android and extension both reflect real protection state
 
-## Definition Of Done For "Real Product"
+### Milestone 2: First-session success
 
-We can call FocusGate a real product when:
-- a new user can set it up and experience a successful block quickly
-- the app clearly shows whether protection is active
-- rules survive normal device lifecycle events
-- the user has meaningful reasons to return daily
-- the app is documented and packaged for release
+Success means:
+
+- a new user can reach a first block quickly
+- setup blockers are clear and fixable from inside the product
+
+### Milestone 3: Retention baseline
+
+Success means:
+
+- users can review progress and patterns
+- dashboard and popup become return surfaces
+
+### Milestone 4: Release candidate
+
+Success means:
+
+- release docs are stable
+- privacy/support surfaces exist
+- the app is understandable enough for outside testing
+
+## Recommended Build Order
+
+1. Fix shared API and sync mismatches.
+2. Restore reliable Android and extension state visibility.
+3. Improve onboarding and settings clarity.
+4. Add protection-health and recent-actions surfaces.
+5. Add commitment features.
+6. Add insights and presets.
+7. Finish release packaging and support docs.
+
+## Definition Of Done For This Cycle
+
+This cycle is successful when:
+
+- the repo builds and runs from a clean install
+- Android and extension both use the same shared logic where appropriate
+- users can tell if FocusGate is working
+- setup feels guided instead of technical
+- the product can be shown to testers without constant hand-holding

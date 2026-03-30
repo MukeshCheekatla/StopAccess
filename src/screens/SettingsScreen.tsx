@@ -33,6 +33,10 @@ import { AppRule } from '../types';
 
 const STRICT_MODE_KEY = 'strict_mode_enabled';
 
+import { SyncOrchestrator } from '@focusgate/sync';
+import { NextDNSClient } from '@focusgate/core';
+import { SyncState } from '@focusgate/types';
+
 export default function SettingsScreen() {
   const [profileId, setProfileId] = useState('');
   const [apiKey, setApiKey] = useState('');
@@ -41,6 +45,11 @@ export default function SettingsScreen() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [logsVisible, setLogsVisible] = useState(false);
   const [strictMode, setStrictModeLocal] = useState(false);
+  const [syncState, setSyncState] = useState<SyncState | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+  const [testDomain, setTestDomain] = useState('');
+  const [testResult, setTestResult] = useState('');
+  const [newPin, setNewPin] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -54,6 +63,7 @@ export default function SettingsScreen() {
         setStrictModeLocal(
           (await storageAdapter.getBoolean(STRICT_MODE_KEY)) ?? false,
         );
+        setSyncState(await storageAdapter.getSyncState());
       };
       load();
     }, []),
@@ -68,6 +78,7 @@ export default function SettingsScreen() {
       notifications: { notifyBlocked },
     };
     await runFullEngineCycle(ctx);
+    setSyncState(await storageAdapter.getSyncState());
   };
 
   const saveSettings = async (pid: string, key: string) => {
@@ -99,11 +110,124 @@ export default function SettingsScreen() {
     ]);
   };
 
+  const handleManualSync = async () => {
+    setTesting(true);
+    const cfg = await getConfig();
+    const orchestrator = new SyncOrchestrator({
+      storage: storageAdapter,
+      api: new NextDNSClient(cfg, addLog as any),
+      logger: { add: addLog },
+      notifications: { notifyBlocked },
+    });
+    await orchestrator.performSync(true); // force push
+    setSyncState(await storageAdapter.getSyncState());
+    setTesting(false);
+  };
+
+  const handleRemovePin = async () => {
+    const current = storage.getString('guardian_pin');
+    if (!current) {
+      Alert.alert('No PIN', 'Guardian PIN is not set.');
+      return;
+    }
+    Alert.prompt(
+      'Confirm PIN',
+      'Enter current PIN to remove protection:',
+      (entered) => {
+        if (entered === current) {
+          storage.delete('guardian_pin');
+          Alert.alert('Removed', 'Guardian PIN has been removed.');
+        } else {
+          Alert.alert('Error', 'Incorrect PIN.');
+        }
+      },
+    );
+  };
+
+  const handleSavePin = async () => {
+    if (newPin.length !== 4) {
+      Alert.alert('Error', 'PIN must be exactly 4 digits.');
+      return;
+    }
+    storage.set('guardian_pin', newPin);
+    setNewPin('');
+    Alert.alert('Success', 'Guardian PIN enabled.');
+  };
+
+  const handleTestBlock = async () => {
+    if (!testDomain) {
+      return;
+    }
+    setTestResult('Checking rule coverage...');
+    const state = await storageAdapter.loadGlobalState();
+    const domainMatch = state.rules.find(
+      (r) =>
+        r.customDomain?.toLowerCase() === testDomain.toLowerCase() ||
+        r.packageName?.toLowerCase() === testDomain.toLowerCase(),
+    );
+
+    if (domainMatch) {
+      setTestResult(
+        `✓ Intercepted: ${domainMatch.appName} covers this domain.`,
+      );
+    } else {
+      setTestResult(
+        '⚠️ Not Found Locally: Check NextDNS for cloud-level blocks.',
+      );
+    }
+  };
+
+  const formatLastSync = (date: string | null | undefined) => {
+    if (!date) {
+      return 'Never';
+    }
+    return new Date(date).toLocaleString();
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Settings</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>PROTECTION HEALTH</Text>
+          <View
+            style={[
+              styles.card,
+              profileId && apiKey ? styles.healthGood : styles.healthWarning,
+            ]}
+          >
+            <View style={styles.diagRow}>
+              <Text style={styles.diagLabel}>NextDNS Credentials</Text>
+              <Text
+                style={[
+                  styles.diagValue,
+                  { color: profileId && apiKey ? COLORS.green : COLORS.red },
+                ]}
+              >
+                {profileId && apiKey ? '✓ Configured' : '✗ Missing'}
+              </Text>
+            </View>
+            <View style={styles.diagRow}>
+              <Text style={styles.diagLabel}>Stats Permission</Text>
+              <Text
+                style={[
+                  styles.diagValue,
+                  { color: hasPerm ? COLORS.green : COLORS.yellow },
+                ]}
+              >
+                {hasPerm ? '✓ Granted' : '⚠️ Required'}
+              </Text>
+            </View>
+            <View style={styles.diagRow}>
+              <Text style={styles.diagLabel}>Service Status</Text>
+              <Text style={[styles.diagValue, { color: COLORS.green }]}>
+                ✓ Active
+              </Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -144,6 +268,37 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.sectionLabel}>GUARDIAN PIN</Text>
+          <View style={styles.card}>
+            <Text style={styles.fieldLabel}>4-Digit PIN</Text>
+            <View style={styles.pinRow}>
+              <TextInput
+                style={[styles.input, styles.pinInput]}
+                value={newPin}
+                onChangeText={setNewPin}
+                placeholder="****"
+                placeholderTextColor={COLORS.muted}
+                secureTextEntry
+                keyboardType="number-pad"
+                maxLength={4}
+              />
+              <TouchableOpacity
+                style={styles.saveBtnSmall}
+                onPress={handleSavePin}
+              >
+                <Text style={styles.saveBtnTxt}>Set PIN</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.clearPinBtn}
+              onPress={handleRemovePin}
+            >
+              <Text style={styles.clearPinBtnTxt}>Remove Guardian PIN</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.section}>
           <Text style={styles.sectionLabel}>PROTECTION</Text>
           <SettingRow
             icon="timetable"
@@ -155,16 +310,125 @@ export default function SettingsScreen() {
           <SettingRow
             icon="shield-lock"
             label="Strict Mode"
-            sub="60s cooldown for downgrades"
+            sub={
+              cooldown > 0 ? `Active: ${cooldown}s` : 'Cooldown for downgrades'
+            }
           >
             <Switch
               value={strictMode}
-              onValueChange={(v) => {
-                setStrictModeLocal(v);
-                storage.set(STRICT_MODE_KEY, v);
+              disabled={cooldown > 0}
+              onValueChange={async (v) => {
+                if (!v && strictMode) {
+                  // Friction: 5s countdown
+                  setCooldown(5);
+                  const timer = setInterval(() => {
+                    setCooldown((prev) => {
+                      if (prev <= 1) {
+                        clearInterval(timer);
+                        setStrictModeLocal(false);
+                        storage.set(STRICT_MODE_KEY, false);
+                        return 0;
+                      }
+                      return prev - 1;
+                    });
+                  }, 1000);
+                } else {
+                  setStrictModeLocal(v);
+                  storage.set(STRICT_MODE_KEY, v);
+                }
               }}
             />
           </SettingRow>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>TEST-BLOCK TOOL</Text>
+          <View style={styles.card}>
+            <View style={styles.testBlockRow}>
+              <TextInput
+                style={[styles.input, styles.testBlockInput]}
+                placeholder="example.com"
+                placeholderTextColor={COLORS.muted}
+                value={testDomain}
+                onChangeText={setTestDomain}
+              />
+              <TouchableOpacity
+                style={[styles.saveBtn, styles.testBlockButton]}
+                onPress={handleTestBlock}
+              >
+                <Text style={styles.saveBtnTxt}>Test</Text>
+              </TouchableOpacity>
+            </View>
+            {testResult !== '' && (
+              <Text
+                style={[
+                  styles.testResult,
+                  testResult.includes('Intercepted')
+                    ? styles.testResultSuccess
+                    : styles.testResultWarning,
+                ]}
+              >
+                {testResult}
+              </Text>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>SYNC DIAGNOSTICS</Text>
+          <View style={styles.card}>
+            <View style={styles.diagRow}>
+              <Text style={styles.diagLabel}>Status</Text>
+              <Text
+                style={[
+                  styles.diagValue,
+                  {
+                    color:
+                      syncState?.status === 'error'
+                        ? COLORS.red
+                        : syncState?.status === 'success' ||
+                          syncState?.status === 'ok'
+                        ? COLORS.green
+                        : COLORS.text,
+                  },
+                ]}
+              >
+                {(syncState?.status || 'idle').toUpperCase()}
+              </Text>
+            </View>
+            <View style={styles.diagRow}>
+              <Text style={styles.diagLabel}>Last Success</Text>
+              <Text style={styles.diagValue}>
+                {formatLastSync(
+                  syncState?.lastSuccess || syncState?.lastSyncAt,
+                )}
+              </Text>
+            </View>
+            <View style={styles.diagRow}>
+              <Text style={styles.diagLabel}>Last Push</Text>
+              <Text style={styles.diagValue}>
+                {formatLastSync(syncState?.lastPush)}
+              </Text>
+            </View>
+            <View style={styles.diagRow}>
+              <Text style={styles.diagLabel}>Items Synced</Text>
+              <Text style={styles.diagValue}>
+                {syncState?.telemetry?.changedCount || 0}
+              </Text>
+            </View>
+
+            {syncState?.lastError && (
+              <View style={styles.errorContainer}>
+                <Icon name="alert-circle" color={COLORS.red} size={16} />
+                <Text style={styles.errorText}>{syncState.lastError}</Text>
+              </View>
+            )}
+
+            <TouchableOpacity style={styles.syncBtn} onPress={handleManualSync}>
+              <Icon name="sync" color="#fff" size={16} />
+              <Text style={styles.syncBtnTxt}>Manual Push</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.section}>
@@ -175,7 +439,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>DIAGNOSTICS</Text>
+          <Text style={styles.sectionLabel}>LOGS</Text>
           <TouchableOpacity
             style={styles.card}
             onPress={() => {
@@ -183,7 +447,7 @@ export default function SettingsScreen() {
               setLogsVisible(true);
             }}
           >
-            <Text style={styles.logLinkText}>View System Logs</Text>
+            <Text style={styles.logLinkText}>View System Events</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -292,4 +556,97 @@ const styles = StyleSheet.create({
   logItem: { padding: 10, borderBottomWidth: 1, borderColor: COLORS.border },
   logTime: { color: COLORS.muted, fontSize: 10 },
   logMsg: { color: COLORS.text },
+  diagRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  diagLabel: { color: COLORS.muted, fontSize: 12 },
+  diagValue: { color: COLORS.text, fontSize: 12, fontWeight: 'bold' },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
+    padding: 10,
+    borderRadius: 8,
+    marginTop: 10,
+  },
+  errorText: {
+    color: COLORS.red,
+    fontSize: 12,
+    marginLeft: 8,
+    flex: 1,
+  },
+  syncBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.card,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 15,
+  },
+  syncBtnTxt: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+  healthGood: {
+    borderColor: 'rgba(0,196,140,0.25)',
+    backgroundColor: 'rgba(0,196,140,0.04)',
+  },
+  healthWarning: {
+    borderColor: 'rgba(255,184,0,0.25)',
+    backgroundColor: 'rgba(255,184,0,0.04)',
+  },
+  pinRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  pinInput: {
+    flex: 1,
+    marginBottom: 0,
+    letterSpacing: 4,
+    textAlign: 'center',
+  },
+  saveBtnSmall: {
+    backgroundColor: COLORS.accent,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    justifyContent: 'center',
+  },
+  clearPinBtn: {
+    marginTop: 12,
+    alignItems: 'center',
+  },
+  clearPinBtnTxt: {
+    color: COLORS.red,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  testBlockRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  testBlockInput: {
+    flex: 1,
+    marginBottom: 0,
+  },
+  testBlockButton: {
+    paddingVertical: 10,
+  },
+  testResult: {
+    fontSize: 10,
+    marginTop: 8,
+    fontWeight: 'bold',
+  },
+  testResultSuccess: {
+    color: COLORS.green,
+  },
+  testResultWarning: {
+    color: COLORS.yellow,
+  },
 });

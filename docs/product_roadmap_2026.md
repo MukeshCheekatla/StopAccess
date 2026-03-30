@@ -1,277 +1,290 @@
-# FocusGate Product Roadmap 2026
-> Written: 25 Mar 2026
-> Goal: turn FocusGate from a working prototype into a durable Android product people trust daily
+# Product Roadmap 2026
+> Updated: 30 Mar 2026
+> Scope: product direction for the Android app, browser extension, shared packages, and release posture
 
----
+## Purpose
 
-## Product Positioning
+This file is the highest-level product document for the current FocusGate repo.
+It should answer four questions:
 
-**FocusGate is not just a timer app.**
-It should become a **commitment device** for people who want their app limits to actually hold.
+1. What kind of product FocusGate is trying to become.
+2. Which user problems matter most.
+3. Which surfaces matter most in 2026.
+4. In what order we should invest product effort.
 
-### Core promise
-- Pick the apps that derail you.
-- Set clear rules once.
-- Let FocusGate enforce them with very low friction.
+This is not a sprint backlog.
+This file is the decision frame that the execution plans should inherit.
 
-### Product pillars
-- **Trustworthy enforcement**: blocks should feel predictable, fast, and hard to bypass accidentally.
-- **Low mental load**: setup should be simple, status should be obvious, and rules should feel easy to understand.
-- **Behavior change support**: the app should help users improve habits, not just punish them.
-- **Release readiness**: reliability, privacy, onboarding, and support surfaces must feel production-grade.
+## Product Thesis
 
----
+FocusGate should become a commitment product for people who are serious about reducing distraction, not a generic usage-tracking app.
 
-## What "Real Product" Means For FocusGate
+The product should help users:
 
-We should treat these as the thresholds between "cool demo" and "real app":
+- identify the distractions that derail them most often
+- define explicit rules around those distractions
+- enforce those rules with real friction
+- understand clearly when protection is active, broken, or bypassed
+- build a repeatable focus routine rather than relying on momentary willpower
 
-### 1. Reliability
-- Rules keep applying after reboot.
-- Limits reset correctly every day.
-- Focus sessions survive app backgrounding.
-- NextDNS sync failures are visible and recoverable.
+## User Problem
 
-### 2. Clarity
-- The user always knows:
-  - whether protection is active
-  - which apps are controlled
-  - what is blocked right now
-  - why something is blocked
-  - what needs fixing if protection is not working
+Most digital wellbeing tools fail for one of three reasons:
 
-### 3. Retention
-- The app should create a daily loop:
-  - morning setup or carry-over rules
-  - day progress and warnings
-  - end-of-day summary
-  - next-day reset and restart
+- they only show usage after the fact
+- they are too easy to disable in the moment
+- they are unclear about what they are actually enforcing
 
-### 4. Defensibility
-- FocusGate must be meaningfully harder to bypass than a normal screen-time timer.
-- The app should lean into its DNS + rules-engine identity rather than copying generic wellness apps.
+FocusGate should win by being stricter, clearer, and easier to trust.
 
----
+## Product Surfaces
 
-## Current State Assessment
+### Android app
 
-Based on the codebase today, FocusGate already has:
-- real Android build
-- installed app discovery
-- rule engine with limits, schedules, and focus mode hooks
-- NextDNS configuration and block sync
-- onboarding, dashboard, apps, schedule, focus, and settings surfaces
-- notifications and tests
+Role in the product:
 
-The biggest gaps now are not basic screens. They are:
-- enforcement resilience
-- user trust and diagnostics
-- anti-bypass depth
-- meaningful history and insights
-- onboarding quality and activation
-- release and monetization readiness
+- system-level controller for installed apps
+- permissions and diagnostics center
+- setup and onboarding surface
+- place where stricter commitment features live
 
----
+### Browser extension
 
-## Roadmap Overview
+Role in the product:
 
-## Phase 1: Product Hardening
-**Theme:** make the app dependable enough for daily use
+- fastest daily control surface
+- easiest way to block browser distractions
+- clearest place to expose NextDNS service/category toggles
+- lightweight insights and recent-actions surface
 
-### Outcomes
-- users can trust that rules keep working
-- failures are visible instead of silent
-- support/debugging becomes possible
+### Shared packages
 
-### Features
-- Boot-time reactivation:
-  restore rules, schedules, focus state, and notifications after device reboot
-- Background resilience:
-  strengthen rule-engine lifecycle and document battery optimization handling
-- Sync status model:
-  show `idle`, `syncing`, `success`, `error`, and last successful sync time
-- Retry and backoff:
-  queue failed NextDNS writes and retry safely
-- Local audit trail:
-  structured event history for rule changes, sync attempts, blocks, unblocks, and resets
-- Safe reset handling:
-  guarantee midnight reset behavior even after app kills or time-zone changes
+Role in the product:
 
-### Exit criteria
-- app survives reboot and resumes protection
-- sync errors are user-visible
-- block/unblock state is explainable from logs
+- typed API contracts
+- rule definitions
+- sync orchestration
+- storage shapes
+- shared diagnostics and domain/app catalogs
 
----
+The shared packages are product infrastructure.
+If they are unstable, both Android and the extension feel unreliable.
 
-## Phase 2: Activation And Onboarding
-**Theme:** help new users reach first success quickly
+## Product Principles
 
-### Outcomes
-- users finish setup
-- users understand how FocusGate works
-- users feel the first block working on day one
+### Principle 1: Trust is a feature
 
-### Features
-- Activation checklist:
-  NextDNS connected, usage access granted, notification permission granted, first app added
-- Guided "first rule" wizard:
-  suggest common distracting apps and recommended starter limits
-- Connectivity assistant:
-  explain profile ID, API key, and how to verify DNS is active
-- Test block flow:
-  one-tap "verify FocusGate is working" action
-- Empty-state education:
-  each major screen should guide the next useful step
+Users must be able to answer:
 
-### Exit criteria
-- a new user can install and reach a working block without outside help
-- the app can clearly explain why setup is incomplete
+- Is protection active right now?
+- What is being blocked?
+- Why is it being blocked?
+- If something failed, what failed?
 
----
+Any behavior that is technically working but unclear to the user is still a product problem.
 
-## Phase 3: Anti-Bypass And Commitment Features
-**Theme:** make FocusGate meaningfully stricter than default digital-wellbeing tools
+### Principle 2: First successful block is the activation moment
 
-### Outcomes
-- users can choose stronger commitment modes
-- casual bypass routes become harder
+The most important early product moment is not installation.
+It is the first time the user sees a distracting app or site actually blocked in a way they understand.
 
-### Features
-- DNS health monitor:
-  detect whether NextDNS protection is currently active
-- Strict Mode:
-  editing or disabling rules has a delay or cooldown
-- Guardian PIN:
-  fully protect rule editing, settings, and emergency overrides
-- Tamper signals:
-  warn when permissions are revoked or protection state changes
-- Frictionful override flow:
-  require multiple confirmation steps for emergency unblock
-- Optional accountability mode:
-  export weekly report or share status with a trusted partner later
+### Principle 3: Strong modes must be explicit
 
-### Exit criteria
-- bypassing the app requires deliberate effort, not one quick toggle
-- high-commitment users can opt into stronger protections
+Whenever we use NextDNS services, categories, or denylist operations that affect a whole profile, the product must clearly explain:
 
----
+- this action is profile-wide
+- it may affect other devices on the same profile
+- browser-only and profile-wide are different enforcement modes
 
-## Phase 4: Retention And Behavior Change
-**Theme:** make users want to keep the app installed
+### Principle 4: The product should reward return usage
 
-### Outcomes
-- users can see progress
-- users learn from patterns
-- FocusGate becomes part of a routine
+If FocusGate only blocks, users will install it in a moment of frustration and then uninstall it when they feel punished.
 
-### Features
-- Daily review:
-  "what got blocked", "time saved", "closest calls", "top distractions"
-- Weekly trends:
-  app usage and limit-hit history over time
-- Streaks and consistency:
-  days where limits held, focus sessions completed, blocked apps avoided
-- Goal presets:
-  deep work, exam prep, sleep, social detox, weekend reset
-- Contextual nudges:
-  smarter warnings before likely overuse windows
-- Session notes:
-  optional short reflection after focus sessions
+The product must also help users:
 
-### Exit criteria
-- the app provides value even when users are not currently being blocked
-- the dashboard feels like a habit tool, not just a status screen
+- see progress
+- understand patterns
+- maintain routines
+- recover after bad days
 
----
+## Target User Segments
 
-## Phase 5: Premium Product Layer
-**Theme:** add reasons to pay without weakening the core free product
+### Segment A: Serious self-control users
 
-### Good premium candidates
-- advanced analytics and weekly reports
-- cloud backup and multi-device restore
-- schedule templates and presets
-- accountability features
-- stronger strict-mode options
-- custom categories and advanced rule combinations
+These users actively want friction.
+They care about anti-bypass behavior, strict mode, guardian controls, and confidence that rules keep working.
 
-### Free product should still include
+### Segment B: Students and deep-work users
+
+These users want study sessions, work sessions, preset modes, and quick browser blocking.
+They value clarity and quick setup more than maximum strictness at first.
+
+### Segment C: Digital detox and social-media reducers
+
+These users want easy toggles for Instagram, YouTube, TikTok, Reddit, and browser distractions.
+They need the extension and simple presets more than dense configuration.
+
+## 2026 Strategic Priorities
+
+### Priority 1: Reliability
+
+This includes:
+
+- Android reboot recovery
+- permission-loss detection
+- safe sync retries
+- extension startup resilience
+- consistent state between UI and enforcement layers
+
+### Priority 2: Setup and activation
+
+This includes:
+
+- better onboarding
+- stronger empty states
+- guided first-rule flow
+- setup checklists
+- connection tests for NextDNS
+
+### Priority 3: Trust and explainability
+
+This includes:
+
+- visible sync status
+- diagnostics center
+- recent actions feed
+- health checks
+- profile-wide warning language
+
+### Priority 4: Retention and behavior support
+
+This includes:
+
+- daily and weekly insights
+- streaks and saved-time narratives
+- presets
+- focus workflows
+- relapse visibility
+
+### Priority 5: Launch readiness
+
+This includes:
+
+- release checklists
+- stable build process
+- privacy documentation
+- troubleshooting docs
+- sane support flows
+
+## Roadmap Phases
+
+### Phase 1: Hardening the foundation
+
+Objective:
+make the existing Android app, extension, and sync layer trustworthy enough to build on.
+
+Expected outcomes:
+
+- fewer silent failures
+- better recovery after reboot or app restart
+- consistent shared API surface
+- clear sync status and logs
+
+### Phase 2: Activation and setup quality
+
+Objective:
+make it easy for a new user to go from install to first meaningful block.
+
+Expected outcomes:
+
+- setup feels guided instead of technical
+- empty states show next actions
+- users understand browser-only vs profile-wide behavior
+- connection failures are actionable
+
+### Phase 3: Stronger commitment and anti-bypass
+
+Objective:
+make FocusGate stronger than default digital wellbeing tools.
+
+Expected outcomes:
+
+- editing rules is harder in strict mode
+- guardian controls cover the important escape hatches
+- bypass signals are surfaced clearly
+- users can choose the right level of enforcement
+
+### Phase 4: Insights and habit loop
+
+Objective:
+make the product useful on an ongoing basis, not only during setup or crisis moments.
+
+Expected outcomes:
+
+- users can review what happened each day
+- they can see patterns across the week
+- the dashboard becomes a return surface
+- focus sessions feel part of a routine
+
+### Phase 5: Launch and packaging
+
+Objective:
+make the product shippable, supportable, and legible to outside users.
+
+Expected outcomes:
+
+- repeatable build process
+- clean release docs
+- clear privacy and permissions messaging
+- basic support infrastructure
+
+## What “Real Product” Means Here
+
+We should consider FocusGate a real product when all of the following are true:
+
+- a new user can reach first successful blocking without guesswork
+- Android and extension behavior are understandable
+- rules survive normal lifecycle events
+- the user can see whether protection is healthy
+- the product offers a reason to return daily
+- release and support processes are documented
+
+## Monetization Direction
+
+The free product should include:
+
+- core blocking
+- basic focus sessions
 - app selection
-- usage limits
-- focus sessions
-- schedule blocking
-- notifications
+- schedules
 - core diagnostics
+- browser-only blocking
 
-### Monetization principle
-- charge for depth, automation, and history
-- do not charge for the app simply working
+Potential paid features later:
 
----
+- deeper analytics
+- advanced presets
+- accountability features
+- history export and cloud backup
+- stronger strict-mode variants
 
-## Phase 6: Launch Readiness
-**Theme:** remove the reasons a real user would uninstall or distrust the app
+Principle:
+charge for depth and advanced workflows, not for the product simply functioning.
 
-### Must-have release items
-- polished app icon and splash
-- stable release build pipeline
-- privacy policy and permission explanations
-- Play Store copy and screenshots
-- FAQ for NextDNS setup and common failures
-- crash logging and support email/contact path
-- basic analytics for activation and retention funnels
+## Risks
 
-### Metrics to track
-- onboarding completion rate
-- percent of users who add at least one rule
-- percent who connect NextDNS successfully
-- first successful block rate
-- day-1 / day-7 retention
-- sync failure rate
-- notification open rate
+### Technical risks
 
----
+- NextDNS remains an external dependency and profile-wide changes can confuse users
+- Android background restrictions vary by vendor and can damage trust
+- shared package drift can break both app and extension at once
 
-## Recommended Priority Order
+### Product risks
 
-### Do next
-1. Product hardening
-2. Activation/onboarding
-3. DNS health + diagnostics
-4. strict mode + guardian flows
-
-### Do after that
-1. daily/weekly insights
-2. presets and templates
-3. release pipeline and store assets
-
-### Do later
-1. cloud sync
-2. accountability features
-3. premium packaging
-
----
-
-## Product Risks
-
-### Technical
-- NextDNS dependency remains a core external risk
-- Android background restrictions may hurt reliability on some devices
-- domain mapping quality affects perceived blocking quality
-
-### Product
-- if setup feels too technical, many users will churn before first value
-- if enforcement feels weak, users will not trust the app
-- if the app feels punitive without insights, retention will suffer
-
-### Strategic response
-- make trust and clarity first-class features
-- design for first successful block as the activation moment
-- add insight and progress loops before expanding feature surface too far
-
----
+- setup may still feel too technical for casual users
+- strong controls may feel punitive if not balanced with insight and clarity
+- profile-wide behavior may surprise users who share a DNS profile
 
 ## One-Sentence Direction
 
-**FocusGate should become the Android app people install when they are serious about making their limits real.**
+FocusGate should become the tool people use when they want their digital limits to be real, visible, and hard to casually bypass.

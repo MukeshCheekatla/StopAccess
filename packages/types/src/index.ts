@@ -19,6 +19,8 @@ export interface AppRule {
   warningSent?: boolean;
   updatedAt?: number;
   changeId?: string;
+  desiredBlockingState?: boolean;
+  lastObservedState?: boolean;
 }
 
 export interface AppUsageStat {
@@ -67,14 +69,86 @@ export interface NextDNSConfig {
   profileId: string;
 }
 
+// --- NextDNS Entities ---
+
+export interface NextDNSEntity {
+  id: string;
+  name?: string;
+  active?: boolean;
+}
+
+export interface NextDNSService extends NextDNSEntity {
+  id: string;
+  name?: string;
+  active?: boolean;
+}
+
+export interface NextDNSCategory extends NextDNSEntity {
+  id: string;
+  name?: string;
+  active?: boolean;
+}
+
+export interface NextDNSLogEntry {
+  timestamp: string;
+  domain: string;
+  client?: string;
+  status: 'allowed' | 'blocked' | 'whitelisted';
+  reasons?: string[];
+  device?: string;
+}
+
+export interface NextDNSAnalyticsItem {
+  id: string; // domain
+  queries: number;
+}
+
+// --- Error Model ---
+
+export type NextDNSErrorCode =
+  | 'auth_error'
+  | 'rate_limit'
+  | 'validation_error'
+  | 'network_failure'
+  | 'profile_mismatch'
+  | 'server_error'
+  | 'unknown';
+
+export interface NextDNSError {
+  code: NextDNSErrorCode;
+  message: string;
+  status?: number;
+  details?: any;
+}
+
+export type NextDNSResponse<T> =
+  | { ok: true; data: T; error?: never }
+  | { ok: false; data?: never; error: NextDNSError };
+
+// --- Sync & Telemetry ---
+
 export type SyncStatus = 'idle' | 'syncing' | 'error' | 'success' | 'ok';
+
+export interface SyncTelemetry {
+  lastSuccess?: string;
+  lastFailure?: string;
+  lastPush?: string;
+  lastPull?: string;
+  changedCount: number;
+  errors: NextDNSError[];
+}
 
 export interface SyncState {
   status: SyncStatus;
   lastSyncAt: string | null;
   lastAttemptAt: string | null;
   lastError: string | null;
+  lastSuccess?: string;
+  lastFailure?: string;
+  lastPush?: string;
+  lastPull?: string;
   pendingOps: number;
+  telemetry?: SyncTelemetry;
 }
 
 export interface SyncContext {

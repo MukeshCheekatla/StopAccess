@@ -16,7 +16,10 @@
     "test": "jest",
     "typecheck": "tsc --noEmit",
     "tree": "node docs/update_tree.js",
-    "extension:check": "node scripts/check-extension.mjs"
+    "extension:check": "node scripts/check-extension.mjs",
+    "verify:extension": "npm run build -w extension && npm run check -w extension",
+    "verify:all": "npm run typecheck && npm run verify:extension && npm run lint",
+    "doctor": "node scripts/doctor.mjs"
   },
   "dependencies": {
     "@notifee/react-native": "7.8.2",

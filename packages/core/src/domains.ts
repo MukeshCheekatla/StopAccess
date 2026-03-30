@@ -31,6 +31,13 @@ const APP_DOMAINS: Record<string, string> = {
   'com.yahoo.mobile.client.android.mail': 'yahoo.com',
   'com.skype.raider': 'skype.com',
   'com.viber.voip': 'viber.com',
+  'com.quora.android': 'quora.com',
+  'com.medium.reader': 'medium.com',
+  'com.tripadvisor.tripadvisor': 'tripadvisor.com',
+  'com.booking': 'booking.com',
+  'com.ebay.mobile': 'ebay.com',
+  'com.duolingo': 'duolingo.com',
+  'com.ted.android': 'ted.com',
 };
 
 export const NEXTDNS_SERVICE_IDS = [

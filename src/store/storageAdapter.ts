@@ -6,6 +6,8 @@ import { MMKV } from 'react-native-mmkv';
 import { AppRule, GlobalState } from '../types';
 import * as rulesState from '@focusgate/state/rules';
 import * as schedulesState from '@focusgate/state/schedules';
+import * as syncState from '@focusgate/state/sync';
+import { SyncState } from '@focusgate/types';
 
 export const storage = new MMKV({ id: 'focusgate-storage' });
 
@@ -34,5 +36,13 @@ export const storageAdapter = {
 
   saveRules: async (rules: AppRule[]): Promise<void> => {
     await rulesState.saveRules(storageAdapter, rules);
+  },
+
+  getSyncState: async (): Promise<SyncState> => {
+    return syncState.getSyncState(storageAdapter);
+  },
+
+  saveSyncState: async (state: SyncState): Promise<void> => {
+    await syncState.saveSyncState(storageAdapter, state);
   },
 };

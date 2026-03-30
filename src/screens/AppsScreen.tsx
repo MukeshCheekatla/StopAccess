@@ -387,6 +387,34 @@ export default function AppsScreen() {
             </Text>
           </View>
         }
+        ListFooterComponent={
+          <View style={styles.footer}>
+            <Text style={styles.footerTitle}>Quick Add Recommended</Text>
+            <View style={styles.quickAddGrid}>
+              {[
+                { name: 'Facebook', id: 'com.facebook.katana' },
+                { name: 'Instagram', id: 'com.instagram.android' },
+                { name: 'TikTok', id: 'com.zhiliaoapp.musically' },
+                { name: 'YouTube', id: 'com.google.android.youtube' },
+                { name: 'X / Twitter', id: 'com.twitter.android' },
+                { name: 'Reddit', id: 'com.reddit.frontpage' },
+                { name: 'Netflix', id: 'com.netflix.mediaclient' },
+              ]
+                .filter((rec) => !rules.some((r) => r.packageName === rec.id))
+                .map((rec) => (
+                  <TouchableOpacity
+                    key={rec.id}
+                    style={styles.quickAddBtn}
+                    onPress={() =>
+                      onAddApp({ appName: rec.name, packageName: rec.id })
+                    }
+                  >
+                    <Text style={styles.quickAddBtnTxt}>+ {rec.name}</Text>
+                  </TouchableOpacity>
+                ))}
+            </View>
+          </View>
+        }
       />
 
       <TouchableOpacity
@@ -811,4 +839,32 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,71,87,0.4)',
   },
   dimmed: { opacity: 0.45 },
+  footer: {
+    padding: SPACING.lg,
+    paddingBottom: 120,
+    alignItems: 'center',
+  },
+  footerTitle: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: SPACING.md,
+  },
+  quickAddGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'center',
+  },
+  quickAddBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  quickAddBtnTxt: { color: COLORS.text, fontSize: 11, fontWeight: '600' },
 });

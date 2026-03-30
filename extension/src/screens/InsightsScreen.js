@@ -3,6 +3,7 @@ import {
   extensionAdapter as storage,
   nextDNSApi,
 } from '../background/platformAdapter.js';
+import { getDomainIcon } from '../lib/appCatalog.js';
 
 function formatTimeAgo(timestamp) {
   const diff = Date.now() - new Date(timestamp).getTime();
@@ -82,12 +83,32 @@ export async function renderInsightsScreen(container) {
           <div class="stat-lbl">Daily Average</div>
         </div>
         <div class="stat-card">
-          <div class="stat-val" style="color: var(--red);">${
-            topBlocked.reduce((acc, curr) => acc + (curr.queries || 0), 0) ||
-            blockedLogs.length ||
-            0
-          }</div>
-          <div class="stat-lbl">Network Blocks</div>
+          <div class="stat-val" style="color: var(--accent);">
+            ${Math.round(
+              (snapshots.filter((s) => (s.screenTimeMinutes || 0) < 60).length /
+                Math.max(1, snapshots.length)) *
+                100,
+            )}%
+          </div>
+          <div class="stat-lbl">Focus Consistency</div>
+        </div>
+      </div>
+
+      <div class="app-card" style="margin-bottom: 24px; padding: 16px; display: flex; align-items: center; gap: 16px; background: rgba(124, 111, 247, 0.04); border-color: rgba(124, 111, 247, 0.2);">
+        <div style="font-size: 32px;">📊</div>
+        <div style="flex: 1;">
+          <div style="font-weight: 800; font-size: 13px; color: var(--accent); margin-bottom: 2px;">Your Deep Work Summary</div>
+          <div style="font-size: 11px; color: var(--muted); line-height: 1.4;">
+            ${
+              snapshots.length > 3
+                ? `Over the last ${
+                    snapshots.length
+                  } days, you stayed focused on average for <strong>${formatTimeShort(
+                    avgMins * 60000,
+                  )}</strong> per day. `
+                : 'Keep using FocusGate to build your concentration history and see weekly insights.'
+            }
+          </div>
         </div>
       </div>
 
@@ -133,9 +154,16 @@ export async function renderInsightsScreen(container) {
           ${topBlocked
             .map(
               (d) => `
-            <div class="app-card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 10px 14px;">
-              <div style="font-weight: 700; font-size: 12px;">${d.domain}</div>
-              <div class="badge" style="background: rgba(255, 71, 87, 0.1); color: var(--red); border: 1px solid rgba(255, 71, 87, 0.2);">
+            <div class="app-card" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; padding: 10px 14px; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                <img src="${getDomainIcon(
+                  d.domain,
+                )}" alt="" class="app-icon" style="width: 20px; height: 20px;">
+                <div style="font-weight: 700; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${
+                  d.domain
+                }</div>
+              </div>
+              <div class="badge" style="background: rgba(255, 71, 87, 0.1); color: var(--red); border: 1px solid rgba(255, 71, 87, 0.2); flex-shrink: 0;">
                 ${d.queries} BLOCKS
               </div>
             </div>
@@ -155,20 +183,25 @@ export async function renderInsightsScreen(container) {
             : blockedLogs
                 .map(
                   (log) => `
-            <div style="padding: 10px 0; border-bottom: 1px dashed var(--border); display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <div style="display: flex; flex-direction: column; gap: 2px;">
-                 <span style="font-weight: 700; color: var(--red); font-size: 11px;">${
-                   log.domain
-                 }</span>
-                 <span style="color: var(--muted); font-size: 9px; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
-                   ${
-                     log.reasons?.[0]?.name ||
-                     log.reasons?.[0]?.id ||
-                     'Parental Control'
-                   }
-                 </span>
+            <div style="padding: 10px 0; border-bottom: 1px dashed var(--border); display: flex; justify-content: space-between; margin-bottom: 4px; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                <img src="${getDomainIcon(
+                  log.domain,
+                )}" alt="" class="app-icon" style="width: 16px; height: 16px; opacity: 0.8;">
+                <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0;">
+                  <span style="font-weight: 700; color: var(--red); font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${
+                    log.domain
+                  }</span>
+                  <span style="color: var(--muted); font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    ${
+                      log.reasons?.[0]?.name ||
+                      log.reasons?.[0]?.id ||
+                      'Parental Control'
+                    }
+                  </span>
+                </div>
               </div>
-              <div style="font-size: 9px; color: var(--muted); font-weight: 800;">
+              <div style="font-size: 9px; color: var(--muted); font-weight: 800; flex-shrink: 0;">
                 ${formatTimeAgo(log.timestamp)}
               </div>
             </div>

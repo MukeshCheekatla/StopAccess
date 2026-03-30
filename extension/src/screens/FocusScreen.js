@@ -45,10 +45,18 @@ export async function renderFocusScreen(container) {
         <p style="margin-bottom: 32px; max-width: 240px;">Shut down all restricted sites for a set period. No exceptions.</p>
         
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%;">
-          ${[15, 25, 45, 60]
+          ${[
+            { m: 15, tag: 'Quick Sprint' },
+            { m: 25, tag: 'Pomodoro' },
+            { m: 45, tag: 'Deep Work' },
+            { m: 90, tag: 'Marathon' },
+          ]
             .map(
-              (m) => `
-            <button class="btn start-focus" data-mins="${m}">${m} min</button>
+              (p) => `
+            <button class="btn start-focus" data-mins="${p.m}" style="display:flex; flex-direction:column; align-items:center; padding: 16px;">
+              <span style="font-size: 20px; font-weight: 900; line-height: 1;">${p.m}m</span>
+              <span style="font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 4px; text-transform: uppercase;">${p.tag}</span>
+            </button>
           `,
             )
             .join('')}
@@ -71,4 +79,14 @@ export async function renderFocusScreen(container) {
       });
     });
   }
+
+  // Real-Time Refresh
+  if (window.__focusInterval) {
+    clearInterval(window.__focusInterval);
+  }
+  window.__focusInterval = setInterval(() => {
+    if (document.querySelector('[data-tab="focus"].active')) {
+      renderFocusScreen(container);
+    }
+  }, 5000);
 }

@@ -2,7 +2,17 @@
  * @focusgate/core — NextDNS API Client
  */
 
-import { AppRule, NextDNSConfig } from '@focusgate/types';
+import {
+  AppRule,
+  NextDNSConfig,
+  NextDNSResponse,
+  NextDNSErrorCode,
+  NextDNSService,
+  NextDNSCategory,
+  NextDNSEntity,
+  NextDNSLogEntry,
+  NextDNSAnalyticsItem,
+} from '@focusgate/types';
 import { getDomainForRule, getNextDNSServiceId } from './domains.ts';
 
 const BASE_URL = 'https://api.nextdns.io';
@@ -18,7 +28,6 @@ async function readJsonIfPresent(res: Response): Promise<any | null> {
   if (!text || !text.trim()) {
     return null;
   }
-
   try {
     return JSON.parse(text);
   } catch {
@@ -26,51 +35,291 @@ async function readJsonIfPresent(res: Response): Promise<any | null> {
   }
 }
 
-async function fetchWithRetry(
-  url: string,
-  options: any,
-  log: (level: string, msg: string, details?: string) => void,
-  attempt = 1,
-): Promise<Response> {
-  const res = await fetch(url, options);
-
-  if (res.status === 429 && attempt <= MAX_RETRIES) {
-    const waitMs = RETRY_BASE_MS * 2 ** (attempt - 1);
-    log(
-      'warn',
-      `NextDNS rate limited (attempt ${attempt}/${MAX_RETRIES})`,
-      `Retrying in ${waitMs}ms`,
-    );
-    await sleep(waitMs);
-    return fetchWithRetry(url, options, log, attempt + 1);
+function mapStatusToErrorCode(status: number): NextDNSErrorCode {
+  if (status === 401 || status === 403) {
+    return 'auth_error';
   }
-
-  if (res.status >= 500 && attempt <= MAX_RETRIES) {
-    const waitMs = RETRY_BASE_MS * 2 ** (attempt - 1);
-    log(
-      'warn',
-      `NextDNS server error ${res.status} (attempt ${attempt}/${MAX_RETRIES})`,
-      `Retrying in ${waitMs}ms`,
-    );
-    await sleep(waitMs);
-    return fetchWithRetry(url, options, log, attempt + 1);
+  if (status === 429) {
+    return 'rate_limit';
   }
-
-  return res;
+  if (status === 400) {
+    return 'validation_error';
+  }
+  if (status === 404) {
+    return 'profile_mismatch';
+  }
+  if (status >= 500) {
+    return 'server_error';
+  }
+  return 'unknown';
 }
 
+async function wrapResponse<T>(
+  res: Response,
+  transform?: (data: any) => T,
+): Promise<NextDNSResponse<T>> {
+  if (res.ok) {
+    const json = await readJsonIfPresent(res);
+    const data = json?.data ?? json;
+    return {
+      ok: true,
+      data: transform ? transform(data) : (data as T),
+    };
+  }
+
+  const errorData = await readJsonIfPresent(res);
+  const code = mapStatusToErrorCode(res.status);
+  return {
+    ok: false,
+    error: {
+      code,
+      message: errorData?.error || errorData?.message || res.statusText,
+      status: res.status,
+      details: errorData,
+    },
+  };
+}
+
+export class NextDNSClient {
+  constructor(
+    private cfg: NextDNSConfig,
+    private log: (level: string, msg: string, details?: string) => void,
+  ) {}
+
+  private async fetch(
+    path: string,
+    options: RequestInit = {},
+    attempt = 1,
+  ): Promise<Response> {
+    const url = `${BASE_URL}${path}`;
+    const headers = {
+      'X-Api-Key': this.cfg.apiKey,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    try {
+      const res = await fetch(url, { ...options, headers });
+
+      if (res.status === 429 && attempt <= MAX_RETRIES) {
+        const waitMs = RETRY_BASE_MS * 2 ** (attempt - 1);
+        this.log(
+          'warn',
+          `NextDNS rate limited (attempt ${attempt}/${MAX_RETRIES})`,
+          `Retrying in ${waitMs}ms`,
+        );
+        await sleep(waitMs);
+        return this.fetch(path, options, attempt + 1);
+      }
+
+      if (res.status >= 500 && attempt <= MAX_RETRIES) {
+        const waitMs = RETRY_BASE_MS * 2 ** (attempt - 1);
+        this.log(
+          'warn',
+          `NextDNS server error ${res.status} (attempt ${attempt}/${MAX_RETRIES})`,
+          `Retrying in ${waitMs}ms`,
+        );
+        await sleep(waitMs);
+        return this.fetch(path, options, attempt + 1);
+      }
+
+      return res;
+    } catch (e: any) {
+      if (attempt <= MAX_RETRIES) {
+        const waitMs = RETRY_BASE_MS * 2 ** (attempt - 1);
+        this.log(
+          'warn',
+          `NextDNS network error (attempt ${attempt}/${MAX_RETRIES})`,
+          e.message,
+        );
+        await sleep(waitMs);
+        return this.fetch(path, options, attempt + 1);
+      }
+      throw e;
+    }
+  }
+
+  async testConnection(): Promise<NextDNSResponse<boolean>> {
+    try {
+      const res = await this.fetch(`/profiles/${this.cfg.profileId}/denylist`);
+      return wrapResponse(res, () => true);
+    } catch (e: any) {
+      return {
+        ok: false,
+        error: { code: 'network_failure', message: e.message },
+      };
+    }
+  }
+
+  async getDenylist(): Promise<NextDNSResponse<NextDNSEntity[]>> {
+    const res = await this.fetch(`/profiles/${this.cfg.profileId}/denylist`);
+    return wrapResponse(res);
+  }
+
+  async setDenylist(
+    items: NextDNSEntity[],
+  ): Promise<NextDNSResponse<NextDNSEntity[]>> {
+    const res = await this.fetch(`/profiles/${this.cfg.profileId}/denylist`, {
+      method: 'PUT',
+      body: JSON.stringify(items),
+    });
+    return wrapResponse(res);
+  }
+
+  async getServices(): Promise<NextDNSResponse<NextDNSService[]>> {
+    const res = await this.fetch(
+      `/profiles/${this.cfg.profileId}/parentalControl/services`,
+    );
+    return wrapResponse(res);
+  }
+
+  async setServices(
+    items: NextDNSService[],
+  ): Promise<NextDNSResponse<NextDNSService[]>> {
+    const res = await this.fetch(
+      `/profiles/${this.cfg.profileId}/parentalControl/services`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(items),
+      },
+    );
+    return wrapResponse(res);
+  }
+
+  async getCategories(): Promise<NextDNSResponse<NextDNSCategory[]>> {
+    const res = await this.fetch(
+      `/profiles/${this.cfg.profileId}/parentalControl/categories`,
+    );
+    return wrapResponse(res);
+  }
+
+  async setCategories(
+    items: NextDNSCategory[],
+  ): Promise<NextDNSResponse<NextDNSCategory[]>> {
+    const res = await this.fetch(
+      `/profiles/${this.cfg.profileId}/parentalControl/categories`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(items),
+      },
+    );
+    return wrapResponse(res);
+  }
+
+  async getLogs(
+    limit = 20,
+    status?: string,
+  ): Promise<NextDNSResponse<NextDNSLogEntry[]>> {
+    let path = `/profiles/${this.cfg.profileId}/logs?limit=${limit}`;
+    if (status) {
+      path += `&status=${status}`;
+    }
+    const res = await this.fetch(path);
+    return wrapResponse(res);
+  }
+
+  async getAnalyticsDomains(
+    limit = 10,
+    status = 'blocked',
+  ): Promise<NextDNSResponse<NextDNSAnalyticsItem[]>> {
+    const path = `/profiles/${this.cfg.profileId}/analytics/domains?limit=${limit}&status=${status}`;
+    const res = await this.fetch(path);
+    return wrapResponse(res);
+  }
+  async blockApps(
+    rulesToBlock: AppRule[],
+  ): Promise<{ ok: boolean; error?: string; domains?: string[] }> {
+    // 1. Domains (denylist)
+    const appDomains = rulesToBlock
+      .filter((r) => r.type === 'domain' || !getNextDNSServiceId(r))
+      .map(getDomainForRule)
+      .filter((d): d is string => d !== null);
+    const uniqueAppDomains = Array.from(new Set(appDomains));
+
+    // 2. Services (parentalControl/services)
+    const servicesToBlock = rulesToBlock
+      .filter((r) => r.type === 'service')
+      .map((r) => r.packageName)
+      .filter((id): id is string => id !== null);
+
+    // 3. Categories (parentalControl/categories)
+    const categoriesToBlock = rulesToBlock
+      .filter((r) => r.type === 'category')
+      .map((r) => r.packageName)
+      .filter((id): id is string => id !== null);
+
+    try {
+      const [denyRes, svcRes, catRes] = await Promise.all([
+        this.getDenylist(),
+        this.getServices(),
+        this.getCategories(),
+      ]);
+
+      if (!denyRes.ok) {
+        return { ok: false, error: denyRes.error.message };
+      }
+      if (!svcRes.ok) {
+        return { ok: false, error: svcRes.error.message };
+      }
+      if (!catRes.ok) {
+        return { ok: false, error: catRes.error.message };
+      }
+
+      const finalDenyList = Array.from(
+        new Set([...denyRes.data.map((i) => i.id), ...uniqueAppDomains]),
+      ).map((id) => ({ id, active: true }));
+
+      const finalSvcList = Array.from(
+        new Set([
+          ...svcRes.data.filter((s) => s.active).map((s) => s.id),
+          ...servicesToBlock,
+        ]),
+      ).map((id) => ({ id, active: true }));
+
+      const finalCatList = Array.from(
+        new Set([
+          ...catRes.data.filter((c) => c.active).map((c) => c.id),
+          ...categoriesToBlock,
+        ]),
+      ).map((id) => ({ id, active: true }));
+
+      const [resDeny, resSvc, resCat] = await Promise.all([
+        this.setDenylist(finalDenyList),
+        this.setServices(finalSvcList),
+        this.setCategories(finalCatList),
+      ]);
+
+      if (resDeny.ok && resSvc.ok && resCat.ok) {
+        return { ok: true, domains: uniqueAppDomains };
+      }
+      return { ok: false, error: 'Sync Failed' };
+    } catch (e: any) {
+      return { ok: false, error: e.message };
+    }
+  }
+
+  async unblockAll(): Promise<boolean> {
+    try {
+      const [resDeny, resSvc, resCat] = await Promise.all([
+        this.setDenylist([]),
+        this.setServices([]),
+        this.setCategories([]),
+      ]);
+      return resDeny.ok && resSvc.ok && resCat.ok;
+    } catch {
+      return false;
+    }
+  }
+}
+
+// Legacy compatibility exports (can be refactored later if needed, but keeping interface for now)
 export async function testConnection(
   cfg: NextDNSConfig,
-  _log: any,
+  log: any,
 ): Promise<boolean> {
-  try {
-    const res = await fetch(`${BASE_URL}/profiles/${cfg.profileId}/denylist`, {
-      headers: { 'X-Api-Key': cfg.apiKey },
-    });
-    return res.ok;
-  } catch {
-    return false;
-  }
+  const client = new NextDNSClient(cfg, log);
+  const res = await client.testConnection();
+  return res.ok;
 }
 
 export async function blockApps(
@@ -78,336 +327,85 @@ export async function blockApps(
   cfg: NextDNSConfig,
   log: any,
 ): Promise<{ ok: boolean; error?: string; domains?: string[] }> {
-  // 1. Domains (denylist)
-  const appDomains = rulesToBlock
-    .filter((r) => r.type === 'domain' || !getNextDNSServiceId(r))
-    .map(getDomainForRule)
-    .filter((d): d is string => d !== null);
-  const uniqueAppDomains = Array.from(new Set(appDomains));
-
-  // 2. Services (parentalControl/services)
-  const servicesToBlock = rulesToBlock
-    .filter((r) => r.type === 'service')
-    .map((r) => r.packageName)
-    .filter((id): id is string => id !== null);
-
-  // 3. Categories (parentalControl/categories)
-  const categoriesToBlock = rulesToBlock
-    .filter((r) => r.type === 'category')
-    .map((r) => r.packageName)
-    .filter((id): id is string => id !== null);
-
-  try {
-    const [getDenyRes, getSvcRes, getCatRes] = await Promise.all([
-      fetchWithRetry(
-        `${BASE_URL}/profiles/${cfg.profileId}/denylist`,
-        { headers: { 'X-Api-Key': cfg.apiKey } },
-        log,
-      ),
-      fetchWithRetry(
-        `${BASE_URL}/profiles/${cfg.profileId}/parentalControl/services`,
-        { headers: { 'X-Api-Key': cfg.apiKey } },
-        log,
-      ),
-      fetchWithRetry(
-        `${BASE_URL}/profiles/${cfg.profileId}/parentalControl/categories`,
-        { headers: { 'X-Api-Key': cfg.apiKey } },
-        log,
-      ),
-    ]);
-
-    if (getDenyRes.status === 403 || getSvcRes.status === 403) {
-      return { ok: false, error: '403' };
-    }
-
-    let existingDenyIds: string[] = [];
-    if (getDenyRes.ok) {
-      const data = await readJsonIfPresent(getDenyRes);
-      existingDenyIds = (Array.isArray(data) ? data : data?.data || [])
-        .map((i: any) => i.id)
-        .filter(Boolean);
-    }
-
-    let existingSvcIds: string[] = [];
-    if (getSvcRes.ok) {
-      const data = await readJsonIfPresent(getSvcRes);
-      existingSvcIds = (Array.isArray(data) ? data : data?.data || [])
-        .filter((s: any) => s.active)
-        .map((s: any) => s.id)
-        .filter(Boolean);
-    }
-
-    let existingCatIds: string[] = [];
-    if (getCatRes.ok) {
-      const data = await readJsonIfPresent(getCatRes);
-      existingCatIds = (Array.isArray(data) ? data : data?.data || [])
-        .filter((c: any) => c.active)
-        .map((c: any) => c.id)
-        .filter(Boolean);
-    }
-
-    const finalDenyList = Array.from(
-      new Set([...existingDenyIds, ...uniqueAppDomains]),
-    ).map((id) => ({ id, active: true }));
-    const finalSvcList = Array.from(
-      new Set([...existingSvcIds, ...servicesToBlock]),
-    ).map((id) => ({ id, active: true }));
-    const finalCatList = Array.from(
-      new Set([...existingCatIds, ...categoriesToBlock]),
-    ).map((id) => ({ id, active: true }));
-
-    const [resDeny, resSvc, resCat] = await Promise.all([
-      fetchWithRetry(
-        `${BASE_URL}/profiles/${cfg.profileId}/denylist`,
-        {
-          method: 'PUT',
-          headers: {
-            'X-Api-Key': cfg.apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(finalDenyList),
-        },
-        log,
-      ),
-      fetchWithRetry(
-        `${BASE_URL}/profiles/${cfg.profileId}/parentalControl/services`,
-        {
-          method: 'PUT',
-          headers: {
-            'X-Api-Key': cfg.apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(finalSvcList),
-        },
-        log,
-      ),
-      fetchWithRetry(
-        `${BASE_URL}/profiles/${cfg.profileId}/parentalControl/categories`,
-        {
-          method: 'PUT',
-          headers: {
-            'X-Api-Key': cfg.apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(finalCatList),
-        },
-        log,
-      ),
-    ]);
-
-    if (resDeny.ok && resSvc.ok && resCat.ok) {
-      return { ok: true, domains: uniqueAppDomains };
-    }
-    return { ok: false, error: 'Sync Failed' };
-  } catch (e: any) {
-    return { ok: false, error: e.message };
-  }
+  const client = new NextDNSClient(cfg, log);
+  return client.blockApps(rulesToBlock);
 }
 
 export async function unblockAll(
   cfg: NextDNSConfig,
   log: any,
 ): Promise<boolean> {
-  try {
-    const [denyRes, svcRes, catRes] = await Promise.all([
-      fetchWithRetry(
-        `${BASE_URL}/profiles/${cfg.profileId}/denylist`,
-        {
-          method: 'PUT',
-          headers: {
-            'X-Api-Key': cfg.apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify([]),
-        },
-        log,
-      ),
-      fetchWithRetry(
-        `${BASE_URL}/profiles/${cfg.profileId}/parentalControl/services`,
-        {
-          method: 'PUT',
-          headers: {
-            'X-Api-Key': cfg.apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify([]),
-        },
-        log,
-      ),
-      fetchWithRetry(
-        `${BASE_URL}/profiles/${cfg.profileId}/parentalControl/categories`,
-        {
-          method: 'PUT',
-          headers: {
-            'X-Api-Key': cfg.apiKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify([]),
-        },
-        log,
-      ),
-    ]);
-    return denyRes.ok && svcRes.ok && catRes.ok;
-  } catch {
-    return false;
-  }
+  const client = new NextDNSClient(cfg, log);
+  return client.unblockAll();
 }
 
 export async function getParentalControlServices(
   cfg: NextDNSConfig,
   log: any,
 ): Promise<any[]> {
-  try {
-    const res = await fetchWithRetry(
-      `${BASE_URL}/profiles/${cfg.profileId}/parentalControl/services`,
-      {
-        headers: { 'X-Api-Key': cfg.apiKey },
-      },
-      log,
-    );
-    if (res.ok) {
-      const json = await readJsonIfPresent(res);
-      return json?.data || json || [];
-    }
-  } catch {}
-  return [];
+  const client = new NextDNSClient(cfg, log);
+  const res = await client.getServices();
+  return res.ok ? res.data : [];
 }
 
 export async function getParentalControlCategories(
   cfg: NextDNSConfig,
   log: any,
 ): Promise<any[]> {
-  try {
-    const res = await fetchWithRetry(
-      `${BASE_URL}/profiles/${cfg.profileId}/parentalControl/categories`,
-      {
-        headers: { 'X-Api-Key': cfg.apiKey },
-      },
-      log,
-    );
-    if (res.ok) {
-      const json = await readJsonIfPresent(res);
-      return json?.data || json || [];
-    }
-  } catch {}
-  return [];
+  const client = new NextDNSClient(cfg, log);
+  const res = await client.getCategories();
+  return res.ok ? res.data : [];
 }
 
-async function syncCollection(
+export async function getLogs(
   cfg: NextDNSConfig,
   log: any,
-  path: string,
-  items: Array<{ id: string; active?: boolean }>,
+  status?: string,
+  limit = 20,
 ): Promise<any[]> {
-  const normalizedItems = items
-    .filter((item) => item.id)
-    .map((item) => ({
-      id: item.id,
-      active: item.active ?? true,
-    }));
+  const client = new NextDNSClient(cfg, log);
+  const res = await client.getLogs(limit, status);
+  return res.ok ? res.data : [];
+}
 
-  const res = await fetchWithRetry(
-    `${BASE_URL}/profiles/${cfg.profileId}/${path}`,
-    {
-      method: 'PUT',
-      headers: {
-        'X-Api-Key': cfg.apiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(normalizedItems),
-    },
-    log,
-  );
-
-  if (!res.ok) {
-    throw new Error(`${path} sync failed with ${res.status}`);
-  }
-
-  const json = await readJsonIfPresent(res);
-  return json?.data || json || normalizedItems;
+export async function getTopBlockedDomains(
+  cfg: NextDNSConfig,
+  log: any,
+  limit = 10,
+): Promise<any[]> {
+  const client = new NextDNSClient(cfg, log);
+  const res = await client.getAnalyticsDomains(limit, 'blocked');
+  return res.ok ? res.data : [];
 }
 
 export async function syncParentalControlServices(
-  services: Array<{ id: string; active?: boolean }>,
+  services: NextDNSService[],
   cfg: NextDNSConfig,
   log: any,
-): Promise<any[]> {
-  return syncCollection(
-    cfg,
-    log,
-    'parentalControl/services',
-    services.map((service) => ({
-      id: service.id,
-      active: service.active ?? true,
-    })),
-  );
+): Promise<NextDNSService[]> {
+  const client = new NextDNSClient(cfg, log);
+  const res = await client.setServices(services);
+  return res.ok ? res.data : [];
 }
 
 export async function syncParentalControlCategories(
-  categories: Array<{ id: string; active?: boolean }>,
+  categories: NextDNSCategory[],
   cfg: NextDNSConfig,
   log: any,
-): Promise<any[]> {
-  return syncCollection(
-    cfg,
-    log,
-    'parentalControl/categories',
-    categories.map((category) => ({
-      id: category.id,
-      active: category.active ?? true,
-    })),
-  );
+): Promise<NextDNSCategory[]> {
+  const client = new NextDNSClient(cfg, log);
+  const res = await client.setCategories(categories);
+  return res.ok ? res.data : [];
 }
 
 export async function syncDenylist(
-  domains: Array<{ id: string; active?: boolean }>,
+  items: NextDNSEntity[],
   cfg: NextDNSConfig,
   log: any,
-): Promise<any[]> {
-  return syncCollection(
-    cfg,
-    log,
-    'denylist',
-    domains.map((domain) => ({
-      id: domain.id.toLowerCase(),
-      active: domain.active ?? true,
-    })),
-  );
-}
-
-async function toggleCollectionItem(
-  cfg: NextDNSConfig,
-  log: any,
-  getter: (cfg: NextDNSConfig, log: any) => Promise<any[]>,
-  syncer: (
-    items: Array<{ id: string; active?: boolean }>,
-    cfg: NextDNSConfig,
-    log: any,
-  ) => Promise<any[]>,
-  id: string,
-  active: boolean,
-): Promise<any[]> {
-  const current = await getter(cfg, log);
-  const byId = new Map<string, { id: string; active: boolean; name?: string }>(
-    current
-      .filter((item) => item?.id)
-      .map((item) => [
-        item.id,
-        {
-          id: item.id,
-          active: item.active ?? false,
-          name: item.name,
-        },
-      ]),
-  );
-
-  byId.set(id, {
-    ...(byId.get(id) || { id }),
-    id,
-    active,
-  });
-
-  return syncer(Array.from(byId.values()), cfg, log);
+): Promise<NextDNSEntity[]> {
+  const client = new NextDNSClient(cfg, log);
+  const res = await client.setDenylist(items);
+  return res.ok ? res.data : [];
 }
 
 export async function setParentalControlServiceState(
@@ -415,15 +413,23 @@ export async function setParentalControlServiceState(
   active: boolean,
   cfg: NextDNSConfig,
   log: any,
-): Promise<any[]> {
-  return toggleCollectionItem(
-    cfg,
-    log,
-    getParentalControlServices,
-    syncParentalControlServices,
-    serviceId,
-    active,
-  );
+): Promise<NextDNSService[]> {
+  const client = new NextDNSClient(cfg, log);
+  const currentRes = await client.getServices();
+  if (!currentRes.ok) {
+    return [];
+  }
+
+  const items = currentRes.data;
+  const idx = items.findIndex((i) => i.id === serviceId);
+  if (idx >= 0) {
+    items[idx].active = active;
+  } else {
+    items.push({ id: serviceId, active });
+  }
+
+  const res = await client.setServices(items);
+  return res.ok ? res.data : [];
 }
 
 export async function setParentalControlCategoryState(
@@ -431,15 +437,23 @@ export async function setParentalControlCategoryState(
   active: boolean,
   cfg: NextDNSConfig,
   log: any,
-): Promise<any[]> {
-  return toggleCollectionItem(
-    cfg,
-    log,
-    getParentalControlCategories,
-    syncParentalControlCategories,
-    categoryId,
-    active,
-  );
+): Promise<NextDNSCategory[]> {
+  const client = new NextDNSClient(cfg, log);
+  const currentRes = await client.getCategories();
+  if (!currentRes.ok) {
+    return [];
+  }
+
+  const items = currentRes.data;
+  const idx = items.findIndex((i) => i.id === categoryId);
+  if (idx >= 0) {
+    items[idx].active = active;
+  } else {
+    items.push({ id: categoryId, active });
+  }
+
+  const res = await client.setCategories(items);
+  return res.ok ? res.data : [];
 }
 
 export async function setDenylistDomainState(
@@ -447,80 +461,23 @@ export async function setDenylistDomainState(
   active: boolean,
   cfg: NextDNSConfig,
   log: any,
-): Promise<any[]> {
-  const current = await fetchWithRetry(
-    `${BASE_URL}/profiles/${cfg.profileId}/denylist`,
-    { headers: { 'X-Api-Key': cfg.apiKey } },
-    log,
-  );
-
-  if (!current.ok) {
-    throw new Error(`denylist fetch failed with ${current.status}`);
+): Promise<NextDNSEntity[]> {
+  const client = new NextDNSClient(cfg, log);
+  const currentRes = await client.getDenylist();
+  if (!currentRes.ok) {
+    return [];
   }
 
-  const json = await readJsonIfPresent(current);
-  const items = (json?.data || json || []).filter((item: any) => item?.id);
-  const byId = new Map<string, { id: string; active: boolean }>(
-    items.map((item: any) => [
-      item.id,
-      {
-        id: item.id,
-        active: item.active ?? true,
-      },
-    ]),
+  const items = currentRes.data;
+  const idx = items.findIndex(
+    (i) => i.id.toLowerCase() === domain.toLowerCase(),
   );
-  byId.set(domain.toLowerCase(), { id: domain.toLowerCase(), active });
+  if (idx >= 0) {
+    items[idx].active = active;
+  } else {
+    items.push({ id: domain.toLowerCase(), active });
+  }
 
-  return syncDenylist(Array.from(byId.values()), cfg, log);
-}
-
-export async function getLogs(
-  cfg: NextDNSConfig,
-  log: any,
-  status?: string,
-  limit: number = 20,
-): Promise<any[]> {
-  try {
-    const url = new URL(`${BASE_URL}/profiles/${cfg.profileId}/logs`);
-    url.searchParams.append('limit', limit.toString());
-    if (status) {
-      url.searchParams.append('status', status);
-    }
-
-    const res = await fetchWithRetry(
-      url.toString(),
-      { headers: { 'X-Api-Key': cfg.apiKey } },
-      log,
-    );
-    if (res.ok) {
-      const json = await readJsonIfPresent(res);
-      return json?.data || [];
-    }
-  } catch {}
-  return [];
-}
-
-export async function getTopBlockedDomains(
-  cfg: NextDNSConfig,
-  log: any,
-  limit: number = 10,
-): Promise<any[]> {
-  try {
-    const url = new URL(
-      `${BASE_URL}/profiles/${cfg.profileId}/analytics/domains`,
-    );
-    url.searchParams.append('status', 'blocked');
-    url.searchParams.append('limit', limit.toString());
-
-    const res = await fetchWithRetry(
-      url.toString(),
-      { headers: { 'X-Api-Key': cfg.apiKey } },
-      log,
-    );
-    if (res.ok) {
-      const json = await readJsonIfPresent(res);
-      return json?.data || [];
-    }
-  } catch {}
-  return [];
+  const res = await client.setDenylist(items);
+  return res.ok ? res.data : [];
 }

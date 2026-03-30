@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   SafeAreaView,
+  Alert,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -20,11 +21,12 @@ import { DailySnapshot, AppRule, AppUsageStat } from '../types';
 import { AppIconImage } from '../components/AppIconImage';
 import { formatDuration } from '../utils/time';
 import { formatAppName } from '../utils/text';
-import { getRules, updateRule } from '@focusgate/state/rules';
+import { getRules, updateRule, saveRules } from '@focusgate/state/rules';
 import { getSnapshots } from '@focusgate/state/insights';
 import { storageAdapter } from '../store/storageAdapter';
-import { isConfigured } from '../api/nextdns';
+import { isConfigured, unblockAll } from '../api/nextdns';
 import { getFocusStreak } from '@focusgate/core/insights';
+import { getLogs, LogEntry } from '../services/logger';
 
 // --- Sub-components ---
 
@@ -295,6 +297,7 @@ export default function DashboardScreen() {
   const [configured, setConfigured] = useState(false);
   const [weeklySnapshots, setWeeklySnapshots] = useState<DailySnapshot[]>([]);
   const [focusStreak, setFocusStreak] = useState(0);
+  const [recentLogs, setRecentLogs] = useState<LogEntry[]>([]);
 
   const load = useCallback(async (isAuto = false) => {
     if (!isAuto) {
@@ -308,6 +311,7 @@ export default function DashboardScreen() {
     setConfigured(isConfig);
     setWeeklySnapshots(await getSnapshots(storageAdapter));
     setFocusStreak(await getFocusStreak(storageAdapter));
+    setRecentLogs(getLogs().slice(0, 5));
 
     if (perm) {
       const stats = await refreshTodayUsage().catch(
@@ -386,19 +390,89 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Global Summary Card */}
+        {/* Global Summary Grid */}
         <View style={styles.summaryGrid}>
           <View style={styles.summaryItem}>
             <Text style={styles.summaryVal}>{formatDuration(totalMins)}</Text>
             <Text style={styles.summaryLabel}>Screen Time</Text>
           </View>
           <View style={styles.summaryItem}>
-            <Text style={[styles.summaryVal, { color: COLORS.red }]}>
-              {blockedCount}
-            </Text>
-            <Text style={styles.summaryLabel}>Blocked</Text>
+            <View style={styles.summaryValueRow}>
+              <View
+                style={[
+                  styles.statusDot,
+                  configured && rules.length > 0
+                    ? styles.statusActive
+                    : styles.statusLocal,
+                ]}
+              />
+              <Text style={styles.protectionVal}>
+                {configured ? 'Active' : 'Local'}
+              </Text>
+            </View>
+            <Text style={styles.summaryLabel}>Protection</Text>
           </View>
         </View>
+
+        {/* Protection Health Card (New) */}
+        {(configured || rules.length > 0) && (
+          <View style={styles.healthCard}>
+            <View style={styles.healthHeader}>
+              <View style={styles.healthTitleRow}>
+                <Icon
+                  name={configured ? 'shield-check' : 'shield-alert'}
+                  size={20}
+                  color={configured ? COLORS.green : COLORS.yellow}
+                />
+                <Text style={styles.healthTitle}>
+                  {configured ? 'Hybrid Protection' : 'Local Only'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  Alert.alert(
+                    'Emergency Protocol',
+                    'INSTANT UNBLOCK: This will reset all local rules and NextDNS blocks. Continue?',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      {
+                        text: 'Reset All',
+                        style: 'destructive',
+                        onPress: async () => {
+                          await saveRules(storageAdapter, []);
+                          if (configured) {
+                            await unblockAll().catch(() => {});
+                          }
+                          load();
+                        },
+                      },
+                    ],
+                  );
+                }}
+              >
+                <Text style={styles.panicLink}>PANIC RESET</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.healthGrid}>
+              <View style={styles.healthCol}>
+                <Text style={styles.healthVal}>{rules.length}</Text>
+                <Text style={styles.healthLbl}>Active Rules</Text>
+              </View>
+              <View style={styles.healthDivider} />
+              <View style={styles.healthCol}>
+                <Text style={styles.healthVal}>{blockedCount}</Text>
+                <Text style={styles.healthLbl}>Blocked Now</Text>
+              </View>
+              <View style={styles.healthDivider} />
+              <View style={styles.healthCol}>
+                <Text style={styles.healthVal}>
+                  {configured ? 'Secure' : 'Low'}
+                </Text>
+                <Text style={styles.healthLbl}>Relatability</Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Setup nudge — shown when not configured or no rules yet */}
         <SetupNudge configured={configured} hasRules={rules.length > 0} />
@@ -502,6 +576,40 @@ export default function DashboardScreen() {
           </View>
         )}
 
+        {/* Activity Feed */}
+        {recentLogs.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionHeaderTitle}>Recent Activity</Text>
+            <View style={styles.activityCard}>
+              {recentLogs.map((log, i) => (
+                <View
+                  key={i}
+                  style={[styles.logRow, i === 0 ? styles.noBorder : null]}
+                >
+                  <Icon
+                    name={
+                      log.level === 'error' ? 'alert-circle' : 'shield-check'
+                    }
+                    size={14}
+                    color={log.level === 'error' ? COLORS.red : COLORS.accent}
+                  />
+                  <View style={styles.logInfo}>
+                    <Text style={styles.logMsg} numberOfLines={1}>
+                      {log.message}
+                    </Text>
+                    <Text style={styles.logTime}>
+                      {new Date(log.timestamp).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
         {controlledUsage.length === 0 &&
           distractingApps.length === 0 &&
           !refreshing && (
@@ -544,6 +652,14 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
+  protectionVal: {
+    color: COLORS.text,
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginLeft: 6,
+  },
+  statusActive: { backgroundColor: COLORS.green },
+  statusLocal: { backgroundColor: COLORS.yellow },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -578,6 +694,53 @@ const styles = StyleSheet.create({
   quickAddRow: { flexDirection: 'row', alignItems: 'center' },
   emptyBox: { alignItems: 'center', marginTop: 100 },
   emptyText: { color: COLORS.muted, marginTop: 12 },
+  summaryValueRow: { flexDirection: 'row', alignItems: 'center' },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  healthCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.lg,
+    marginBottom: SPACING.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  healthHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: SPACING.lg,
+  },
+  healthTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  healthTitle: { color: COLORS.text, fontSize: 15, fontWeight: 'bold' },
+  panicLink: {
+    color: COLORS.red,
+    fontSize: 11,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+  },
+  healthGrid: { flexDirection: 'row', alignItems: 'center' },
+  healthCol: { flex: 1, alignItems: 'center' },
+  healthVal: { color: COLORS.text, fontSize: 18, fontWeight: 'bold' },
+  healthLbl: { color: COLORS.muted, fontSize: 10, textTransform: 'uppercase' },
+  healthDivider: { width: 1, height: 24, backgroundColor: COLORS.border },
+  activityCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.md,
+  },
+  logRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border + '33',
+  },
+  logMsg: { color: COLORS.text, fontSize: 13, fontWeight: '500' },
+  logTime: { color: COLORS.muted, fontSize: 10, marginTop: 2 },
+  logInfo: { flex: 1, marginLeft: 8 },
+  noBorder: { borderTopWidth: 0 },
   fab: {
     position: 'absolute',
     bottom: 24,

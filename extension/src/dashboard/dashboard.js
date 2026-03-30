@@ -28,12 +28,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // ── Open full-page extension ───────────────────────
-  function openExtensionPage(tab = 'dash') {
-    const base = chrome.runtime.getURL('dist/dashboard.html');
-    chrome.tabs.create({ url: `${base}?tab=${tab}` });
-  }
-
   // ── Status badge ──────────────────────────────────
   async function updateStatus() {
     try {
@@ -59,7 +53,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Navigation ────────────────────────────────────
   async function navigate(tabId) {
-    localStorage.setItem('fg_tab', tabId);
+    // We don't use localStorage here for the full dashboard to avoid conflicting with popup state directly,
+    // although it's fine. We use URL params instead.
+    const url = new URL(window.location);
+    url.searchParams.set('tab', tabId);
+    window.history.replaceState({}, '', url);
 
     navItems.forEach((n) =>
       n.classList.toggle('active', n.getAttribute('data-tab') === tabId),
@@ -113,17 +111,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     );
   });
 
-  // ── Gear icon → open Settings in full page ────────
-  document
-    .getElementById('btn_open_settings')
-    ?.addEventListener('click', () => openExtensionPage('settings'));
-
-  // ── Deep-link / saved tab ────────────────────────
+  // ── Deep-link check ──────────────────────────────
   const params = new URLSearchParams(window.location.search);
-  const deepTab = params.get('tab');
-  const initTab = deepTab || localStorage.getItem('fg_tab') || 'dash';
+  const initTab = params.get('tab') || 'dash';
   navigate(initTab);
 
   // ── Poll status every 4s ─────────────────────────
   setInterval(updateStatus, 4000);
+  updateStatus();
 });

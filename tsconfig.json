@@ -11,8 +11,7 @@
       "@focusgate/state/*": ["packages/state/src/*.ts"],
       "@focusgate/sync": ["packages/sync/src/index.ts"],
       "@focusgate/sync/*": ["packages/sync/src/*.ts"],
-      "@focusgate/types": ["packages/types/src/index.ts"],
-      "@focusgate/ui": ["packages/ui/src/index.ts"]
+      "@focusgate/types": ["packages/types/src/index.ts"]
     }
   },
   "include": [

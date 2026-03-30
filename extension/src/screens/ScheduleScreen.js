@@ -20,6 +20,29 @@ export async function renderScheduleScreen(container) {
             <input type="time" id="schStart" value="09:00" class="input" style="flex: 1;">
             <input type="time" id="schEnd" value="17:00" class="input" style="flex: 1;">
           </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <div class="stat-lbl">Days</div>
+            <div id="day_picker" style="display: flex; gap: 6px;">
+              ${['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                .map(
+                  (d, i) =>
+                    `<button class="day-btn ${
+                      [1, 2, 3, 4, 5].includes(i) ? 'day-active' : ''
+                    }" data-day="${i}"
+                  style="width:34px; height:34px; border-radius:50%; border:1px solid var(--border);
+                  background:${
+                    [1, 2, 3, 4, 5].includes(i)
+                      ? 'var(--accent)'
+                      : 'var(--card)'
+                  };
+                  color:${
+                    [1, 2, 3, 4, 5].includes(i) ? '#fff' : 'var(--muted)'
+                  };
+                  font-size:11px; font-weight:800; cursor:pointer;">${d}</button>`,
+                )
+                .join('')}
+            </div>
+          </div>
           <button class="btn" id="btnCreateSchedule">Create Block</button>
         </div>
       </div>
@@ -47,30 +70,23 @@ export async function renderScheduleScreen(container) {
                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                  </button>
                </div>
-               <div style="display: flex; gap: 16px; align-items: center;">
+               <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap;">
                  <label class="badge badge-active" style="background: rgba(124, 111, 247, 0.1); border: 1px solid rgba(124,111,247,0.2); color: var(--accent);">
                     ${s.startTime} - ${s.endTime}
                  </label>
-                 <div style="font-size: 11px; color: var(--muted); font-weight: 700;">
-                    ${
-                      s.days?.length === 7
-                        ? 'EVERY DAY'
-                        : s.days
-                            ?.map((d) =>
-                              typeof d === 'string'
-                                ? d
-                                : [
-                                    'Sun',
-                                    'Mon',
-                                    'Tue',
-                                    'Wed',
-                                    'Thu',
-                                    'Fri',
-                                    'Sat',
-                                  ][d],
-                            )
-                            .join(', ') || 'NONE'
-                    }
+                 <div style="display: flex; gap: 4px;">
+                   ${['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                     .map(
+                       (d, i) =>
+                         `<span style="width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+                       font-size:9px; font-weight:800;
+                       background:${
+                         s.days?.includes(i) ? 'var(--accent)' : 'var(--card)'
+                       };
+                       color:${s.days?.includes(i) ? '#fff' : 'var(--muted)'};
+                       border:1px solid var(--border);">${d}</span>`,
+                     )
+                     .join('')}
                  </div>
                </div>
             </div>
@@ -80,6 +96,15 @@ export async function renderScheduleScreen(container) {
         }
       </div>
     `;
+
+    // Day picker toggle
+    container.querySelectorAll('.day-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const isActive = btn.classList.toggle('day-active');
+        btn.style.background = isActive ? 'var(--accent)' : 'var(--card)';
+        btn.style.color = isActive ? '#fff' : 'var(--muted)';
+      });
+    });
 
     container
       .querySelector('#btnCreateSchedule')
@@ -92,6 +117,10 @@ export async function renderScheduleScreen(container) {
           return;
         }
 
+        const selectedDays = Array.from(
+          container.querySelectorAll('.day-btn.day-active'),
+        ).map((b) => parseInt(b.getAttribute('data-day'), 10));
+
         const btn = container.querySelector('#btnCreateSchedule');
         btn.innerText = 'Creating...';
         btn.disabled = true;
@@ -101,9 +130,9 @@ export async function renderScheduleScreen(container) {
           name,
           startTime: start,
           endTime: end,
-          days: [1, 2, 3, 4, 5], // Default to Workdays (Mon-Fri as numbers)
+          days: selectedDays.length > 0 ? selectedDays : [1, 2, 3, 4, 5],
           active: true,
-          appNames: [], // Blocks all restricted apps by default in our current core engine
+          appNames: [],
         };
 
         await updateSchedule(storage, newSch);

@@ -1,42 +1,98 @@
-# FocusGate Future Plans Index
-> Updated: 29 Mar 2026
-> Purpose: active planning map for product, app, extension, UI, and platform work
+# Future Plans Index
+> Updated: 30 Mar 2026
+> Purpose: map the active docs set so product, engineering, and design work all start from the right file
 
-## Active Planning Set
+## How To Use This Index
 
-- `product_roadmap_2026.md`
-  Product direction, product pillars, and long-range sequencing.
-- `execution_plan_q2_2026.md`
-  Near-term Android product execution order.
-- `extension_product_plan.md`
-  Extension-first product strategy and enforcement model.
-- `extension_execution_backlog.md`
-  Practical extension sprint backlog.
-- `future_screens_plan.md`
-  Screen-by-screen roadmap for Android and extension surfaces.
-- `future_ui_system_plan.md`
-  Design system, visual polish, interaction, and content style work.
-- `future_api_platform_plan.md`
-  NextDNS/API/platform contract roadmap and sync architecture.
-- `future_extension_platform_plan.md`
-  Extension-specific future work beyond the current baseline.
-- `future_launch_growth_plan.md`
-  Release, analytics, trust, pricing, and growth preparation.
+If you are unsure where to start, use this simple rule:
 
-## Recently Archived
+- start with strategy docs when deciding direction
+- start with execution docs when building
+- start with operational reference docs when fixing or shipping
 
-- `archive/ui_ux_plan.md`
-- `archive/ui_ux_roadmap.md`
-- `archive/upgrade_plan.md`
-- `archive/implementation_plan.md`
+## Strategy Docs
 
-These were archived because they are either substantially completed, superseded by newer docs, or no longer reflect the current monorepo and extension-first direction.
+### `product_roadmap_2026.md`
 
-## Planning Rule
+Use this when you need the top-level answer to:
 
-When adding new plans:
+- what FocusGate is trying to become
+- what the priorities are this year
+- what “real product” means for this repo
 
-- prefer one document per major area
-- mark whether the plan is strategic or execution-focused
-- archive docs when their work is done or materially superseded
-- avoid creating another broad roadmap unless it replaces an older one
+### `extension_product_plan.md`
+
+Use this when the question is specifically about the role of the browser extension in the product.
+
+### `future_launch_growth_plan.md`
+
+Use this for launch readiness, retention thinking, support posture, and future growth framing.
+
+## Execution Docs
+
+### `execution_plan_q2_2026.md`
+
+Use this as the main near-term build order for the product overall.
+
+### `extension_execution_backlog.md`
+
+Use this when the work is extension-first and needs a practical queue of tasks.
+
+### `future_screens_plan.md`
+
+Use this for Android and extension screen responsibilities, missing screens, and recommended UI flow evolution.
+
+### `future_ui_system_plan.md`
+
+Use this for shared design language, UI rules, component expectations, and polish direction.
+
+### `extension_ui_plan.md`
+
+Use this for extension-specific screen layout, icon strategy, scope messaging, and popup UX.
+
+### `future_api_platform_plan.md`
+
+Use this for shared package boundaries, NextDNS client direction, sync behavior, and diagnostics infrastructure.
+
+### `future_extension_platform_plan.md`
+
+Use this for extension architecture beyond the current baseline, especially background/runtime and packaging concerns.
+
+### `extension_usage_plan.md`
+
+Use this for practical user flows through the extension, including what each page is supposed to do.
+
+## Operational Reference Docs
+
+### `android_recovery_plan.md`
+
+Use this when Android build, Metro, Gradle, emulator, or install flows are broken.
+
+### `extension_recovery_plan.md`
+
+Use this when extension build, load, sync, or runtime flows are broken.
+
+### `release_checklist.md`
+
+Use this before internal release builds, QA handoff, or packaging.
+
+### `privacy_policy.md`
+
+Use this as the current privacy posture and public-facing data-handling summary.
+
+### `imp/reference/PROJECT_STRUCTURE.md`
+
+Use this to quickly inspect where files live in the monorepo.
+
+### `imp/reference/SYSTEM_MATURITY.md`
+
+Use this to understand what is stable, what is still shaky, and where technical caution is needed.
+
+### `imp/reference/dns_api.md`
+
+Use this for an internal summary of the NextDNS API behavior relevant to FocusGate.
+
+## Archive
+
+Read `archive/README.md` before using archived material as input.
+Some archived docs are completed, while others are only superseded or historically useful.
