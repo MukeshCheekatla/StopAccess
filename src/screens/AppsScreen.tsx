@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, SPACING, RADIUS } from '../components/theme';
-import { getRules, updateRule, deleteRule } from '../store/rules';
+import { getRules, updateRule, deleteRule } from '@focusgate/state/rules';
+import { storageAdapter } from '../store/storageAdapter';
 import { AppRule, RuleMode } from '../types';
 import * as nextDNS from '../api/nextdns';
 import { AppPickerModal } from '../components/AppPickerModal';
@@ -21,9 +22,17 @@ import { AppIconImage } from '../components/AppIconImage';
 import { formatDuration } from '../utils/time';
 import { getWeeklyAverage } from '../modules/usageStats';
 import { PinGate } from '../components/PinGate';
-import { storage } from '../store/storage';
+import { storage } from '../store/storageAdapter';
 import { formatAppName } from '../utils/text';
 import { getInstalledApps, InstalledApp } from '../modules/installedApps';
+import {
+  isStrictMode,
+  startCooldown,
+  clearCooldown,
+  STRICT_COOLDOWN_MS,
+} from '../store/strictMode';
+import { addLog } from '../services/logger';
+import { getDomainForRule } from '@focusgate/core/domains';
 
 export default function AppsScreen() {
   const [rules, setRules] = useState<AppRule[]>([]);
@@ -39,13 +48,36 @@ export default function AppsScreen() {
   const [pinGateVisible, setPinGateVisible] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
-  const load = useCallback(() => {
-    setRules(getRules());
+  // Strict mode cooldown
+  const [cooldownVisible, setCooldownVisible] = useState(false);
+  const [cooldownSecs, setCooldownSecs] = useState(0);
+  const [pendingStrictAction, setPendingStrictAction] = useState<
+    (() => void) | null
+  >(null);
+  const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Custom Domain Fallback logic
+  const [domainModalVisible, setDomainModalVisible] = useState(false);
+  const [domainInput, setDomainInput] = useState('');
+  const [pendingDomainRule, setPendingDomainRule] = useState<AppRule | null>(
+    null,
+  );
+  const [pendingDomainMode, setPendingDomainMode] = useState<RuleMode | null>(
+    null,
+  );
+
+  // Protection warning
+  const [configured, setConfigured] = useState(false);
+
+  const load = useCallback(async () => {
+    const r = await getRules(storageAdapter);
+    setRules(r);
   }, []);
 
   useFocusEffect(
     useCallback(() => {
       load();
+      nextDNS.isConfigured().then(setConfigured);
     }, [load]),
   );
 
@@ -59,10 +91,46 @@ export default function AppsScreen() {
     }
   };
 
-  const onAddApp = (app: any) => {
+  /** Strict-mode aware downgrade: PIN → cooldown → execute */
+  const checkStrictDowngrade = (action: () => void) => {
+    const strict = isStrictMode();
+    if (!strict) {
+      checkPin(action);
+      return;
+    }
+    addLog('warn', 'Strict mode override attempted', 'Cooldown required');
+    startCooldown();
+    setPendingStrictAction(() => action);
+    const remaining = Math.ceil(STRICT_COOLDOWN_MS / 1000);
+    setCooldownSecs(remaining);
+    setCooldownVisible(true);
+    cooldownTimer.current = setInterval(() => {
+      setCooldownSecs((s) => {
+        if (s <= 1) {
+          clearInterval(cooldownTimer.current!);
+          cooldownTimer.current = null;
+          return 0;
+        }
+        return s - 1;
+      });
+    }, 1000);
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (cooldownTimer.current) {
+        clearInterval(cooldownTimer.current);
+      }
+    };
+  }, []);
+
+  const onAddApp = async (app: any) => {
     const newRule: AppRule = {
       appName: app.appName,
       packageName: app.packageName,
+      type: 'service',
+      scope: 'profile',
       mode: 'allow',
       dailyLimitMinutes: 0,
       blockedToday: false,
@@ -70,23 +138,38 @@ export default function AppsScreen() {
       iconBase64: app.iconBase64,
       addedByUser: true,
     };
-    updateRule(newRule);
+    await updateRule(storageAdapter, newRule);
     setPickerVisible(false);
     load();
   };
 
   const onRemoveApp = (pkg: string) => {
-    deleteRule(pkg);
-    load();
+    // Always PIN-gate deletions
+    checkPin(async () => {
+      await deleteRule(storageAdapter, pkg);
+      nextDNS.unblockApp(pkg).catch(() => {});
+      load();
+    });
   };
 
   const setMode = async (rule: AppRule, mode: RuleMode) => {
-    // If trying to unblock or relax rules, check PIN
-    if (rule.mode === 'block' || rule.mode === 'limit') {
-      if (mode === 'allow' || (mode === 'limit' && rule.mode === 'block')) {
-        checkPin(() => performSetMode(rule, mode));
-        return;
-      }
+    // Check if we can resolve the domain. If not, prompt.
+    if ((mode === 'block' || mode === 'limit') && !getDomainForRule(rule)) {
+      setPendingDomainRule(rule);
+      setPendingDomainMode(mode);
+      setDomainInput('');
+      setDomainModalVisible(true);
+      return;
+    }
+
+    // Downgrading a blocked/limited app requires PIN + strict cooldown
+    const isDowngrade =
+      (rule.mode === 'block' && (mode === 'allow' || mode === 'limit')) ||
+      (rule.mode === 'limit' && mode === 'allow');
+
+    if (isDowngrade) {
+      checkStrictDowngrade(() => performSetMode(rule, mode));
+      return;
     }
 
     performSetMode(rule, mode);
@@ -114,18 +197,18 @@ export default function AppsScreen() {
       updated.blockedToday = false;
     }
 
-    updateRule(updated);
+    await updateRule(storageAdapter, updated);
     load();
   };
 
   useFocusEffect(
     useCallback(() => {
       // Background fix for existing rules that might be missing icons or have old ones
-      const currentRules = getRules();
-      let changed = false;
-      const updatedRules = [...currentRules];
+      const fixIcons = async () => {
+        const currentRules = await getRules(storageAdapter);
+        let changed = false;
+        const updatedRules = [...currentRules];
 
-      const fetchMissingIcons = async () => {
         const installed = await getInstalledApps();
         for (let i = 0; i < updatedRules.length; i++) {
           const rule = updatedRules[i];
@@ -142,16 +225,19 @@ export default function AppsScreen() {
           }
         }
         if (changed) {
-          updatedRules.forEach((r) => updateRule(r));
-          setRules(getRules());
+          for (const r of updatedRules) {
+            await updateRule(storageAdapter, r);
+          }
+          const final = await getRules(storageAdapter);
+          setRules(final);
         }
       };
 
-      fetchMissingIcons();
+      fixIcons();
     }, []),
   );
 
-  const saveLimit = () => {
+  const saveLimit = async () => {
     if (!selectedRule) {
       return;
     }
@@ -169,9 +255,35 @@ export default function AppsScreen() {
       mode: 'limit' as RuleMode,
       dailyLimitMinutes: total,
     };
-    updateRule(updated);
+    await updateRule(storageAdapter, updated);
     setLimitModalVisible(false);
     load();
+  };
+
+  const saveCustomDomain = async () => {
+    if (!pendingDomainRule || !pendingDomainMode) {
+      return;
+    }
+    const trimmed = domainInput.trim().toLowerCase();
+    if (trimmed.length < 4 || !trimmed.includes('.')) {
+      Alert.alert(
+        'Invalid Domain',
+        'Please enter a valid domain (e.g. instagram.com)',
+      );
+      return;
+    }
+
+    const updatedRule = { ...pendingDomainRule, customDomain: trimmed };
+    await updateRule(storageAdapter, updatedRule);
+    const final = await getRules(storageAdapter);
+    setRules(final);
+    setDomainModalVisible(false);
+
+    // Call setMode again so downgrade checks run if needed
+    const modeToPass = pendingDomainMode;
+    setPendingDomainRule(null);
+    setPendingDomainMode(null);
+    setMode(updatedRule, modeToPass);
   };
 
   const renderItem = ({ item }: { item: AppRule }) => (
@@ -185,6 +297,9 @@ export default function AppsScreen() {
         />
         <View style={styles.info}>
           <Text style={styles.appName}>{formatAppName(item.appName)}</Text>
+          <Text style={styles.pkg}>
+            {getDomainForRule(item) || item.packageName}
+          </Text>
         </View>
         <TouchableOpacity
           onPress={() => onRemoveApp(item.packageName)}
@@ -237,8 +352,24 @@ export default function AppsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Degraded protection banner */}
+      {!configured && (
+        <View style={styles.warnBanner}>
+          <Icon name="shield-alert" size={16} color={COLORS.yellow} />
+          <Text style={styles.warnBannerTxt}>
+            NextDNS not configured — blocks are inactive
+          </Text>
+        </View>
+      )}
+
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Controlled Apps</Text>
+        {isStrictMode() && (
+          <View style={styles.strictBadge}>
+            <Icon name="lock" size={13} color={COLORS.red} />
+            <Text style={styles.strictBadgeTxt}>STRICT</Text>
+          </View>
+        )}
       </View>
 
       <FlatList
@@ -272,6 +403,70 @@ export default function AppsScreen() {
         onSelect={onAddApp}
         alreadySelectedPackages={rules.map((r) => r.packageName)}
       />
+
+      {/* Strict mode cooldown modal (emergency override) */}
+      <Modal visible={cooldownVisible} transparent animationType="fade">
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            <Icon
+              name="shield-lock"
+              size={40}
+              color={COLORS.red}
+              style={styles.strictIcon}
+            />
+            <Text style={styles.modalTitle}>Strict Mode Override</Text>
+            <Text style={styles.overrideDesc}>
+              You enabled Strict Mode to prevent impulsive bypasses. Please wait
+              for the confirmation timer before proceeding.
+            </Text>
+            <View style={styles.countdownBox}>
+              <Text style={styles.countdownNum}>{cooldownSecs}</Text>
+              <Text style={styles.countdownLabel}>seconds remaining</Text>
+            </View>
+            <View style={styles.modalBtns}>
+              <TouchableOpacity
+                style={styles.modalBtn}
+                onPress={() => {
+                  addLog('warn', 'Strict mode override cancelled');
+                  clearCooldown();
+                  if (cooldownTimer.current) {
+                    clearInterval(cooldownTimer.current);
+                    cooldownTimer.current = null;
+                  }
+                  setCooldownVisible(false);
+                  setPendingStrictAction(null);
+                }}
+              >
+                <Text style={styles.modalBtnTxt}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalBtn,
+                  styles.modalBtnDanger,
+                  cooldownSecs > 0 && styles.dimmed,
+                ]}
+                disabled={cooldownSecs > 0}
+                onPress={() => {
+                  addLog('warn', 'Strict mode override confirmed and executed');
+                  clearCooldown();
+                  setCooldownVisible(false);
+                  // Still require PIN after cooldown
+                  checkPin(() => {
+                    if (pendingStrictAction) {
+                      pendingStrictAction();
+                      setPendingStrictAction(null);
+                    }
+                  });
+                }}
+              >
+                <Text style={[styles.modalBtnTxt, { color: COLORS.red }]}>
+                  {cooldownSecs > 0 ? `Wait ${cooldownSecs}s…` : 'Override Now'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Modal visible={limitModalVisible} transparent animationType="fade">
         <View style={styles.overlay}>
@@ -327,6 +522,53 @@ export default function AppsScreen() {
               >
                 <Text style={[styles.modalBtnTxt, styles.modalBtnTxtPrimary]}>
                   Set Limit
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={domainModalVisible} transparent animationType="fade">
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            <Text style={styles.modalTitle}>App Domain Required</Text>
+            <Text style={styles.overrideDesc}>
+              We couldn't automatically determine the network domain for{' '}
+              {pendingDomainRule
+                ? formatAppName(pendingDomainRule.appName)
+                : 'this app'}
+              . Please enter it manually to enable blocking.
+            </Text>
+
+            <TextInput
+              style={styles.textInput}
+              value={domainInput}
+              onChangeText={setDomainInput}
+              placeholder="e.g. reddit.com"
+              placeholderTextColor={COLORS.muted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+            />
+
+            <View style={styles.modalBtns}>
+              <TouchableOpacity
+                style={styles.modalBtn}
+                onPress={() => {
+                  setDomainModalVisible(false);
+                  setPendingDomainRule(null);
+                  setPendingDomainMode(null);
+                }}
+              >
+                <Text style={styles.modalBtnTxt}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalBtn, styles.modalBtnPrimary]}
+                onPress={saveCustomDomain}
+              >
+                <Text style={[styles.modalBtnTxt, styles.modalBtnTxtPrimary]}>
+                  Save & Block
                 </Text>
               </TouchableOpacity>
             </View>
@@ -491,6 +733,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
+  textInput: {
+    backgroundColor: COLORS.bg,
+    color: COLORS.text,
+    fontSize: 16,
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    marginBottom: SPACING.xl,
+    textAlign: 'center',
+  },
   timeLabel: { color: COLORS.muted, fontSize: 12, marginTop: 4 },
   timeColon: {
     color: COLORS.text,
@@ -513,4 +766,49 @@ const styles = StyleSheet.create({
     borderColor: COLORS.accent,
   },
   modalBtnTxtPrimary: { color: '#fff' },
+  // Strict mode & warn banner
+  warnBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(255,184,0,0.1)',
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255,184,0,0.2)',
+  },
+  warnBannerTxt: { color: COLORS.yellow, fontSize: 13, flex: 1 },
+  strictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,71,87,0.08)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,71,87,0.2)',
+  },
+  strictBadgeTxt: { color: COLORS.red, fontSize: 11, fontWeight: 'bold' },
+  strictIcon: { alignSelf: 'center', marginBottom: 12 },
+  overrideDesc: {
+    color: COLORS.muted,
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: SPACING.lg,
+  },
+  countdownBox: {
+    alignItems: 'center',
+    marginBottom: SPACING.lg,
+    paddingVertical: SPACING.md,
+    backgroundColor: 'rgba(255,71,87,0.06)',
+    borderRadius: RADIUS.md,
+  },
+  countdownNum: { color: COLORS.red, fontSize: 48, fontWeight: 'bold' },
+  countdownLabel: { color: COLORS.muted, fontSize: 12 },
+  modalBtnDanger: {
+    borderColor: 'rgba(255,71,87,0.4)',
+  },
+  dimmed: { opacity: 0.45 },
 });

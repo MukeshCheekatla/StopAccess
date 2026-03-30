@@ -1,4 +1,4 @@
-import { storage } from '../store/storage';
+import { storage } from '../store/storageAdapter';
 
 const LOG_KEY = 'app_system_logs';
 const MAX_LOGS = 100;
@@ -8,6 +8,13 @@ export interface LogEntry {
   level: 'info' | 'warn' | 'error' | 'sync';
   message: string;
   details?: string;
+}
+
+function shouldPrintToConsole(): boolean {
+  const env =
+    (globalThis as { process?: { env?: Record<string, string | undefined> } })
+      .process?.env?.NODE_ENV ?? '';
+  return env !== 'test';
 }
 
 function formatConsolePrefix(entry: LogEntry): string {
@@ -32,6 +39,10 @@ export function addLog(
 
   const updatedLogs = [newEntry, ...logs].slice(0, MAX_LOGS);
   storage.set(LOG_KEY, JSON.stringify(updatedLogs));
+
+  if (!shouldPrintToConsole()) {
+    return;
+  }
 
   const prefix = formatConsolePrefix(newEntry);
   if (level === 'error') {

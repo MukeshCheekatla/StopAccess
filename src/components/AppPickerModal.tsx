@@ -143,18 +143,40 @@ export const AppPickerModal: React.FC<Props> = ({
     }
   }
 
-  const filtered = useMemo(
-    () =>
-      apps.filter((app) => {
-        if (!search.trim()) {
-          return true;
+  const filtered = useMemo(() => {
+    if (!search.trim()) {
+      return apps;
+    }
+    const query = search.trim().toLowerCase();
+
+    return apps
+      .filter((app) => (app.appName || '').toLowerCase().includes(query))
+      .sort((a, b) => {
+        const nameA = (a.appName || '').toLowerCase();
+        const nameB = (b.appName || '').toLowerCase();
+
+        // 1. Exact match
+        if (nameA === query && nameB !== query) {
+          return -1;
         }
-        const query = search.toLowerCase();
-        const name = (app.appName || '').toLowerCase();
-        return name.includes(query);
-      }),
-    [apps, search],
-  );
+        if (nameB === query && nameA !== query) {
+          return 1;
+        }
+
+        // 2. Starts with
+        const startsA = nameA.startsWith(query);
+        const startsB = nameB.startsWith(query);
+        if (startsA && !startsB) {
+          return -1;
+        }
+        if (startsB && !startsA) {
+          return 1;
+        }
+
+        // 3. Keep original usage-based order
+        return apps.indexOf(a) - apps.indexOf(b);
+      });
+  }, [apps, search]);
 
   const context = useSharedValue({ y: 0 });
   const gesture = Gesture.Pan()

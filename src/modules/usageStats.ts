@@ -15,7 +15,7 @@
  */
 
 import { NativeModules, Platform } from 'react-native';
-import { storage } from '../store/storage';
+import { storage } from '../store/storageAdapter';
 import { AppUsageStat } from '../types';
 
 // --- Internal types ---

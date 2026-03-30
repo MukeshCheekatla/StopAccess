@@ -20,10 +20,11 @@ import {
   addSchedule,
   deleteSchedule,
   toggleSchedule,
-} from '../store/schedules';
+} from '@focusgate/state/schedules';
+import { storageAdapter } from '../store/storageAdapter';
 import { ScheduleRule } from '../types';
 import { AppIconImage } from '../components/AppIconImage';
-import { getRules } from '../store/rules';
+import { getRules } from '@focusgate/state/rules';
 
 const { width } = Dimensions.get('window');
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -49,7 +50,10 @@ export default function ScheduleScreen() {
   const [days] = useState<number[]>([1, 2, 3, 4, 5]);
   const [selectedApps, setSelectedApps] = useState<string[]>([]);
 
-  const load = useCallback(() => setSchedules(getSchedules()), []);
+  const load = useCallback(async () => {
+    const s = await getSchedules(storageAdapter);
+    setSchedules(s);
+  }, []);
   useFocusEffect(
     useCallback(() => {
       load();
@@ -60,14 +64,15 @@ export default function ScheduleScreen() {
     s.days.includes(selectedDay),
   );
 
-  const onAdd = () => {
+  const onAdd = async () => {
     // Pick all currently controlled apps by default
-    const currentApps = getRules().map((r) => r.packageName);
+    const rules = await getRules(storageAdapter);
+    const currentApps = rules.map((r) => r.packageName);
     setSelectedApps(currentApps);
     setModalVisible(true);
   };
 
-  const save = () => {
+  const save = async () => {
     if (selectedApps.length === 0) {
       Alert.alert('No Apps', 'Please select at least one app to block.');
       return;
@@ -81,7 +86,7 @@ export default function ScheduleScreen() {
       appNames: selectedApps, // Note: appNames actually stores packageNames in our types for robustness
       active: true,
     };
-    addSchedule(newSchedule);
+    await addSchedule(storageAdapter, newSchedule);
     setModalVisible(false);
     load();
   };
@@ -92,8 +97,8 @@ export default function ScheduleScreen() {
       {
         text: 'Delete',
         style: 'destructive',
-        onPress: () => {
-          deleteSchedule(id);
+        onPress: async () => {
+          await deleteSchedule(storageAdapter, id);
           load();
         },
       },
@@ -143,8 +148,8 @@ export default function ScheduleScreen() {
               </View>
               <Switch
                 value={item.active}
-                onValueChange={(v) => {
-                  toggleSchedule(item.id, v);
+                onValueChange={async (v) => {
+                  await toggleSchedule(storageAdapter, item.id, v);
                   load();
                 }}
                 trackColor={{ false: COLORS.border, true: COLORS.accent }}

@@ -8,8 +8,9 @@ import AppsScreen from '../screens/AppsScreen';
 import FocusScreen from '../screens/FocusScreen';
 import ScheduleScreen from '../screens/ScheduleScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import InsightsScreen from '../screens/InsightsScreen';
 import OnboardingScreen from '../screens/OnboardingScreen';
-import { storage } from '../store/storage';
+import { storage } from '../store/storageAdapter';
 
 const Tab = createBottomTabNavigator();
 
@@ -98,6 +99,15 @@ export default function AppNavigator() {
             tabBarLabel: 'Schedule',
             tabBarIcon: TabBarIcon('calendar-clock'),
             title: '🕐 Schedule',
+          }}
+        />
+        <Tab.Screen
+          name="Insights"
+          component={InsightsScreen}
+          options={{
+            tabBarLabel: 'Insights',
+            tabBarIcon: TabBarIcon('chart-bar'),
+            title: '📈 Insights',
           }}
         />
         <Tab.Screen

@@ -41,3 +41,14 @@ allprojects {
         }
     }
 }
+
+subprojects { subproject ->
+    afterEvaluate {
+        if (subproject.name == "react-native-vector-icons") {
+            def androidExt = subproject.extensions.findByName("android")
+            if (androidExt != null) {
+                androidExt.buildFeatures.buildConfig = true
+            }
+        }
+    }
+}

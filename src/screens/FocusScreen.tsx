@@ -13,8 +13,10 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, SPACING, RADIUS } from '../components/theme';
-import { getRules } from '../store/rules';
+import { getRules } from '@focusgate/state/rules';
+import { storageAdapter } from '../store/storageAdapter';
 import * as nextDNS from '../api/nextdns';
+import { recordFocusSession } from '@focusgate/core/insights';
 
 const { width } = Dimensions.get('window');
 const RING_SIZE = width * 0.7;
@@ -26,7 +28,7 @@ export default function FocusScreen() {
 
   // Animation refs
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectDuration = (mins: number) => {
     if (isActive) {
@@ -49,6 +51,7 @@ export default function FocusScreen() {
         .catch((e: Error) => console.error('Focus unblock error:', e.message));
 
       if (completed) {
+        await recordFocusSession(storageAdapter, selectedDuration);
         Vibration.vibrate([0, 500, 200, 500]);
         Alert.alert(
           'Focus Session Complete!',
@@ -62,7 +65,8 @@ export default function FocusScreen() {
   );
 
   const startFocus = async () => {
-    if (!nextDNS.isConfigured()) {
+    const isConfig = await nextDNS.isConfigured();
+    if (!isConfig) {
       Alert.alert(
         'Configuration Required',
         'Please set up NextDNS in Settings before starting focus mode.',
@@ -71,13 +75,12 @@ export default function FocusScreen() {
     }
 
     setIsActive(true);
-    const rules = getRules();
-    const appNames = rules.map((r) => r.appName);
+    const rules = await getRules(storageAdapter);
 
-    // Block all apps in background
+    // Block all apps in background using full rule objects
     nextDNS
-      .blockApps(appNames)
-      .catch((e) => console.error('Focus block error:', e));
+      .blockApps(rules)
+      .catch((e: Error) => console.error('Focus block error:', e.message));
     Vibration.vibrate(50);
   };
 

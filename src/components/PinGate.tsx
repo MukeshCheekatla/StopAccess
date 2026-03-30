@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, SPACING } from './theme';
-import { storage } from '../store/storage';
+import { storage } from '../store/storageAdapter';
 
 const PIN_KEY = 'guardian_pin';
 
