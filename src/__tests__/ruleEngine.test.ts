@@ -1,164 +1,132 @@
 import {
-  startRuleEngine,
-  stopRuleEngine,
-  resetDailyBlocks,
-  runChecks,
-} from '../engine/ruleEngine';
-import { getRules } from '../store/rules';
-import { getSchedules } from '../store/schedules';
-import { getAppMinutesToday } from '../modules/usageStats';
-import { blockApps, unblockAll } from '../api/nextdns';
+  evaluateRules,
+  runFullEngineCycle,
+  startEngine,
+  stopEngine,
+} from '@focusgate/core/engine';
 
-jest.mock('react-native-mmkv', () => ({
-  MMKV: jest.fn(() => ({
-    set: jest.fn(),
-    getString: jest.fn(() => null),
-    getNumber: jest.fn(() => 0),
-    getBoolean: jest.fn(() => false),
-    delete: jest.fn(),
-  })),
-}));
-
-jest.mock('@notifee/react-native', () => ({
-  __esModule: true,
-  default: {
-    createChannel: jest.fn(),
-    displayNotification: jest.fn(),
-  },
-  AndroidImportance: {
-    HIGH: 'HIGH',
-  },
-}));
-
-jest.mock('../api/nextdns', () => ({
-  isConfigured: jest.fn(() => true),
-  blockApp: jest.fn(() => Promise.resolve()),
-  unblockApp: jest.fn(() => Promise.resolve()),
-  blockApps: jest.fn(() => Promise.resolve()),
-  unblockAll: jest.fn(() => Promise.resolve()),
-}));
-
-jest.mock('../modules/usageStats', () => ({
-  getAppMinutesToday: jest.fn(() => Promise.resolve(0)),
-  refreshTodayUsage: jest.fn(() => Promise.resolve([])),
-}));
-
-jest.mock('../store/rules', () => ({
-  getRules: jest.fn(() => []),
-  saveRules: jest.fn(),
-  updateRule: jest.fn(),
-}));
-
-jest.mock('../store/schedules', () => ({
-  getSchedules: jest.fn(() => []),
-}));
-
-const mockGetRules = getRules as jest.Mock;
-const mockGetSchedules = getSchedules as jest.Mock;
-const mockGetAppMinutesToday = getAppMinutesToday as jest.Mock;
-const mockUnblockAll = unblockAll as jest.Mock;
-const mockBlockApps = blockApps as jest.Mock;
-// const mockUpdateRule = updateRule as jest.Mock;
-
-beforeEach(() => {
-  jest.clearAllMocks();
-  jest.useFakeTimers();
-});
-
-afterEach(() => {
-  stopRuleEngine();
-  jest.useRealTimers();
-});
-
-describe('RuleEngine', () => {
-  describe('startRuleEngine / stopRuleEngine', () => {
-    it('starts the engine interval', () => {
-      startRuleEngine();
-      expect(jest.getTimerCount()).toBeGreaterThan(0);
-    });
-
-    it('is idempotent — calling start twice does not create two intervals', () => {
-      startRuleEngine();
-      const countAfterFirst = jest.getTimerCount();
-      startRuleEngine();
-      expect(jest.getTimerCount()).toBe(countAfterFirst);
-    });
-
-    it('stopRuleEngine clears the interval', () => {
-      startRuleEngine();
-      stopRuleEngine();
-      expect(jest.getTimerCount()).toBe(0);
-    });
+describe('@focusgate/core engine', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest.useFakeTimers();
   });
 
-  describe('resetDailyBlocks', () => {
-    it('calls unblockApps with names of all BLOCKED rules', async () => {
-      mockGetRules.mockReturnValue([
-        { appName: 'Instagram', mode: 'BLOCK', domains: ['instagram.com'] },
-        { appName: 'YouTube', mode: 'ALLOW', domains: ['youtube.com'] },
-        { appName: 'Twitter', mode: 'BLOCK', domains: ['twitter.com'] },
-      ]);
-
-      await resetDailyBlocks();
-      expect(mockUnblockAll).toHaveBeenCalled();
-    });
-
-    it('still syncs an unblock when no rules are BLOCKED', async () => {
-      mockGetRules.mockReturnValue([
-        { appName: 'Instagram', mode: 'ALLOW', domains: ['instagram.com'] },
-      ]);
-
-      await resetDailyBlocks();
-
-      expect(mockUnblockAll).toHaveBeenCalled();
-    });
+  afterEach(() => {
+    stopEngine();
+    jest.useRealTimers();
   });
 
-  describe('runChecks — limit enforcement', () => {
-    it('blocks an app when usage exceeds the daily limit', async () => {
-      mockGetRules.mockReturnValue([
+  it('starts exactly one interval at a time', () => {
+    startEngine({} as any);
+    expect(jest.getTimerCount()).toBe(1);
+
+    startEngine({} as any);
+    expect(jest.getTimerCount()).toBe(1);
+  });
+
+  it('stopEngine clears the interval', () => {
+    startEngine({} as any);
+    stopEngine();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('blocks manual and over-limit rules', () => {
+    const { masterBlockList, updatedRules } = evaluateRules({
+      rules: [
         {
           appName: 'Instagram',
           packageName: 'com.instagram.android',
           mode: 'limit',
           dailyLimitMinutes: 30,
           blockedToday: false,
-          usedMinutesToday: 0,
-          domains: ['instagram.com'],
+          usedMinutesToday: 45,
+          addedByUser: true,
         },
-      ]);
-      mockGetAppMinutesToday.mockResolvedValue(45);
-
-      await runChecks();
-
-      expect(mockBlockApps).toHaveBeenCalledWith(['Instagram']);
-    });
-
-    it('does NOT block an app that is under the limit', async () => {
-      mockGetRules.mockReturnValue([
         {
           appName: 'YouTube',
           packageName: 'com.google.android.youtube',
-          mode: 'limit',
-          dailyLimitMinutes: 60,
+          mode: 'block',
+          dailyLimitMinutes: 0,
           blockedToday: false,
           usedMinutesToday: 0,
-          domains: ['youtube.com'],
+          addedByUser: true,
         },
-      ]);
-      mockGetAppMinutesToday.mockResolvedValue(20);
-
-      await runChecks();
-
-      expect(mockBlockApps).not.toHaveBeenCalledWith(['YouTube']);
+      ],
+      schedules: [],
+      focusEndTime: 0,
     });
+
+    expect(masterBlockList.has('com.instagram.android')).toBe(true);
+    expect(masterBlockList.has('com.google.android.youtube')).toBe(true);
+    expect(updatedRules.every((rule) => rule.blockedToday)).toBe(true);
   });
 
-  describe('checkSchedules', () => {
-    it('returns without error when no schedules exist', async () => {
-      mockGetSchedules.mockReturnValue([]);
-      startRuleEngine();
-      expect(() => jest.advanceTimersByTime(60000)).not.toThrow();
+  it('blocks scheduled apps during an active schedule window', () => {
+    const { masterBlockList } = evaluateRules({
+      rules: [
+        {
+          appName: 'Instagram',
+          packageName: 'com.instagram.android',
+          mode: 'allow',
+          dailyLimitMinutes: 0,
+          blockedToday: false,
+          usedMinutesToday: 0,
+          addedByUser: true,
+        },
+      ],
+      schedules: [
+        {
+          id: 'sched-1',
+          name: 'Workday block',
+          appNames: ['com.instagram.android'],
+          startTime: '09:00',
+          endTime: '17:00',
+          days: [1],
+          active: true,
+        },
+      ],
+      focusEndTime: 0,
+      now: new Date('2026-03-30T10:00:00'),
     });
+
+    expect(masterBlockList.has('com.instagram.android')).toBe(true);
+  });
+
+  it('runFullEngineCycle persists updated rules', async () => {
+    const saveRules = jest.fn().mockResolvedValue(undefined);
+    const notifyBlocked = jest.fn();
+
+    const result = await runFullEngineCycle({
+      storage: {
+        loadGlobalState: jest.fn().mockResolvedValue({
+          rules: [
+            {
+              appName: 'Instagram',
+              packageName: 'com.instagram.android',
+              mode: 'limit',
+              dailyLimitMinutes: 30,
+              blockedToday: false,
+              usedMinutesToday: 45,
+              addedByUser: true,
+            },
+          ],
+          schedules: [],
+          focusEndTime: 0,
+        }),
+        saveRules,
+      },
+      api: {},
+      logger: { add: jest.fn() },
+      notifications: { notifyBlocked },
+    } as any);
+
+    expect(result.ok).toBe(true);
+    expect(saveRules).toHaveBeenCalledWith([
+      expect.objectContaining({
+        appName: 'Instagram',
+        blockedToday: true,
+      }),
+    ]);
+    expect(notifyBlocked).toHaveBeenCalledWith('Instagram');
   });
 });

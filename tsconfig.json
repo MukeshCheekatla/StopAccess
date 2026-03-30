@@ -1,6 +1,28 @@
 {
   "extends": "./node_modules/@react-native/typescript-config/tsconfig.json",
   "compilerOptions": {
-    "types": ["jest"]
-  }
+    "types": ["jest"],
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@focusgate/core": ["packages/core/src/index.ts"],
+      "@focusgate/core/*": ["packages/core/src/*.ts"],
+      "@focusgate/state": ["packages/state/src/index.ts"],
+      "@focusgate/state/*": ["packages/state/src/*.ts"],
+      "@focusgate/sync": ["packages/sync/src/index.ts"],
+      "@focusgate/sync/*": ["packages/sync/src/*.ts"],
+      "@focusgate/types": ["packages/types/src/index.ts"],
+      "@focusgate/ui": ["packages/ui/src/index.ts"]
+    }
+  },
+  "include": [
+    "App.tsx",
+    "index.js",
+    "react-native.config.js",
+    "src/**/*",
+    "types/**/*.d.ts",
+    "packages/**/*",
+    "scripts/**/*"
+  ],
+  "exclude": ["extension", "android", "ios", "node_modules", "src/__tests__"]
 }

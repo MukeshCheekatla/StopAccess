@@ -1,0 +1,7 @@
+node_modules
+dist
+.expo
+.next
+.turbo
+extension/dist
+build

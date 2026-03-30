@@ -1,0 +1,13 @@
+{
+  "name": "@focusgate/state",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./rules": "./src/rules.ts",
+    "./schedules": "./src/schedules.ts",
+    "./insights": "./src/insights.ts"
+  }
+}

@@ -4,6 +4,8 @@ node_modules/
 .expo-shared/
 dist/
 build/
+extension/dist/
+extension/node_modules/
 
 # Android
 android/build/
@@ -11,6 +13,11 @@ android/.gradle/
 android/app/build/
 android/local.properties
 android/GeneratedPluginRegistrant.java
+android/app/src/main/assets/index.android.bundle
+android/app/src/main/res/drawable-*/node_modules_*
+# Release keystores — never commit these
+*.jks
+*.keystore
 
 # IDEs
 .idea/

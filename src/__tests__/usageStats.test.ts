@@ -17,7 +17,7 @@
 const mockStorageSet = jest.fn();
 const mockStorageGet = jest.fn<string | undefined, [string]>();
 
-jest.mock('../store/storage', () => ({
+jest.mock('../store/storageAdapter', () => ({
   storage: {
     set: (key: string, value: string) => mockStorageSet(key, value),
     getString: (key: string) => mockStorageGet(key),
