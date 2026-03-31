@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   Alert,
+  NativeModules,
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -25,6 +26,7 @@ import { getRules, updateRule, saveRules } from '@focusgate/state/rules';
 import { getSnapshots } from '@focusgate/state/insights';
 import { storageAdapter } from '../store/storageAdapter';
 import { isConfigured, unblockAll } from '../api/nextdns';
+const { RuleEngine } = NativeModules;
 import { getFocusStreak } from '@focusgate/core/insights';
 import { getLogs, LogEntry } from '../services/logger';
 
@@ -298,6 +300,8 @@ export default function DashboardScreen() {
   const [weeklySnapshots, setWeeklySnapshots] = useState<DailySnapshot[]>([]);
   const [focusStreak, setFocusStreak] = useState(0);
   const [recentLogs, setRecentLogs] = useState<LogEntry[]>([]);
+  const [protectionLevel, setProtectionLevel] = useState('NONE');
+  const [a11yEnabled, setA11yEnabled] = useState(true);
 
   const load = useCallback(async (isAuto = false) => {
     if (!isAuto) {
@@ -312,6 +316,13 @@ export default function DashboardScreen() {
     setWeeklySnapshots(await getSnapshots(storageAdapter));
     setFocusStreak(await getFocusStreak(storageAdapter));
     setRecentLogs(getLogs().slice(0, 5));
+
+    if (RuleEngine) {
+      const level = await RuleEngine.getProtectionLevel();
+      const a11y = await RuleEngine.isAccessibilityServiceEnabled();
+      setProtectionLevel(level);
+      setA11yEnabled(a11y);
+    }
 
     if (perm) {
       const stats = await refreshTodayUsage().catch(
@@ -402,32 +413,58 @@ export default function DashboardScreen() {
                 style={[
                   styles.statusDot,
                   {
-                    backgroundColor: configured && rules.length > 0
-                      ? COLORS.green
-                      : COLORS.yellow,
+                    backgroundColor:
+                      protectionLevel === 'STRONG'
+                        ? COLORS.green
+                        : protectionLevel === 'STANDARD'
+                        ? COLORS.accent
+                        : COLORS.red,
                   },
                 ]}
               />
-              <Text style={styles.summaryVal}>
-                {configured ? 'Active' : 'Local'}
-              </Text>
+              <Text style={styles.summaryVal}>{protectionLevel}</Text>
             </View>
-            <Text style={styles.summaryLabel}>Protection State</Text>
+            <Text style={styles.summaryLabel}>Protection Level</Text>
           </View>
         </View>
 
+        {/* Protection Alert Banner (Mandatory) */}
+        {!a11yEnabled && (
+          <View style={styles.protectionWarningBanner}>
+            <View style={styles.warningInfo}>
+              <Icon name="shield-off-outline" size={20} color={COLORS.red} />
+              <View style={styles.warningTextCol}>
+                <Text style={styles.warningTitle}>Protection Inactive</Text>
+                <Text style={styles.warningSub}>
+                  Accessibility service is disconnected.
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              style={styles.warningBtn}
+              onPress={() => RuleEngine?.openAccessibilitySettings()}
+            >
+              <Text style={styles.warningBtnTxt}>Fix Now</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Protection Health Card (New) */}
-        {(configured || rules.length > 0) && (
+        {protectionLevel !== 'NONE' && (
           <View style={styles.healthCard}>
             <View style={styles.healthHeader}>
               <View style={styles.healthTitleRow}>
                 <Icon
-                  name={configured ? 'shield-check' : 'shield-alert'}
+                  name={protectionLevel === 'STRONG' ? 'shield-lock' : 'shield'}
                   size={20}
-                  color={configured ? COLORS.green : COLORS.yellow}
+                  color={
+                    protectionLevel === 'STRONG' ? COLORS.green : COLORS.accent
+                  }
                 />
                 <Text style={styles.healthTitle}>
-                  {configured ? 'Hybrid Protection' : 'Local Only'}
+                  {protectionLevel === 'STRONG'
+                    ? 'Strong Enforcement'
+                    : 'Standard Protection'}
                 </Text>
               </View>
               <TouchableOpacity
@@ -458,19 +495,19 @@ export default function DashboardScreen() {
             <View style={styles.healthGrid}>
               <View style={styles.healthCol}>
                 <Text style={styles.healthVal}>{rules.length}</Text>
-                <Text style={styles.healthLbl}>Active Rules</Text>
+                <Text style={styles.healthLbl}>Monitored</Text>
               </View>
               <View style={styles.healthDivider} />
               <View style={styles.healthCol}>
                 <Text style={styles.healthVal}>{blockedCount}</Text>
-                <Text style={styles.healthLbl}>Blocked Now</Text>
+                <Text style={styles.healthLbl}>Blocked</Text>
               </View>
               <View style={styles.healthDivider} />
               <View style={styles.healthCol}>
                 <Text style={styles.healthVal}>
-                  {configured ? 'Secure' : 'Low'}
+                  {protectionLevel === 'STRONG' ? 'Dual' : 'Single'}
                 </Text>
-                <Text style={styles.healthLbl}>Relatability</Text>
+                <Text style={styles.healthLbl}>Layers</Text>
               </View>
             </View>
           </View>
@@ -649,7 +686,45 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  
+
+  protectionWarningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 71, 87, 0.1)',
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 71, 87, 0.2)',
+  },
+  warningInfo: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
+  warningTextCol: { flex: 1 },
+  warningTitle: {
+    color: COLORS.red,
+    fontSize: 13,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  warningSub: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 1,
+  },
+  warningBtn: {
+    backgroundColor: COLORS.red,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  warningBtnTxt: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+
   healthCard: {
     backgroundColor: 'rgba(255,255,255,0.02)',
     borderRadius: 24,
@@ -669,7 +744,13 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   healthTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  healthTitle: { color: COLORS.text, fontSize: 12, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 1.5 },
+  healthTitle: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+  },
   panicLink: {
     color: COLORS.red,
     fontSize: 10,
@@ -680,9 +761,24 @@ const styles = StyleSheet.create({
   },
   healthGrid: { flexDirection: 'row', alignItems: 'center' },
   healthCol: { flex: 1, alignItems: 'center' },
-  healthVal: { color: COLORS.text, fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
-  healthLbl: { color: COLORS.muted, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', marginTop: 4 },
-  healthDivider: { width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.05)' },
+  healthVal: {
+    color: COLORS.text,
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  healthLbl: {
+    color: COLORS.muted,
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginTop: 4,
+  },
+  healthDivider: {
+    width: 1,
+    height: 32,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
 
   summaryGrid: {
     flexDirection: 'row',
@@ -704,7 +800,14 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   summaryValueRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  statusDot: { width: 8, height: 8, borderRadius: 4, shadowColor: '#fff', shadowOpacity: 0.5, shadowRadius: 4 },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    shadowColor: '#fff',
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+  },
 
   banner: {
     flexDirection: 'row',
@@ -716,7 +819,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 71, 87, 0.2)',
   },
-  bannerTxt: { fontSize: 12, marginLeft: 10, color: COLORS.red, fontWeight: '600' },
+  bannerTxt: {
+    fontSize: 12,
+    marginLeft: 10,
+    color: COLORS.red,
+    fontWeight: '600',
+  },
 
   section: { marginBottom: 32 },
   sectionHeaderTitle: {
@@ -741,9 +849,19 @@ const styles = StyleSheet.create({
   appTop: { flexDirection: 'row', alignItems: 'center' },
   infoCol: { flex: 1, marginLeft: 16 },
   appName: { color: COLORS.text, fontSize: 16, fontWeight: '700' },
-  appStatus: { color: COLORS.muted, fontSize: 12, fontWeight: '500', marginTop: 2 },
+  appStatus: {
+    color: COLORS.muted,
+    fontSize: 12,
+    fontWeight: '500',
+    marginTop: 2,
+  },
   usageVal: { color: COLORS.text, fontSize: 16, fontWeight: '800' },
-  quickAddUsage: { marginRight: 10, fontSize: 13, color: COLORS.muted, fontWeight: '600' },
+  quickAddUsage: {
+    marginRight: 10,
+    fontSize: 13,
+    color: COLORS.muted,
+    fontWeight: '600',
+  },
   quickAddRow: { flexDirection: 'row', alignItems: 'center' },
 
   activityCard: {
@@ -761,12 +879,24 @@ const styles = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.03)',
   },
   logMsg: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
-  logTime: { color: COLORS.muted, fontSize: 10, fontWeight: '700', marginTop: 4, textTransform: 'uppercase' },
+  logTime: {
+    color: COLORS.muted,
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: 4,
+    textTransform: 'uppercase',
+  },
   logInfo: { flex: 1, marginLeft: 12 },
   noBorder: { borderTopWidth: 0 },
 
   emptyBox: { alignItems: 'center', marginTop: 80, opacity: 0.5 },
-  emptyText: { color: COLORS.muted, marginTop: 16, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
+  emptyText: {
+    color: COLORS.muted,
+    marginTop: 16,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
 
   fab: {
     position: 'absolute',

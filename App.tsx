@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Alert,
   StatusBar,
@@ -9,8 +9,7 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
-import { startEngine } from '@focusgate/core/engine';
-import { SyncOrchestrator } from '@focusgate/sync';
+import { orchestrator } from './src/engine';
 import { storageAdapter } from './src/store/storageAdapter';
 import * as nextDNS from './src/api/nextdns';
 import { addLog } from './src/services/logger';
@@ -26,7 +25,6 @@ import {
 
 export default function App() {
   const [isLoaded, setIsLoaded] = useState(false);
-  const syncRef = useRef<SyncOrchestrator | null>(null);
 
   useEffect(() => {
     async function init() {
@@ -38,11 +36,18 @@ export default function App() {
           api: nextDNS,
           logger: { add: addLog },
           notifications: { notifyBlocked },
+          enforcements: {
+            applyBlockedPackages: async (pkgs: string[]) => {
+              const { RuleEngine } = require('react-native').NativeModules;
+              if (RuleEngine) {
+                RuleEngine.setBlockedPackages(pkgs);
+              }
+            },
+          },
         };
 
         // Bootstrap Sync Strategy (Ensure hydration before mounting UI)
-        syncRef.current = new SyncOrchestrator(ctx);
-        await syncRef.current.onLaunch();
+        await orchestrator.init(ctx);
 
         const hasPerm = await hasUsagePermission();
         if (!hasPerm) {
@@ -53,7 +58,7 @@ export default function App() {
           );
         }
 
-        startEngine(ctx);
+        // Engine is started inside orchestrator.init()
       } catch (e) {
         addLog('error', 'App Bootstrap Failed', String(e));
       } finally {
@@ -63,8 +68,8 @@ export default function App() {
     init();
 
     const sub = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active' && syncRef.current) {
-        syncRef.current.onForeground();
+      if (nextState === 'active') {
+        orchestrator.getSync()?.onForeground();
       }
     });
 

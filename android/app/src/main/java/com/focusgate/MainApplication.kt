@@ -25,6 +25,7 @@ class MainApplication : Application(), ReactApplication {
                 val packages = PackageList(this).packages.toMutableList()
                 packages.add(UsageStatsPackage())
                 packages.add(InstalledAppsPackage())
+                packages.add(RuleEnginePackage())
                 return packages
             }
 

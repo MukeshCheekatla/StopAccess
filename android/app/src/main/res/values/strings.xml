@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">FocusGate</string>
+    <string name="accessibility_service_description">Gate monitors foreground apps to enforce your focus rules. No screen content is read or stored.</string>
 </resources>

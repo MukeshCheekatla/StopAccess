@@ -11,6 +11,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Modal,
+  NativeModules,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -25,18 +26,14 @@ import {
   hasUsagePermission,
   requestUsagePermission,
 } from '../modules/usageStats';
-import { runFullEngineCycle } from '@focusgate/core/engine';
+import { notifyBlocked } from '../services/notifications';
+import { UI_EXAMPLES, runFullEngineCycle } from '@focusgate/core';
+import { orchestrator } from '../engine';
 import { storageAdapter, storage } from '../store/storageAdapter';
 import { getLogs, LogEntry, addLog } from '../services/logger';
-import { notifyBlocked } from '../services/notifications';
-import { UI_EXAMPLES } from '@focusgate/core';
-import { AppRule } from '../types';
+import { AppRule, SyncState } from '@focusgate/types';
 
 const STRICT_MODE_KEY = 'strict_mode_enabled';
-
-import { SyncOrchestrator } from '@focusgate/sync';
-import { NextDNSClient } from '@focusgate/core';
-import { SyncState } from '@focusgate/types';
 
 export default function SettingsScreen() {
   const [profileId, setProfileId] = useState('');
@@ -51,6 +48,14 @@ export default function SettingsScreen() {
   const [testDomain, setTestDomain] = useState('');
   const [testResult, setTestResult] = useState('');
   const [newPin, setNewPin] = useState('');
+  const [protectionLevel, setProtectionLevel] = useState('NONE');
+  const [protectionWarning, setProtectionWarning] = useState<string | null>(
+    null,
+  );
+  const [dnsLayerEnabled, setDnsLayerEnabled] = useState(false);
+  const [a11yEnabled, setA11yEnabled] = useState(false);
+
+  const { RuleEngine } = NativeModules;
 
   useFocusEffect(
     useCallback(() => {
@@ -65,9 +70,20 @@ export default function SettingsScreen() {
           (await storageAdapter.getBoolean(STRICT_MODE_KEY)) ?? false,
         );
         setSyncState(await storageAdapter.getSyncState());
+
+        if (RuleEngine) {
+          const level = await RuleEngine.getProtectionLevel();
+          const warning = await RuleEngine.getProtectionWarning();
+          const dnsOn = await RuleEngine.isDnsEnabled();
+          const a11yOn = await RuleEngine.isAccessibilityEnabled();
+          setProtectionLevel(level);
+          setProtectionWarning(warning);
+          setDnsLayerEnabled(dnsOn);
+          setA11yEnabled(a11yOn);
+        }
       };
       load();
-    }, []),
+    }, [RuleEngine]),
   );
 
   const triggerEngineCycle = async () => {
@@ -77,9 +93,22 @@ export default function SettingsScreen() {
       api: { isConfigured, config: cfg },
       logger: { add: addLog },
       notifications: { notifyBlocked },
+      enforcements: {
+        applyBlockedPackages: async (pkgs: string[]) => {
+          if (RuleEngine) {
+            RuleEngine.setBlockedPackages(pkgs);
+          }
+        },
+      },
     };
     await runFullEngineCycle(ctx);
     setSyncState(await storageAdapter.getSyncState());
+
+    // Refresh health status after engine cycle
+    if (RuleEngine) {
+      setProtectionLevel(await RuleEngine.getProtectionLevel());
+      setProtectionWarning(await RuleEngine.getProtectionWarning());
+    }
   };
 
   const saveSettings = async (pid: string, key: string) => {
@@ -113,14 +142,10 @@ export default function SettingsScreen() {
 
   const handleManualSync = async () => {
     setTesting(true);
-    const cfg = await getConfig();
-    const orchestrator = new SyncOrchestrator({
-      storage: storageAdapter,
-      api: new NextDNSClient(cfg, addLog as any),
-      logger: { add: addLog },
-      notifications: { notifyBlocked },
-    });
-    await orchestrator.performSync(true); // force push
+    const sync = orchestrator.getSync();
+    if (sync) {
+      await sync.performSync(true); // force push
+    }
     setSyncState(await storageAdapter.getSyncState());
     setTesting(false);
   };
@@ -192,43 +217,164 @@ export default function SettingsScreen() {
           <Text style={styles.headerTitle}>Settings</Text>
         </View>
 
+        {protectionWarning && (
+          <View style={styles.warningBanner}>
+            <Icon name="alert-decagram" color={COLORS.red} size={20} />
+            <Text style={styles.warningBannerText}>{protectionWarning}</Text>
+            <TouchableOpacity
+              onPress={() => RuleEngine?.openAccessibilitySettings()}
+              style={styles.warningAction}
+            >
+              <Text style={styles.warningActionText}>Fix Now</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>PROTECTION HEALTH</Text>
-          <View
-            style={[
-              styles.card,
-              profileId && apiKey ? styles.healthGood : styles.healthWarning,
-            ]}
-          >
+          <Text style={styles.sectionLabel}>PROTECTION LEVEL</Text>
+          <View style={[styles.card, styles.protectionMainCard]}>
+            <View style={styles.protectionLevelRow}>
+              <View>
+                <Text style={styles.protectionLevelTitle}>
+                  {protectionLevel === 'STRONG'
+                    ? 'Strong Protection'
+                    : protectionLevel === 'STANDARD'
+                    ? 'Standard Protection'
+                    : 'Weak Protection'}
+                </Text>
+                <Text style={styles.protectionLevelSub}>
+                  {protectionLevel === 'STRONG'
+                    ? 'Dual-layer enforcement Active'
+                    : protectionLevel === 'STANDARD'
+                    ? 'App blocking Active'
+                    : 'Accessibility required'}
+                </Text>
+              </View>
+              <View
+                style={[
+                  styles.levelBadge,
+                  protectionLevel === 'STRONG'
+                    ? styles.levelStrong
+                    : protectionLevel === 'STANDARD'
+                    ? styles.levelStandard
+                    : styles.levelWeak,
+                ]}
+              >
+                <Icon
+                  name={
+                    protectionLevel === 'STRONG' ? 'shield-check' : 'shield'
+                  }
+                  color="#fff"
+                  size={16}
+                />
+                <Text style={styles.levelBadgeText}>{protectionLevel}</Text>
+              </View>
+            </View>
+
+            <View style={styles.diagDivider} />
+
             <View style={styles.diagRow}>
-              <Text style={styles.diagLabel}>NextDNS Credentials</Text>
+              <Text style={styles.diagLabel}>Accessibility Service</Text>
               <Text
                 style={[
                   styles.diagValue,
-                  { color: profileId && apiKey ? COLORS.green : COLORS.red },
+                  { color: a11yEnabled ? COLORS.green : COLORS.red },
                 ]}
               >
-                {profileId && apiKey ? '✓ Configured' : '✗ Missing'}
+                {a11yEnabled ? '✓ Connected' : '✗ Disabled'}
               </Text>
             </View>
             <View style={styles.diagRow}>
-              <Text style={styles.diagLabel}>Stats Permission</Text>
+              <Text style={styles.diagLabel}>DNS Enforcement</Text>
               <Text
                 style={[
                   styles.diagValue,
-                  { color: hasPerm ? COLORS.green : COLORS.yellow },
+                  { color: dnsLayerEnabled ? COLORS.green : COLORS.muted },
                 ]}
               >
-                {hasPerm ? '✓ Granted' : '⚠️ Required'}
-              </Text>
-            </View>
-            <View style={styles.diagRow}>
-              <Text style={styles.diagLabel}>Service Status</Text>
-              <Text style={[styles.diagValue, { color: COLORS.green }]}>
-                ✓ Active
+                {dnsLayerEnabled ? '✓ Reinforced' : '○ Standby'}
               </Text>
             </View>
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>ENFORCEMENT OPTIONS</Text>
+          <SettingRow
+            icon="shield-plus"
+            label="Strong Protection"
+            sub="NextDNS reinforcement (Recommended)"
+          >
+            <Switch
+              value={dnsLayerEnabled}
+              onValueChange={async (v) => {
+                const configOk = await isConfigured();
+                if (v && !configOk) {
+                  Alert.alert(
+                    'Configuration Required',
+                    'Please set your NextDNS credentials first.',
+                  );
+                  return;
+                }
+
+                if (!v && dnsLayerEnabled) {
+                  // Friction: 5s countdown for downgrades
+                  setCooldown(5);
+                  const timer = setInterval(() => {
+                    setCooldown((prev) => {
+                      if (prev <= 1) {
+                        clearInterval(timer);
+                        RuleEngine.setDnsEnabled(false);
+                        setDnsLayerEnabled(false);
+                        RuleEngine.getProtectionLevel().then(
+                          setProtectionLevel,
+                        );
+                        return 0;
+                      }
+                      return prev - 1;
+                    });
+                  }, 1000);
+                } else {
+                  RuleEngine?.setDnsEnabled(v);
+                  setDnsLayerEnabled(v);
+                  const newLevel = await RuleEngine.getProtectionLevel();
+                  setProtectionLevel(newLevel);
+                }
+              }}
+            />
+          </SettingRow>
+
+          <SettingRow
+            icon="shield-lock"
+            label="Strict Mode"
+            sub={
+              cooldown > 0 ? `Active: ${cooldown}s` : 'Cooldown for downgrades'
+            }
+          >
+            <Switch
+              value={strictMode}
+              disabled={cooldown > 0}
+              onValueChange={async (v) => {
+                if (!v && strictMode) {
+                  setCooldown(5);
+                  const timer = setInterval(() => {
+                    setCooldown((prev) => {
+                      if (prev <= 1) {
+                        clearInterval(timer);
+                        setStrictModeLocal(false);
+                        storage.set(STRICT_MODE_KEY, false);
+                        return 0;
+                      }
+                      return prev - 1;
+                    });
+                  }, 1000);
+                } else {
+                  setStrictModeLocal(v);
+                  storage.set(STRICT_MODE_KEY, v);
+                }
+              }}
+            />
+          </SettingRow>
         </View>
 
         <View style={styles.section}>
@@ -300,44 +446,22 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>PROTECTION</Text>
+          <Text style={styles.sectionLabel}>PERMISSIONS</Text>
           <SettingRow
             icon="timetable"
             label="App Statistics"
-            sub={hasPerm ? 'Granted' : 'Required'}
+            sub={hasPerm ? 'Active' : 'Missing'}
           >
             <Switch value={hasPerm} onValueChange={requestUsagePermission} />
           </SettingRow>
           <SettingRow
-            icon="shield-lock"
-            label="Strict Mode"
-            sub={
-              cooldown > 0 ? `Active: ${cooldown}s` : 'Cooldown for downgrades'
-            }
+            icon="gesture-tap"
+            label="Accessibility Service"
+            sub={a11yEnabled ? 'Enforcing' : 'Grant required'}
           >
             <Switch
-              value={strictMode}
-              disabled={cooldown > 0}
-              onValueChange={async (v) => {
-                if (!v && strictMode) {
-                  // Friction: 5s countdown
-                  setCooldown(5);
-                  const timer = setInterval(() => {
-                    setCooldown((prev) => {
-                      if (prev <= 1) {
-                        clearInterval(timer);
-                        setStrictModeLocal(false);
-                        storage.set(STRICT_MODE_KEY, false);
-                        return 0;
-                      }
-                      return prev - 1;
-                    });
-                  }, 1000);
-                } else {
-                  setStrictModeLocal(v);
-                  storage.set(STRICT_MODE_KEY, v);
-                }
-              }}
+              value={a11yEnabled}
+              onValueChange={() => RuleEngine?.openAccessibilitySettings()}
             />
           </SettingRow>
         </View>
@@ -594,13 +718,88 @@ const styles = StyleSheet.create({
   diagLabel: { color: COLORS.muted, fontSize: 13, fontWeight: '600' },
   diagValue: { fontSize: 13, fontWeight: '800' },
 
-  healthGood: {
-    borderColor: 'rgba(0,196,140,0.2)',
-    backgroundColor: 'rgba(0,196,140,0.02)',
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 71, 87, 0.1)',
+    padding: 16,
+    borderRadius: 20,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 71, 87, 0.2)',
   },
-  healthWarning: {
-    borderColor: 'rgba(255,184,0,0.2)',
-    backgroundColor: 'rgba(255,184,0,0.02)',
+  warningBannerText: {
+    color: COLORS.red,
+    fontSize: 13,
+    fontWeight: '700',
+    flex: 1,
+    marginLeft: 12,
+  },
+  warningAction: {
+    backgroundColor: COLORS.red,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  warningActionText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+
+  protectionMainCard: {
+    backgroundColor: 'rgba(108, 71, 255, 0.03)',
+    borderColor: 'rgba(108, 71, 255, 0.1)',
+  },
+  protectionLevelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  protectionLevelTitle: {
+    color: COLORS.text,
+    fontSize: 18,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  protectionLevelSub: {
+    color: COLORS.muted,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  levelBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 4,
+  },
+  levelStrong: {
+    backgroundColor: COLORS.green,
+    shadowColor: COLORS.green,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  levelStandard: {
+    backgroundColor: COLORS.accent,
+  },
+  levelWeak: {
+    backgroundColor: COLORS.red,
+  },
+  levelBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  diagDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    marginBottom: 20,
   },
 
   pinRow: { flexDirection: 'row', gap: 12 },

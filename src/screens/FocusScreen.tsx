@@ -10,21 +10,28 @@ import {
   Alert,
   Vibration,
   Dimensions,
+  NativeModules,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { COLORS, SPACING, RADIUS } from '../components/theme';
+import { COLORS } from '../components/theme';
 import { getRules } from '@focusgate/state/rules';
 import { storageAdapter } from '../store/storageAdapter';
 import * as nextDNS from '../api/nextdns';
 import { recordFocusSession } from '@focusgate/core/insights';
+import { runFullEngineCycle } from '@focusgate/core';
+import { addLog } from '../services/logger';
+import { notifyBlocked } from '../services/notifications';
+import { isConfigured, getConfig } from '../api/nextdns';
 
 const { width } = Dimensions.get('window');
 const RING_SIZE = width * 0.7;
+const { RuleEngine } = NativeModules;
 
 export default function FocusScreen() {
   const [isActive, setIsActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(25 * 60); // Default 25m
   const [selectedDuration, setSelectedDuration] = useState(25);
+  const [protectionLevel, setProtectionLevel] = useState('NONE');
 
   // Animation refs
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -37,6 +44,18 @@ export default function FocusScreen() {
     setSelectedDuration(mins);
     setTimeLeft(mins * 60);
   };
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (RuleEngine) {
+        const level = await RuleEngine.getProtectionLevel();
+        setProtectionLevel(level);
+      }
+    };
+    checkStatus();
+    const interval = setInterval(checkStatus, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const endFocus = useCallback(
     async (completed: boolean) => {
@@ -60,18 +79,51 @@ export default function FocusScreen() {
       }
 
       setTimeLeft(selectedDuration * 60);
+      await storageAdapter.set('focus_mode_end_time', 0);
+      await triggerEngineCycle();
     },
     [selectedDuration],
   );
 
+  const triggerEngineCycle = async () => {
+    const cfg = await getConfig();
+    const ctx = {
+      storage: storageAdapter,
+      api: { isConfigured, config: cfg },
+      logger: { add: addLog },
+      notifications: { notifyBlocked },
+      enforcements: {
+        applyBlockedPackages: async (pkgs: string[]) => {
+          if (RuleEngine) {
+            RuleEngine.setBlockedPackages(pkgs);
+          }
+        },
+      },
+    };
+    await runFullEngineCycle(ctx);
+  };
+
   const startFocus = async () => {
     const isConfig = await nextDNS.isConfigured();
-    if (!isConfig) {
+    const a11y = await RuleEngine?.isAccessibilityServiceEnabled();
+
+    if (!a11y) {
       Alert.alert(
-        'Configuration Required',
-        'Please set up NextDNS in Settings before starting focus mode.',
+        'Protection Inactive',
+        'Accessibility Service must be enabled to enforce focus mode. Please go to Settings.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Open Settings',
+            onPress: () => RuleEngine?.openAccessibilitySettings(),
+          },
+        ],
       );
       return;
+    }
+
+    if (!isConfig && protectionLevel === 'STRONG') {
+      // Should not happen if level is strong, but safe check
     }
 
     setIsActive(true);
@@ -81,6 +133,12 @@ export default function FocusScreen() {
     nextDNS
       .blockApps(rules)
       .catch((e: Error) => console.error('Focus block error:', e.message));
+
+    // Local layer sync
+    const endTime = Date.now() + selectedDuration * 60 * 1000;
+    await storageAdapter.set('focus_mode_end_time', endTime);
+    await triggerEngineCycle();
+
     Vibration.vibrate(50);
   };
 
@@ -157,6 +215,24 @@ export default function FocusScreen() {
             <Text style={styles.timerLabel}>
               {isActive ? 'Breathing...' : 'Ready'}
             </Text>
+
+            <View
+              style={[
+                styles.levelBadge,
+                protectionLevel === 'STRONG'
+                  ? styles.levelBadgeStrong
+                  : styles.levelBadgeStandard,
+              ]}
+            >
+              <Icon
+                name={
+                  protectionLevel === 'STRONG' ? 'shield-lock' : 'shield-check'
+                }
+                size={12}
+                color="#fff"
+              />
+              <Text style={styles.levelBadgeText}>{protectionLevel}</Text>
+            </View>
           </View>
         </Animated.View>
       </View>
@@ -264,6 +340,26 @@ const styles = StyleSheet.create({
     marginTop: 12,
     opacity: 0.6,
   },
+  levelBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  levelBadgeStrong: { backgroundColor: COLORS.green },
+  levelBadgeStandard: { backgroundColor: COLORS.accent },
+  levelBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+
   bottom: {
     padding: 24,
     paddingBottom: 60,
