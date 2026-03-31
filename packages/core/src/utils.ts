@@ -24,3 +24,7 @@ export function escapeHtml(value: any): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+export function buildDashboardTabPath(tab: string): string {
+  return `dist/dashboard.html?tab=${encodeURIComponent(tab)}`;
+}

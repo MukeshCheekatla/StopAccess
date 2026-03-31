@@ -23,7 +23,7 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      width: 720px;
+      width: 540px;
       height: 480px;
       font-family: 'Plus Jakarta Sans', sans-serif;
       background: var(--bg-dark);
@@ -32,8 +32,9 @@
         radial-gradient(at 100% 0%, rgba(255, 255, 255, 0.01) 0px, transparent 50%);
       color: var(--text);
       display: flex;
+      flex-direction: column;
       overflow: hidden;
-      font-size: 16px; /* Professional base */
+      font-size: 16px;
     }
 
     /* ── Glassmorphism ── */
@@ -330,50 +331,219 @@
 
     .loader { opacity: 0.5; animation: fadeIn 0.4s ease-out forwards; }
 
+    /* ── Focus Screen ── */
+    .focus-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100%;
+      height: 100%;
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    .focus-timer-v2 {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .focus-timer-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .focus-timer-track {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.04);
+      stroke-width: 6;
+    }
+
+    .focus-timer-progress {
+      fill: none;
+      stroke: var(--accent);
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.3s linear;
+      filter: drop-shadow(0 0 12px rgba(82, 82, 91, 0.3));
+    }
+
+    .focus-timer-text {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 1;
+    }
+
+    .focus-timer-val {
+      font-size: 3rem;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -2px;
+      line-height: 1;
+    }
+
+    .focus-timer-label {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      margin-top: 8px;
+    }
+
+    .focus-presets {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .focus-preset-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .focus-preset-card:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .focus-preset-time {
+      font-size: 1.25rem;
+      font-weight: 900;
+    }
+
+    .focus-preset-tag {
+      font-size: 9px;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .focus-status-msg {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 32px;
+        text-align: center;
+        max-width: 300px;
+    }
+
+    .focus-active-glow {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background: radial-gradient(circle, rgba(82, 82, 91, 0.15) 0%, transparent 70%);
+        pointer-events: none;
+        animation: pulseIntensity 4s infinite ease-in-out;
+    }
+
+    @keyframes pulseIntensity {
+        0%, 100% { opacity: 0.3; transform: scale(1); }
+        50% { opacity: 0.7; transform: scale(1.1); }
+    }
+
+    /* ── Settings Screen Enhancement ── */
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .field-label {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+    }
+
+    .enforcement-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .enforcement-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--glass-border);
+      border-radius: 12px;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .enforcement-card.active {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--accent);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .enforcement-level {
+      font-size: 14px;
+      font-weight: 900;
+      color: var(--text);
+    }
+
+    .enforcement-tag {
+      font-size: 8px;
+      font-weight: 800;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .action-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .settings-section-divider {
+      height: 1px;
+      background: var(--glass-border);
+      margin: 24px 0;
+    }
+
+
+
   </style>
 </head>
 <body>
-  <div class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-logo">🛡️</div>
-      <div class="brand-name">FocusGate</div>
-    </div>
-    <nav class="nav-list">
-      <div class="nav-item active" data-tab="dash">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
-        <span>Dash Overview</span>
-      </div>
-      <div class="nav-item" data-tab="apps">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 8v4l3 3"/></svg>
-        <span>Shield Perimeter</span>
-      </div>
-      <div class="nav-item" data-tab="focus">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1" fill="currentColor"/></svg>
-        <span>Focus Screen</span>
-      </div>
-      <div class="nav-item" data-tab="schedule">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-        <span>Schedules</span>
-      </div>
-      <div class="nav-item" data-tab="insights">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-        <span>Insights</span>
-      </div>
-    </nav>
-    <div class="sidebar-bottom">
-      <span style="font-size:10px; color:var(--muted); font-weight:700;">v1.0</span>
-      <button id="btn_open_settings" class="icon-btn" style="background:none; border:none; color:var(--muted); cursor:pointer;">
-        <svg viewBox="0 0 24 24" style="width:16px; height:16px;" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      </button>
-    </div>
-  </div>
   <div class="main">
-    <div class="topbar">
-      <div id="pageTitle" class="page-label">Dash Overview</div>
-      <div id="statusBadge" class="status-badge">...</div>
+    <div style="display: flex; gap: 8px; padding: 12px 16px; background: rgba(0,0,0,0.1); border-bottom: 1px solid var(--glass-border);">
+      <button class="nav-item active" data-tab="dash" style="padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); color: var(--muted); font-size: 10px; font-weight: 800; cursor: pointer; white-space: nowrap;">DASHBOARD</button>
+      <button class="nav-item" data-tab="apps" style="padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); color: var(--muted); font-size: 10px; font-weight: 800; cursor: pointer; white-space: nowrap;">BLOCK LIST</button>
+      <button class="nav-item" data-tab="focus" style="padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); color: var(--muted); font-size: 10px; font-weight: 800; cursor: pointer; white-space: nowrap;">FOCUS TIMER</button>
+      <a href="#" id="btn_open_portal_master" style="margin-left: auto; padding: 6px 12px; border-radius: 8px; background: var(--accent); border: none; color: #fff; font-size: 10px; font-weight: 900; cursor: pointer; text-decoration: none; letter-spacing: 0.5px;">PORTAL</a>
     </div>
     <div id="mainContent">
-      <div class="loader">Harnessing Focus...</div>
     </div>
   </div>
   <script src="popup.js" type="module"></script>

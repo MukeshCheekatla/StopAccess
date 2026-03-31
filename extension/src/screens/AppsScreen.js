@@ -1,9 +1,15 @@
-import { getRules, updateRule, deleteRule } from '@focusgate/state/rules';
+import {
+  getRules,
+  updateRule,
+  deleteRule,
+  createRule,
+} from '@focusgate/state/rules';
 import {
   POPULAR_DISTRACTIONS,
   UI_EXAMPLES,
   NEXTDNS_CATEGORIES,
   NEXTDNS_SERVICES,
+  escapeHtml,
 } from '@focusgate/core';
 import {
   extensionAdapter as storage,
@@ -156,25 +162,42 @@ async function renderSubTab(rules) {
       );
     }
 
-    // Show all 43 standard apps. Merge with current active state if synced.
-    const allApps = NEXTDNS_SERVICES.map((std) => {
+    // Only show apps that are actually in local rules
+    const activeApps = NEXTDNS_SERVICES.filter((std) =>
+      rules.some((r) => r.packageName === std.id && r.type === 'service'),
+    ).map((std) => {
       const synced = availableServices.find((s) => s.id === std.id);
       return { ...std, active: synced?.active ?? false };
     });
 
-    const visibleApps = allApps.filter(matchesSearch);
+    const visibleApps = activeApps.filter(matchesSearch);
+    const availableToAdd = NEXTDNS_SERVICES.filter(
+      (s) => !rules.some((r) => (r.customDomain || r.packageName) === s.id),
+    );
 
     if (availableServices.length === 0 && isLoadingNextDNS) {
       return '<div class="loader">Loading NextDNS apps...</div>';
     }
 
     return `
-      <div class="section-title">Websites, Apps & Games (${
-        visibleApps.length
-      })</div>
-      <div class="stat-lbl" style="margin-bottom: 12px;">Restrict access to specific popular apps, games and social networks.</div>
+      <div class="section-title">Shielded Apps (${visibleApps.length})</div>
+      <div class="stat-lbl" style="margin-bottom: 12px;">Configured app perimeters under profile control.</div>
       <div class="service-grid">
         ${visibleApps.map((app) => renderServiceCard(app, rules)).join('')}
+      </div>
+
+      <div class="section-title" style="margin-top: 32px; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 24px;">Add More Apps</div>
+      <div class="empty-state" style="height: auto; padding: 20px 0; border-style: dashed; background: transparent; opacity: 0.8; margin-bottom: 24px;">
+        <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 12px;">Quick Add Recommended</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 0 10px;">
+          ${availableToAdd
+            .slice(0, 15)
+            .map(
+              (s) =>
+                `<button class="btn btn-outline quick-add-service" data-id="${s.id}" data-name="${s.name}" style="padding: 6px 14px; font-size: 13px; border-radius: 20px; border-color: rgba(255,255,255,0.1); color: var(--text);">+ ${s.name}</button>`,
+            )
+            .join('')}
+        </div>
       </div>
     `;
   }
@@ -316,13 +339,18 @@ function renderServiceCard(service, rules) {
             </div>
           </div>
         </div>
-        <button class="toggle-switch-btn ${
-          active ? 'active' : ''
-        }" data-kind="service" data-id="${escapeHtml(
+        <div class="app-controls" style="display:flex; align-items:center; gap: 10px;">
+          <button class="toggle-switch-btn ${
+            active ? 'active' : ''
+          }" data-kind="service" data-id="${escapeHtml(
     service.id,
   )}" data-name="${escapeHtml(service.name)}">
-          <span>${active ? 'ON' : 'OFF'}</span>
-        </button>
+            <span>${active ? 'ON' : 'OFF'}</span>
+          </button>
+          <button class="btn-outline delete-rule" data-pkg="${escapeHtml(
+            service.id,
+          )}" style="padding: 6px; font-size: 10px;">Remove</button>
+        </div>
       </div>
     </div>
   `;
@@ -374,7 +402,7 @@ async function setupHandlers(container, rules) {
       return;
     }
 
-    await updateRule(storage, buildRule(domain, 'domain', domain, true));
+    await updateRule(storage, createRule(domain, 'domain', domain, true));
     if (isConfigured) {
       await nextDNSApi.setDenylistDomainState(domain, true);
     }
@@ -387,7 +415,7 @@ async function setupHandlers(container, rules) {
     btn.addEventListener('click', async () => {
       const domain = btn.getAttribute('data-domain');
       const name = btn.getAttribute('data-name') || domain;
-      await updateRule(storage, buildRule(domain, 'domain', name, true));
+      await updateRule(storage, createRule(domain, 'domain', name, true));
       if (isConfigured) {
         await nextDNSApi.setDenylistDomainState(domain, true);
       }
@@ -401,14 +429,30 @@ async function setupHandlers(container, rules) {
     btn.addEventListener('click', async () => {
       const packageName = btn.getAttribute('data-pkg');
       const rule = rules.find((entry) => entry.packageName === packageName);
-      if (rule && isConfigured && rule.type === 'domain') {
-        await nextDNSApi.setDenylistDomainState(
+      if (rule && isConfigured) {
+        // Universal unblock based on rule type
+        await nextDNSApi.setTargetState(
+          rule.type || 'domain',
           rule.customDomain || rule.packageName,
           false,
         );
       }
       await deleteRule(storage, packageName);
       await addActionLog(`Deleted rule for: ${rule?.appName || packageName}`);
+      chrome.runtime.sendMessage({ action: 'manualSync' });
+      renderAppsScreen(container);
+    });
+  });
+
+  container.querySelectorAll('.quick-add-service').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      const name = btn.getAttribute('data-name') || id;
+      await updateRule(storage, createRule(id, 'service', name, true));
+      if (isConfigured) {
+        await nextDNSApi.setParentalControlServiceState(id, true);
+      }
+      await addActionLog(`Quick added and blocked app: ${name}`, 'success');
       chrome.runtime.sendMessage({ action: 'manualSync' });
       renderAppsScreen(container);
     });
@@ -431,7 +475,10 @@ async function setupHandlers(container, rules) {
           availableServices = availableServices.map((service) =>
             service.id === id ? { ...service, active: nextActive } : service,
           );
-          await updateRule(storage, buildRule(id, 'service', name, nextActive));
+          await updateRule(
+            storage,
+            createRule(id, 'service', name, nextActive),
+          );
         } else if (kind === 'category') {
           await nextDNSApi.setParentalControlCategoryState(id, nextActive);
           availableCategories = availableCategories.map((category) =>
@@ -439,7 +486,7 @@ async function setupHandlers(container, rules) {
           );
           await updateRule(
             storage,
-            buildRule(id, 'category', name, nextActive),
+            createRule(id, 'category', name, nextActive),
           );
         } else if (kind === 'domain') {
           const pkg = btn.getAttribute('data-pkg');
@@ -562,23 +609,6 @@ function sanitizeDomain(value) {
   return clean.includes('.') ? clean : '';
 }
 
-function buildRule(id, type, name, active) {
-  return {
-    appName: name,
-    packageName: id,
-    customDomain: type === 'domain' ? id : undefined,
-    type,
-    scope: type === 'domain' ? 'browser' : 'profile',
-    mode: active ? 'block' : 'allow',
-    addedByUser: true,
-    blockedToday: active,
-    desiredBlockingState: active,
-    dailyLimitMinutes: 0,
-    usedMinutesToday: 0,
-    updatedAt: Date.now(),
-  };
-}
-
 function matchesSearch(entry) {
   if (!searchTerm) {
     return true;
@@ -588,13 +618,4 @@ function matchesSearch(entry) {
     .join(' ')
     .toLowerCase();
   return haystack.includes(searchTerm);
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }

@@ -1,5 +1,6 @@
 import { getSchedules } from '@focusgate/state/schedules';
 import { extensionAdapter as storage } from '../background/platformAdapter.js';
+import { escapeHtml, buildDashboardTabPath } from '@focusgate/core';
 
 export async function renderSchedulePopup(container) {
   container.innerHTML = '<div class="loader">Loading Schedule...</div>';
@@ -45,18 +46,9 @@ export async function renderSchedulePopup(container) {
       .querySelector('#btn_full_schedule')
       ?.addEventListener('click', () => {
         chrome.tabs.create({
-          url: chrome.runtime.getURL('dist/dashboard.html') + '?tab=schedule',
+          url: chrome.runtime.getURL(buildDashboardTabPath('schedule')),
         });
       });
-
-    function escapeHtml(v) {
-      return String(v ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    }
   } catch (e) {
     container.innerHTML = `<div class="empty-state">${e.message}</div>`;
   }

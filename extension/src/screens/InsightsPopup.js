@@ -1,5 +1,9 @@
 import { nextDNSApi } from '../background/platformAdapter.js';
-import { getAppIconUrl as getSmartIcon, fmtTime } from '@focusgate/core';
+import {
+  getAppIconUrl as getSmartIcon,
+  fmtTime,
+  buildDashboardTabPath,
+} from '@focusgate/core';
 
 export async function renderInsightsPopup(container) {
   if (!container) {
@@ -74,7 +78,7 @@ export async function renderInsightsPopup(container) {
       .querySelector('#btn_full_insights')
       ?.addEventListener('click', () => {
         chrome.tabs.create({
-          url: chrome.runtime.getURL('dist/dashboard.html') + '?tab=insights',
+          url: chrome.runtime.getURL(buildDashboardTabPath('insights')),
         });
       });
   } catch (e) {

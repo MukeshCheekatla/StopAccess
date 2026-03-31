@@ -13,6 +13,7 @@ import {
   resolveServiceIcon as getServiceIcon,
   escapeHtml,
 } from '@focusgate/core';
+import { toast } from '../lib/toast.js';
 
 let activeTab = 'shield';
 let availableServices = [];
@@ -85,7 +86,7 @@ export async function renderAppsPage(container) {
       </div>
 
       <div style="display: flex; padding: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 14px; margin-bottom: 40px; width: fit-content; min-width: 400px;">
-        <button class="nav-item-tab" data-tab="shield">SHIELD</button>
+        <button class="nav-item-tab" data-tab="shield">BLOCK LIST</button>
         <button class="nav-item-tab" data-tab="categories">CATEGORIES</button>
       </div>
 
@@ -164,7 +165,7 @@ async function refreshListOnly() {
       Boolean(normalizedSearch) &&
       !rules.some((r) => (r.customDomain || r.packageName) === existingId);
     actionContainer.innerHTML = showAdd
-      ? '<button class="btn-premium" id="btnAddDomainUnified" style="padding: 0 24px; border-radius: 20px; white-space: nowrap; height: 60px;">ADD SHIELD</button>'
+      ? '<button class="btn-premium" id="btnAddDomainUnified" style="padding: 0 24px; border-radius: 20px; white-space: nowrap; height: 60px;">ADD RULE</button>'
       : '<button class="btn-premium" id="btnOpenTargetDrawer" style="width: 60px; height: 60px; font-size: 24px; display: flex; align-items: center; justify-content: center; border-radius: 20px; padding: 0;">+</button>';
 
     globalContainer
@@ -197,7 +198,7 @@ async function handleAddDomain() {
 
   const btn = globalContainer.querySelector('#btnAddDomainUnified');
   if (btn) {
-    btn.innerText = 'SHIELDING...';
+    btn.innerText = 'BLOCKING...';
     btn.disabled = true;
   }
 
@@ -211,6 +212,7 @@ async function handleAddDomain() {
     }
 
     await updateRule(storage, buildRuleFromTarget(resolved, true));
+    toast.success(`Rule added: ${resolved.displayName}`);
 
     searchTerm = '';
     const searchInput = globalContainer.querySelector('#appSearch');
@@ -224,11 +226,11 @@ async function handleAddDomain() {
     if (btn) {
       btn.innerText = 'FAILED';
       setTimeout(() => {
-        btn.innerText = 'ADD SHIELD';
+        btn.innerText = 'ADD RULE';
         btn.disabled = false;
       }, 2000);
     }
-    alert(`SYNC ERROR: ${err.message}`);
+    toast.error(`Sync Error: ${err.message}`);
   }
 }
 
@@ -314,7 +316,7 @@ async function renderSubTab(rules) {
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
             <div>
               <div style="font-size: 0.75rem; font-weight: 800; color: var(--accent); letter-spacing: 2px;">QUICK SETUP</div>
-              <div style="font-size: 1.5rem; font-weight: 900; margin-top: 4px;">Initialize App Shield</div>
+              <div style="font-size: 1.5rem; font-weight: 900; margin-top: 4px;">Initialize Active Rules</div>
             </div>
             <button class="btn-premium" style="background: transparent; box-shadow: none; border: 1px solid var(--glass-border); padding: 8px 16px;" id="btnCloseTargetDrawer">CLOSE</button>
           </div>
@@ -343,7 +345,7 @@ async function renderSubTab(rules) {
       </div>
 
       <div style="margin-bottom: 32px;">
-        <div style="font-weight: 800; color: #FFFFFF; font-size: 1.125rem; letter-spacing: -0.01em; margin-bottom: 8px;">Shielded Apps</div>
+        <div style="font-weight: 800; color: #FFFFFF; font-size: 1.125rem; letter-spacing: -0.01em; margin-bottom: 8px;">Enforced Apps</div>
         <div style="font-size: 0.875rem; color: var(--muted); opacity: 0.8; line-height: 1.6; margin-bottom: 24px;">Configured app perimeters under profile control.</div>
         <div class="service-grid">
           ${
@@ -466,14 +468,21 @@ function renderServiceCard(service, rules) {
              <div class="stat-lbl" style="font-size: 12px;">App</div>
            </div>
         </div>
-        <button class="toggle-switch-btn ${
-          active ? 'active' : ''
-        }" data-kind="service" data-id="${escapeHtml(
+        <div style="display:flex; align-items:center; gap: 8px;">
+          <button class="toggle-switch-btn ${
+            active ? 'active' : ''
+          }" data-kind="service" data-id="${escapeHtml(
     service.id,
   )}" data-name="${escapeHtml(service.name)}">
-          <span class="on-text">ON</span>
-          <span class="off-text">OFF</span>
-        </button>
+            <span class="on-text">ON</span>
+            <span class="off-text">OFF</span>
+          </button>
+          <button class="btn-icon delete-rule" data-pkg="${escapeHtml(
+            service.id,
+          )}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -505,14 +514,21 @@ function renderCategoryCard(category, rules) {
              <div class="stat-lbl" style="font-size: 12px;">Category</div>
            </div>
         </div>
-        <button class="toggle-switch-btn ${
-          active ? 'active' : ''
-        }" data-kind="category" data-id="${escapeHtml(
+        <div style="display:flex; align-items:center; gap: 8px;">
+          <button class="toggle-switch-btn ${
+            active ? 'active' : ''
+          }" data-kind="category" data-id="${escapeHtml(
     category.id,
   )}" data-name="${escapeHtml(category.name)}">
-          <span class="on-text">ON</span>
-          <span class="off-text">OFF</span>
-        </button>
+            <span class="on-text">ON</span>
+            <span class="off-text">OFF</span>
+          </button>
+          <button class="btn-icon delete-rule" data-pkg="${escapeHtml(
+            category.id,
+          )}">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   `;
@@ -542,13 +558,14 @@ async function setupHandlers(container, rules) {
       if (isConfigured) {
         const result = await nextDNSApi.addResolvedTarget(target);
         if (!result.ok) {
-          alert(`SYNC ERROR: ${result.error || 'Failed to update NextDNS'}`);
+          toast.error(`${result.error || 'Connection failed'}`);
           return;
         }
         await nextDNSApi.refreshNextDNSMetadata();
       }
       await updateRule(storage, buildRuleFromTarget(target, true));
       chrome.runtime.sendMessage({ action: 'manualSync' });
+      toast.success(`Shield active for ${name || id}`);
       await refreshListOnly();
     });
   });
@@ -602,7 +619,7 @@ async function setupHandlers(container, rules) {
         await refreshListOnly();
       } catch (err) {
         console.error('[FocusGate] Toggle Fail:', err);
-        alert(`SYNC ERROR: ${err.message}`);
+        toast.error(`Sync Error: ${err.message}`);
         btn.style.opacity = '1';
         refreshListOnly();
       }
@@ -612,30 +629,29 @@ async function setupHandlers(container, rules) {
   container.querySelectorAll('.delete-rule').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const pkg = btn.getAttribute('data-pkg');
-      if (confirm(`Remove shield directive for ${pkg}?`)) {
-        const ruleTarget = rules.find((r) => r.packageName === pkg);
-        try {
-          if (isConfigured) {
-            const remoteId =
-              ruleTarget?.type === 'domain'
-                ? ruleTarget.customDomain || ruleTarget.packageName
-                : pkg;
-            const result = await nextDNSApi.setTargetState(
-              ruleTarget?.type || 'domain',
-              remoteId,
-              false,
-            );
-            if (!result.ok) {
-              throw new Error(result.error || 'Remove failed');
-            }
-            await nextDNSApi.refreshNextDNSMetadata();
+      const ruleTarget = rules.find((r) => r.packageName === pkg);
+      try {
+        if (isConfigured) {
+          const remoteId =
+            ruleTarget?.type === 'domain'
+              ? ruleTarget.customDomain || ruleTarget.packageName
+              : pkg;
+          const result = await nextDNSApi.setTargetState(
+            ruleTarget?.type || 'domain',
+            remoteId,
+            false,
+          );
+          if (!result.ok) {
+            throw new Error(result.error || 'Remove failed');
           }
-          await deleteRule(storage, pkg);
-          chrome.runtime.sendMessage({ action: 'manualSync' });
-          await refreshListOnly();
-        } catch (err) {
-          alert(`DELETE ERROR: ${err.message}`);
+          await nextDNSApi.refreshNextDNSMetadata();
         }
+        await deleteRule(storage, pkg);
+        chrome.runtime.sendMessage({ action: 'manualSync' });
+        toast.info(`Shield removed for ${pkg}`);
+        await refreshListOnly();
+      } catch (err) {
+        toast.error(`Delete Error: ${err.message}`);
       }
     });
   });

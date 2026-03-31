@@ -1,18 +1,24 @@
-import { getRules, updateRule } from '@focusgate/state/rules';
+import {
+  getRules,
+  updateRule,
+  deleteRule,
+  isRuleActive,
+} from '@focusgate/state/rules';
 import {
   extensionAdapter as storage,
   nextDNSApi,
 } from '../background/platformAdapter.js';
 import {
+  escapeHtml,
   getAppIconUrl as getSmartIcon,
   resolveServiceIcon,
 } from '@focusgate/core';
+import { toast } from '../lib/toast.js';
 
 export async function renderAppsPopup(container) {
   if (!container) {
     return;
   }
-  container.innerHTML = '<div class="loader">Configuring Perimeter...</div>';
 
   try {
     const rules = await getRules(storage);
@@ -55,9 +61,9 @@ export async function renderAppsPopup(container) {
                  }</div>
               </div>
             </div>
-            <div style="display:flex; align-items:center; gap:12px;">
+            <div style="display:flex; align-items:center; gap:8px;">
               <button class="toggle-switch-btn ${
-                getRuleActiveState(rule) ? 'active' : ''
+                isRuleActive(rule) ? 'active' : ''
               }" data-id="${escapeHtml(
               rule.customDomain || rule.packageName,
             )}" data-kind="${escapeHtml(rule.type)}" data-name="${escapeHtml(
@@ -65,6 +71,11 @@ export async function renderAppsPopup(container) {
             )}">
                 <span class="on-text">ON</span>
                 <span class="off-text">OFF</span>
+              </button>
+              <button class="btn-icon delete-rule-popup" data-id="${escapeHtml(
+                rule.packageName,
+              )}" style="padding: 0; width: 24px; height: 24px; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 6px; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
               </button>
             </div>
           </div>
@@ -84,6 +95,32 @@ export async function renderAppsPopup(container) {
         });
       }
 
+      container.querySelectorAll('.delete-rule-popup').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const id = btn.dataset.id;
+          const rule = rules.find((r) => r.packageName === id);
+          if (!rule) {
+            return;
+          }
+
+          if (true) {
+            // Standardizing on non-confirm deletion for utility speed
+            try {
+              if (isConfigured) {
+                await nextDNSApi.setTargetState(rule.type, id, false);
+                await nextDNSApi.refreshNextDNSMetadata();
+              }
+              await deleteRule(storage, id);
+              chrome.runtime.sendMessage({ action: 'manualSync' });
+              toast.info(`Rule removed: ${rule.appName || id}`);
+              renderAppsPopup(container);
+            } catch (err) {
+              toast.error(`Sync Error: ${err.message}`);
+            }
+          }
+        });
+      });
+
       container.querySelectorAll('.toggle-switch-btn').forEach((btn) => {
         btn.addEventListener('click', async () => {
           if (btn.classList.contains('syncing')) {
@@ -98,7 +135,7 @@ export async function renderAppsPopup(container) {
             return;
           }
 
-          const isActive = getRuleActiveState(rule);
+          const isActive = isRuleActive(rule);
           const targetState = !isActive;
 
           // Feedback
@@ -138,11 +175,14 @@ export async function renderAppsPopup(container) {
             btn.classList.remove('syncing');
             btn.classList.toggle('active', targetState);
             btn.style.opacity = '1';
+            toast.success(
+              `${rule.appName || id}: ${targetState ? 'ON' : 'OFF'}`,
+            );
           } catch (err) {
             console.error('[FocusGate] Popup Toggle Fail:', err);
             btn.classList.remove('syncing');
             btn.style.opacity = '1';
-            alert(`SYNC ERROR: ${err.message}`);
+            toast.error(`Sync Error: ${err.message}`);
           }
         });
       });
@@ -176,18 +216,6 @@ export async function renderAppsPopup(container) {
   } catch (e) {
     container.innerHTML = `<div class="empty-state">${e.message}</div>`;
   }
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function getRuleActiveState(rule) {
-  return Boolean(
-    rule?.desiredBlockingState ?? rule?.blockedToday ?? rule?.mode === 'block',
-  );
 }
 
 function renderRuleIcon(rule) {

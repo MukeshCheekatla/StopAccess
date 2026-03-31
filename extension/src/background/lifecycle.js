@@ -201,8 +201,8 @@ async function runCycle(forceSync = false) {
           chrome.notifications.create({
             type: 'basic',
             iconUrl: '../assets/icon.png',
-            title: 'FocusGate: Blocked',
-            message: `${name} has reached its daily limit.`,
+            title: 'Focus Terminal: Active Rule',
+            message: `${name} has reached its daily focus limit.`,
           });
         },
       },

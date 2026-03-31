@@ -47,3 +47,31 @@ export async function deleteRule(
   await saveRules(storage, rules);
   return rules;
 }
+
+export function isRuleActive(rule?: Partial<AppRule> | null): boolean {
+  return Boolean(
+    rule?.desiredBlockingState ?? rule?.blockedToday ?? rule?.mode === 'block',
+  );
+}
+
+export function createRule(
+  id: string,
+  type: AppRule['type'],
+  name: string,
+  active: boolean,
+): AppRule {
+  return {
+    appName: name || id,
+    packageName: id,
+    customDomain: type === 'domain' ? id : undefined,
+    type,
+    scope: type === 'domain' ? 'browser' : 'profile',
+    mode: active ? 'block' : 'allow',
+    dailyLimitMinutes: 0,
+    blockedToday: active,
+    desiredBlockingState: active,
+    usedMinutesToday: 0,
+    addedByUser: true,
+    updatedAt: Date.now(),
+  };
+}

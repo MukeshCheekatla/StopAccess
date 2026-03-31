@@ -4,11 +4,17 @@ import {
 } from '../background/platformAdapter.js';
 import { UI_EXAMPLES } from '@focusgate/core';
 import { addActionLog } from '../lib/logger.js';
+import { toast } from '../lib/toast.js';
 
 export async function renderSettingsPage(container) {
+  if (!container) {
+    return;
+  }
+
   const profileId = (await storage.getString(STORAGE_KEYS.PROFILE_ID)) || '';
   const apiKey = (await storage.getString(STORAGE_KEYS.API_KEY)) || '';
   const strict = await storage.getBoolean('strict_mode_enabled');
+  const syncMode = (await storage.getString('fg_sync_mode')) || 'hybrid';
 
   const dnrRules = await new Promise((resolve) => {
     if (chrome?.declarativeNetRequest?.getDynamicRules) {
@@ -21,146 +27,219 @@ export async function renderSettingsPage(container) {
   const healthOk = !!(profileId && apiKey);
 
   container.innerHTML = `
-      <div class="page-intro" style="margin-bottom: 32px;">
-        <div style="font-size: 11px; font-weight: 800; color: var(--accent); letter-spacing: 2px; margin-bottom: 8px;">CONFIGURATION SETTINGS</div>
-        <div style="font-size: 32px; font-weight: 900; letter-spacing: -1.2px; line-height: 1;">SETTINGS</div>
-        <div style="font-size: 14px; color: var(--muted); margin-top: 12px; font-weight: 500;">Manage your domain blocking rules and NextDNS synchronization.</div>
+      <div class="page-intro" style="margin-bottom: 40px; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+          <div style="font-size: 11px; font-weight: 800; color: var(--accent); letter-spacing: 3px; margin-bottom: 12px;">SYSTEM CONFIGURATION</div>
+        </div>
+        <div style="text-align: right;">
+          <div style="font-size: 12px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">FocusGate v1.0.0</div>
+          <div style="font-size: 10px; color: var(--muted); margin-top: 4px; opacity: 0.6;">Production Terminal</div>
+        </div>
       </div>
 
-      <div class="glass-card" style="margin-bottom: 32px; border-color: ${
-        healthOk ? 'rgba(113, 113, 122, 0.2)' : 'rgba(82, 82, 91, 0.2)'
-      }; padding: 32px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px;">
+      <div class="glass-card" style="margin-bottom: 40px; padding: 40px; border-color: ${
+        healthOk ? 'rgba(0, 208, 148, 0.15)' : 'rgba(255, 71, 87, 0.15)'
+      }; background: ${
+    healthOk
+      ? 'linear-gradient(135deg, rgba(0,208,148,0.02), transparent)'
+      : 'linear-gradient(135deg, rgba(255,71,87,0.02), transparent)'
+  };">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px;">
            <div>
               <div class="widget-title" style="color: ${
                 healthOk ? 'var(--green)' : 'var(--red)'
-              }; font-size: 13px; letter-spacing: 1.5px;">${
-    healthOk ? 'PROTECTION VITALITY: OPTIMAL' : 'PROTECTION VITALITY: ALERT'
+              }; font-size: 14px; letter-spacing: 2px;">${
+    healthOk ? 'SHIELD STATUS: OPTIMAL' : 'SHIELD STATUS: UNLINKED'
   }</div>
-              <div style="font-size: 14px; color: var(--muted); margin-top: 4px; font-weight: 500;">Real-time shield diagnostic summary.</div>
+              <div style="font-size: 14px; color: var(--muted); margin-top: 6px; font-weight: 500;">Diagnostic telemetry from active enforcement nodes.</div>
            </div>
-           <div style="padding: 6px 14px; border-radius: 20px; background: ${
-             healthOk ? 'rgba(113, 113, 122, 0.1)' : 'rgba(82, 82, 91, 0.1)'
-           }; color: ${
-    healthOk ? 'var(--green)' : 'var(--red)'
-  }; font-size: 10px; font-weight: 900; border: 1px solid ${
-    healthOk ? 'rgba(113, 113, 122, 0.2)' : 'rgba(82, 82, 91, 0.2)'
-  };">
-              ${healthOk ? 'READY' : 'OFFLINE'}
+           <div class="status-pill ${
+             healthOk ? 'active' : 'error'
+           }" style="padding: 8px 16px; font-size: 11px;">
+              ${healthOk ? 'SYSTEM READY' : 'CONFIGURATION REQUIRED'}
            </div>
         </div>
 
-        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px;">
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <span style="font-size: 10px; color: var(--muted); font-weight: 800; text-transform: uppercase;">Cloud Sync</span>
-            <span style="font-size: 16px; font-weight: 800; color: ${
-              healthOk ? 'var(--green)' : 'var(--red)'
-            };">${healthOk ? 'CONNECTED' : 'UNLINKED'}</span>
+        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px;">
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <span class="field-label">DNS Connection</span>
+            <span style="font-size: 18px; font-weight: 900; color: ${
+              healthOk ? 'var(--text)' : 'var(--red)'
+            };">${healthOk ? 'READY' : 'OFFLINE'}</span>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <span style="font-size: 10px; color: var(--muted); font-weight: 800; text-transform: uppercase;">Strict Mode</span>
-            <span style="font-size: 16px; font-weight: 800; color: ${
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <span class="field-label">Settings Lock</span>
+            <span style="font-size: 18px; font-weight: 900; color: ${
               strict ? 'var(--accent)' : 'var(--muted)'
-            };">${strict ? 'ENFORCED' : 'OFF'}</span>
+            };">${strict ? 'ON' : 'OFF'}</span>
           </div>
-          <div style="display: flex; flex-direction: column; gap: 6px;">
-            <span style="font-size: 10px; color: var(--muted); font-weight: 800; text-transform: uppercase;">Active Rules</span>
-            <span style="font-size: 16px; font-weight: 800; color: var(--text);">${
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <span class="field-label">Active Rules</span>
+            <span style="font-size: 18px; font-weight: 900; color: var(--text);">${
               dnrRules.length
-            } ENGINE</span>
+            }</span>
           </div>
         </div>
       </div>
 
-      <div class="glass-card" style="padding: 32px; margin-bottom: 32px;">
-            <div class="widget-title" style="margin-bottom: 24px;">Cloud Hub (NextDNS)</div>
-            <div style="display: flex; flex-direction: column; gap: 20px;">
-              <div class="field">
-                <input type="text" id="cfg_profile" value="${profileId}" placeholder="Profile ID (abc123)" class="input-premium" style="width: 100%; border-radius: 14px;">
-              </div>
-              <div class="field">
-                <input type="password" id="cfg_apiKey" value="${apiKey}" placeholder="Secret API Key" class="input-premium" style="width: 100%; border-radius: 14px;">
-              </div>
-              <div id="connection_feedback" style="display: none; padding: 14px; border-radius: 14px; font-size: 11px; font-weight: 700; border: 1px solid var(--glass-border);"></div>
-              <button class="btn-premium" id="btn_save_config" style="justify-content: center; height: 48px;">SYNCHRONIZE CLOUD</button>
-            </div>
-      </div>
-
-      <div class="glass-card" style="padding: 32px; margin-bottom: 32px; display: flex; align-items: center; justify-content: space-between;">
-        <div style="display: flex; align-items: center; gap: 24px;">
-           <div style="width: 48px; height: 48px; border-radius: 14px; background: rgba(148, 163, 184, 0.05); border: 1px solid rgba(148, 163, 184, 0.15); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--accent);">⬢</div>
-           <div>
-              <div class="widget-title" style="margin-bottom: 4px; font-size: 14px; letter-spacing: 0;">Strict Mode Enforcement</div>
-              <div style="font-size: 12px; color: var(--muted); font-weight: 600;" id="strict_status_msg">Prevent quick-disabling of focus rules during active sessions.</div>
-           </div>
-        </div>
-        <div style="position: relative;">
-           <input type="checkbox" id="chk_strict" ${
-             strict ? 'checked' : ''
-           } style="width: 24px; height: 24px; accent-color: var(--accent); cursor:pointer;">
+      <div class="settings-section">
+        <div class="section-label" style="margin-bottom: 24px;">1. BLOCKING LEVELS</div>
+        <div class="enforcement-grid">
+          <div class="enforcement-card ${
+            syncMode === 'browser' ? 'active' : ''
+          }" data-mode="browser">
+            <div class="enforcement-level">LEVEL 1</div>
+            <div class="enforcement-tag">Browser Only</div>
+            <div class="enforcement-desc">Blocks domains via the extension only. Fast and simple.</div>
+          </div>
+          <div class="enforcement-card ${
+            syncMode === 'hybrid' ? 'active' : ''
+          }" data-mode="hybrid">
+            <div class="enforcement-level">LEVEL 2</div>
+            <div class="enforcement-tag">Dual Block</div>
+            <div class="enforcement-desc">Combines extension blocking with your DNS setup.</div>
+          </div>
+          <div class="enforcement-card ${
+            syncMode === 'profile' ? 'active' : ''
+          }" data-mode="profile">
+            <div class="enforcement-level">LEVEL 3</div>
+            <div class="enforcement-tag">DNS Profile</div>
+            <div class="enforcement-desc">Full integration. Syncs domains and categories directly with NextDNS.</div>
+          </div>
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px;">
-         <div class="glass-card" style="padding: 24px;">
-            <div class="widget-title" style="margin-bottom: 16px;">PIN PROTECTION</div>
-            <div style="font-size: 11px; color: var(--muted); margin-bottom: 20px; font-weight: 600;">Secure settings with a 4-digit master PIN.</div>
-            <div style="display: flex; gap: 10px;">
-               <input type="password" id="guardian_pin_input" placeholder="----" maxlength="4" class="input-premium" style="flex: 1; text-align: center; letter-spacing: 6px; font-weight: 900; border-radius: 14px;">
-               <button class="btn-premium" id="btn_save_pin" style="padding: 0 20px;">SET PIN</button>
-            </div>
-            <button id="btn_clear_pin" style="background:none; border:none; color:var(--red); font-size:10px; font-weight:800; cursor:pointer; text-align:left; margin-top:16px;">REMOVE PIN</button>
-         </div>
+      <div class="settings-section-divider"></div>
 
-         <div class="glass-card" style="padding: 24px;">
-            <div class="widget-title" style="margin-bottom: 16px;">DATA MANAGEMENT</div>
-            <div style="font-size: 11px; color: var(--muted); margin-bottom: 20px; font-weight: 600;">Export or import your rule configuration.</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
+        <div>
+          <div class="section-label" style="margin-bottom: 24px;">2. DNS CREDENTIALS</div>
+          <div class="glass-card" style="padding: 32px;">
+            <div class="field-group">
+              <div>
+                <label class="field-label">Profile ID</label>
+                <input type="text" id="cfg_profile" value="${profileId}" placeholder="abc123" class="input-premium" style="width: 100%;">
+              </div>
+              <div>
+                <label class="field-label">Secret API Key</label>
+                <input type="password" id="cfg_apiKey" value="${apiKey}" placeholder="••••••••••••••••" class="input-premium" style="width: 100%;">
+              </div>
+            </div>
+            <div id="connection_feedback" style="display: none; padding: 16px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-bottom: 20px; border-left: 4px solid transparent;"></div>
+            <button class="btn-premium" id="btn_save_config" style="width: 100%; justify-content: center; height: 52px; font-size: 13px;">SAVE & TEST</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-label" style="margin-bottom: 24px;">3. SECURITY & ENFORCEMENT</div>
+          <div class="glass-card" style="padding: 32px; margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <div class="widget-title" style="font-size: 15px; margin-bottom: 4px;">Strict Mode</div>
+                <div style="font-size: 12px; color: var(--muted); font-weight: 500;" id="strict_status_msg">Prevent settings tampering during flow.</div>
+              </div>
+              <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+                <input type="checkbox" id="chk_strict" ${
+                  strict ? 'checked' : ''
+                } style="opacity: 0; width: 0; height: 0;">
+                <span class="slider round" style="position: absolute; cursor: pointer; inset: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 34px; border: 1px solid var(--glass-border);"></span>
+              </label>
+            </div>
+          </div>
+          
+          <div class="glass-card" style="padding: 32px;">
+            <div class="widget-title" style="font-size: 15px; margin-bottom: 12px;">Guardian PIN</div>
+            <div style="font-size: 12px; color: var(--muted); margin-bottom: 20px; font-weight: 500;">Secure critical actions with a 4-digit lockout.</div>
             <div style="display: flex; gap: 12px;">
-              <button class="btn-premium" id="btn_export_rules" style="flex:1; background: rgba(255,255,255,0.02); color:var(--text); box-shadow:none; border-color: var(--glass-border); justify-content: center;">EXPORT</button>
-              <button class="btn-premium" id="btn_import_rules" style="flex:1; background: rgba(255,255,255,0.02); color:var(--text); box-shadow:none; border-color: var(--glass-border); justify-content: center;">IMPORT</button>
+               <input type="password" id="guardian_pin_input" placeholder="----" maxlength="4" class="input-premium" style="flex: 1; text-align: center; letter-spacing: 12px; font-weight: 900; font-size: 18px;">
+               <button class="btn-premium" id="btn_save_pin" style="padding: 0 24px;">SET</button>
             </div>
-         </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 16px;">
+               <button id="btn_clear_pin" style="background:none; border:none; color:var(--red); font-size:10px; font-weight:800; cursor:pointer; opacity: 0.6; text-transform: uppercase; letter-spacing: 1px;">Remove Active PIN</button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 60px;">
-         <div class="glass-card" style="padding: 24px;">
-            <div class="widget-title" style="margin-bottom: 16px;">RULE TESTER</div>
-            <div style="font-size: 11px; color: var(--muted); margin-bottom: 16px; font-weight: 600;">Check if a domain is covered by active rules.</div>
-            <div style="display: flex; gap: 10px;">
-               <input type="text" id="test_domain" placeholder="${
-                 UI_EXAMPLES.GENERIC_DOMAIN
-               }" class="input-premium" style="flex: 1; font-size: 13px; border-radius: 12px;">
-               <button class="btn-premium" id="btn_test_domain" style="padding: 0 16px;">TEST</button>
-            </div>
-            <div id="test_result" style="display: none; padding: 14px; border-radius: 12px; font-size: 10px; font-weight: 800; margin-top: 16px; text-transform: uppercase;"></div>
-         </div>
+      <div class="settings-section-divider"></div>
 
-         <div class="glass-card" style="padding: 24px;">
-            <div class="widget-title" style="margin-bottom: 16px;">CLOUD SYNC</div>
-            <div id="sync_stats" style="margin-bottom: 20px;">
-               <div class="loader">RETRIEVING STATUS...</div>
-            </div>
+      <div class="section-label" style="margin-bottom: 24px;">4. DIAGNOSTICS & DATA CONTROL</div>
+      <div class="action-grid">
+        <div class="glass-card" style="padding: 24px;">
+          <div class="widget-title" style="font-size: 13px; margin-bottom: 16px;">HUB DIAGNOSIS</div>
+          <div id="sync_stats" style="margin-bottom: 20px; font-size: 12px; min-height: 48px;">
+             <div class="loader" style="justify-content: flex-start;">POLLING HUB...</div>
+          </div>
+          <div style="display: flex; gap: 12px;">
+            <button class="btn-premium" id="btn_force_sync" style="flex:1; font-size: 11px; background: var(--accent); justify-content: center;">PUSH STATE</button>
+            <button class="btn-premium" id="btn_refresh_sync" style="flex:1; font-size: 11px; background: rgba(255,255,255,0.02); box-shadow: none; border-color: var(--glass-border); justify-content: center;">POLL STATUS</button>
+          </div>
+        </div>
+
+          <div class="glass-card" style="padding: 24px;">
+          <div class="widget-title" style="font-size: 13px; margin-bottom: 16px;">RULE COMPLIANCE</div>
+          <div style="display: flex; gap: 12px;">
+             <input type="text" id="test_domain" placeholder="${
+               UI_EXAMPLES.GENERIC_DOMAIN
+             }" class="input-premium" style="flex: 1; font-size: 12px;">
+             <button class="btn-premium" id="btn_test_domain" style="padding: 0 16px;">TEST</button>
+          </div>
+          <div id="test_result" style="display: none; padding: 12px; border-radius: 12px; font-size: 10px; font-weight: 800; margin-top: 16px; text-transform: uppercase; text-align: center;"></div>
+          <div style="font-size: 10px; color: var(--muted); margin-top: 12px; font-weight: 600;">Verify domain coverage across L1/L2 nodes.</div>
+        </div>
+
+        <div class="glass-card" style="padding: 24px;">
+          <div class="widget-title" style="font-size: 13px; margin-bottom: 16px;">PERSISTENCE LAYER</div>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
             <div style="display: flex; gap: 10px;">
-              <button class="btn-premium" id="btn_force_sync" style="flex:1; font-size: 11px; background: var(--accent); justify-content: center;">PUSH</button>
-              <button class="btn-premium" id="btn_refresh_sync" style="flex:1; font-size: 11px; background: rgba(255,255,255,0.02); box-shadow: none; border-color: var(--glass-border); justify-content: center;">REFRESH</button>
+              <button class="btn-premium" id="btn_export_rules" style="flex:1; background: rgba(255,255,255,0.02); box-shadow:none; border-color: var(--glass-border); justify-content: center; font-size: 11px;">EXPORT</button>
+              <button class="btn-premium" id="btn_import_rules" style="flex:1; background: rgba(255,255,255,0.02); box-shadow:none; border-color: var(--glass-border); justify-content: center; font-size: 11px;">IMPORT</button>
             </div>
-         </div>
+            <button class="btn-premium" id="btn_view_logs" style="width: 100%; background: transparent; border: 1px solid var(--accent); color: var(--accent); box-shadow: none; justify-content: center; font-size: 11px;">VIEW AUDIT TRAIL</button>
+          </div>
+        </div>
       </div>
 
-      <div style="padding: 40px; border-top: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
-         <div>
-            <div style="font-size: 13px; font-weight: 800; color: var(--muted);">AUDIT LOGS</div>
-            <div style="font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 4px;">Access extension activity logs for debugging.</div>
-         </div>
-         <div style="display: flex; gap: 12px;">
-            <button class="btn-premium" id="btn_view_logs" style="background: transparent; border: 1px solid var(--glass-border); box-shadow: none;">VIEW CORE LOGS</button>
-            <button class="btn-premium" id="btn_clear_logs" style="background: transparent; border: 1px solid rgba(82, 82, 91, 0.2); color: var(--red); box-shadow: none;">FLUSH CACHE</button>
-         </div>
+      <div style="margin-bottom: 80px; text-align: center; padding: 40px; border-top: 1px solid var(--glass-border);">
+         <div style="font-size: 11px; color: var(--muted); font-weight: 700; opacity: 0.4; letter-spacing: 2px;">FOCUSGATE v1.0.0</div>
+         <button id="btn_clear_logs" style="background:none; border:none; color:var(--red); font-size: 9px; font-weight: 800; cursor:pointer; margin-top: 12px; text-transform: uppercase;">Clear All Logs</button>
       </div>
     `;
 
-  // Handlers
+  // --- Logic & Event Handlers ---
 
+  // Enforcement Mode Selection
+  container.querySelectorAll('.enforcement-card').forEach((card) => {
+    card.addEventListener('click', async () => {
+      const mode = card.getAttribute('data-mode');
+
+      const currentPin = await storage.getString('guardian_pin');
+      if (currentPin) {
+        const challenge = prompt(
+          'Enter Guardian PIN to change enforcement level:',
+        );
+        if (challenge !== currentPin) {
+          toast.error('UNAUTHORIZED: Shield remains active.');
+          return;
+        }
+      }
+
+      await storage.set('fg_sync_mode', mode);
+      await addActionLog(
+        `Changed enforcement mode to ${mode.toUpperCase()}`,
+        'info',
+      );
+      chrome.runtime.sendMessage({ action: 'manualSync' });
+
+      // Update UI state
+      container
+        .querySelectorAll('.enforcement-card')
+        .forEach((c) => c.classList.remove('active'));
+      card.classList.add('active');
+    });
+  });
+
+  // NextDNS Save
   container
     .querySelector('#btn_save_config')
     ?.addEventListener('click', async () => {
@@ -170,7 +249,7 @@ export async function renderSettingsPage(container) {
       const btn = container.querySelector('#btn_save_config');
 
       if (!pid || !key) {
-        alert('Enter both Profile ID and API Key.');
+        toast.error('Enter both Profile ID and API Key.');
         return;
       }
 
@@ -180,17 +259,18 @@ export async function renderSettingsPage(container) {
           'Enter Guardian PIN to authorize credential change:',
         );
         if (challenge !== currentPin) {
-          alert('UNAUTHORIZED: Configuration locked.');
+          toast.error('UNAUTHORIZED: Configuration locked.');
           return;
         }
       }
 
-      btn.innerText = 'Verifying...';
+      btn.innerText = 'SYNCHRONIZING...';
       btn.disabled = true;
       feedback.style.display = 'block';
-      feedback.style.background = 'rgba(255,255,255,0.05)';
+      feedback.style.background = 'rgba(255,255,255,0.03)';
       feedback.style.color = 'var(--muted)';
-      feedback.innerText = 'Connecting to NextDNS API...';
+      feedback.style.borderColor = 'var(--glass-border)';
+      feedback.innerText = 'Initiating cloud handshake...';
 
       try {
         await storage.set(STORAGE_KEYS.PROFILE_ID, pid);
@@ -201,143 +281,130 @@ export async function renderSettingsPage(container) {
 
         if (ok) {
           feedback.style.background = 'rgba(0, 196, 140, 0.1)';
-          feedback.style.border = '1px solid rgba(0, 196, 140, 0.2)';
+          feedback.style.borderColor = 'rgba(0, 196, 140, 0.2)';
           feedback.style.color = 'var(--green)';
           feedback.innerHTML =
-            '<strong>Connection Success!</strong><br>Account linked. Rules are now live.';
-          btn.innerText = 'Connected';
+            '<strong>Connection Optimal</strong><br>Authentication verified. Profile nodes synchronized.';
+          btn.innerText = 'CONNECTED';
           await addActionLog('Successfully linked NextDNS account', 'success');
         } else {
-          throw new Error('Invalid Profile ID or API Key');
+          throw new Error('Verification signal lost. Check credentials.');
         }
 
         chrome.runtime.sendMessage({ action: 'manualSync' });
       } catch (err) {
-        await addActionLog(`Failed to link NextDNS: ${err.message}`, 'error');
+        await addActionLog(`Link failure: ${err.message}`, 'error');
         feedback.style.background = 'rgba(255, 71, 87, 0.1)';
-        feedback.style.border = '1px solid rgba(255, 71, 87, 0.2)';
+        feedback.style.borderColor = 'rgba(255, 71, 87, 0.2)';
         feedback.style.color = 'var(--red)';
-        feedback.innerHTML = `<strong>Link Failed</strong><br>${err.message}`;
-        btn.innerText = 'Retry Connection';
+        feedback.innerHTML = `<strong>Handshake Failed</strong><br>${err.message}`;
+        btn.innerText = 'RETRY CONNECTION';
         btn.disabled = false;
       }
     });
 
-  container
-    .querySelector('#chk_strict')
-    ?.addEventListener('change', async (e) => {
-      const isChecked = e.target.checked;
-      const msg = container.querySelector('#strict_status_msg');
-      const checkbox = e.target;
+  // Strict Mode Switch
+  const strictCheckbox = container.querySelector('#chk_strict');
+  const strictMsg = container.querySelector('#strict_status_msg');
 
-      if (!isChecked) {
-        const currentPin = await storage.getString('guardian_pin');
-        if (currentPin) {
-          const challenge = prompt(
-            'Enter Guardian PIN to disable Strict Mode:',
-          );
-          if (challenge !== currentPin) {
-            alert('UNAUTHORIZED: Shield remains active.');
-            checkbox.checked = true;
-            return;
-          }
+  strictCheckbox?.addEventListener('change', async (e) => {
+    const isChecked = e.target.checked;
+    const checkbox = e.target;
+
+    if (!isChecked) {
+      const currentPin = await storage.getString('guardian_pin');
+      if (currentPin) {
+        const challenge = prompt('Enter Guardian PIN to disable Strict Mode:');
+        if (challenge !== currentPin) {
+          toast.error('UNAUTHORIZED: Shield remains active.');
+          checkbox.checked = true;
+          return;
         }
-        checkbox.disabled = true;
-        let seconds = 5;
-        const interval = setInterval(() => {
-          seconds--;
-          if (seconds > 0) {
-            msg.innerText = `Cooldown active: ${seconds}s remaining...`;
-          } else {
-            clearInterval(interval);
-            finalizeStrictChange(false);
-          }
-        }, 1000);
-        msg.innerText = `Cooldown active: ${seconds}s remaining...`;
-        msg.style.color = 'var(--red)';
-      } else {
-        finalizeStrictChange(true);
       }
 
-      async function finalizeStrictChange(val) {
-        await storage.set('strict_mode_enabled', val);
-        await addActionLog(`Strict Mode turned ${val ? 'ON' : 'OFF'}`, 'info');
-        msg.innerText = val
-          ? 'High-friction unblocking required'
-          : 'Standard enforcement';
-        msg.style.color = 'var(--muted)';
-        checkbox.disabled = false;
-        chrome.runtime.sendMessage({ action: 'manualSync' });
-      }
-    });
+      checkbox.disabled = true;
+      let seconds = 5;
+      const interval = setInterval(() => {
+        seconds--;
+        if (seconds > 0) {
+          strictMsg.innerText = `COOLING DOWN: ${seconds}S REMAINING...`;
+        } else {
+          clearInterval(interval);
+          finalizeStrictChange(false);
+        }
+      }, 1000);
+      strictMsg.innerText = `COOLING DOWN: ${seconds}S REMAINING...`;
+      strictMsg.style.color = 'var(--red)';
+    } else {
+      finalizeStrictChange(true);
+    }
 
+    async function finalizeStrictChange(val) {
+      await storage.set('strict_mode_enabled', val);
+      await addActionLog(`Strict Mode turned ${val ? 'ON' : 'OFF'}`, 'info');
+      strictMsg.innerText = val
+        ? 'High-friction unblocking required.'
+        : 'Prevent settings tampering during flow.';
+      strictMsg.style.color = 'var(--muted)';
+      checkbox.disabled = false;
+      chrome.runtime.sendMessage({ action: 'manualSync' });
+    }
+  });
+
+  // PIN
   container
-    .querySelector('#btn_test_domain')
+    .querySelector('#btn_save_pin')
     ?.addEventListener('click', async () => {
-      const domain = container
-        .querySelector('#test_domain')
-        .value.trim()
-        .toLowerCase();
-      const resultDiv = container.querySelector('#test_result');
-
-      if (!domain) {
+      const pin = container.querySelector('#guardian_pin_input').value.trim();
+      if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+        toast.error('PIN must be 4 digits.');
         return;
       }
+      await storage.set('guardian_pin', pin);
+      await addActionLog('Guardian PIN updated', 'info');
+      toast.success('Security layer active.');
+      container.querySelector('#guardian_pin_input').value = '';
+    });
 
-      resultDiv.style.display = 'block';
-      resultDiv.style.background = 'rgba(255,255,255,0.05)';
-      resultDiv.innerText = 'Checking rule coverage...';
-
-      const { getRules } = await import('@focusgate/state/rules');
-      const rules = await getRules(storage);
-
-      const localMatch = rules.find(
-        (r) => (r.customDomain || r.packageName || '').toLowerCase() === domain,
-      );
-      const dnrMatch = dnrRules.find(
-        (r) => r.condition.urlFilter && r.condition.urlFilter.includes(domain),
-      );
-
-      if (localMatch || dnrMatch) {
-        resultDiv.style.background = 'rgba(0, 196, 140, 0.1)';
-        resultDiv.style.color = 'var(--green)';
-        resultDiv.innerHTML = `<strong>Domain Intercepted</strong><br>${
-          localMatch ? 'Direct Rule' : 'Engine Pattern'
-        } covers this domain.`;
-      } else {
-        resultDiv.style.background = 'rgba(255, 184, 0, 0.1)';
-        resultDiv.style.color = 'var(--yellow)';
-        resultDiv.innerHTML =
-          '<strong>Not Found Locally</strong><br>Check if Level 3 (Cloud) categories cover this implicitly.';
+  container
+    .querySelector('#btn_clear_pin')
+    ?.addEventListener('click', async () => {
+      const currentPin = await storage.getString('guardian_pin');
+      if (!currentPin) {
+        return;
+      }
+      const challenge = prompt('Enter current PIN to remove security layer:');
+      if (challenge === currentPin) {
+        await storage.delete('guardian_pin');
+        await addActionLog('Guardian PIN decommissioned', 'warning');
+        toast.info('Security layer offline.');
+      } else if (challenge !== null) {
+        toast.error('Access Denied');
       }
     });
 
+  // Diagnostics & Sync
   const refreshStats = async () => {
     const statsDiv = container.querySelector('#sync_stats');
     if (!statsDiv) {
       return;
     }
     const syncState = await storage.getSyncState();
+
     statsDiv.innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 8px;">
-        <div style="display: flex; justify-content: space-between;">
-          <span style="font-weight: 700;">Hub Status</span>
-          <span style="color: var(--text); font-weight: 800; font-size: 10px;">${syncState.status.toUpperCase()}</span>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-          <span style="font-weight: 700;">Last Entry</span>
-          <span style="color: var(--text); font-size: 10px;">${
-            syncState.lastSyncAt
-              ? new Date(syncState.lastSyncAt).toLocaleTimeString()
-              : 'Never'
-          }</span>
-        </div>
-        <div style="display: flex; justify-content: space-between;">
-          <span style="font-weight: 700;">Queue</span>
-          <span style="color: var(--accent); font-weight: 800;">${
-            syncState.pendingOps || 0
-          }</span>
-        </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <div style="color: var(--muted); font-weight: 800; font-size: 10px;">NODE STATUS</div>
+        <div style="color: var(--text); font-weight: 800; font-size: 10px; text-align: right;">${syncState.status.toUpperCase()}</div>
+        <div style="color: var(--muted); font-weight: 800; font-size: 10px;">LAST SYNC</div>
+        <div style="color: var(--text); font-weight: 800; font-size: 10px; text-align: right;">${
+          syncState.lastSyncAt
+            ? new Date(syncState.lastSyncAt).toLocaleTimeString()
+            : 'NONE'
+        }</div>
+        <div style="color: var(--muted); font-weight: 800; font-size: 10px;">OPERATIONS</div>
+        <div style="color: var(--accent); font-weight: 800; font-size: 10px; text-align: right;">${
+          syncState.pendingOps || 0
+        } PENDING</div>
       </div>
     `;
   };
@@ -346,25 +413,61 @@ export async function renderSettingsPage(container) {
     .querySelector('#btn_refresh_sync')
     ?.addEventListener('click', async () => {
       const btn = container.querySelector('#btn_refresh_sync');
-      btn.innerText = 'Checking...';
+      btn.innerText = 'POLLING...';
       await refreshStats();
-      btn.innerText = 'Check Hub Status';
+      btn.innerText = 'POLL STATUS';
     });
 
   container
     .querySelector('#btn_force_sync')
     ?.addEventListener('click', async () => {
       const btn = container.querySelector('#btn_force_sync');
-      btn.innerText = 'Pushing...';
+      btn.innerText = 'PUSHING...';
       chrome.runtime.sendMessage({ action: 'manualSync' });
       setTimeout(async () => {
         await refreshStats();
-        btn.innerText = 'Push State Now';
+        btn.innerText = 'PUSH STATE';
       }, 1500);
     });
 
-  refreshStats();
+  // Rule Tester
+  container
+    .querySelector('#btn_test_domain')
+    ?.addEventListener('click', async () => {
+      const domain = container
+        .querySelector('#test_domain')
+        .value.trim()
+        .toLowerCase();
+      const resultDiv = container.querySelector('#test_result');
+      if (!domain) {
+        return;
+      }
 
+      resultDiv.style.display = 'block';
+      resultDiv.style.background = 'rgba(255,255,255,0.03)';
+      resultDiv.innerText = 'ANALYZING ENGINE...';
+
+      const { getRules } = await import('@focusgate/state/rules');
+      const rules = await getRules(storage);
+      const localMatch = rules.find(
+        (r) => (r.customDomain || r.packageName || '').toLowerCase() === domain,
+      );
+      const dnrMatch = dnrRules.find(
+        (r) => r.condition.urlFilter && r.condition.urlFilter.includes(domain),
+      );
+
+      if (localMatch || dnrMatch) {
+        resultDiv.style.color = 'var(--green)';
+        resultDiv.innerHTML = `INTERCEPTED: ${
+          localMatch ? 'ACTIVE RULE' : 'ENGINE AUTO-BLOCK'
+        }`;
+      } else {
+        resultDiv.style.color = 'var(--yellow)';
+        resultDiv.innerHTML = 'NOT FOUND LOCALLY';
+      }
+    });
+
+  // Export/Import
   container
     .querySelector('#btn_export_rules')
     ?.addEventListener('click', async () => {
@@ -373,12 +476,12 @@ export async function renderSettingsPage(container) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `focusgate_rules_${new Date()
+      a.download = `focusgate_backup_${new Date()
         .toISOString()
         .slice(0, 10)}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      await addActionLog('Exported rules backup', 'info');
+      await addActionLog('Domain rules exported', 'info');
     });
 
   container
@@ -396,150 +499,116 @@ export async function renderSettingsPage(container) {
           const text = await file.text();
           const parsed = JSON.parse(text);
           if (!Array.isArray(parsed)) {
-            throw new Error('Invalid format: Rules must be an array.');
+            throw new Error('Invalid schema');
           }
           await storage.set(STORAGE_KEYS.RULES, JSON.stringify(parsed));
-          await addActionLog('Imported rules backup', 'success');
-          alert('Rules imported successfully!');
+          await addActionLog('Domain rules restored', 'success');
+          toast.success('Rules synchronized.');
           chrome.runtime.sendMessage({ action: 'manualSync' });
           renderSettingsPage(container);
         } catch (err) {
-          alert('Failed to import rules: ' + err.message);
+          toast.error('Restore Failed: ' + err.message);
         }
       };
       input.click();
     });
 
-  container
-    .querySelector('#btn_save_pin')
-    ?.addEventListener('click', async () => {
-      const pin = container.querySelector('#guardian_pin_input').value.trim();
-      if (pin.length !== 4 || !/^\d+$/.test(pin)) {
-        alert('PIN must be 4 digits.');
-        return;
-      }
-      await storage.set('guardian_pin', pin);
-      await addActionLog('Guardian PIN updated');
-      alert('PIN set successfully.');
-      container.querySelector('#guardian_pin_input').value = '';
-    });
-
-  container
-    .querySelector('#btn_clear_pin')
-    ?.addEventListener('click', async () => {
-      const currentPin = await storage.getString('guardian_pin');
-      if (!currentPin) {
-        alert('No PIN set.');
-        return;
-      }
-      const entered = prompt('Enter current PIN to remove:');
-      if (entered === currentPin) {
-        await storage.delete('guardian_pin');
-        await addActionLog('Guardian PIN removed');
-        alert('PIN removed.');
-      } else if (entered !== null) {
-        alert('Incorrect PIN.');
-      }
-    });
-
+  // Logs
   container
     .querySelector('#btn_clear_logs')
     ?.addEventListener('click', async () => {
       await storage.set(STORAGE_KEYS.LOGS, JSON.stringify([]));
-      await addActionLog('Cleared engine logs');
-      alert('Logs cleared.');
+      await addActionLog('Audit log history purged', 'info');
+      toast.info('Telemetry cleared.');
     });
 
   container
     .querySelector('#btn_view_logs')
     ?.addEventListener('click', async () => {
       const logsStr = (await storage.getString(STORAGE_KEYS.LOGS)) || '[]';
-      const logs = JSON.parse(logsStr);
+      const logs = JSON.parse(logsStr).reverse();
 
       const modalOverlay = document.createElement('div');
       modalOverlay.className = 'modal-overlay';
       modalOverlay.innerHTML = `
-      <div class="modal" style="max-width: 600px;">
+      <div class="modal">
         <div class="modal-header">
-          <div class="modal-title">Engine Audit Trail</div>
-          <button class="btn-outline" id="btn_close_logs" style="border:none; padding:4px;">✕</button>
+          <div class="modal-title">ENGINE AUDIT TRAIL</div>
+          <button id="btn_close_logs" style="background:none; border:none; color:var(--muted); font-size: 20px; cursor:pointer;">✕</button>
         </div>
-        <div class="modal-content" style="background: #050508;">
-          <div style="display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap;">
-            <button class="btn-tab active log-filter" data-type="all">All</button>
-            <button class="btn-tab log-filter" data-type="sync">Sync</button>
-            <button class="btn-tab log-filter" data-type="rule">Rules</button>
-            <button class="btn-tab log-filter" data-type="error">Errors</button>
+        <div class="modal-content">
+          <div style="display: flex; gap: 12px; margin-bottom: 24px;">
+            <button class="btn-tab active" data-filter="all">ALL ENTRIES</button>
+            <button class="btn-tab" data-filter="error">ERRORS</button>
+            <button class="btn-tab" data-filter="success">SYNC SUCCESS</button>
           </div>
-          <div id="logs_list" style="display: flex; flex-direction: column; gap: 4px;">
-            ${
-              logs.length === 0
-                ? '<div class="empty-state">No logs available</div>'
-                : ''
-            }
-          </div>
+          <div id="logs_list" style="display: flex; flex-direction: column; gap: 8px;"></div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-outline" id="btn_export_logs">Export Log File</button>
-          <button class="btn" id="btn_close_logs_footer">Close</button>
+          <button class="btn-premium" id="btn_export_logs_file" style="background:transparent; border-color:var(--glass-border); box-shadow:none;">EXPORT LOGS</button>
+          <button class="btn-premium" id="btn_close_logs_footer">CLOSE</button>
         </div>
       </div>
     `;
 
       document.body.appendChild(modalOverlay);
 
-      const renderLogs = (type = 'all') => {
+      const renderLogsList = (filter = 'all') => {
         const list = modalOverlay.querySelector('#logs_list');
         const filtered = logs.filter(
           (l) =>
-            type === 'all' ||
-            l.level.toLowerCase().includes(type) ||
-            l.message.toLowerCase().includes(type),
+            filter === 'all' ||
+            l.level === filter ||
+            l.message.toLowerCase().includes(filter),
         );
 
-        list.innerHTML = filtered
-          .map(
-            (l) => `
-        <div style="font-size: 10px; padding: 8px; border-radius: 4px; background: rgba(255,255,255,0.02); display: flex; gap: 10px; border-left: 2px solid ${
-          l.level === 'error' ? 'var(--red)' : 'var(--accent)'
-        };">
-          <span style="color: var(--muted); font-family: monospace;">[${new Date(
+        list.innerHTML =
+          filtered
+            .map(
+              (l) => `
+        <div style="padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; font-family: monospace; font-size: 11px; display: flex; gap: 16px;">
+          <span style="color: var(--muted); opacity: 0.5;">${new Date(
             l.timestamp,
-          ).toLocaleTimeString()}]</span>
+          ).toLocaleTimeString()}</span>
           <span style="color: ${
-            l.level === 'error' ? 'var(--red)' : 'var(--text)'
-          };">${l.message}</span>
+            l.level === 'error'
+              ? 'var(--red)'
+              : l.level === 'success'
+              ? 'var(--green)'
+              : 'var(--text)'
+          }; font-weight: 700;">[${l.level.toUpperCase()}]</span>
+          <span style="color: var(--text);">${l.message}</span>
         </div>
       `,
-          )
-          .join('');
+            )
+            .join('') ||
+          '<div class="empty-state">No matching log entries found.</div>';
       };
 
-      renderLogs();
+      renderLogsList();
 
-      modalOverlay.querySelectorAll('.log-filter').forEach((btn) => {
+      modalOverlay.querySelectorAll('.btn-tab').forEach((btn) => {
         btn.addEventListener('click', () => {
           modalOverlay
-            .querySelectorAll('.log-filter')
+            .querySelectorAll('.btn-tab')
             .forEach((b) => b.classList.remove('active'));
           btn.classList.add('active');
-          renderLogs(btn.getAttribute('data-type'));
+          renderLogsList(btn.getAttribute('data-filter'));
         });
       });
 
-      const closeModal = () => document.body.removeChild(modalOverlay);
-      modalOverlay.querySelector('#btn_close_logs').onclick = closeModal;
-      modalOverlay.querySelector('#btn_close_logs_footer').onclick = closeModal;
-
-      modalOverlay.querySelector('#btn_export_logs').onclick = () => {
+      const closeMod = () => document.body.removeChild(modalOverlay);
+      modalOverlay.querySelector('#btn_close_logs').onclick = closeMod;
+      modalOverlay.querySelector('#btn_close_logs_footer').onclick = closeMod;
+      modalOverlay.querySelector('#btn_export_logs_file').onclick = () => {
         const blob = new Blob([logsStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = url;
-        a.download = `focusgate_audit_${new Date()
-          .toISOString()
-          .slice(0, 10)}.json`;
+        a.href = URL.createObjectURL(blob);
+        a.download = `focusgate_audit_${Date.now()}.json`;
         a.click();
       };
     });
+
+  // Initial load
+  refreshStats();
 }

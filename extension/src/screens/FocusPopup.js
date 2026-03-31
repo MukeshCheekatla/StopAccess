@@ -3,39 +3,105 @@ import {
   STORAGE_KEYS,
 } from '../background/platformAdapter.js';
 
+function formatTimePrecise(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
 export async function renderFocusPopup(container) {
+  if (!container) {
+    return;
+  }
+
   const focusEnd = await storage.getNumber(STORAGE_KEYS.FOCUS_END, 0);
-  const isFocusing = focusEnd > Date.now();
+  const focusStart =
+    (await storage.getNumber('fg_focus_session_start', 0)) ||
+    focusEnd - 1500000;
+  const now = Date.now();
+  const isFocusing = focusEnd > now;
 
   if (isFocusing) {
-    const remaining = Math.ceil((focusEnd - Date.now()) / 60000);
+    const totalDuration = focusEnd - focusStart;
+    const remaining = focusEnd - now;
+    const progress = Math.max(0, Math.min(1, remaining / totalDuration));
+
+    const radius = 90; // Smaller for popup
+    const circum = 2 * Math.PI * radius;
+    const offset = circum * (1 - progress);
+
     container.innerHTML = `
-      <div class="glass-card widget-card" style="text-align: center; padding: 40px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 240px; border-color: rgba(124, 111, 247, 0.4);">
-        <div style="font-size: 50px; margin-bottom: 20px; filter: drop-shadow(0 0 12px var(--accent));">🛡️</div>
-        <div class="widget-title" style="font-size: 14px; color: var(--text);">DEEP FOCUS ACTIVE</div>
-        
-        <div style="margin: 24px 0;">
-           <div style="font-size: 60px; font-weight: 900; line-height: 1; letter-spacing: -2px; color: var(--text);">${remaining}</div>
-           <div style="font-size: 9px; font-weight: 800; color: var(--accent); letter-spacing: 1px; text-transform: uppercase;">MINUTES REMAINING</div>
+      <div class="focus-container" style="padding: 20px 0;">
+        <div class="focus-timer-v2" style="width: 200px; height: 200px; margin-bottom: 24px;">
+          <div class="focus-active-glow"></div>
+          <svg class="focus-timer-svg" viewBox="0 0 200 200">
+            <circle class="focus-timer-track" cx="100" cy="100" r="90" style="stroke-width: 6;" />
+            <circle class="focus-timer-progress" cx="100" cy="100" r="90" 
+                    style="stroke-width: 6;"
+                    stroke-dasharray="${circum}" 
+                    stroke-dashoffset="${offset}" />
+          </svg>
+          <div class="focus-timer-text">
+            <div class="focus-timer-val" id="preciseTimerPopup" style="font-size: 2.5rem;">${formatTimePrecise(
+              remaining,
+            )}</div>
+            <div class="focus-timer-label" style="font-size: 8px;">Shield Active</div>
+          </div>
         </div>
 
-        <button class="btn-premium" id="stopFocus" style="background: rgba(255,255,255,0.02); color: var(--muted); box-shadow: none; border-color: rgba(255,255,255,0.05); font-size: 10px; padding: 6px 12px;">ABORT SESSION</button>
+        <button class="btn-premium" id="stopFocusPopup" style="background: rgba(255,255,255,0.02); color: var(--muted); border: 1px solid var(--glass-border); box-shadow: none; font-size: 10px; padding: 8px 16px;">
+          ABORT SESSION
+        </button>
       </div>
     `;
 
-    container.querySelector('#stopFocus')?.addEventListener('click', () => {
-      chrome.runtime.sendMessage({ action: 'stopFocus' }, () =>
-        renderFocusPopup(container),
-      );
-    });
+    if (window.__focusPopupRenderTimer) {
+      clearInterval(window.__focusPopupRenderTimer);
+    }
+    window.__focusPopupRenderTimer = setInterval(() => {
+      const currentNow = Date.now();
+      const currentRemaining = focusEnd - currentNow;
+
+      if (currentRemaining <= 0) {
+        clearInterval(window.__focusPopupRenderTimer);
+        renderFocusPopup(container);
+        return;
+      }
+
+      const timerEl = document.getElementById('preciseTimerPopup');
+      if (timerEl) {
+        timerEl.innerText = formatTimePrecise(currentRemaining);
+      }
+
+      const progressCircle = container.querySelector('.focus-timer-progress');
+      if (progressCircle) {
+        const currentProgress = Math.max(
+          0,
+          Math.min(1, currentRemaining / totalDuration),
+        );
+        const currentOffset = circum * (1 - currentProgress);
+        progressCircle.setAttribute('stroke-dashoffset', currentOffset);
+      }
+    }, 1000);
+
+    container
+      .querySelector('#stopFocusPopup')
+      ?.addEventListener('click', () => {
+        chrome.runtime.sendMessage({ action: 'stopFocus' }, () =>
+          renderFocusPopup(container),
+        );
+      });
   } else {
     container.innerHTML = `
-      <div class="glass-card widget-card" style="text-align: center; padding: 32px 16px; min-height: 240px; display: flex; flex-direction: column; justify-content: center; align-items: center; border-style: dashed; border-color: var(--glass-border); background: transparent;">
-        <div style="font-size: 40px; margin-bottom: 16px;">⏳</div>
-        <div class="widget-title" style="font-size: 14px; margin-bottom: 8px; color: var(--text);">IGNITE DEEP FOCUS</div>
-        <div style="font-size: 11px; color: var(--muted); font-weight: 600; margin-bottom: 24px; max-width: 220px; line-height: 1.5;">Immediate network-wide synchronization lock.</div>
-        
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%;">
+      <div class="focus-container" style="padding: 10px 0;">
+        <div style="text-align: center; margin-bottom: 24px;">
+            <div style="font-size: 32px; margin-bottom: 8px;">⏳</div>
+            <div class="widget-title" style="color: var(--text); font-size: 14px;">IGNITE DEEP FOCUS</div>
+            <div style="font-size: 10px; color: var(--muted); font-weight: 600; margin-top: 4px;">Network-wide synchronization lock.</div>
+        </div>
+
+        <div class="focus-presets" style="gap: 10px;">
           ${[
             { m: 15, tag: 'Quick' },
             { m: 25, tag: 'Pomo' },
@@ -44,10 +110,10 @@ export async function renderFocusPopup(container) {
           ]
             .map(
               (p) => `
-            <button class="btn-premium start-focus" data-mins="${p.m}" style="display:flex; flex-direction:column; align-items:center; padding: 14px 10px; min-height: 80px; background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); box-shadow: none;">
-              <span style="font-size: 18px; font-weight: 900; color: var(--text); line-height: 1.1;">${p.m}M</span>
-              <span style="font-size: 9px; color: var(--muted); margin-top: 4px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">${p.tag}</span>
-            </button>
+            <div class="focus-preset-card start-focus" data-mins="${p.m}" style="padding: 14px 10px;">
+                <div class="focus-preset-time" style="font-size: 1.1rem;">${p.m}M</div>
+                <div class="focus-preset-tag" style="font-size: 8px;">${p.tag}</div>
+            </div>
           `,
             )
             .join('')}
@@ -56,8 +122,10 @@ export async function renderFocusPopup(container) {
     `;
 
     container.querySelectorAll('.start-focus').forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
         const mins = btn.getAttribute('data-mins');
+        await chrome.storage.local.set({ fg_focus_session_start: Date.now() });
+
         chrome.runtime.sendMessage(
           { action: 'startFocus', minutes: parseInt(mins, 10) },
           () => renderFocusPopup(container),
@@ -65,12 +133,4 @@ export async function renderFocusPopup(container) {
       });
     });
   }
-
-  // Real-Time Refresh
-  clearInterval(window.__focusPopupInterval);
-  window.__focusPopupInterval = setInterval(() => {
-    if (document.querySelector('[data-tab="focus"].active')) {
-      renderFocusPopup(container);
-    }
-  }, 10000);
 }
