@@ -5,13 +5,14 @@ import { getDomainIcon } from '../lib/appCatalog.js';
 function fmtTime(ms) {
   const h = Math.floor(ms / 3600000);
   const m = Math.floor((ms % 3600000) / 60000);
+  const s = Math.floor((ms % 60000) / 1000);
   if (h > 0) {
-    return `${h}h ${m}m`;
+    return `${h}h ${m}m ${s}s`;
   }
   if (m > 0) {
-    return `${m}m`;
+    return `${m}m ${s}s`;
   }
-  return `${Math.floor(ms / 1000)}s`;
+  return `${s}s`;
 }
 
 function fmtDate(iso) {
@@ -252,7 +253,7 @@ export async function renderDashboard(container) {
       if (document.querySelector('.nav-item[data-tab="dash"].active')) {
         renderDashboard(container);
       }
-    }, 6000);
+    }, 1000);
   } catch (e) {
     container.innerHTML = `
       <div style="text-align:center; padding:40px 20px;">

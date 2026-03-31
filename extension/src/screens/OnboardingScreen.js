@@ -11,40 +11,43 @@ export async function renderOnboarding(container, onComplete) {
     setTimeout(() => {
       if (step === 1) {
         container.innerHTML = `
-          <div class="empty-state" style="padding: 40px 20px; text-align: center;">
-            <div style="font-size: 64px; margin-bottom: 24px;">🛡️</div>
-            <h1 style="font-size: 24px; font-weight: 800; margin-bottom: 12px; color: var(--text);">Welcome to FocusGate</h1>
-            <p style="color: var(--muted); line-height: 1.6; margin-bottom: 32px;">
-              The most powerful open-source distraction blocker for your browser and network.
+          <div class="glass-card widget-card" style="padding: 60px 40px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 480px; border-color: rgba(124, 111, 247, 0.4);">
+            <div style="font-size: 80px; margin-bottom: 32px; color: var(--accent); filter: drop-shadow(0 0 20px var(--accent));">⬢</div>
+            <h1 style="font-size: 32px; font-weight: 900; margin-bottom: 12px; color: var(--text); letter-spacing: -1px;">FocusGate</h1>
+            <p style="color: var(--muted); line-height: 1.8; margin-bottom: 40px; font-weight: 600; max-width: 320px;">
+              A professional focus management tool. Precision-engineered for deep concentration.
             </p>
-            <button class="btn" id="nextStep" style="width: 100%; padding: 14px;">Get Started</button>
+            <button class="btn-premium" id="nextStep" style="width: 100%; height: 50px; font-size: 14px;">INITIALIZE MISSION</button>
           </div>
         `;
       } else if (step === 2) {
         container.innerHTML = `
-          <div class="empty-state" style="padding: 40px 20px;">
-            <div style="font-size: 48px; margin-bottom: 24px;">⚔️</div>
-            <h1 style="font-size: 20px; font-weight: 800; margin-bottom: 12px; color: var(--text);">Choose Your Level</h1>
-            <div class="app-card" style="margin-bottom: 12px; text-align: left; cursor: pointer; border: 1px solid var(--border);" id="pickLevel1">
-              <div style="font-weight: 700; color: var(--text); font-size: 14px;">Level 1: Browser Only</div>
-              <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">Swift setup. Rules apply only to this Chrome instance. No account needed.</div>
+          <div class="glass-card widget-card" style="padding: 60px 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 480px;">
+            <div style="font-size: 60px; margin-bottom: 24px; color: var(--accent);">⬢</div>
+            <h1 style="font-size: 24px; font-weight: 900; margin-bottom: 32px; color: var(--text);">PROTECTION LEVEL</h1>
+            
+            <div class="glass-card" style="margin-bottom: 16px; width: 100%; text-align: left; cursor: pointer; border: 1px solid var(--glass-border); padding: 20px; background: rgba(255,255,255,0.02);" id="pickLevel1">
+              <div style="font-weight: 800; color: var(--text); font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">LOCAL SHIELD</div>
+              <div style="font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 600; line-height: 1.5;">Browser-only blockade. Swift setup. Zero account overhead.</div>
             </div>
-            <div class="app-card" style="margin-bottom: 32px; text-align: left; cursor: pointer; border: 1px solid var(--accent); background: rgba(124, 111, 247, 0.05);" id="pickLevel2">
-              <div style="font-weight: 700; color: var(--accent); font-size: 14px;">Level 2: Hybrid (Recommended)</div>
-              <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">Connect NextDNS for network-wide protection and deep analytics.</div>
+            
+            <div class="glass-card" style="margin-bottom: 32px; width: 100%; text-align: left; cursor: pointer; border: 1px solid var(--accent); background: rgba(124, 111, 247, 0.05); padding: 20px;" id="pickLevel2">
+              <div style="font-weight: 800; color: var(--accent); font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">HYBRID COMMAND</div>
+              <div style="font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 600; line-height: 1.5;">Network-wide synchronization via NextDNS integration.</div>
             </div>
-            <button class="btn btn-outline" id="prevStep" style="width: 100%; margin-top: 12px;">Back</button>
+            
+            <button class="btn-premium" id="prevStep" style="background:none; border:none; color:var(--muted); font-size:11px; transition: color 0.2s;">RETURN TO BASE</button>
           </div>
         `;
       } else if (step === 3) {
         container.innerHTML = `
-          <div class="empty-state" style="padding: 40px 20px; text-align: center;">
-            <div style="font-size: 48px; margin-bottom: 24px;">🚀</div>
-            <h1 style="font-size: 20px; font-weight: 800; margin-bottom: 12px; color: var(--text);">You're Ready</h1>
-            <p style="color: var(--muted); line-height: 1.6; margin-bottom: 32px;">
-              Add your first domain to the blocklist in the "Apps" tab to start focusing.
+          <div class="glass-card widget-card" style="padding: 60px 40px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 480px; border-color: var(--green);">
+            <div style="font-size: 64px; margin-bottom: 32px; color: var(--accent); filter: drop-shadow(0 0 20px var(--accent));">⬢</div>
+            <h1 style="font-size: 24px; font-weight: 900; margin-bottom: 12px; color: var(--text);">ALL SYSTEMS GO</h1>
+            <p style="color: var(--muted); line-height: 1.8; margin-bottom: 40px; font-weight: 600; max-width: 280px;">
+              Your focus perimeter is established. Head to the Command Center to begin your mission.
             </p>
-            <button class="btn" id="finishOnboarding" style="width: 100%; padding: 14px;">Enter Dashboard</button>
+            <button class="btn-premium" id="finishOnboarding" style="width: 100%; height: 50px; font-size: 14px; background: var(--green); box-shadow: 0 8px 24px rgba(113, 113, 122, 0.2);">ENGAGE DASHBOARD</button>
           </div>
         `;
       }

@@ -1,20 +1,20 @@
-import { renderDashboard } from '../screens/DashboardScreen.js';
-import { renderAppsScreen } from '../screens/AppsScreen.js';
-import { renderFocusScreen } from '../screens/FocusScreen.js';
-import { renderScheduleScreen } from '../screens/ScheduleScreen.js';
-import { renderInsightsScreen } from '../screens/InsightsScreen.js';
-import { renderSettingsScreen } from '../screens/SettingsScreen.js';
+import { renderDashboardPage as renderDashboard } from '../screens/DashboardPage.js';
+import { renderAppsPage as renderAppsScreen } from '../screens/AppsPage.js';
+import { renderFocusPage as renderFocusScreen } from '../screens/FocusPage.js';
+import { renderSchedulePage as renderScheduleScreen } from '../screens/SchedulePage.js';
+import { renderInsightsPage as renderInsightsScreen } from '../screens/InsightsPage.js';
+import { renderSettingsPage as renderSettingsScreen } from '../screens/SettingsPage.js';
 import {
   extensionAdapter as storage,
   nextDNSApi,
 } from '../background/platformAdapter.js';
 
 const PAGE_TITLES = {
-  dash: 'Dashboard',
-  apps: 'Block Rules',
+  dash: 'Overview',
+  apps: 'Block List',
   focus: 'Focus Mode',
   schedule: 'Schedule',
-  insights: 'Insights',
+  insights: 'Reports',
   settings: 'Settings',
 };
 
@@ -28,33 +28,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // ── Status badge ──────────────────────────────────
-  async function updateStatus() {
-    try {
-      const isConfigured = await nextDNSApi.isConfigured();
-      if (!isConfigured) {
-        statusBadge.textContent = 'Not Set Up';
-        statusBadge.className = 'status-pill error';
-        return;
-      }
-      const conn = await storage.getString('nextdns_connection_status');
-      if (conn === 'connected') {
-        statusBadge.textContent = 'Shield Active';
-        statusBadge.className = 'status-pill active';
-      } else {
-        statusBadge.textContent = 'Syncing…';
-        statusBadge.className = 'status-pill';
-      }
-    } catch {
-      statusBadge.textContent = 'Offline';
-      statusBadge.className = 'status-pill error';
-    }
+  // 1. Determine initial tab from URL BEFORE any async work to prevent flicker
+  const params = new URLSearchParams(window.location.search);
+  const initTab = params.get('tab') || 'dash';
+
+  // 2. Set active nav item and title immediately (Sync)
+  navItems.forEach((n) =>
+    n.classList.toggle('active', n.getAttribute('data-tab') === initTab),
+  );
+  if (pageTitle) {
+    pageTitle.textContent = PAGE_TITLES[initTab] || 'FocusGate';
   }
 
-  // ── Navigation ────────────────────────────────────
+  // Set page mode for responsive CSS
+  document.body.classList.add('is-full-page');
+
+  // 3. Navigation Function
   async function navigate(tabId) {
-    // We don't use localStorage here for the full dashboard to avoid conflicting with popup state directly,
-    // although it's fine. We use URL params instead.
     const url = new URL(window.location);
     url.searchParams.set('tab', tabId);
     window.history.replaceState({}, '', url);
@@ -67,7 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       pageTitle.textContent = PAGE_TITLES[tabId] || 'FocusGate';
     }
 
-    container.innerHTML = '<div class="loader">Loading…</div>';
+    container.innerHTML = '<div class="loader">Harnessing Focus...</div>';
 
     try {
       switch (tabId) {
@@ -95,8 +85,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (e) {
       container.innerHTML = `
         <div class="empty-state">
-          <div style="font-size:32px;">⚠️</div>
-          <div style="font-weight:800;">Failed to load</div>
+          <div style="font-size: 14px; font-weight: 900; color: var(--red); margin-bottom: 8px;">FAIL</div>
+          <div style="font-weight:800;">Navigation Error</div>
           <div style="font-size:11px; color:var(--muted);">${e.message}</div>
         </div>`;
     } finally {
@@ -104,19 +94,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // ── Nav click handlers ────────────────────────────
+  // 4. Status badge logic
+  async function updateStatus() {
+    try {
+      const isSet = await nextDNSApi.isConfigured();
+      if (!isSet) {
+        statusBadge.textContent = 'Not Set Up';
+        statusBadge.className = 'status-pill error';
+        return;
+      }
+      const conn = await storage.getString('nextdns_connection_status');
+      if (conn === 'connected') {
+        statusBadge.textContent = 'ON';
+        statusBadge.className = 'status-pill active';
+      } else {
+        statusBadge.textContent = 'Syncing...';
+        statusBadge.className = 'status-pill';
+      }
+    } catch {
+      statusBadge.textContent = 'Offline';
+      statusBadge.className = 'status-pill error';
+    }
+  }
+
+  // 5. Click handlers
   navItems.forEach((item) => {
-    item.addEventListener('click', () =>
-      navigate(item.getAttribute('data-tab')),
-    );
+    item.addEventListener('click', () => {
+      navigate(item.getAttribute('data-tab'));
+    });
   });
 
-  // ── Deep-link check ──────────────────────────────
-  const params = new URLSearchParams(window.location.search);
-  const initTab = params.get('tab') || 'dash';
-  navigate(initTab);
+  // 6. Onboarding & Initial load
+  const isOnboardingDone = await storage.getString('fg_onboarding_done');
+  if (isOnboardingDone !== 'true') {
+    const { renderOnboarding } = await import('../screens/OnboardingScreen.js');
+    renderOnboarding(container, async (targetTab) => {
+      await storage.set('fg_onboarding_done', 'true');
+      navigate(targetTab || 'dash');
+    });
+  } else {
+    navigate(initTab);
+  }
 
-  // ── Poll status every 4s ─────────────────────────
   setInterval(updateStatus, 4000);
   updateStatus();
 });

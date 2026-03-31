@@ -185,6 +185,10 @@ export const nextDNSApi = {
     const cfg = await nextDNSApi.getConfig();
     return ndnsCore.getTopBlockedDomains(cfg, extensionLogger.add, limit);
   },
+  getAnalyticsCounters: async () => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.getAnalyticsCounters(cfg, extensionLogger.add);
+  },
 
   testConnection: async () => {
     const cfg = await nextDNSApi.getConfig();

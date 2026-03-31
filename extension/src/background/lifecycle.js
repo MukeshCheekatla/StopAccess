@@ -183,10 +183,7 @@ async function runCycle(forceSync = false) {
     const cfg = await chrome.storage.local.get([
       STORAGE_KEYS.PROFILE_ID,
       STORAGE_KEYS.API_KEY,
-      'fg_sync_mode',
     ]);
-
-    const syncMode = cfg.fg_sync_mode || 'hybrid';
 
     // Modern Client Context
     const nextdns_cfg = {
@@ -211,8 +208,8 @@ async function runCycle(forceSync = false) {
       },
     };
 
-    // 1. NextDNS Cloud Sync (Levels 2 & 3 only)
-    if (syncMode !== 'browser') {
+    // 1. NextDNS Cloud Sync (Automated if configured)
+    if (nextdns_cfg.profileId && nextdns_cfg.apiKey) {
       if (!sync) {
         sync = new SyncOrchestrator(ctx);
         await sync.onLaunch();
@@ -237,7 +234,7 @@ async function runCycle(forceSync = false) {
         await extensionAdapter.set('nextdns_connection_status', 'error');
       }
     } else {
-      await extensionAdapter.set('nextdns_connection_status', 'connected'); // Local is always "connected" to itself
+      await extensionAdapter.set('nextdns_connection_status', 'connected');
     }
 
     // 2. Engine Logic (DNR Sync - All Levels)
@@ -338,9 +335,27 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
   if (msg.action === 'stopFocus') {
-    chrome.storage.local.set({ [STORAGE_KEYS.FOCUS_END]: 0 }).then(() => {
-      runCycle().then(() => sendResponse({ ok: true }));
-    });
+    (async () => {
+      const { strict_mode_enabled } = await chrome.storage.local.get([
+        'strict_mode_enabled',
+      ]);
+      const focusEnd =
+        (await extensionAdapter.getNumber(STORAGE_KEYS.FOCUS_END)) || 0;
+      const isStillFocusing = focusEnd > Date.now();
+
+      if (strict_mode_enabled && isStillFocusing) {
+        extensionLogger.add(
+          'warn',
+          'Attempted to stop focus during active strict session. Blocked.',
+        );
+        sendResponse({ ok: false, error: 'Strict Mode Enforced' });
+        return;
+      }
+
+      await chrome.storage.local.set({ [STORAGE_KEYS.FOCUS_END]: 0 });
+      await runCycle();
+      sendResponse({ ok: true });
+    })();
     return true;
   }
   return false;

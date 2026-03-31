@@ -2,6 +2,7 @@ import {
   extensionAdapter as storage,
   STORAGE_KEYS,
 } from '../background/platformAdapter.js';
+import { UI_EXAMPLES } from '@focusgate/core';
 import { addActionLog } from '../lib/logger.js';
 
 export async function renderSettingsScreen(container) {
@@ -111,7 +112,9 @@ export async function renderSettingsScreen(container) {
     <div class="app-card" style="margin-bottom: 24px;">
       <div class="section-title">Test-Block Tool</div>
       <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-        <input type="text" id="test_domain" placeholder="example.com" class="input" style="flex: 1;">
+        <input type="text" id="test_domain" placeholder="${
+          UI_EXAMPLES.GENERIC_DOMAIN
+        }" class="input" style="flex: 1;">
         <button class="btn btn-outline" id="btn_test_domain" style="padding: 8px 16px;">Test</button>
       </div>
       <div id="test_result" style="display: none; padding: 12px; border-radius: 8px; font-size: 11px;"></div>

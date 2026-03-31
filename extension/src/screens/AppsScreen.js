@@ -1,5 +1,11 @@
 import { getRules, updateRule, deleteRule } from '@focusgate/state/rules';
 import {
+  POPULAR_DISTRACTIONS,
+  UI_EXAMPLES,
+  NEXTDNS_CATEGORIES,
+  NEXTDNS_SERVICES,
+} from '@focusgate/core';
+import {
   extensionAdapter as storage,
   nextDNSApi,
   STORAGE_KEYS,
@@ -44,7 +50,7 @@ export async function renderAppsScreen(container) {
       }" data-tab="domains">Domains</button>
       <button class="btn-tab ${
         activeTab === 'services' ? 'active' : ''
-      }" data-tab="services">NextDNS Apps</button>
+      }" data-tab="services">Apps</button>
       <button class="btn-tab ${
         activeTab === 'categories' ? 'active' : ''
       }" data-tab="categories">Categories</button>
@@ -103,7 +109,9 @@ async function renderSubTab(rules) {
       <div class="app-card" style="border-style: dashed; background: transparent; display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
         <div class="section-title" style="margin-bottom: 0;">Add Custom Domain</div>
         <div style="display: flex; gap: 10px;">
-          <input type="text" id="newDomain" placeholder="e.g. facebook.com" class="input" style="flex: 1;">
+          <input type="text" id="newDomain" placeholder="e.g. ${
+            UI_EXAMPLES.DOMAIN
+          }" class="input" style="flex: 1;">
           <button class="btn" id="btnAddDomain" style="padding: 0 20px;">Add</button>
         </div>
         <div class="stat-lbl">If NextDNS is connected, this also updates your denylist.</div>
@@ -112,19 +120,9 @@ async function renderSubTab(rules) {
       <div class="empty-state" style="height: auto; padding: 20px 0; border-style: dashed; background: transparent; opacity: 0.8; margin-bottom: 24px;">
         <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 12px;">Quick Add Recommended</div>
         <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 0 10px;">
-          ${[
-            { id: 'facebook.com', name: 'Facebook' },
-            { id: 'instagram.com', name: 'Instagram' },
-            { id: 'reddit.com', name: 'Reddit' },
-            { id: 'youtube.com', name: 'YouTube' },
-            { id: 'x.com', name: 'X / Twitter' },
-            { id: 'tiktok.com', name: 'TikTok' },
-            { id: 'netflix.com', name: 'Netflix' },
-            { id: 'twitch.tv', name: 'Twitch' },
-            { id: 'discord.com', name: 'Discord' },
-            { id: 'amazon.com', name: 'Amazon' },
-          ]
-            .filter((d) => !rules.some((r) => r.customDomain === d.id))
+          ${POPULAR_DISTRACTIONS.filter(
+            (d) => !rules.some((r) => r.customDomain === d.id),
+          )
             .map(
               (d) =>
                 `<button class="btn btn-outline quick-add-domain" data-domain="${d.id}" data-name="${d.name}" style="padding: 6px 14px; font-size: 11px; border-radius: 20px; border-color: rgba(255,255,255,0.1); color: var(--text);">+ ${d.name}</button>`,
@@ -154,25 +152,29 @@ async function renderSubTab(rules) {
   if (activeTab === 'services') {
     if (!isConfigured) {
       return renderNeedsLoginState(
-        'Connect NextDNS in Settings to toggle real parental-control apps.',
+        'Connect NextDNS in Settings to toggle real apps and services.',
       );
     }
 
-    if (availableServices.length === 0 && !isLoadingNextDNS) {
-      loadNextDNSMetaData();
-      return '<div class="loader">Loading NextDNS app list...</div>';
+    // Show all 43 standard apps. Merge with current active state if synced.
+    const allApps = NEXTDNS_SERVICES.map((std) => {
+      const synced = availableServices.find((s) => s.id === std.id);
+      return { ...std, active: synced?.active ?? false };
+    });
+
+    const visibleApps = allApps.filter(matchesSearch);
+
+    if (availableServices.length === 0 && isLoadingNextDNS) {
+      return '<div class="loader">Loading NextDNS apps...</div>';
     }
 
-    const visibleServices = availableServices.filter(matchesSearch);
     return `
-      <div class="section-title">NextDNS App Toggles (${
-        visibleServices.length
+      <div class="section-title">Websites, Apps & Games (${
+        visibleApps.length
       })</div>
-      <div class="stat-lbl" style="margin-bottom: 12px;">These switches write the real <code>active: true/false</code> state in your NextDNS parental-control services.</div>
+      <div class="stat-lbl" style="margin-bottom: 12px;">Restrict access to specific popular apps, games and social networks.</div>
       <div class="service-grid">
-        ${visibleServices
-          .map((service) => renderServiceCard(service, rules))
-          .join('')}
+        ${visibleApps.map((app) => renderServiceCard(app, rules)).join('')}
       </div>
     `;
   }
@@ -189,7 +191,13 @@ async function renderSubTab(rules) {
       return '<div class="loader">Loading NextDNS categories...</div>';
     }
 
-    const visibleCategories = availableCategories.filter(matchesSearch);
+    // Show all standard categories. Merge with current active state if synced.
+    const allCategories = NEXTDNS_CATEGORIES.map((std) => {
+      const synced = availableCategories.find((ac) => ac.id === std.id);
+      return { ...std, active: synced?.active ?? false };
+    });
+
+    const visibleCategories = allCategories.filter(matchesSearch);
     return `
       <div class="section-title">Category Toggles (${
         visibleCategories.length
@@ -283,7 +291,6 @@ function renderServiceCard(service, rules) {
     (rule) => rule.packageName === service.id && rule.type === 'service',
   );
   const active = service.active ?? localRule?.blockedToday ?? false;
-  const limitValue = localRule?.dailyLimitMinutes || 0;
 
   const iconNode =
     icon.kind === 'remote'
@@ -295,7 +302,7 @@ function renderServiceCard(service, rules) {
     service.id,
   )}" data-type="service" data-name="${escapeHtml(
     service.name,
-  )}" style="display:flex; flex-direction:column; gap: 12px; height: auto; min-height: 140px; padding: 16px;">
+  )}" style="display:flex; flex-direction:column; gap: 12px; height: auto; padding: 16px;">
       <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%;">
         <div style="display:flex; align-items:center; gap: 12px; min-width: 0;">
           ${iconNode}
@@ -304,7 +311,7 @@ function renderServiceCard(service, rules) {
               service.name,
             )}</div>
             <div style="display: flex; gap: 6px; align-items: center; margin-top: 2px;">
-              <div class="stat-lbl" style="font-size: 10px;">NextDNS App</div>
+              <div class="stat-lbl" style="font-size: 10px;">App</div>
               <div style="font-size: 8px; padding: 1px 4px; border-radius: 4px; background: var(--accent); color: #fff; font-weight: 800;">PROFILE</div>
             </div>
           </div>
@@ -317,16 +324,6 @@ function renderServiceCard(service, rules) {
           <span>${active ? 'ON' : 'OFF'}</span>
         </button>
       </div>
-
-      <div style="display:flex; align-items:center; justify-content:space-between; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
-        <div style="display:flex; align-items:center; gap: 8px;">
-           <input type="number" class="input edit-limit" value="${limitValue}" data-pkg="${escapeHtml(
-    service.id,
-  )}" style="width: 50px; padding: 4px; font-size: 11px; text-align: center;">
-           <span style="font-size: 10px; color: var(--muted); font-weight: 700;">MIN</span>
-        </div>
-        <div style="font-size: 9px; color: var(--muted); text-transform: uppercase;">Daily Limit</div>
-      </div>
     </div>
   `;
 }
@@ -336,14 +333,13 @@ function renderCategoryCard(category, rules) {
     (rule) => rule.packageName === category.id && rule.type === 'category',
   );
   const active = category.active ?? localRule?.blockedToday ?? false;
-  const limitValue = localRule?.dailyLimitMinutes || 0;
 
   return `
     <div class="service-card ${active ? 'active' : ''}" data-id="${escapeHtml(
     category.id,
   )}" data-type="category" data-name="${escapeHtml(
     category.name,
-  )}" style="display:flex; flex-direction:column; gap: 12px; height: auto; min-height: 140px; padding: 16px;">
+  )}" style="display:flex; flex-direction:column; gap: 12px; height: auto; padding: 16px;">
       <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%;">
         <div style="display:flex; align-items:center; gap: 12px; min-width: 0;">
           <div class="app-icon app-icon-fallback" style="background: rgba(124, 111, 247, 0.16); color: var(--accent);">
@@ -353,7 +349,7 @@ function renderCategoryCard(category, rules) {
             <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">${escapeHtml(
               category.name,
             )}</div>
-            <div class="stat-lbl" style="font-size: 10px;">Category</div>
+            <div class="stat-lbl" style="font-size: 10px;">Category Blocking</div>
           </div>
         </div>
         <button class="toggle-switch-btn ${
@@ -363,16 +359,6 @@ function renderCategoryCard(category, rules) {
   )}" data-name="${escapeHtml(category.name)}">
           <span>${active ? 'ON' : 'OFF'}</span>
         </button>
-      </div>
-
-      <div style="display:flex; align-items:center; justify-content:space-between; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
-        <div style="display:flex; align-items:center; gap: 8px;">
-           <input type="number" class="input edit-limit" value="${limitValue}" data-pkg="${escapeHtml(
-    category.id,
-  )}" style="width: 50px; padding: 4px; font-size: 11px; text-align: center;">
-           <span style="font-size: 10px; color: var(--muted); font-weight: 700;">MIN</span>
-        </div>
-        <div style="font-size: 9px; color: var(--muted); text-transform: uppercase;">Daily Limit</div>
       </div>
     </div>
   `;
@@ -384,7 +370,7 @@ async function setupHandlers(container, rules) {
   btnAdd?.addEventListener('click', async () => {
     const domain = sanitizeDomain(inputAdd.value);
     if (!domain) {
-      alert('Enter a valid domain like facebook.com');
+      alert(`Enter a valid domain like ${UI_EXAMPLES.DOMAIN}`);
       return;
     }
 

@@ -1,9 +1,9 @@
-import { renderDashboard } from '../screens/DashboardScreen.js';
-import { renderAppsScreen } from '../screens/AppsScreen.js';
-import { renderFocusScreen } from '../screens/FocusScreen.js';
-import { renderScheduleScreen } from '../screens/ScheduleScreen.js';
-import { renderInsightsScreen } from '../screens/InsightsScreen.js';
-import { renderSettingsScreen } from '../screens/SettingsScreen.js';
+import { renderDashboardPopup as renderDashboard } from '../screens/DashboardPopup.js';
+import { renderAppsPopup as renderAppsScreen } from '../screens/AppsPopup.js';
+import { renderFocusPopup as renderFocusScreen } from '../screens/FocusPopup.js';
+import { renderSchedulePopup as renderScheduleScreen } from '../screens/SchedulePopup.js';
+import { renderInsightsPopup as renderInsightsScreen } from '../screens/InsightsPopup.js';
+import { renderSettingsPopup as renderSettingsScreen } from '../screens/SettingsPopup.js';
 import {
   extensionAdapter as storage,
   nextDNSApi,
