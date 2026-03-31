@@ -1,5 +1,5 @@
 /**
- * @focusgate/sync — NextDNS Synchronization Adaptor
+ * @focusgate/core — NextDNS Synchronization Adaptor
  */
 
 import { AppRule, NextDNSError } from '@focusgate/types';

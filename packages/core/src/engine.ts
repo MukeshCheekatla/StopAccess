@@ -1,9 +1,54 @@
-/**
- * @focusgate/core — Focus Engine
- */
-
 import { AppRule, ScheduleRule, SyncContext } from '@focusgate/types';
 import { getDomainForRule, FALLBACK_DOMAINS } from './domains.ts';
+import { SyncOrchestrator } from './sync.ts';
+
+export class FocusEngine {
+  private ctx: SyncContext;
+  public sync: SyncOrchestrator;
+  private interval: any = null;
+
+  constructor(ctx: SyncContext) {
+    this.ctx = ctx;
+    this.sync = new SyncOrchestrator(ctx);
+  }
+
+  async start(intervalMs = 60000) {
+    if (this.interval) {
+      clearInterval(this.interval);
+    }
+    await this.tick();
+    this.interval = setInterval(() => this.tick(), intervalMs);
+  }
+
+  stop() {
+    if (this.interval) {
+      clearInterval(this.interval);
+      this.interval = null;
+    }
+  }
+
+  async tick(forcePush = false) {
+    try {
+      // 1. Pull from cloud if needed
+      if (!forcePush) {
+        await this.sync.performSync(false);
+      }
+
+      // 2. Local Evaluation
+      const result = await runFullEngineCycle(this.ctx);
+
+      // 3. Push to cloud if forced or if local state changed
+      if (forcePush || result.ok) {
+        await this.sync.performSync(true);
+      }
+
+      return result;
+    } catch (e) {
+      this.ctx.logger?.add('error', 'Engine tick failed', String(e));
+      return { ok: false, error: String(e) };
+    }
+  }
+}
 
 export function evaluateRules({
   rules,
@@ -131,6 +176,18 @@ export async function runFullEngineCycle(ctx: SyncContext) {
           domains.push(fallbackDomain);
         }
       }
+    }
+
+    const uniquePackages = Array.from(
+      new Set(
+        Array.from(masterBlockList.values())
+          .map((r) => r.packageName)
+          .filter(Boolean),
+      ),
+    );
+
+    if (ctx.enforcements?.applyBlockedPackages) {
+      await ctx.enforcements.applyBlockedPackages(uniquePackages);
     }
 
     return {

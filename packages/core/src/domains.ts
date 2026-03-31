@@ -185,6 +185,12 @@ export function getDomainForRule(rule: Partial<AppRule>): string | null {
     return rule.customDomain.trim().toLowerCase();
   }
 
+  // If the rule IS a domain (added directly as x.com, reddit.com, etc.)
+  // packageName holds the domain itself — return it immediately.
+  if (rule.type === 'domain' && rule.packageName) {
+    return sanitizeDomain(rule.packageName) || rule.packageName.toLowerCase();
+  }
+
   if (rule.packageName && APP_DOMAINS[rule.packageName]) {
     return APP_DOMAINS[rule.packageName];
   }
@@ -197,17 +203,12 @@ export function getDomainForRule(rule: Partial<AppRule>): string | null {
     return NEXTDNS_SERVICE_DOMAINS[rule.packageName];
   }
 
-  if (rule.packageName) {
-    const parts = rule.packageName.toLowerCase().split('.');
-    if (parts.length >= 2) {
-      const tld = parts[0];
-      const name = parts[1];
-      if (
-        ['com', 'org', 'net', 'io', 'co', 'tv'].includes(tld) &&
-        name.length > 2
-      ) {
-        return `${name}.${tld}`;
-      }
+  // Fallback: packageName itself looks like a domain (e.g. "x.com")
+  // Previously BROKEN — it parsed parts in reverse, treating first segment as TLD.
+  if (rule.packageName && rule.packageName.includes('.')) {
+    const cleaned = sanitizeDomain(rule.packageName);
+    if (cleaned) {
+      return cleaned;
     }
   }
 

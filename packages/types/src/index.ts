@@ -176,4 +176,7 @@ export interface SyncContext {
   logger?: any;
   notifications?: any;
   usage?: any;
+  enforcements?: {
+    applyBlockedPackages: (packageNames: string[]) => Promise<void>;
+  };
 }

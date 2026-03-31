@@ -5,6 +5,8 @@
 
 export * from './api.ts';
 export * from './engine.ts';
+export * from './sync.ts';
+export * from './syncAdapter.ts';
 export * from './domains.ts';
 export * from './insights.ts';
 export * from './iconography.ts';
