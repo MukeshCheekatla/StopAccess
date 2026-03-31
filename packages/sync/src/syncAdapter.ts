@@ -18,7 +18,11 @@ export interface SyncPullResult {
 }
 
 export interface NextDNSSyncAdapterInterface {
-  push(rules: AppRule[], logger?: any): Promise<SyncPushResult>;
+  push(
+    rules: AppRule[],
+    mode?: 'browser' | 'hybrid' | 'profile',
+    logger?: any,
+  ): Promise<SyncPushResult>;
   pull(currentRules: AppRule[]): Promise<SyncPullResult>;
 }
 

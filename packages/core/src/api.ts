@@ -226,20 +226,27 @@ export class NextDNSClient {
     const res = await this.fetch(path);
     return wrapResponse(res);
   }
+  async getAnalyticsCounters(): Promise<
+    NextDNSResponse<{ blocked: number; allowed: number }>
+  > {
+    const path = `/profiles/${this.cfg.profileId}/analytics/status`;
+    const res = await this.fetch(path);
+    return wrapResponse(res);
+  }
   async blockApps(
     rulesToBlock: AppRule[],
   ): Promise<{ ok: boolean; error?: string; domains?: string[] }> {
-    // 1. Domains (denylist)
-    const appDomains = rulesToBlock
-      .filter((r) => r.type === 'domain' || !getNextDNSServiceId(r))
+    // 1. Domains (explicit denylist rules)
+    const domainItems = rulesToBlock
+      .filter((r) => r.type === 'domain')
       .map(getDomainForRule)
       .filter((d): d is string => d !== null);
-    const uniqueAppDomains = Array.from(new Set(appDomains));
+    const uniqueAppDomains = Array.from(new Set(domainItems));
 
-    // 2. Services (parentalControl/services)
+    // 2. Services (known apps based on service ID)
     const servicesToBlock = rulesToBlock
       .filter((r) => r.type === 'service')
-      .map((r) => r.packageName)
+      .map((r) => getNextDNSServiceId(r))
       .filter((id): id is string => id !== null);
 
     // 3. Categories (parentalControl/categories)
@@ -378,6 +385,15 @@ export async function getTopBlockedDomains(
   return res.ok ? res.data : [];
 }
 
+export async function getAnalyticsCounters(
+  cfg: NextDNSConfig,
+  log: any,
+): Promise<any | null> {
+  const client = new NextDNSClient(cfg, log);
+  const res = await client.getAnalyticsCounters();
+  return res.ok ? res.data : null;
+}
+
 export async function syncParentalControlServices(
   services: NextDNSService[],
   cfg: NextDNSConfig,
@@ -420,12 +436,18 @@ export async function setParentalControlServiceState(
     return [];
   }
 
-  const items = currentRes.data;
-  const idx = items.findIndex((i) => i.id === serviceId);
-  if (idx >= 0) {
-    items[idx].active = active;
+  let items = currentRes.data;
+  if (active) {
+    // Add or Update to active: true
+    const idx = items.findIndex((i) => i.id === serviceId);
+    if (idx >= 0) {
+      items[idx].active = true;
+    } else {
+      items.push({ id: serviceId, active: true });
+    }
   } else {
-    items.push({ id: serviceId, active });
+    // UNBLOCK: Remove from list
+    items = items.filter((i) => i.id !== serviceId);
   }
 
   const res = await client.setServices(items);
@@ -444,12 +466,16 @@ export async function setParentalControlCategoryState(
     return [];
   }
 
-  const items = currentRes.data;
-  const idx = items.findIndex((i) => i.id === categoryId);
-  if (idx >= 0) {
-    items[idx].active = active;
+  let items = currentRes.data;
+  if (active) {
+    const idx = items.findIndex((i) => i.id === categoryId);
+    if (idx >= 0) {
+      items[idx].active = true;
+    } else {
+      items.push({ id: categoryId, active: true });
+    }
   } else {
-    items.push({ id: categoryId, active });
+    items = items.filter((i) => i.id !== categoryId);
   }
 
   const res = await client.setCategories(items);
@@ -468,14 +494,20 @@ export async function setDenylistDomainState(
     return [];
   }
 
-  const items = currentRes.data;
-  const idx = items.findIndex(
-    (i) => i.id.toLowerCase() === domain.toLowerCase(),
-  );
-  if (idx >= 0) {
-    items[idx].active = active;
+  let items = currentRes.data;
+  const targetId = domain.toLowerCase();
+
+  if (active) {
+    // BLOCK: Add if not present
+    const idx = items.findIndex((i) => i.id.toLowerCase() === targetId);
+    if (idx < 0) {
+      items.push({ id: targetId, active: true });
+    } else {
+      items[idx].active = true;
+    }
   } else {
-    items.push({ id: domain.toLowerCase(), active });
+    // UNBLOCK: Completely remove from denylist
+    items = items.filter((i) => i.id.toLowerCase() !== targetId);
   }
 
   const res = await client.setDenylist(items);

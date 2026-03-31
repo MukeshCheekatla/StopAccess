@@ -7,3 +7,5 @@ export * from './api.ts';
 export * from './engine.ts';
 export * from './domains.ts';
 export * from './insights.ts';
+export * from './iconography.ts';
+export * from './utils.ts';

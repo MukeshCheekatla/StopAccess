@@ -3,7 +3,7 @@
  */
 
 import { AppRule, ScheduleRule, SyncContext } from '@focusgate/types';
-import { getDomainForRule } from './domains.ts';
+import { getDomainForRule, FALLBACK_DOMAINS } from './domains.ts';
 
 export function evaluateRules({
   rules,
@@ -126,20 +126,9 @@ export async function runFullEngineCycle(ctx: SyncContext) {
       ) {
         domains.push(rule.packageName.toLowerCase());
       } else if (rule.type === 'service') {
-        // Fallback for known NextDNS IDs to common domains
-        const known: Record<string, string> = {
-          tiktok: 'tiktok.com',
-          facebook: 'facebook.com',
-          instagram: 'instagram.com',
-          youtube: 'youtube.com',
-          netflix: 'netflix.com',
-          twitter: 'x.com',
-          reddit: 'reddit.com',
-          discord: 'discord.com',
-          whatsapp: 'whatsapp.com',
-        };
-        if (known[rule.packageName]) {
-          domains.push(known[rule.packageName]);
+        const fallbackDomain = (FALLBACK_DOMAINS as any)[rule.packageName];
+        if (fallbackDomain) {
+          domains.push(fallbackDomain);
         }
       }
     }

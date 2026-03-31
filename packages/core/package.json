@@ -10,5 +10,10 @@
     "./engine": "./src/engine.ts",
     "./api": "./src/api.ts",
     "./insights": "./src/insights.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/**",
+    "typecheck": "tsc --noEmit"
   }
 }

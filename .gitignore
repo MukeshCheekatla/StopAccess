@@ -6,7 +6,9 @@ dist/
 build/
 extension/dist/
 extension/node_modules/
-
+docs/
+*.txt
+.turbo
 # Android
 android/build/
 android/.gradle/

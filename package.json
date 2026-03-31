@@ -1,6 +1,7 @@
 {
   "name": "focusgate",
   "version": "1.0.0",
+  "packageManager": "npm@11.6.2",
   "private": true,
   "workspaces": [
     "extension",
@@ -10,11 +11,12 @@
     "android": "react-native run-android",
     "android:bundle": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res --max-workers 1",
     "ios": "react-native run-ios",
-    "lint": "eslint .",
-    "lint:all": "eslint .",
-    "start": "react-native start",
-    "test": "jest",
-    "typecheck": "tsc --noEmit",
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "turbo": "turbo",
     "tree": "node docs/update_tree.js",
     "extension:check": "node scripts/check-extension.mjs",
     "verify:extension": "npm run build -w extension && npm run check -w extension",
@@ -38,7 +40,8 @@
     "react-native-screens": "3.29.0",
     "react-native-svg": "14.1.0",
     "react-native-vector-icons": "10.0.3",
-    "react-native-webview": "13.8.6"
+    "react-native-webview": "13.8.6",
+    "turbo": "^2.8.21"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

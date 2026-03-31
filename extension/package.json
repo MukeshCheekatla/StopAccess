@@ -4,11 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "node build.js",
+    "build": "npm run lint -- --fix && npm run typecheck && node build.js",
     "watch": "node build.js --watch",
-    "check": "node ../scripts/check-extension.mjs"
+    "check": "node ../scripts/check-extension.mjs",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "esbuild": "^0.25.2"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.1"
   }
 }

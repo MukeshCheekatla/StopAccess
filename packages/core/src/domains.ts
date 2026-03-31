@@ -153,3 +153,115 @@ export function getNextDNSServiceId(rule: Partial<AppRule>): string | null {
 
   return null;
 }
+
+export const POPULAR_DISTRACTIONS = [
+  { id: 'facebook.com', name: 'Facebook', packageId: 'com.facebook.katana' },
+  {
+    id: 'instagram.com',
+    name: 'Instagram',
+    packageId: 'com.instagram.android',
+  },
+  { id: 'reddit.com', name: 'Reddit', packageId: 'com.reddit.frontpage' },
+  {
+    id: 'youtube.com',
+    name: 'YouTube',
+    packageId: 'com.google.android.youtube',
+  },
+  { id: 'x.com', name: 'X / Twitter', packageId: 'com.twitter.android' },
+  { id: 'tiktok.com', name: 'TikTok', packageId: 'com.zhiliaoapp.musically' },
+  { id: 'netflix.com', name: 'Netflix', packageId: 'com.netflix.mediaclient' },
+  { id: 'twitch.tv', name: 'Twitch', packageId: 'tv.twitch.android.app' },
+  { id: 'discord.com', name: 'Discord', packageId: 'com.discord' },
+  {
+    id: 'amazon.com',
+    name: 'Amazon',
+    packageId: 'com.amazon.mShop.android.shopping',
+  },
+];
+
+export function sanitizeDomain(value: string): string {
+  const clean = String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .replace(/^www\./, '');
+  return clean.includes('.') ? clean : '';
+}
+
+export const UI_EXAMPLES = {
+  DOMAIN: 'facebook.com',
+  INSTAGRAM: 'instagram.com',
+  GENERIC_DOMAIN: 'example.com',
+  SUBDOMAIN: 'reddit.com',
+  PROFILE_ID: 'abc123',
+  API_KEY: 'your-64-character-nextdns-api-key',
+};
+
+export const FALLBACK_DOMAINS: Record<string, string> = {
+  tiktok: 'tiktok.com',
+  facebook: 'facebook.com',
+  instagram: 'instagram.com',
+  youtube: 'youtube.com',
+  netflix: 'netflix.com',
+  twitter: 'x.com',
+  reddit: 'reddit.com',
+  discord: 'discord.com',
+  whatsapp: 'whatsapp.com',
+};
+
+export const NEXTDNS_CATEGORIES = [
+  { id: 'gambling', name: 'Gambling' },
+  { id: 'dating', name: 'Dating' },
+  { id: 'porn', name: 'Adult Content' },
+  { id: 'social-networks', name: 'Social Networks' },
+  { id: 'video-streaming', name: 'Video Streaming' },
+  { id: 'games', name: 'Games' },
+  { id: 'shopping', name: 'Shopping' },
+];
+
+export const NEXTDNS_SERVICES = [
+  { id: '9gag', name: '9GAG' },
+  { id: 'amazon', name: 'Amazon' },
+  { id: 'bereal', name: 'BeReal' },
+  { id: 'blizzard', name: 'Blizzard' },
+  { id: 'chatgpt', name: 'ChatGPT' },
+  { id: 'dailymotion', name: 'Dailymotion' },
+  { id: 'discord', name: 'Discord' },
+  { id: 'disneyplus', name: 'Disney+' },
+  { id: 'ebay', name: 'eBay' },
+  { id: 'facebook', name: 'Facebook' },
+  { id: 'fortnite', name: 'Fortnite' },
+  { id: 'google-chat', name: 'Google Chat' },
+  { id: 'hbomax', name: 'HBO Max' },
+  { id: 'hulu', name: 'Hulu' },
+  { id: 'imgur', name: 'Imgur' },
+  { id: 'instagram', name: 'Instagram' },
+  { id: 'leagueoflegends', name: 'League of Legends' },
+  { id: 'mastodon', name: 'Mastodon' },
+  { id: 'messenger', name: 'Messenger' },
+  { id: 'minecraft', name: 'Minecraft' },
+  { id: 'netflix', name: 'Netflix' },
+  { id: 'pinterest', name: 'Pinterest' },
+  { id: 'playstation-network', name: 'Playstation Network' },
+  { id: 'primevideo', name: 'Prime Video' },
+  { id: 'reddit', name: 'Reddit' },
+  { id: 'roblox', name: 'Roblox' },
+  { id: 'signal', name: 'Signal' },
+  { id: 'skype', name: 'Skype' },
+  { id: 'snapchat', name: 'Snapchat' },
+  { id: 'spotify', name: 'Spotify' },
+  { id: 'steam', name: 'Steam' },
+  { id: 'telegram', name: 'Telegram' },
+  { id: 'tiktok', name: 'TikTok' },
+  { id: 'tinder', name: 'Tinder' },
+  { id: 'tumblr', name: 'Tumblr' },
+  { id: 'twitch', name: 'Twitch' },
+  { id: 'twitter', name: 'X (Twitter)' },
+  { id: 'vimeo', name: 'Vimeo' },
+  { id: 'vk', name: 'VK' },
+  { id: 'whatsapp', name: 'WhatsApp' },
+  { id: 'xboxlive', name: 'Xbox Live' },
+  { id: 'youtube', name: 'YouTube' },
+  { id: 'zoom', name: 'Zoom' },
+];
