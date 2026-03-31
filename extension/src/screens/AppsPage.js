@@ -1,6 +1,5 @@
 import { getRules, updateRule, deleteRule } from '@focusgate/state/rules';
 import {
-  POPULAR_DISTRACTIONS,
   UI_EXAMPLES,
   NEXTDNS_CATEGORIES,
   NEXTDNS_SERVICES,
@@ -16,7 +15,7 @@ import {
   sanitizeDomain,
 } from '@focusgate/core';
 
-let activeTab = 'domains';
+let activeTab = 'shield';
 let availableServices = [];
 let availableCategories = [];
 let isLoadingNextDNS = false;
@@ -94,8 +93,7 @@ export async function renderAppsPage(container) {
       </div>
 
       <div style="display: flex; padding: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 14px; margin-bottom: 40px; width: fit-content; min-width: 400px;">
-        <button class="nav-item-tab" data-tab="domains">DOMAINS</button>
-        <button class="nav-item-tab" data-tab="services">APPS</button>
+        <button class="nav-item-tab" data-tab="shield">SHIELD</button>
         <button class="nav-item-tab" data-tab="categories">CATEGORIES</button>
       </div>
 
@@ -220,42 +218,46 @@ function buildRule(id, type, name, active) {
 }
 
 async function renderSubTab(rules) {
-  if (activeTab === 'domains') {
+  if (activeTab === 'shield') {
     const domainRules = rules.filter((r) => r.type === 'domain' || !r.type);
-    const visibleRules = domainRules.filter(matchesSearch);
+    const visibleDomains = domainRules.filter(matchesSearch);
+
+    const allApps = NEXTDNS_SERVICES.map((std) => {
+      const synced = availableServices.find((s) => s.id === std.id);
+      return { ...std, active: synced?.active ?? false };
+    });
+    // For the active list, we only show apps that are actually enabled in rules or synced active
+    const activeApps = allApps.filter((app) =>
+      rules.some((r) => r.packageName === app.id && r.type === 'service'),
+    );
+    const visibleApps = activeApps.filter(matchesSearch);
 
     return `
-      <div style="margin-bottom: 32px; display: flex; align-items: center; justify-content: space-between;">
-         <div class="widget-title" style="margin-bottom: 0;">Active Protected Domains (${
-           visibleRules.length
-         })</div>
-      </div>
-
       <div id="targetDrawerOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; background: rgba(5, 5, 10, 0.9); backdrop-filter: blur(20px);">
         <div style="padding: 40px; height: 100%; overflow-y: auto;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
             <div>
               <div style="font-size: 0.75rem; font-weight: 800; color: var(--accent); letter-spacing: 2px;">QUICK SETUP</div>
-              <div style="font-size: 1.5rem; font-weight: 900; margin-top: 4px;">Popular Distractions</div>
+              <div style="font-size: 1.5rem; font-weight: 900; margin-top: 4px;">Initialize App Shield</div>
             </div>
             <button class="btn-premium" style="background: transparent; box-shadow: none; border: 1px solid var(--glass-border); padding: 8px 16px;" id="btnCloseTargetDrawer">CLOSE</button>
           </div>
           
           <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; padding-bottom: 60px;">
-            ${POPULAR_DISTRACTIONS.filter(
-              (d) =>
-                !rules.some((r) => (r.customDomain || r.packageName) === d.id),
+            ${NEXTDNS_SERVICES.filter(
+              (s) =>
+                !rules.some((r) => (r.customDomain || r.packageName) === s.id),
             )
               .map(
-                (d) => `
-                <button class="btn-premium quick-add-domain" data-domain="${
-                  d.id
-                }" data-name="${d.name}" 
+                (s) => `
+                <button class="btn-premium quick-add-service" data-id="${
+                  s.id
+                }" data-name="${s.name}" 
                   style="padding: 24px 16px; flex-direction: column; gap: 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); box-shadow:none; min-height: 140px; justify-content: center; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position:relative; overflow:hidden;">
                   <div style="position:absolute; top:10px; right:12px; width:22px; height:22px; border-radius:50%; background: #3F3F46; color:#FFFFFF; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:400; box-shadow: 0 4px 8px rgba(0,0,0,0.4);">+</div>
-                  ${renderAppIcon(d.id, d.name)}
+                  ${renderAppIcon(s.id, s.name)}
                   <div style="font-size: 0.9375rem; font-weight: 800; color: #FFFFFF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; letter-spacing: -0.01em;">${
-                    d.name
+                    s.name
                   }</div>
                 </button>`,
               )
@@ -264,39 +266,30 @@ async function renderSubTab(rules) {
         </div>
       </div>
 
-      <div class="service-grid">
-        ${
-          visibleRules.length
-            ? visibleRules.map((rule) => renderDomainRuleCard(rule)).join('')
-            : `
-            <div class="glass-card" style="height: 240px; display: flex; flex-direction:column; align-items:center; justify-content:center; grid-column: 1 / -1; background:rgba(255,255,255,0.01); border-color:var(--glass-border); border-style: solid;">
-              <div style="font-weight: 900; font-size: 32px; color: var(--accent); opacity: 0.2; margin-bottom: 16px; letter-spacing: -2px;">FG</div>
-              <div style="font-weight: 800; color: var(--muted); letter-spacing:1px; text-transform:uppercase; font-size:12px;">No active rules for ${activeTab}</div>
-              <div style="font-size: 13px; color: var(--muted); margin-top: 8px; opacity: 0.5;">Add a new shield or select from popular services.</div>
-            </div>`
-        }
-      </div>
-    `;
-  }
-
-  if (activeTab === 'services') {
-    const allApps = NEXTDNS_SERVICES.map((std) => {
-      const synced = availableServices.find((s) => s.id === std.id);
-      return { ...std, active: synced?.active ?? false };
-    });
-    const visibleApps = allApps.filter(matchesSearch);
-    if (isLoadingNextDNS && availableServices.length === 0) {
-      return '<div class="empty-state">SYNCING NEXTDNS ENGINE...</div>';
-    }
-    return `
       <div style="margin-bottom: 32px;">
-        <div style="font-weight: 800; color: #FFFFFF; font-size: 1.125rem; letter-spacing: -0.01em; margin-bottom: 8px;">Websites, Apps & Games</div>
-        <div style="font-size: 0.875rem; color: var(--muted); opacity: 0.8; line-height: 1.6;">Restrict access to specific popular apps, games and social networks profile-wide.</div>
+        <div style="font-weight: 800; color: #FFFFFF; font-size: 1.125rem; letter-spacing: -0.01em; margin-bottom: 8px;">Shielded Apps</div>
+        <div style="font-size: 0.875rem; color: var(--muted); opacity: 0.8; line-height: 1.6; margin-bottom: 24px;">Configured app perimeters under profile control.</div>
+        <div class="service-grid">
+          ${
+            visibleApps.length
+              ? visibleApps.map((app) => renderServiceCard(app, rules)).join('')
+              : '<div style="color:var(--muted); font-size:12px; opacity:0.5; font-weight:700;">No services currently active in the block list.</div>'
+          }
+        </div>
       </div>
-      <div class="service-grid">
-        ${visibleApps
-          .map((service) => renderServiceCard(service, rules))
-          .join('')}
+
+      <div style="margin-top: 48px; border-top: 1px solid var(--glass-border); padding-top: 48px;">
+        <div style="font-weight: 800; color: #FFFFFF; font-size: 1.125rem; letter-spacing: -0.01em; margin-bottom: 8px;">Custom Domain Blocks</div>
+        <div style="font-size: 0.875rem; color: var(--muted); opacity: 0.8; line-height: 1.6; margin-bottom: 24px;">Granular domain-level intercepts.</div>
+        <div class="service-grid">
+          ${
+            visibleDomains.length
+              ? visibleDomains
+                  .map((rule) => renderDomainRuleCard(rule))
+                  .join('')
+              : '<div style="color:var(--muted); font-size:12px; opacity:0.5; font-weight:700;">No custom domains shielded.</div>'
+          }
+        </div>
       </div>
     `;
   }
@@ -451,13 +444,13 @@ async function setupHandlers(container, rules) {
       }
     });
 
-  container.querySelectorAll('.quick-add-domain').forEach((btn) => {
+  container.querySelectorAll('.quick-add-service').forEach((btn) => {
     btn.addEventListener('click', async () => {
-      const id = btn.getAttribute('data-domain');
+      const id = btn.getAttribute('data-id');
       const name = btn.getAttribute('data-name');
-      await updateRule(storage, buildRule(id, 'domain', name, true));
+      await updateRule(storage, buildRule(id, 'service', name, true));
       if (isConfigured) {
-        await nextDNSApi.setDenylistDomainState(id, true);
+        await nextDNSApi.setServiceState(id, true);
       }
       chrome.runtime.sendMessage({ action: 'manualSync' });
       refreshListOnly();
@@ -470,7 +463,7 @@ async function setupHandlers(container, rules) {
       const id = btn.getAttribute('data-id') || btn.getAttribute('data-pkg');
       const active = btn.classList.contains('active');
 
-      if (kind === 'domain') {
+      if (kind === 'domain' || kind === 'service') {
         const rule = rules.find(
           (r) => (r.customDomain || r.packageName) === id,
         );
@@ -507,9 +500,14 @@ async function setupHandlers(container, rules) {
     btn.addEventListener('click', async () => {
       const pkg = btn.getAttribute('data-pkg');
       if (confirm(`Remove shield directive for ${pkg}?`)) {
+        const ruleTarget = rules.find((r) => r.packageName === pkg);
         await deleteRule(storage, pkg);
         if (isConfigured) {
-          await nextDNSApi.setDenylistDomainState(pkg, false);
+          if (ruleTarget?.type === 'service') {
+            await nextDNSApi.setServiceState(pkg, false);
+          } else {
+            await nextDNSApi.setDenylistDomainState(pkg, false);
+          }
         }
         chrome.runtime.sendMessage({ action: 'manualSync' });
         refreshListOnly();
