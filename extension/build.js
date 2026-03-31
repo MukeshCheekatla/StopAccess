@@ -53,12 +53,21 @@ async function build() {
       entryPoints: [resolve(SRC_DIR, 'dashboard/dashboard.js')],
       outfile: resolve(DIST_DIR, 'dashboard.js'),
     }),
+    // Content Script (SPA blocker)
+    esbuild.build({
+      ...baseConfig,
+      entryPoints: [resolve(SRC_DIR, 'background/contentScript.js')],
+      outfile: resolve(DIST_DIR, 'contentScript.js'),
+      format: 'iife', // Content scripts must be IIFE
+    }),
   ]);
 
   // Wiring and Static Assets
   const statics = [
     ['src/popup/popup.html', 'dist/popup/popup.html'],
     ['src/dashboard/index.html', 'dist/dashboard.html'],
+    ['src/blocked/blocked.html', 'dist/blocked.html'],
+    ['src/blocked/blocked.js', 'dist/blocked.js'],
     ['assets/icon.png', 'dist/assets/icon.png'],
   ];
 
@@ -79,6 +88,17 @@ async function build() {
     // Adjust paths so they are relative to the 'dist' folder root
     rawManifest.background.service_worker = 'background.js';
     rawManifest.action.default_popup = 'popup/popup.html';
+
+    if (rawManifest.content_scripts && rawManifest.content_scripts[0]) {
+      rawManifest.content_scripts[0].js = ['contentScript.js'];
+    }
+
+    if (
+      rawManifest.web_accessible_resources &&
+      rawManifest.web_accessible_resources[0]
+    ) {
+      rawManifest.web_accessible_resources[0].resources = ['blocked.html'];
+    }
 
     // Save the re-mapped manifest into dist/
     writeFileSync(

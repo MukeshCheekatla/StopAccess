@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FocusGate | Site Blocked</title>
+  <style>
+    :root {
+      --bg: #07080c;
+      --panel: rgba(18, 20, 28, 0.94);
+      --text: #ffffff;
+      --muted: rgba(255, 255, 255, 0.68);
+      --line: rgba(255, 255, 255, 0.08);
+      --accent: #6c47ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(108, 71, 255, 0.16), transparent 34%),
+        linear-gradient(180deg, #06070b 0%, #0b0c11 100%);
+    }
+
+    .panel {
+      width: min(100%, 540px);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      padding: 32px;
+      box-shadow: 0 24px 72px rgba(0, 0, 0, 0.45);
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.22em;
+      color: #9f8cff;
+      margin-bottom: 18px;
+    }
+
+    .icon {
+      width: 72px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9f8cff;
+      background: rgba(108, 71, 255, 0.12);
+      border: 1px solid rgba(108, 71, 255, 0.24);
+      border-radius: 22px;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      font-size: 36px;
+      line-height: 0.98;
+      letter-spacing: -0.04em;
+      font-weight: 900;
+      margin-bottom: 12px;
+    }
+
+    .sub {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .card {
+      display: grid;
+      gap: 12px;
+      margin-bottom: 24px;
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.54);
+    }
+
+    .value {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ffffff;
+    }
+
+    .button {
+      width: 100%;
+      border: none;
+      border-radius: 16px;
+      padding: 16px 18px;
+      background: var(--accent);
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .footer {
+      margin-top: 20px;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.36);
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <div class="eyebrow">FOCUSGATE</div>
+    <div class="icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" width="40" height="40">
+        <path d="M12 3l7 3v5c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-3z" stroke="currentColor" stroke-width="1.8"></path>
+        <path d="M8.5 12.5l2.2 2.2 4.8-5.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path>
+      </svg>
+    </div>
+    <h1 id="blocked_title">Access Intercepted</h1>
+    <p class="sub" id="blocked_subtitle">FocusGate redirected this request into a protected screen before the destination could load.</p>
+
+    <section class="card">
+      <div class="row">
+        <span class="label">Target</span>
+        <span class="value" id="domain_label">Protected Site</span>
+      </div>
+      <div class="row">
+        <span class="label">Protection</span>
+        <span class="value" id="level_label">ACTIVE</span>
+      </div>
+    </section>
+
+    <button class="button" id="exitIntercept">Go Back</button>
+    <div class="footer">Browser Focus Enforcement</div>
+  </main>
+
+  <script src="blocked.js"></script>
+</body>
+</html>

@@ -1,4 +1,4 @@
-import { getRules } from '@focusgate/state/rules';
+import { getRules, updateRule } from '@focusgate/state/rules';
 import Chart from 'chart.js/auto';
 import {
   extensionAdapter as storage,
@@ -181,24 +181,35 @@ export async function renderDashboardPage(container) {
                         d.domain,
                       )}&sz=64`;
                       return `
-                <div class="rule-item" style="padding: 20px; background: rgba(255,255,255,0.01);">
-                   <div style="display:flex; align-items:center; gap:20px; min-width:0;">
-                     <div style="width: 40px; height: 40px; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
-                       <img src="${iconUrl}" style="width: 22px; height:22px; object-fit: contain;">
+                <div class="rule-item" style="padding: 14px 20px; background: rgba(255,255,255,0.01); border-left: 3px solid ${
+                  isBlocked ? 'var(--red)' : 'transparent'
+                }; transition: border-color 0.2s;">
+                   <div style="display:flex; align-items:center; gap:16px; min-width:0;">
+                     <div style="width: 36px; height: 36px; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
+                       <img src="${iconUrl}" style="width: 20px; height:20px; object-fit: contain;">
                      </div>
-                     <div style="min-width:0;">
-                       <div style="font-size:15px; font-weight: 800;">${
+                     <div style="min-width:0; flex: 1;">
+                       <div style="font-size:14px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${
                          d.domain
                        }</div>
-                       <div style="font-size:11px; color:var(--muted); font-weight:700; text-transform: uppercase; margin-top: 4px;">
-                         ${isBlocked ? 'Blocked' : 'Monitoring'}
+                       <div style="font-size:10px; color:${
+                         isBlocked ? 'var(--red)' : 'var(--muted)'
+                       }; font-weight:700; text-transform: uppercase; margin-top: 2px;">
+                         ${isBlocked ? '🔴 BLOCKED' : 'Monitoring'}
                        </div>
                      </div>
-                   </div>
-                   <div style="text-align: right;">
-                      <div style="font-size:14px; font-weight:900; color:var(--text);">${fmtTime(
-                        d.timeMs,
-                      )}</div>
+                     <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+                       <div style="font-size:13px; font-weight:900; color:${
+                         isBlocked ? 'rgba(255,255,255,0.3)' : 'var(--text)'
+                       }; text-decoration: ${
+                        isBlocked ? 'line-through' : 'none'
+                      }">${fmtTime(d.timeMs)}</div>
+                       ${
+                         isBlocked
+                           ? '<div style="font-size:9px; font-weight:900; color:var(--red); background:rgba(255,71,87,0.1); border:1px solid rgba(255,71,87,0.2); border-radius:6px; padding:3px 7px; text-transform:uppercase; letter-spacing:0.5px;">BLOCKED</div>'
+                           : `<button class="quick-block-btn" data-domain="${d.domain}" title="Block ${d.domain}" style="width:26px; height:26px; border-radius:8px; background:rgba(108,71,255,0.1); border:1px solid rgba(108,71,255,0.3); color:var(--accent); font-size:16px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0;">+</button>`
+                       }
+                     </div>
                    </div>
                 </div>`;
                     })
@@ -232,6 +243,44 @@ export async function renderDashboardPage(container) {
       if (btn) {
         btn.click();
       }
+    });
+
+    // Quick-block buttons on usage rows
+    container.querySelectorAll('.quick-block-btn').forEach((btn) => {
+      btn.addEventListener('click', async () => {
+        const domain = btn.dataset.domain;
+        if (!domain) {
+          return;
+        }
+        btn.textContent = '…';
+        btn.disabled = true;
+        try {
+          const newRule = {
+            appName: domain,
+            packageName: domain,
+            customDomain: domain,
+            type: 'domain',
+            scope: 'profile',
+            mode: 'block',
+            blockedToday: true,
+            desiredBlockingState: true,
+            addedByUser: true,
+            updatedAt: Date.now(),
+          };
+          const isConfig = await nextDNSApi.isConfigured();
+          if (isConfig) {
+            await nextDNSApi.setTargetState('domain', domain, true);
+          }
+          await updateRule(storage, newRule);
+          chrome.runtime.sendMessage({ action: 'manualSync' });
+          // Refresh the dashboard to reflect the new blocked state
+          renderDashboardPage(container);
+        } catch (err) {
+          btn.textContent = '+';
+          btn.disabled = false;
+          console.error('[FocusGate] Quick-block failed:', err);
+        }
+      });
     });
 
     const ctx = container.querySelector('#liveUsageChart')?.getContext('2d');

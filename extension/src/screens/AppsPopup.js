@@ -8,12 +8,20 @@ import {
   extensionAdapter as storage,
   nextDNSApi,
 } from '../background/platformAdapter.js';
-import {
-  escapeHtml,
-  getAppIconUrl as getSmartIcon,
-  resolveServiceIcon,
-} from '@focusgate/core';
+import { escapeHtml, resolveServiceIcon } from '@focusgate/core';
 import { toast } from '../lib/toast.js';
+
+async function getCurrentTabDomain() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab && tab.url && tab.url.startsWith('http')) {
+    try {
+      return new URL(tab.url).hostname.replace(/^www\./, '');
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 export async function renderAppsPopup(container) {
   if (!container) {
@@ -23,15 +31,53 @@ export async function renderAppsPopup(container) {
   try {
     const rules = await getRules(storage);
     const isConfigured = await nextDNSApi.isConfigured();
+    const currentDomain = await getCurrentTabDomain();
+    const usageRes = await chrome.storage.local.get(['usage']);
+    const usage = usageRes.usage || {};
     let searchTerm = '';
 
+    // Get top 3 sites by usage that aren't already blocked
+    const recentActivity = Object.entries(usage)
+      .map(([domain, d]) => ({ domain, time: d.time || 0 }))
+      .filter(
+        (d) =>
+          d.time > 60000 &&
+          !rules.some((r) => (r.customDomain || r.packageName) === d.domain),
+      )
+      .sort((a, b) => b.time - a.time)
+      .slice(0, 3);
+
     const render = () => {
+      const isAlreadyBlocked =
+        currentDomain &&
+        rules.some((r) => (r.customDomain || r.packageName) === currentDomain);
+
       container.innerHTML = `
-      <div style="margin-bottom: 16px;">
-        <input type="text" id="appSearch" placeholder="Filter active rules..." 
-          style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px 14px; color: var(--text); font-size: 13px; outline: none;" 
-          value="${searchTerm}">
+      <div style="margin-bottom: 16px; display: flex; gap: 8px;">
+        <div style="position: relative; flex: 1;">
+          <input type="text" id="appSearch" placeholder="Filter active rules..." 
+            style="width: 100%; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 12px; padding: 10px 14px; color: var(--text); font-size: 13px; outline: none;" 
+            value="${searchTerm}">
+        </div>
+        <button id="btnQuickAddManual" style="width: 38px; height: 38px; border-radius: 12px; background: var(--accent); border: none; color: #fff; font-size: 20px; font-weight: 400; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">+</button>
       </div>
+
+      ${
+        currentDomain && !isAlreadyBlocked
+          ? `
+      <div class="glass-card" style="margin-bottom: 20px; padding: 12px 14px; background: linear-gradient(135deg, rgba(82, 82, 91, 0.05), transparent); border-color: rgba(82, 82, 91, 0.2); display: flex; align-items: center; justify-content: space-between;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center; font-size: 14px;">🌐</div>
+          <div>
+            <div style="font-size: 12px; font-weight: 800; color: #fff;">${currentDomain}</div>
+            <div style="font-size: 9px; color: var(--muted); font-weight: 700; text-transform: uppercase;">CURRENT SITE</div>
+          </div>
+        </div>
+        <button class="btn-premium" id="btnBlockCurrent" style="padding: 6px 12px; font-size: 10px; border-radius: 8px;">BLOCK SITE</button>
+      </div>
+      `
+          : ''
+      }
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
         <div style="font-size: 13px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">ENFORCEMENT RULES</div>
@@ -40,7 +86,7 @@ export async function renderAppsPopup(container) {
         }</div>
       </div>
 
-      <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px;">
         ${rules
           .filter((r) => {
             const matchesSearch = (r.customDomain || r.packageName || '')
@@ -87,6 +133,31 @@ export async function renderAppsPopup(container) {
           )
           .join('')}
       </div>
+
+      ${
+        recentActivity.length > 0
+          ? `
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
+        <div style="font-size: 13px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">RECENT ACTIVITY</div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        ${recentActivity
+          .map(
+            (a) => `
+          <div class="glass-card" style="padding: 10px 14px; background: rgba(255,255,255,0.01); display: flex; align-items: center; justify-content: space-between; opacity: 0.8;">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+              <img src="https://www.google.com/s2/favicons?domain=${a.domain}" style="width: 16px; height:16px;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${a.domain}</div>
+            </div>
+            <button class="btn-quick-block-usage" data-domain="${a.domain}" style="background: rgba(108, 71, 255, 0.1); border: 1px solid rgba(108, 71, 255, 0.2); color: var(--accent); padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 800; cursor: pointer;">BLOCK</button>
+          </div>
+        `,
+          )
+          .join('')}
+      </div>
+      `
+          : ''
+      }
       `;
 
       const searchInput = container.querySelector('#appSearch');
@@ -191,7 +262,121 @@ export async function renderAppsPopup(container) {
         });
       });
 
-      // Icon fallbacks are now handled via the surgical onerror in renderRuleIcon
+      // Quick Add Current
+      container
+        .querySelector('#btnBlockCurrent')
+        ?.addEventListener('click', async () => {
+          const btn = container.querySelector('#btnBlockCurrent');
+          btn.disabled = true;
+          btn.innerText = 'WAIT...';
+
+          try {
+            const res = await nextDNSApi.resolveTargetInput(currentDomain);
+            if (isConfigured) {
+              await nextDNSApi.addResolvedTarget(res);
+              await nextDNSApi.refreshNextDNSMetadata();
+            }
+
+            const rule = {
+              packageName: res.normalizedId,
+              appName: res.displayName,
+              type: res.kind === 'service' ? 'service' : 'domain',
+              customDomain:
+                res.kind === 'domain' ? res.normalizedId : undefined,
+              scope: res.kind === 'service' ? 'profile' : 'browser',
+              mode: 'block',
+              blockedToday: true,
+              desiredBlockingState: true,
+              usedMinutesToday: 0,
+              addedByUser: true,
+              updatedAt: Date.now(),
+            };
+
+            await updateRule(storage, rule);
+            chrome.runtime.sendMessage({ action: 'manualSync' });
+            toast.success(`Shielded: ${currentDomain}`);
+            renderAppsPopup(container);
+          } catch (err) {
+            toast.error(err.message);
+            btn.disabled = false;
+            btn.innerText = 'BLOCK SITE';
+          }
+        });
+
+      // Manual Add from Search
+      container
+        .querySelector('#btnQuickAddManual')
+        ?.addEventListener('click', async () => {
+          const input =
+            searchTerm || prompt('Enter domain to block (e.g. reddit.com):');
+          if (!input || !input.includes('.')) {
+            return;
+          }
+
+          try {
+            const res = await nextDNSApi.resolveTargetInput(input);
+            if (isConfigured) {
+              await nextDNSApi.addResolvedTarget(res);
+              await nextDNSApi.refreshNextDNSMetadata();
+            }
+
+            const rule = {
+              packageName: res.normalizedId,
+              appName: res.displayName,
+              type: res.kind === 'service' ? 'service' : 'domain',
+              customDomain:
+                res.kind === 'domain' ? res.normalizedId : undefined,
+              scope: res.kind === 'service' ? 'profile' : 'browser',
+              mode: 'block',
+              blockedToday: true,
+              desiredBlockingState: true,
+              usedMinutesToday: 0,
+              addedByUser: true,
+              updatedAt: Date.now(),
+            };
+
+            await updateRule(storage, rule);
+            chrome.runtime.sendMessage({ action: 'manualSync' });
+            toast.success(`Rule added for ${input}`);
+            renderAppsPopup(container);
+          } catch (err) {
+            toast.error(`Add Fail: ${err.message}`);
+          }
+        });
+
+      // Quick Block Activity
+      container.querySelectorAll('.btn-quick-block-usage').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const domain = btn.dataset.domain;
+          btn.disabled = true;
+          btn.innerText = 'WAIT...';
+
+          try {
+            const rule = {
+              packageName: domain,
+              appName: domain,
+              type: 'domain',
+              customDomain: domain,
+              scope: 'browser',
+              mode: 'block',
+              blockedToday: true,
+              desiredBlockingState: true,
+              usedMinutesToday: 0,
+              addedByUser: true,
+              updatedAt: Date.now(),
+            };
+
+            await updateRule(storage, rule);
+            chrome.runtime.sendMessage({ action: 'manualSync' });
+            toast.success(`Shielded: ${domain}`);
+            renderAppsPopup(container);
+          } catch (err) {
+            toast.error(err.message);
+            btn.disabled = false;
+            btn.innerText = 'BLOCK';
+          }
+        });
+      });
     };
 
     render();

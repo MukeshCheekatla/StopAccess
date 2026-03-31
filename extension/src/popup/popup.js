@@ -6,6 +6,7 @@ import {
   extensionAdapter as storage,
   nextDNSApi,
 } from '../background/platformAdapter.js';
+import { buildExtensionPagePath } from '@focusgate/core';
 
 document.addEventListener('DOMContentLoaded', async () => {
   const container = document.getElementById('mainContent');
@@ -78,7 +79,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     .getElementById('btn_open_portal_master')
     ?.addEventListener('click', (e) => {
       e.preventDefault();
-      const url = chrome.runtime.getURL('dist/dashboard.html');
+      const url = chrome.runtime.getURL(
+        buildExtensionPagePath('dashboard.html'),
+      );
       chrome.tabs.create({ url });
     });
 

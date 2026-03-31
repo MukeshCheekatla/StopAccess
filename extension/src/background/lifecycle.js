@@ -6,8 +6,9 @@ import {
   runFullEngineCycle,
   recordDailySnapshot,
   NextDNSClient,
+  SyncOrchestrator,
+  buildExtensionPagePath,
 } from '@focusgate/core';
-import { SyncOrchestrator } from '@focusgate/sync';
 import { getRules, saveRules } from '@focusgate/state/rules';
 import {
   extensionAdapter,
@@ -20,8 +21,26 @@ import { syncDNRRules } from './dnrAdapter.js';
 let current = null;
 let sync = null;
 let isRunningCycle = false;
+const BLOCKED_DOMAINS_KEY = 'blocked_domains';
+const BLOCK_DEBUG_KEY = 'fg_block_debug';
+const RUNTIME_ERROR_KEY = 'fg_last_runtime_error';
 
 console.log('[FocusGate] TRACKER INITIALIZING');
+
+function recordRuntimeError(source, error) {
+  const message =
+    error instanceof Error ? error.stack || error.message : String(error);
+  console.error(`[FocusGate] ${source}`, error);
+  chrome.storage.local
+    .set({
+      [RUNTIME_ERROR_KEY]: JSON.stringify({
+        at: new Date().toISOString(),
+        source,
+        error: message,
+      }),
+    })
+    .catch(() => {});
+}
 
 function getDomain(url) {
   try {
@@ -77,11 +96,22 @@ async function saveUsage(domain, durationMs) {
   const ruleIdx = rules.findIndex((r) => matchesDomain(domain, r.packageName));
   if (ruleIdx >= 0) {
     const mins = durationMs / 60000;
-    rules[ruleIdx].usedMinutesToday =
-      (rules[ruleIdx].usedMinutesToday || 0) + mins;
-    await saveRules(extensionAdapter, rules);
+    const rule = rules[ruleIdx];
+    rule.usedMinutesToday = (rule.usedMinutesToday || 0) + mins;
 
-    // Dynamic Cycle Evaluation
+    // Check for limit hit
+    if (
+      rule.dailyLimitMinutes > 0 &&
+      rule.usedMinutesToday >= rule.dailyLimitMinutes
+    ) {
+      if (!rule.blockedToday) {
+        rule.blockedToday = true;
+        rule.mode = 'block';
+        extensionLogger.add('info', `Limit reached for ${domain}. Blocking.`);
+      }
+    }
+
+    await saveRules(extensionAdapter, rules);
     runCycle().catch(() => {});
   }
 }
@@ -101,13 +131,20 @@ async function incrementSession(domain) {
 
 // HYBRID ACCURATE MODEL: Interval-based flush (1s)
 setInterval(async () => {
-  if (current && current.domain) {
+  const activeSession = current;
+  if (activeSession && activeSession.domain) {
     const now = Date.now();
-    const duration = now - current.start;
+    const duration = now - activeSession.start;
 
     if (duration > 1000) {
-      await saveUsage(current.domain, duration);
-      current.start = now;
+      try {
+        await saveUsage(activeSession.domain, duration);
+        if (current === activeSession) {
+          current.start = now;
+        }
+      } catch (error) {
+        recordRuntimeError('interval_flush', error);
+      }
     }
   }
 }, 1000);
@@ -141,7 +178,7 @@ async function switchTab(tabId) {
       }
     }
 
-    current = { domain, start: now };
+    current = { domain, start: now, tabId };
     if (domain) {
       await incrementSession(domain);
     }
@@ -155,7 +192,7 @@ async function initActiveTab() {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tabs[0]) {
       const domain = getDomain(tabs[0].url);
-      current = { domain, start: Date.now() };
+      current = { domain, start: Date.now(), tabId: tabs[0].id };
       if (domain) {
         await incrementSession(domain);
       }
@@ -240,11 +277,26 @@ async function runCycle(forceSync = false) {
     // 2. Engine Logic (DNR Sync - All Levels)
     const result = await runFullEngineCycle(ctx);
 
-    if (result?.ok && result?.domains) {
-      await syncDNRRules(result.domains);
-    }
+    const blockedDomains = result?.ok && result?.domains ? result.domains : [];
+    const dnrResult = await syncDNRRules(blockedDomains);
+    await chrome.storage.local.set({
+      [BLOCKED_DOMAINS_KEY]: blockedDomains,
+      [BLOCK_DEBUG_KEY]: JSON.stringify({
+        at: new Date().toISOString(),
+        ok: result?.ok ?? false,
+        blockedDomains,
+        dnrResult,
+      }),
+    });
   } catch (e) {
     extensionLogger.add('error', 'Lifecycle Engine Fail', String(e));
+    await chrome.storage.local.set({
+      [BLOCK_DEBUG_KEY]: JSON.stringify({
+        at: new Date().toISOString(),
+        ok: false,
+        error: String(e),
+      }),
+    });
   } finally {
     isRunningCycle = false;
   }
@@ -253,7 +305,7 @@ async function runCycle(forceSync = false) {
 // --- Event Handlers ---
 chrome.tabs.onActivated.addListener(({ tabId }) => switchTab(tabId));
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab.active && changeInfo.status === 'complete') {
+  if (tab.active && (changeInfo.status === 'complete' || changeInfo.url)) {
     switchTab(tabId);
   }
 });
@@ -282,6 +334,14 @@ chrome.idle.onStateChanged.addListener((state) => {
 initActiveTab().catch(() => {});
 setTimeout(() => runCycle().catch(() => {}), 100);
 
+self.addEventListener('error', (event) => {
+  recordRuntimeError('service_worker_error', event.error || event.message);
+});
+
+self.addEventListener('unhandledrejection', (event) => {
+  recordRuntimeError('service_worker_unhandled_rejection', event.reason);
+});
+
 // Chrome Lifecycle
 chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
@@ -294,7 +354,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       fg_sync_mode: 'hybrid',
     });
     // Open full-page dashboard on install
-    const url = chrome.runtime.getURL('dist/dashboard.html');
+    const url = chrome.runtime.getURL(buildExtensionPagePath('dashboard.html'));
     chrome.tabs.create({ url });
   }
   await initActiveTab();

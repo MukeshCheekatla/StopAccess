@@ -43,8 +43,8 @@ function renderBrandLogo(identifier, name, size = 44) {
     .slice(0, 2)
     .toUpperCase()}</div>
        <img src="${safeIconUrl}" 
+            class="brand-logo-image"
             style="position: relative; width: ${iconSize}px; height: ${iconSize}px; object-fit: contain; z-index: 2;" 
-            onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.opacity='1';"
             alt="">
     </div>
   `;
@@ -172,8 +172,24 @@ async function refreshListOnly() {
   if (tabContent) {
     const html = await renderSubTab(rules);
     tabContent.innerHTML = html;
+    wireBrandLogoFallbacks(globalContainer);
     await setupHandlers(globalContainer, rules);
   }
+}
+
+function wireBrandLogoFallbacks(container) {
+  container.querySelectorAll('.brand-logo-container').forEach((logo) => {
+    const img = logo.querySelector('.brand-logo-image');
+    const fallback = logo.querySelector('.logo-fallback');
+    if (!img || !fallback || img.dataset.fgFallbackBound === 'true') {
+      return;
+    }
+    img.dataset.fgFallbackBound = 'true';
+    img.addEventListener('error', () => {
+      img.style.display = 'none';
+      fallback.style.opacity = '1';
+    });
+  });
 }
 
 async function handleAddDomain() {

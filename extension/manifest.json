@@ -5,6 +5,7 @@
   "description": "Enterprise-grade focus enforcement for the modern browser. Powered by NextDNS.",
   "permissions": [
     "declarativeNetRequest",
+    "scripting",
     "storage",
     "alarms",
     "tabs",
@@ -13,11 +14,21 @@
     "notifications"
   ],
   "host_permissions": [
-    "https://api.nextdns.io/*",
-    "https://icons.duckduckgo.com/*",
-    "https://logo.clearbit.com/*",
-    "https://www.google.com/*",
-    "https://cdn.simpleicons.org/*"
+    "<all_urls>"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["blocked.html", "dist/blocked.html"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["dist/contentScript.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    }
   ],
   "background": {
     "service_worker": "dist/background.js",

@@ -83,28 +83,21 @@ export async function renderSettingsPage(container) {
       </div>
 
       <div class="settings-section">
-        <div class="section-label" style="margin-bottom: 24px;">1. BLOCKING LEVELS</div>
+        <div class="section-label" style="margin-bottom: 24px;">1. PROTECTION LEVEL</div>
         <div class="enforcement-grid">
           <div class="enforcement-card ${
-            syncMode === 'browser' ? 'active' : ''
-          }" data-mode="browser">
-            <div class="enforcement-level">LEVEL 1</div>
-            <div class="enforcement-tag">Browser Only</div>
-            <div class="enforcement-desc">Blocks domains via the extension only. Fast and simple.</div>
-          </div>
-          <div class="enforcement-card ${
-            syncMode === 'hybrid' ? 'active' : ''
+            syncMode === 'hybrid' || syncMode === 'browser' ? 'active' : ''
           }" data-mode="hybrid">
-            <div class="enforcement-level">LEVEL 2</div>
-            <div class="enforcement-tag">Dual Block</div>
-            <div class="enforcement-desc">Combines extension blocking with your DNS setup.</div>
+            <div class="enforcement-level">STANDARD</div>
+            <div class="enforcement-tag">Baseline Protection</div>
+            <div class="enforcement-desc">Blocks domains via the extension (L1). Fast, local-only intercept.</div>
           </div>
           <div class="enforcement-card ${
             syncMode === 'profile' ? 'active' : ''
           }" data-mode="profile">
-            <div class="enforcement-level">LEVEL 3</div>
-            <div class="enforcement-tag">DNS Profile</div>
-            <div class="enforcement-desc">Full integration. Syncs domains and categories directly with NextDNS.</div>
+            <div class="enforcement-level">STRONG</div>
+            <div class="enforcement-tag">Reinforced</div>
+            <div class="enforcement-desc">Combines extension (L1) with NextDNS (L2) for network-level hardening.</div>
           </div>
         </div>
       </div>
