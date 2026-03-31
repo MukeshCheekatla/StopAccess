@@ -37,7 +37,7 @@ function renderBrandLogo(identifier, name, size = 44) {
     <div class="brand-logo-container" style="position: relative; width: ${size}px; height: ${size}px; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
        <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: ${Math.floor(
          size * 0.4,
-       )}px; font-weight: 900; color: var(--muted); z-index: 1;">${(
+       )}px; font-weight: 900; color: var(--muted); z-index: 1; opacity: 0;">${(
     name || identifier
   )
     .slice(0, 2)

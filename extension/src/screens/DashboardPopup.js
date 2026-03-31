@@ -113,14 +113,16 @@ export async function renderDashboardPopup(container) {
 function renderActivityRow(domain, timeMs) {
   const ico = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
     domain,
-  )}&sz=64`;
+  )}&sz=128`;
   const lbl = escapeHtml(domain.split('.')[0].slice(0, 2).toUpperCase() || '?');
 
   return `
     <div style="display: flex; align-items: center; gap: 16px; padding: 12px; background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); border-radius: 12px;">
       <div style="width: 36px; height: 36px; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; position: relative;">
-         <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 850; color: var(--muted); z-index: 1;">${lbl}</div>
-         <img src="${ico}" style="width: 20px; height: 20px; object-fit: contain; z-index: 2; position: relative; display: block;">
+         <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 850; color: var(--muted); z-index: 1; opacity: 0;">${lbl}</div>
+         <img src="${ico}" 
+              onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.opacity='1';"
+              style="width: 20px; height: 20px; object-fit: contain; z-index: 2; position: relative; display: block;">
       </div>
       <div style="flex: 1; min-width: 0;">
         <div style="font-size: 14px; font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${domain}</div>

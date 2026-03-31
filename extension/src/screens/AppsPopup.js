@@ -191,29 +191,7 @@ export async function renderAppsPopup(container) {
         });
       });
 
-      // Bind Icon Fallbacks
-      container.querySelectorAll('.rule-icon-img').forEach((img) => {
-        img.addEventListener('load', () => {
-          img.style.opacity = '1';
-          const fallback = img.parentElement.querySelector('.logo-fallback');
-          if (fallback) {
-            fallback.style.opacity = '0';
-          }
-        });
-        img.addEventListener('error', () => {
-          const secondary = img.getAttribute('data-secondary');
-          if (secondary && !img.dataset.retried) {
-            img.dataset.retried = '1';
-            img.src = secondary;
-          } else {
-            img.style.display = 'none';
-            const fallback = img.parentElement.querySelector('.logo-fallback');
-            if (fallback) {
-              fallback.style.opacity = '1';
-            }
-          }
-        });
-      });
+      // Icon fallbacks are now handled via the surgical onerror in renderRuleIcon
     };
 
     render();
@@ -224,39 +202,23 @@ export async function renderAppsPopup(container) {
 
 function renderRuleIcon(rule) {
   const identifier = rule.customDomain || rule.packageName || '';
-  const serviceIcon = resolveServiceIcon({
+  const iconInfo = resolveServiceIcon({
     id: rule.type === 'service' ? identifier : undefined,
     name: rule.appName,
   });
-  const primaryIcon =
-    getSmartIcon(identifier) ||
-    serviceIcon.url ||
-    serviceIcon.fallbackUrl ||
-    '';
-  const fallbackDomain =
-    serviceIcon.domain || (String(identifier).includes('.') ? identifier : '');
-  const secondaryIcon =
-    serviceIcon.fallbackUrl ||
-    (fallbackDomain
-      ? `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-          fallbackDomain,
-        )}&sz=64`
-      : '');
+  const targetDomain = iconInfo.domain || identifier;
+  const safeIconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
+    targetDomain,
+  )}&sz=128`;
   const label = escapeHtml(identifier.slice(0, 2).toUpperCase() || '?');
 
   return `
     <div style="width:28px; height:28px; border-radius:8px; overflow:hidden; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.05); flex-shrink:0; position: relative;">
-      <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; color: ${
-        serviceIcon.accent || 'var(--muted)'
-      }; z-index: 1; opacity: ${primaryIcon ? '0' : '1'};">${label}</div>
-      ${
-        primaryIcon
-          ? `<img src="${primaryIcon}" 
-               class="rule-icon-img"
-               data-secondary="${secondaryIcon}"
-               alt="" style="width:18px; height:18px; object-fit:contain; transition:opacity 0.2s ease; z-index: 2; opacity: 0;">`
-          : ''
-      }
+      <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; color: var(--muted); z-index: 1; opacity: 0;">${label}</div>
+      <img src="${safeIconUrl}" 
+           class="rule-icon-img"
+           onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.opacity='1';"
+           alt="" style="width:18px; height:18px; object-fit:contain; z-index: 2;">
     </div>
   `;
 }
