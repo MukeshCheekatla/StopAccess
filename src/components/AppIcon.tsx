@@ -1,8 +1,5 @@
 import React from 'react';
-import { View, Text, ViewStyle, StyleSheet } from 'react-native';
-import { COLORS } from './theme';
-
-const EMOJI_MAP: Record<string, string> = {};
+import { View, ViewStyle, StyleSheet } from 'react-native';
 
 interface AppIconProps {
   appName: string;
@@ -10,9 +7,7 @@ interface AppIconProps {
   style?: ViewStyle;
 }
 
-const AppIcon: React.FC<AppIconProps> = ({ appName, size = 36, style }) => {
-  const key = appName.toLowerCase();
-  const emoji = EMOJI_MAP[key] ?? '📱';
+const AppIcon: React.FC<AppIconProps> = ({ size = 36, style }) => {
   return (
     <View
       style={[
@@ -20,21 +15,21 @@ const AppIcon: React.FC<AppIconProps> = ({ appName, size = 36, style }) => {
         {
           width: size,
           height: size,
-          borderRadius: size / 2,
+          borderRadius: size / 4,
+          backgroundColor: 'rgba(255,255,255,0.05)',
         },
         style,
       ]}
-    >
-      <Text style={{ fontSize: size * 0.55 }}>{emoji}</Text>
-    </View>
+    />
   );
 };
 
 const styles = StyleSheet.create({
   iconContainer: {
-    backgroundColor: COLORS.glass,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
 });
 

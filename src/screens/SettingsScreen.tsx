@@ -29,6 +29,7 @@ import { runFullEngineCycle } from '@focusgate/core/engine';
 import { storageAdapter, storage } from '../store/storageAdapter';
 import { getLogs, LogEntry, addLog } from '../services/logger';
 import { notifyBlocked } from '../services/notifications';
+import { UI_EXAMPLES } from '@focusgate/core';
 import { AppRule } from '../types';
 
 const STRICT_MODE_KEY = 'strict_mode_enabled';
@@ -238,7 +239,7 @@ export default function SettingsScreen() {
               style={styles.input}
               value={profileId}
               onChangeText={setProfileId}
-              placeholder="e.g. abc123"
+              placeholder={`e.g. ${UI_EXAMPLES.PROFILE_ID}`}
               placeholderTextColor={COLORS.muted}
               autoCapitalize="none"
               autoCorrect={false}
@@ -347,7 +348,7 @@ export default function SettingsScreen() {
             <View style={styles.testBlockRow}>
               <TextInput
                 style={[styles.input, styles.testBlockInput]}
-                placeholder="example.com"
+                placeholder={UI_EXAMPLES.GENERIC_DOMAIN}
                 placeholderTextColor={COLORS.muted}
                 value={testDomain}
                 onChangeText={setTestDomain}
@@ -498,155 +499,221 @@ function SettingRow({ icon, label, sub, children }: SettingRowProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  scroll: { padding: 20 },
-  header: { marginBottom: 30 },
-  headerTitle: { color: COLORS.text, fontSize: 28, fontWeight: 'bold' },
-  section: { marginBottom: 30 },
+  scroll: { padding: 20, paddingBottom: 60 },
+  header: { marginBottom: 32, marginTop: 10 },
+  headerTitle: {
+    color: COLORS.text,
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  section: { marginBottom: 32 },
   sectionLabel: {
     color: COLORS.muted,
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontSize: 11,
+    fontWeight: '800',
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    opacity: 0.8,
   },
   card: {
-    backgroundColor: COLORS.card,
-    padding: 20,
-    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    padding: 24,
+    borderRadius: 24,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.04)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
   },
   fieldLabel: {
     color: COLORS.muted,
     fontSize: 10,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    fontWeight: '800',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    padding: 12,
-    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    padding: 16,
+    borderRadius: 16,
     color: '#fff',
-    marginBottom: 15,
+    marginBottom: 20,
+    fontSize: 15,
+    fontWeight: '600',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
   saveBtn: {
     backgroundColor: COLORS.accent,
-    padding: 15,
-    borderRadius: 10,
+    padding: 18,
+    borderRadius: 18,
     alignItems: 'center',
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  saveBtnTxt: { color: '#fff', fontWeight: 'bold' },
+  saveBtnTxt: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 15,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: COLORS.card,
-    padding: 15,
-    borderRadius: 15,
-  },
-  rowInfo: { flex: 1, marginLeft: 15 },
-  rowLabel: { color: COLORS.text, fontWeight: 'bold' },
-  rowSub: { color: COLORS.muted, fontSize: 12 },
-  resetText: { color: COLORS.red, fontWeight: 'bold' },
-  logLinkText: { color: COLORS.text },
-  modalHeader: {
+    marginBottom: 16,
+    backgroundColor: 'rgba(255,255,255,0.02)',
     padding: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.04)',
   },
-  logItem: { padding: 10, borderBottomWidth: 1, borderColor: COLORS.border },
-  logTime: { color: COLORS.muted, fontSize: 10 },
-  logMsg: { color: COLORS.text },
+  rowInfo: { flex: 1, marginLeft: 16 },
+  rowLabel: { color: COLORS.text, fontWeight: '800', fontSize: 15 },
+  rowSub: {
+    color: COLORS.muted,
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 3,
+  },
+
   diagRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  diagLabel: { color: COLORS.muted, fontSize: 12 },
-  diagValue: { color: COLORS.text, fontSize: 12, fontWeight: 'bold' },
-  errorContainer: {
-    flexDirection: 'row',
+    marginBottom: 12,
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 68, 68, 0.1)',
-    padding: 10,
-    borderRadius: 8,
-    marginTop: 10,
   },
-  errorText: {
-    color: COLORS.red,
-    fontSize: 12,
-    marginLeft: 8,
-    flex: 1,
-  },
-  syncBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.card,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 10,
-    borderRadius: 10,
-    marginTop: 15,
-  },
-  syncBtnTxt: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginLeft: 8,
-  },
+  diagLabel: { color: COLORS.muted, fontSize: 13, fontWeight: '600' },
+  diagValue: { fontSize: 13, fontWeight: '800' },
+
   healthGood: {
-    borderColor: 'rgba(0,196,140,0.25)',
-    backgroundColor: 'rgba(0,196,140,0.04)',
+    borderColor: 'rgba(0,196,140,0.2)',
+    backgroundColor: 'rgba(0,196,140,0.02)',
   },
   healthWarning: {
-    borderColor: 'rgba(255,184,0,0.25)',
-    backgroundColor: 'rgba(255,184,0,0.04)',
+    borderColor: 'rgba(255,184,0,0.2)',
+    backgroundColor: 'rgba(255,184,0,0.02)',
   },
-  pinRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
+
+  pinRow: { flexDirection: 'row', gap: 12 },
   pinInput: {
     flex: 1,
     marginBottom: 0,
-    letterSpacing: 4,
+    letterSpacing: 8,
+    fontSize: 20,
     textAlign: 'center',
   },
   saveBtnSmall: {
     backgroundColor: COLORS.accent,
-    paddingHorizontal: 15,
-    borderRadius: 10,
+    paddingHorizontal: 20,
+    borderRadius: 16,
     justifyContent: 'center',
   },
-  clearPinBtn: {
-    marginTop: 12,
-    alignItems: 'center',
-  },
+  clearPinBtn: { marginTop: 16, alignItems: 'center' },
   clearPinBtnTxt: {
     color: COLORS.red,
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
-  testBlockRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  testBlockInput: {
-    flex: 1,
-    marginBottom: 0,
-  },
-  testBlockButton: {
-    paddingVertical: 10,
-  },
+
+  testBlockRow: { flexDirection: 'row', gap: 12 },
+  testBlockInput: { flex: 1, marginBottom: 0 },
+  testBlockButton: { paddingVertical: 14, paddingHorizontal: 24 },
   testResult: {
+    fontSize: 11,
+    marginTop: 12,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    letterSpacing: 0.5,
+  },
+  testResultSuccess: { color: COLORS.green },
+  testResultWarning: { color: COLORS.yellow },
+
+  syncBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    padding: 16,
+    borderRadius: 16,
+    marginTop: 20,
+  },
+  syncBtnTxt: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '800',
+    marginLeft: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+
+  resetText: {
+    color: COLORS.red,
+    fontWeight: '800',
+    fontSize: 13,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  logLinkText: {
+    color: COLORS.text,
+    fontWeight: '800',
+    fontSize: 13,
+    textAlign: 'center',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 71, 87, 0.08)',
+    padding: 14,
+    borderRadius: 14,
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 71, 87, 0.15)',
+  },
+  errorText: {
+    color: COLORS.red,
+    fontSize: 12,
+    marginLeft: 10,
+    flex: 1,
+    fontWeight: '600',
+  },
+
+  modalHeader: {
+    padding: 24,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.03)',
+  },
+  logItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderColor: 'rgba(255,255,255,0.03)',
+  },
+  logTime: {
+    color: COLORS.muted,
     fontSize: 10,
-    marginTop: 8,
-    fontWeight: 'bold',
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginBottom: 4,
   },
-  testResultSuccess: {
-    color: COLORS.green,
-  },
-  testResultWarning: {
-    color: COLORS.yellow,
-  },
+  logMsg: { color: COLORS.text, fontSize: 14, fontWeight: '500' },
 });

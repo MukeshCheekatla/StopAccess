@@ -19,7 +19,6 @@ export const AppIconImage: React.FC<Props> = ({
   size = 48,
   appName,
 }) => {
-  // If we have a non-empty base64 string, use it. Otherwise, look in cache or fetch.
   const initialBase64 =
     iconBase64 && iconBase64.length > 10
       ? iconBase64
@@ -28,10 +27,9 @@ export const AppIconImage: React.FC<Props> = ({
       : undefined;
 
   const [base64, setBase64] = useState<string | undefined>(initialBase64);
-  const [loading, setLoading] = useState(false); // Default to false to avoid initial blink
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Priority 1: Explicitly provided long base64 string
     if (iconBase64 && iconBase64.length > 10) {
       if (iconBase64 !== base64) {
         setBase64(iconBase64);
@@ -40,7 +38,6 @@ export const AppIconImage: React.FC<Props> = ({
       return;
     }
 
-    // Priority 2: Fetch by package name if we don't have a valid icon yet
     if (packageName && (!base64 || base64.length < 10)) {
       if (ICON_CACHE[packageName]) {
         setBase64(ICON_CACHE[packageName]);
@@ -68,9 +65,7 @@ export const AppIconImage: React.FC<Props> = ({
           styles.placeholder,
           { width: size, height: size, borderRadius: size / 4 },
         ]}
-      >
-        <View style={StyleSheet.absoluteFill} />
-      </View>
+      />
     );
   }
 
@@ -89,7 +84,11 @@ export const AppIconImage: React.FC<Props> = ({
       source={{ uri: `data:image/png;base64,${base64}` }}
       style={[
         styles.image,
-        { width: size, height: size, borderRadius: size / 4 },
+        {
+          width: size,
+          height: size,
+          borderRadius: size / 4,
+        },
       ]}
     />
   );
@@ -98,8 +97,6 @@ export const AppIconImage: React.FC<Props> = ({
 const styles = StyleSheet.create({
   placeholder: {
     backgroundColor: COLORS.card,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   fallbackIcon: {
     overflow: 'hidden',

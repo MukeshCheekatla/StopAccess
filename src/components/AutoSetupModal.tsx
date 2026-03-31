@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import { SERVICE_URLS } from '@focusgate/core';
 import { COLORS, SPACING, RADIUS } from './theme';
 
 interface AutoSetupModalProps {
@@ -148,7 +149,7 @@ export function AutoSetupModal({
           )}
           <WebView
             ref={webViewRef}
-            source={{ uri: 'https://my.nextdns.io/login' }}
+            source={{ uri: SERVICE_URLS.NEXTDNS_LOGIN }}
             onNavigationStateChange={onNavigationStateChange}
             onLoadEnd={() => setLoading(false)}
             incognito={false}

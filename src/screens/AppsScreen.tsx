@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { COLORS, SPACING, RADIUS } from '../components/theme';
+import { COLORS } from '../components/theme';
 import { getRules, updateRule, deleteRule } from '@focusgate/state/rules';
 import { storageAdapter } from '../store/storageAdapter';
 import { AppRule, RuleMode } from '../types';
@@ -32,7 +32,12 @@ import {
   STRICT_COOLDOWN_MS,
 } from '../store/strictMode';
 import { addLog } from '../services/logger';
-import { getDomainForRule } from '@focusgate/core/domains';
+import {
+  getDomainForRule,
+  getNextDNSServiceId,
+  POPULAR_DISTRACTIONS,
+  UI_EXAMPLES,
+} from '@focusgate/core';
 
 export default function AppsScreen() {
   const [rules, setRules] = useState<AppRule[]>([]);
@@ -126,10 +131,13 @@ export default function AppsScreen() {
   }, []);
 
   const onAddApp = async (app: any) => {
+    const serviceId = getNextDNSServiceId({ packageName: app.packageName });
+    const isService = !!serviceId;
+
     const newRule: AppRule = {
       appName: app.appName,
       packageName: app.packageName,
-      type: 'service',
+      type: isService ? 'service' : 'domain',
       scope: 'profile',
       mode: 'allow',
       dailyLimitMinutes: 0,
@@ -268,7 +276,7 @@ export default function AppsScreen() {
     if (trimmed.length < 4 || !trimmed.includes('.')) {
       Alert.alert(
         'Invalid Domain',
-        'Please enter a valid domain (e.g. instagram.com)',
+        `Please enter a valid domain (e.g. ${UI_EXAMPLES.DOMAIN})`,
       );
       return;
     }
@@ -373,47 +381,56 @@ export default function AppsScreen() {
       </View>
 
       <FlatList
-        data={rules}
+        data={rules.filter((r) => r.type === 'service')}
         keyExtractor={(r) => r.packageName}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Icon name="application-cog" size={64} color={COLORS.border} />
-            <Text style={styles.emptyTitle}>No Apps Controlled</Text>
-            <Text style={styles.emptyText}>
-              Tap the 'Add' button to select apps from your phone to start
-              blocking.
-            </Text>
-          </View>
+        ListHeaderComponent={
+          <>
+            <Text style={styles.sectionHeader}>App Controls</Text>
+            {rules.filter((r) => r.type === 'service').length === 0 && (
+              <View style={styles.empty}>
+                <Icon name="application-cog" size={48} color={COLORS.border} />
+                <Text style={styles.emptyTitle}>No Apps Added</Text>
+              </View>
+            )}
+          </>
         }
         ListFooterComponent={
-          <View style={styles.footer}>
-            <Text style={styles.footerTitle}>Quick Add Recommended</Text>
-            <View style={styles.quickAddGrid}>
-              {[
-                { name: 'Facebook', id: 'com.facebook.katana' },
-                { name: 'Instagram', id: 'com.instagram.android' },
-                { name: 'TikTok', id: 'com.zhiliaoapp.musically' },
-                { name: 'YouTube', id: 'com.google.android.youtube' },
-                { name: 'X / Twitter', id: 'com.twitter.android' },
-                { name: 'Reddit', id: 'com.reddit.frontpage' },
-                { name: 'Netflix', id: 'com.netflix.mediaclient' },
-              ]
-                .filter((rec) => !rules.some((r) => r.packageName === rec.id))
-                .map((rec) => (
-                  <TouchableOpacity
-                    key={rec.id}
-                    style={styles.quickAddBtn}
-                    onPress={() =>
-                      onAddApp({ appName: rec.name, packageName: rec.id })
-                    }
-                  >
-                    <Text style={styles.quickAddBtnTxt}>+ {rec.name}</Text>
-                  </TouchableOpacity>
-                ))}
+          <>
+            <Text style={styles.sectionHeaderDomains}>Custom Domains</Text>
+            {rules.filter((r) => r.type === 'domain').length === 0 ? (
+              <View style={styles.emptyMini}>
+                <Text style={styles.emptyTextMini}>No domains added</Text>
+              </View>
+            ) : (
+              rules
+                .filter((r) => r.type === 'domain')
+                .map((r) => renderItem({ item: r }))
+            )}
+
+            <View style={styles.footer}>
+              <Text style={styles.footerTitle}>Quick Add Recommended</Text>
+              <View style={styles.quickAddGrid}>
+                {POPULAR_DISTRACTIONS.map((rec) => ({
+                  name: rec.name,
+                  id: rec.packageId || rec.id, // Use packageId for mobile apps
+                }))
+                  .filter((rec) => !rules.some((r) => r.packageName === rec.id))
+                  .map((rec) => (
+                    <TouchableOpacity
+                      key={rec.id}
+                      style={styles.quickAddBtn}
+                      onPress={() =>
+                        onAddApp({ appName: rec.name, packageName: rec.id })
+                      }
+                    >
+                      <Text style={styles.quickAddBtnTxt}>+ {rec.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+              </View>
             </View>
-          </View>
+          </>
         }
       />
 
@@ -573,7 +590,7 @@ export default function AppsScreen() {
               style={styles.textInput}
               value={domainInput}
               onChangeText={setDomainInput}
-              placeholder="e.g. reddit.com"
+              placeholder={`e.g. ${UI_EXAMPLES.SUBDOMAIN}`}
               placeholderTextColor={COLORS.muted}
               autoCapitalize="none"
               autoCorrect={false}
@@ -625,246 +642,396 @@ export default function AppsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
   header: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: SPACING.md,
   },
-  headerTitle: { color: COLORS.text, fontSize: 24, fontWeight: 'bold' },
+  headerTitle: {
+    color: COLORS.text,
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: -1,
+  },
+  warnBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 184, 0, 0.08)',
+    padding: 14,
+    marginHorizontal: 20,
+    marginTop: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 184, 0, 0.15)',
+    gap: 10,
+  },
+  warnBannerTxt: {
+    color: COLORS.yellow,
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+
+  strictBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 71, 87, 0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 71, 87, 0.2)',
+    gap: 4,
+  },
+  strictBadgeTxt: {
+    color: COLORS.red,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
+  },
+
+  list: {
+    padding: 20,
+    paddingBottom: 120,
+  },
+  card: {
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    borderRadius: 24,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.04)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+  },
+  cardTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  info: {
+    flex: 1,
+    marginLeft: 16,
+  },
+  appName: {
+    color: COLORS.text,
+    fontWeight: '800',
+    fontSize: 16,
+    letterSpacing: -0.2,
+  },
+  pkg: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: '600',
+    marginTop: 2,
+    opacity: 0.7,
+  },
+  deleteBtn: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
+  },
+
+  cardBottom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.03)',
+  },
+  modes: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 14,
+    padding: 4,
+    gap: 4,
+  },
+  modeBtn: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  modeTxt: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  modeTxtActive: {
+    color: '#000',
+  },
+  limitBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,184,0,0.1)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+  limitText: {
+    color: COLORS.yellow,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+
+  fab: {
+    position: 'absolute',
+    bottom: 30,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.accent,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 8,
+    shadowColor: COLORS.accent,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+  },
+
+  empty: {
+    alignItems: 'center',
+    marginTop: 80,
+    padding: 40,
+  },
+  emptyTitle: {
+    color: COLORS.text,
+    fontSize: 20,
+    fontWeight: '800',
+    marginTop: 20,
+    letterSpacing: -0.5,
+  },
+  emptyText: {
+    color: COLORS.muted,
+    textAlign: 'center',
+    marginTop: 12,
+    lineHeight: 20,
+    fontSize: 13,
+    fontWeight: '500',
+  },
+
+  footer: {
+    marginTop: 40,
+    paddingHorizontal: 10,
+  },
+  footerTitle: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 20,
+    opacity: 0.8,
+  },
+  quickAddGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  quickAddBtn: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  quickAddBtnTxt: {
+    color: COLORS.text,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modal: {
+    backgroundColor: '#0A0A0F',
+    borderRadius: 32,
+    padding: 32,
+    width: '90%',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  modalTitle: {
+    color: COLORS.text,
+    fontSize: 22,
+    fontWeight: '900',
+    marginBottom: 24,
+    textAlign: 'center',
+    letterSpacing: -0.5,
+  },
+  overrideDesc: {
+    color: COLORS.muted,
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  countdownBox: {
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  countdownNum: {
+    color: COLORS.red,
+    fontSize: 48,
+    fontWeight: '900',
+  },
+  countdownLabel: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    marginTop: 8,
+  },
   avgBox: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(255,255,255,0.03)',
-    padding: 10,
-    borderRadius: RADIUS.md,
-    marginBottom: 20,
+    padding: 14,
+    borderRadius: 16,
+    marginBottom: 24,
     gap: 8,
   },
-  avgText: { color: COLORS.muted, fontSize: 13 },
-  fab: {
-    position: 'absolute',
-    bottom: 32,
-    right: 24,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    zIndex: 10,
-  },
-  list: { padding: SPACING.md, paddingBottom: 100 },
-  card: {
-    backgroundColor: COLORS.card,
-    borderRadius: RADIUS.md,
-    padding: SPACING.md,
-    marginBottom: SPACING.md,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  cardTop: { flexDirection: 'row', alignItems: 'center' },
-  info: { flex: 1, marginLeft: SPACING.md },
-  appName: { color: COLORS.text, fontWeight: 'bold', fontSize: 16 },
-  pkg: { color: COLORS.muted, fontSize: 11 },
-  deleteBtn: { padding: SPACING.sm },
-  cardBottom: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: SPACING.md,
-    paddingTop: SPACING.sm,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-  },
-  modes: { flexDirection: 'row', gap: 6 },
-  modeBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: RADIUS.sm,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  modeTxt: { color: COLORS.muted, fontSize: 12 },
-  modeTxtActive: { color: '#000', fontWeight: 'bold' },
-  limitBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(255,184,0,0.1)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  limitText: { color: COLORS.yellow, fontSize: 12, fontWeight: 'bold' },
-  empty: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 100,
-    padding: SPACING.xl,
-  },
-  emptyTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginTop: SPACING.md,
-  },
-  emptyText: {
+  avgText: {
     color: COLORS.muted,
-    textAlign: 'center',
-    marginTop: SPACING.sm,
-    lineHeight: 20,
-  },
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modal: {
-    backgroundColor: COLORS.card,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    width: '85%',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  modalTitle: {
-    color: COLORS.text,
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: SPACING.xl,
-    textAlign: 'center',
+    fontSize: 13,
+    fontWeight: '600',
   },
   timeInputs: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: SPACING.xl,
+    marginBottom: 32,
   },
-  timeField: { alignItems: 'center' },
+  timeField: {
+    alignItems: 'center',
+  },
   input: {
-    backgroundColor: COLORS.bg,
+    backgroundColor: 'rgba(255,255,255,0.03)',
     color: COLORS.text,
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '900',
     textAlign: 'center',
-    width: 60,
-    height: 60,
-    borderRadius: RADIUS.md,
+    width: 80,
+    height: 80,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
   textInput: {
-    backgroundColor: COLORS.bg,
+    backgroundColor: 'rgba(255,255,255,0.03)',
     color: COLORS.text,
     fontSize: 16,
-    padding: SPACING.md,
-    borderRadius: RADIUS.md,
+    padding: 20,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    marginBottom: SPACING.xl,
+    borderColor: 'rgba(255,255,255,0.08)',
+    marginBottom: 32,
     textAlign: 'center',
+    fontWeight: '600',
   },
-  timeLabel: { color: COLORS.muted, fontSize: 12, marginTop: 4 },
+  timeLabel: {
+    color: COLORS.muted,
+    fontSize: 10,
+    fontWeight: '800',
+    marginTop: 8,
+    textTransform: 'uppercase',
+  },
   timeColon: {
     color: COLORS.text,
-    fontSize: 24,
-    marginHorizontal: 12,
-    marginBottom: 20,
+    fontSize: 32,
+    marginHorizontal: 16,
+    marginBottom: 24,
+    fontWeight: '300',
   },
-  modalBtns: { flexDirection: 'row', gap: 12 },
+  modalBtns: {
+    flexDirection: 'row',
+    gap: 12,
+  },
   modalBtn: {
     flex: 1,
-    padding: 14,
-    borderRadius: RADIUS.md,
+    padding: 16,
+    borderRadius: 16,
     alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255,255,255,0.05)',
   },
-  modalBtnTxt: { color: COLORS.text, fontWeight: 'bold' },
+  modalBtnTxt: {
+    color: COLORS.text,
+    fontWeight: '800',
+    fontSize: 14,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
   modalBtnPrimary: {
     backgroundColor: COLORS.accent,
     borderColor: COLORS.accent,
   },
-  modalBtnTxtPrimary: { color: '#fff' },
-  // Strict mode & warn banner
-  warnBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: 'rgba(255,184,0,0.1)',
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(255,184,0,0.2)',
+  modalBtnTxtPrimary: {
+    color: '#fff',
   },
-  warnBannerTxt: { color: COLORS.yellow, fontSize: 13, flex: 1 },
-  strictBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(255,71,87,0.08)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,71,87,0.2)',
-  },
-  strictBadgeTxt: { color: COLORS.red, fontSize: 11, fontWeight: 'bold' },
-  strictIcon: { alignSelf: 'center', marginBottom: 12 },
-  overrideDesc: {
-    color: COLORS.muted,
-    fontSize: 13,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: SPACING.lg,
-  },
-  countdownBox: {
-    alignItems: 'center',
-    marginBottom: SPACING.lg,
-    paddingVertical: SPACING.md,
-    backgroundColor: 'rgba(255,71,87,0.06)',
-    borderRadius: RADIUS.md,
-  },
-  countdownNum: { color: COLORS.red, fontSize: 48, fontWeight: 'bold' },
-  countdownLabel: { color: COLORS.muted, fontSize: 12 },
   modalBtnDanger: {
-    borderColor: 'rgba(255,71,87,0.4)',
+    borderColor: 'rgba(255, 71, 87, 0.2)',
   },
-  dimmed: { opacity: 0.45 },
-  footer: {
-    padding: SPACING.lg,
-    paddingBottom: 120,
-    alignItems: 'center',
+  dimmed: {
+    opacity: 0.3,
   },
-  footerTitle: {
+  strictIcon: {
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  sectionHeader: {
     color: COLORS.muted,
     fontSize: 11,
-    fontWeight: 'bold',
+    fontWeight: '800',
     textTransform: 'uppercase',
-    letterSpacing: 1,
-    marginBottom: SPACING.md,
+    letterSpacing: 1.5,
+    marginBottom: 16,
+    marginTop: 10,
+    opacity: 0.8,
   },
-  quickAddGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    justifyContent: 'center',
+  sectionHeaderDomains: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 16,
+    marginTop: 30, // Updated from 20 to 30 for better separation
+    opacity: 0.8,
   },
-  quickAddBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+  emptyMini: {
+    padding: 20,
+    backgroundColor: 'rgba(255,255,255,0.01)',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderStyle: 'dashed',
+    borderColor: 'rgba(255,255,255,0.05)',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  quickAddBtnTxt: { color: COLORS.text, fontSize: 11, fontWeight: '600' },
+  emptyTextMini: {
+    color: COLORS.muted,
+    fontSize: 12,
+    fontWeight: '600',
+    opacity: 0.5,
+  },
 });
