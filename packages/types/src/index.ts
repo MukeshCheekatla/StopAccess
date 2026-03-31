@@ -69,6 +69,25 @@ export interface NextDNSConfig {
   profileId: string;
 }
 
+export type TargetKind = 'service' | 'category' | 'domain';
+
+export interface ResolvedTarget {
+  kind: TargetKind;
+  normalizedId: string;
+  displayName: string;
+  input: string;
+  matchedServiceId?: string;
+  matchedCategoryId?: string;
+  matchedDomain?: string;
+}
+
+export interface TargetMutationResult {
+  ok: boolean;
+  kind: TargetKind;
+  id: string;
+  error?: string;
+}
+
 // --- NextDNS Entities ---
 
 export interface NextDNSEntity {

@@ -12,8 +12,15 @@ import {
   NextDNSEntity,
   NextDNSLogEntry,
   NextDNSAnalyticsItem,
+  ResolvedTarget,
+  TargetKind,
+  TargetMutationResult,
 } from '@focusgate/types';
-import { getDomainForRule, getNextDNSServiceId } from './domains.ts';
+import {
+  getDomainForRule,
+  getNextDNSServiceId,
+  resolveTargetInput,
+} from './domains.ts';
 
 const BASE_URL = 'https://api.nextdns.io';
 const MAX_RETRIES = 3;
@@ -212,6 +219,39 @@ export class NextDNSClient {
       },
     );
     return wrapResponse(res);
+  }
+
+  async getRemoteSnapshot(): Promise<
+    NextDNSResponse<{
+      services: NextDNSService[];
+      categories: NextDNSCategory[];
+      denylist: NextDNSEntity[];
+    }>
+  > {
+    const [services, categories, denylist] = await Promise.all([
+      this.getServices(),
+      this.getCategories(),
+      this.getDenylist(),
+    ]);
+
+    if (!services.ok) {
+      return services;
+    }
+    if (!categories.ok) {
+      return categories;
+    }
+    if (!denylist.ok) {
+      return denylist;
+    }
+
+    return {
+      ok: true,
+      data: {
+        services: services.data,
+        categories: categories.data,
+        denylist: denylist.data,
+      },
+    };
   }
 
   // --- Individual Resource Methods (Refined Enforcement) ---
@@ -468,6 +508,19 @@ export async function getAnalyticsCounters(
   return res.ok ? res.data : null;
 }
 
+export async function getRemoteSnapshot(
+  cfg: NextDNSConfig,
+  log: any,
+): Promise<{
+  services: NextDNSService[];
+  categories: NextDNSCategory[];
+  denylist: NextDNSEntity[];
+}> {
+  const client = new NextDNSClient(cfg, log);
+  const res = await client.getRemoteSnapshot();
+  return res.ok ? res.data : { services: [], categories: [], denylist: [] };
+}
+
 export async function syncParentalControlServices(
   services: NextDNSService[],
   cfg: NextDNSConfig,
@@ -496,6 +549,98 @@ export async function syncDenylist(
   const client = new NextDNSClient(cfg, log);
   const res = await client.setDenylist(items);
   return res.ok ? res.data : [];
+}
+
+export async function ensureServiceState(
+  serviceId: string,
+  active: boolean,
+  cfg: NextDNSConfig,
+  log: any,
+): Promise<TargetMutationResult> {
+  const res = await setParentalControlServiceState(serviceId, active, cfg, log);
+  return {
+    ok: res.ok,
+    kind: 'service',
+    id: serviceId,
+    error: res.ok ? undefined : res.error.message,
+  };
+}
+
+export async function ensureCategoryState(
+  categoryId: string,
+  active: boolean,
+  cfg: NextDNSConfig,
+  log: any,
+): Promise<TargetMutationResult> {
+  const res = await setParentalControlCategoryState(
+    categoryId,
+    active,
+    cfg,
+    log,
+  );
+  return {
+    ok: res.ok,
+    kind: 'category',
+    id: categoryId,
+    error: res.ok ? undefined : res.error.message,
+  };
+}
+
+export async function ensureDomainState(
+  domain: string,
+  active: boolean,
+  cfg: NextDNSConfig,
+  log: any,
+): Promise<TargetMutationResult> {
+  const res = await setDenylistDomainState(domain, active, cfg, log);
+  return {
+    ok: res.ok,
+    kind: 'domain',
+    id: domain,
+    error: res.ok ? undefined : res.error.message,
+  };
+}
+
+export async function setResolvedTargetState(
+  target: ResolvedTarget,
+  active: boolean,
+  cfg: NextDNSConfig,
+  log: any,
+): Promise<TargetMutationResult> {
+  if (target.kind === 'service') {
+    return ensureServiceState(target.normalizedId, active, cfg, log);
+  }
+  if (target.kind === 'category') {
+    return ensureCategoryState(target.normalizedId, active, cfg, log);
+  }
+  return ensureDomainState(target.normalizedId, active, cfg, log);
+}
+
+export async function setTargetState(
+  kind: TargetKind,
+  id: string,
+  active: boolean,
+  cfg: NextDNSConfig,
+  log: any,
+): Promise<TargetMutationResult> {
+  if (kind === 'service') {
+    return ensureServiceState(id, active, cfg, log);
+  }
+  if (kind === 'category') {
+    return ensureCategoryState(id, active, cfg, log);
+  }
+  return ensureDomainState(id, active, cfg, log);
+}
+
+export async function resolveAndSetTargetState(
+  input: string,
+  active: boolean,
+  cfg: NextDNSConfig,
+  log: any,
+): Promise<ResolvedTarget & { mutation: TargetMutationResult }> {
+  const target = resolveTargetInput(input);
+  const mutation = await setResolvedTargetState(target, active, cfg, log);
+  return { ...target, mutation };
 }
 
 export async function setParentalControlServiceState(

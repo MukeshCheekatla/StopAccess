@@ -57,9 +57,14 @@ export async function renderAppsPopup(container) {
             </div>
             <div style="display:flex; align-items:center; gap:12px;">
               <button class="toggle-switch-btn ${
-                rule.mode === 'block' ? 'active' : ''
-              }" data-id="${rule.id}">
-                ${rule.mode === 'block' ? 'BLOCKED' : 'ALLOW'}
+                getRuleActiveState(rule) ? 'active' : ''
+              }" data-id="${escapeHtml(
+              rule.customDomain || rule.packageName,
+            )}" data-kind="${escapeHtml(rule.type)}" data-name="${escapeHtml(
+              rule.appName || rule.packageName,
+            )}">
+                <span class="on-text">ON</span>
+                <span class="off-text">OFF</span>
               </button>
             </div>
           </div>
@@ -86,48 +91,44 @@ export async function renderAppsPopup(container) {
           }
 
           const id = btn.dataset.id;
-          const rule = rules.find((r) => r.id === id);
+          const rule = rules.find(
+            (r) => (r.customDomain || r.packageName) === id,
+          );
           if (!rule) {
             return;
           }
 
-          const isActive = rule.mode === 'block';
+          const isActive = getRuleActiveState(rule);
           const targetState = !isActive;
 
           // Feedback
           btn.classList.add('syncing');
-          btn.innerText = '···';
+          btn.style.opacity = '0.5';
 
           try {
-            // 1. Remote Sync
+            // 1. Remote Sync First (Invariant 3)
             if (isConfigured) {
-              let res;
-              if (rule.type === 'service') {
-                res = await nextDNSApi.setServiceState(
-                  rule.packageName,
-                  targetState,
-                );
-              } else if (rule.type === 'category') {
-                res = await nextDNSApi.setCategoryState(
-                  rule.packageName,
-                  targetState,
-                );
-              } else {
-                res = await nextDNSApi.setDenylistDomainState(
-                  rule.packageName || rule.customDomain,
-                  targetState,
-                );
-              }
+              const remoteId =
+                rule.type === 'domain'
+                  ? rule.customDomain || rule.packageName
+                  : rule.packageName;
+              const res = await nextDNSApi.setTargetState(
+                rule.type,
+                remoteId,
+                targetState,
+              );
 
-              if (res && !res.ok) {
-                throw new Error(res.error?.message || 'Sync Rejected');
+              if (!res.ok) {
+                throw new Error(res.error || 'Sync Rejected');
               }
+              await nextDNSApi.refreshNextDNSMetadata();
             }
 
-            // 2. Local State
+            // 2. Local State Commit
             rule.mode = targetState ? 'block' : 'allow';
             rule.blockedToday = targetState;
             rule.desiredBlockingState = targetState;
+            rule.updatedAt = Date.now();
             await updateRule(storage, rule);
 
             // 3. Engine Signal
@@ -136,12 +137,36 @@ export async function renderAppsPopup(container) {
             // 4. UI Update
             btn.classList.remove('syncing');
             btn.classList.toggle('active', targetState);
-            btn.innerText = targetState ? 'BLOCKED' : 'ALLOW';
+            btn.style.opacity = '1';
           } catch (err) {
             console.error('[FocusGate] Popup Toggle Fail:', err);
             btn.classList.remove('syncing');
-            btn.innerText = isActive ? 'BLOCKED' : 'ALLOW';
+            btn.style.opacity = '1';
             alert(`SYNC ERROR: ${err.message}`);
+          }
+        });
+      });
+
+      // Bind Icon Fallbacks
+      container.querySelectorAll('.rule-icon-img').forEach((img) => {
+        img.addEventListener('load', () => {
+          img.style.opacity = '1';
+          const fallback = img.parentElement.querySelector('.logo-fallback');
+          if (fallback) {
+            fallback.style.opacity = '0';
+          }
+        });
+        img.addEventListener('error', () => {
+          const secondary = img.getAttribute('data-secondary');
+          if (secondary && !img.dataset.retried) {
+            img.dataset.retried = '1';
+            img.src = secondary;
+          } else {
+            img.style.display = 'none';
+            const fallback = img.parentElement.querySelector('.logo-fallback');
+            if (fallback) {
+              fallback.style.opacity = '1';
+            }
           }
         });
       });
@@ -157,6 +182,12 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+function getRuleActiveState(rule) {
+  return Boolean(
+    rule?.desiredBlockingState ?? rule?.blockedToday ?? rule?.mode === 'block',
+  );
 }
 
 function renderRuleIcon(rule) {
@@ -182,25 +213,16 @@ function renderRuleIcon(rule) {
   const label = escapeHtml(identifier.slice(0, 2).toUpperCase() || '?');
 
   return `
-    <div style="width:24px; height:24px; border-radius:6px; overflow:hidden; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.05); flex-shrink:0; position: relative;">
+    <div style="width:28px; height:28px; border-radius:8px; overflow:hidden; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,0.05); flex-shrink:0; position: relative;">
       <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 900; color: ${
         serviceIcon.accent || 'var(--muted)'
       }; z-index: 1; opacity: ${primaryIcon ? '0' : '1'};">${label}</div>
       ${
         primaryIcon
           ? `<img src="${primaryIcon}" 
-               alt="" style="width:16px; height:16px; object-fit:contain; transition:opacity 0.2s ease; z-index: 2; opacity: 0;" 
-               onload="this.style.opacity='1'; const fallback = this.parentElement.querySelector('.logo-fallback'); if (fallback) fallback.style.opacity='0';" 
-               onerror="
-                  if (!this.dataset.retried && '${secondaryIcon}') {
-                    this.dataset.retried = '1';
-                    this.src = '${secondaryIcon}';
-                  } else {
-                    this.style.display = 'none';
-                    const fallback = this.parentElement.querySelector('.logo-fallback');
-                    if (fallback) fallback.style.opacity = '1';
-                  }
-               ">`
+               class="rule-icon-img"
+               data-secondary="${secondaryIcon}"
+               alt="" style="width:18px; height:18px; object-fit:contain; transition:opacity 0.2s ease; z-index: 2; opacity: 0;">`
           : ''
       }
     </div>

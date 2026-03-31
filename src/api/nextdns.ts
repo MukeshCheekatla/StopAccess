@@ -77,3 +77,7 @@ export const syncParentalControlServices = async (
   const activeCfg = cfg || (await getConfig());
   return core.syncParentalControlServices(services, activeCfg, addLog);
 };
+export const getRemoteSnapshot = async (cfg?: NextDNSConfig) => {
+  const activeCfg = cfg || (await getConfig());
+  return core.getRemoteSnapshot(activeCfg, addLog);
+};

@@ -6,8 +6,8 @@
 import * as ndnsCore from '@focusgate/core';
 
 export const STORAGE_KEYS = {
-  RULES: 'app_rules',
-  SCHEDULES: 'schedule_rules',
+  RULES: 'rules',
+  SCHEDULES: 'schedules',
   FOCUS_END: 'focus_mode_end_time',
   LAST_RESET: 'last_reset_day',
   PROFILE_ID: 'nextdns_profile_id',
@@ -194,6 +194,57 @@ export const nextDNSApi = {
   getAnalyticsCounters: async () => {
     const cfg = await nextDNSApi.getConfig();
     return ndnsCore.getAnalyticsCounters(cfg, extensionLogger.add);
+  },
+
+  getRemoteSnapshot: async () => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.getRemoteSnapshot(cfg, extensionLogger.add);
+  },
+
+  refreshNextDNSMetadata: async () => {
+    if (!(await nextDNSApi.isConfigured())) {
+      const empty = { services: [], categories: [], denylist: [] };
+      await chrome.storage.local.set({ cached_ndns_metadata: empty });
+      return empty;
+    }
+
+    const snapshot = await nextDNSApi.getRemoteSnapshot();
+    const metadata = {
+      services: snapshot.services || [],
+      categories: snapshot.categories || [],
+      denylist: snapshot.denylist || [],
+    };
+    await chrome.storage.local.set({ cached_ndns_metadata: metadata });
+    return metadata;
+  },
+
+  resolveTargetInput: async (input) => {
+    return ndnsCore.resolveTargetInput(input);
+  },
+
+  setTargetState: async (kind, id, active) => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.setTargetState(kind, id, active, cfg, extensionLogger.add);
+  },
+
+  addResolvedTarget: async (target) => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.setResolvedTargetState(
+      target,
+      true,
+      cfg,
+      extensionLogger.add,
+    );
+  },
+
+  resolveAndAddTarget: async (input) => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.resolveAndSetTargetState(
+      input,
+      true,
+      cfg,
+      extensionLogger.add,
+    );
   },
 
   testConnection: async () => {

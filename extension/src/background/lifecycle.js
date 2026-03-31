@@ -234,7 +234,7 @@ async function runCycle(forceSync = false) {
         await extensionAdapter.set('nextdns_connection_status', 'error');
       }
     } else {
-      await extensionAdapter.set('nextdns_connection_status', 'connected');
+      await extensionAdapter.set('nextdns_connection_status', 'not_configured');
     }
 
     // 2. Engine Logic (DNR Sync - All Levels)

@@ -12,7 +12,6 @@ import {
   getCategoryBadge,
   resolveServiceIcon as getServiceIcon,
   escapeHtml,
-  sanitizeDomain,
 } from '@focusgate/core';
 
 let activeTab = 'shield';
@@ -69,14 +68,7 @@ function renderAppIcon(domain, name) {
 export async function renderAppsPage(container) {
   globalContainer = container;
   isConfigured = await nextDNSApi.isConfigured();
-
-  if (availableServices.length === 0 || availableCategories.length === 0) {
-    const cached = await chrome.storage.local.get(['cached_ndns_metadata']);
-    if (cached.cached_ndns_metadata) {
-      availableServices = cached.cached_ndns_metadata.services || [];
-      availableCategories = cached.cached_ndns_metadata.categories || [];
-    }
-  }
+  await loadNextDNSMetadata();
 
   if (!container.querySelector('.search-bar')) {
     container.innerHTML = `
@@ -116,16 +108,38 @@ export async function renderAppsPage(container) {
   await refreshListOnly();
 }
 
+async function loadNextDNSMetadata() {
+  isLoadingNextDNS = true;
+  try {
+    const metadata = await nextDNSApi.refreshNextDNSMetadata();
+    availableServices = metadata.services || [];
+    availableCategories = metadata.categories || [];
+  } catch (err) {
+    const cached = await chrome.storage.local.get(['cached_ndns_metadata']);
+    availableServices = cached.cached_ndns_metadata?.services || [];
+    availableCategories = cached.cached_ndns_metadata?.categories || [];
+    console.error('[FocusGate] Metadata Sync Fail:', err);
+  } finally {
+    isLoadingNextDNS = false;
+  }
+}
+
 async function refreshListOnly() {
   if (!globalContainer) {
     return;
   }
+
   const rules = await getRules(storage);
   const tabContent = globalContainer.querySelector('#tabContent');
   const actionContainer = globalContainer.querySelector(
     '#searchActionContainer',
   );
   const searchBadge = globalContainer.querySelector('#searchBadge');
+
+  if (tabContent && isLoadingNextDNS && availableServices.length === 0) {
+    tabContent.innerHTML =
+      '<div class="loader">Synchronizing with NextDNS...</div>';
+  }
 
   globalContainer.querySelectorAll('.nav-item-tab').forEach((btn) => {
     btn.classList.toggle('active', btn.getAttribute('data-tab') === activeTab);
@@ -136,12 +150,19 @@ async function refreshListOnly() {
   }
 
   if (actionContainer) {
+    const normalizedSearch = searchTerm.includes('.')
+      ? searchTerm.trim().toLowerCase()
+      : '';
+    const resolvedTarget = normalizedSearch
+      ? await nextDNSApi.resolveTargetInput(normalizedSearch)
+      : null;
+    const existingId =
+      resolvedTarget?.kind === 'service'
+        ? resolvedTarget.normalizedId
+        : normalizedSearch;
     const showAdd =
-      searchTerm.includes('.') &&
-      !rules.some(
-        (r) =>
-          (r.customDomain || r.packageName) === searchTerm.trim().toLowerCase(),
-      );
+      Boolean(normalizedSearch) &&
+      !rules.some((r) => (r.customDomain || r.packageName) === existingId);
     actionContainer.innerHTML = showAdd
       ? '<button class="btn-premium" id="btnAddDomainUnified" style="padding: 0 24px; border-radius: 20px; white-space: nowrap; height: 60px;">ADD SHIELD</button>'
       : '<button class="btn-premium" id="btnOpenTargetDrawer" style="width: 60px; height: 60px; font-size: 24px; display: flex; align-items: center; justify-content: center; border-radius: 20px; padding: 0;">+</button>';
@@ -167,26 +188,48 @@ async function refreshListOnly() {
 }
 
 async function handleAddDomain() {
-  const domain = sanitizeDomain(searchTerm);
-  if (!domain) {
+  const input = searchTerm.trim().toLowerCase();
+  if (!input) {
     return;
   }
+
+  const resolved = await nextDNSApi.resolveTargetInput(input);
+
   const btn = globalContainer.querySelector('#btnAddDomainUnified');
   if (btn) {
-    btn.innerText = 'ADDING...';
+    btn.innerText = 'SHIELDING...';
+    btn.disabled = true;
   }
 
-  await updateRule(storage, buildRule(domain, 'domain', domain, true));
-  if (isConfigured) {
-    await nextDNSApi.setDenylistDomainState(domain, true);
+  try {
+    if (isConfigured) {
+      const result = await nextDNSApi.addResolvedTarget(resolved);
+      if (!result.ok) {
+        throw new Error(result.error || 'Remote sync rejected');
+      }
+      await nextDNSApi.refreshNextDNSMetadata();
+    }
+
+    await updateRule(storage, buildRuleFromTarget(resolved, true));
+
+    searchTerm = '';
+    const searchInput = globalContainer.querySelector('#appSearch');
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    chrome.runtime.sendMessage({ action: 'manualSync' });
+    await refreshListOnly();
+  } catch (err) {
+    console.error('[FocusGate] Add Domain Fail:', err);
+    if (btn) {
+      btn.innerText = 'FAILED';
+      setTimeout(() => {
+        btn.innerText = 'ADD SHIELD';
+        btn.disabled = false;
+      }, 2000);
+    }
+    alert(`SYNC ERROR: ${err.message}`);
   }
-  searchTerm = '';
-  const searchInput = globalContainer.querySelector('#appSearch');
-  if (searchInput) {
-    searchInput.value = '';
-  }
-  chrome.runtime.sendMessage({ action: 'manualSync' });
-  refreshListOnly();
 }
 
 function matchesSearch(item) {
@@ -209,12 +252,45 @@ function buildRule(id, type, name, active) {
     packageName: id,
     appName: name || id,
     type,
+    scope: type === 'domain' ? 'browser' : 'profile',
     mode: active ? 'block' : 'allow',
     dailyLimitMinutes: 0,
     blockedToday: active,
     desiredBlockingState: active,
+    usedMinutesToday: 0,
+    addedByUser: true,
     updatedAt: Date.now(),
   };
+}
+
+function buildRuleFromTarget(target, active) {
+  if (target.kind === 'service') {
+    return buildRule(
+      target.normalizedId,
+      'service',
+      target.displayName,
+      active,
+    );
+  }
+  if (target.kind === 'category') {
+    return buildRule(
+      target.normalizedId,
+      'category',
+      target.displayName,
+      active,
+    );
+  }
+
+  return {
+    ...buildRule(target.normalizedId, 'domain', target.displayName, active),
+    customDomain: target.normalizedId,
+  };
+}
+
+function getRuleActiveState(rule) {
+  return Boolean(
+    rule?.desiredBlockingState ?? rule?.blockedToday ?? rule?.mode === 'block',
+  );
 }
 
 async function renderSubTab(rules) {
@@ -315,8 +391,7 @@ async function renderSubTab(rules) {
 }
 
 function renderDomainRuleCard(rule) {
-  const active =
-    rule.mode === 'block' || rule.mode === 'limit' || rule.blockedToday;
+  const active = getRuleActiveState(rule);
   const limitValue = rule.dailyLimitMinutes || 0;
 
   return `
@@ -372,7 +447,10 @@ function renderServiceCard(service, rules) {
   const localRule = rules.find(
     (rule) => rule.packageName === service.id && rule.type === 'service',
   );
-  const active = service.active ?? localRule?.blockedToday ?? false;
+  const active =
+    localRule !== undefined
+      ? getRuleActiveState(localRule)
+      : service.active ?? false;
 
   return `
     <div class="service-card ${
@@ -402,7 +480,13 @@ function renderServiceCard(service, rules) {
 }
 
 function renderCategoryCard(category, rules) {
-  const active = category.active || false;
+  const localRule = rules.find(
+    (rule) => rule.packageName === category.id && rule.type === 'category',
+  );
+  const active =
+    localRule !== undefined
+      ? getRuleActiveState(localRule)
+      : category.active ?? false;
   const badge = getCategoryBadge(category);
 
   return `
@@ -448,12 +532,24 @@ async function setupHandlers(container, rules) {
     btn.addEventListener('click', async () => {
       const id = btn.getAttribute('data-id');
       const name = btn.getAttribute('data-name');
-      await updateRule(storage, buildRule(id, 'service', name, true));
+      const target = {
+        kind: 'service',
+        normalizedId: id,
+        displayName: name || id,
+        input: id,
+        matchedServiceId: id,
+      };
       if (isConfigured) {
-        await nextDNSApi.setServiceState(id, true);
+        const result = await nextDNSApi.addResolvedTarget(target);
+        if (!result.ok) {
+          alert(`SYNC ERROR: ${result.error || 'Failed to update NextDNS'}`);
+          return;
+        }
+        await nextDNSApi.refreshNextDNSMetadata();
       }
+      await updateRule(storage, buildRuleFromTarget(target, true));
       chrome.runtime.sendMessage({ action: 'manualSync' });
-      refreshListOnly();
+      await refreshListOnly();
     });
   });
 
@@ -462,37 +558,54 @@ async function setupHandlers(container, rules) {
       const kind = btn.getAttribute('data-kind');
       const id = btn.getAttribute('data-id') || btn.getAttribute('data-pkg');
       const active = btn.classList.contains('active');
+      const targetState = !active;
+      const name = btn.getAttribute('data-name') || id;
 
-      if (kind === 'domain' || kind === 'service') {
-        const rule = rules.find(
-          (r) => (r.customDomain || r.packageName) === id,
+      // Optimistic visual feedback (using partial opacity to signify pending)
+      btn.style.opacity = '0.5';
+
+      try {
+        // 1. Remote Sync First
+        if (isConfigured) {
+          const result = await nextDNSApi.setTargetState(kind, id, targetState);
+          if (!result.ok) {
+            throw new Error(result.error || 'Sync failed');
+          }
+          await nextDNSApi.refreshNextDNSMetadata();
+        }
+
+        // 2. Commit Local State
+        const existingRule = rules.find(
+          (r) =>
+            (r.customDomain || r.packageName) === id &&
+            (kind !== 'service' || r.type === 'service'),
         );
-        if (rule) {
-          await updateRule(storage, {
-            ...rule,
-            blockedToday: !active,
-            mode: !active ? 'block' : 'allow',
-            desiredBlockingState: !active,
-            updatedAt: Date.now(),
-          });
-        }
-      }
+        const baseRule =
+          existingRule ||
+          (kind === 'domain'
+            ? {
+                ...buildRule(id, 'domain', name, targetState),
+                customDomain: id,
+              }
+            : buildRule(id, kind, name, targetState));
 
-      if (isConfigured) {
-        if (kind === 'service') {
-          await nextDNSApi.setServiceState(id, !active);
-        }
-        if (kind === 'category') {
-          await nextDNSApi.setCategoryState(id, !active);
-        }
-        if (kind === 'domain') {
-          await nextDNSApi.setDenylistDomainState(id, !active);
-        }
-      }
+        await updateRule(storage, {
+          ...baseRule,
+          blockedToday: targetState,
+          mode: targetState ? 'block' : 'allow',
+          desiredBlockingState: targetState,
+          updatedAt: Date.now(),
+        });
 
-      chrome.runtime.sendMessage({ action: 'manualSync' });
-      btn.classList.toggle('active', !active);
-      btn.closest('.service-card').classList.toggle('active', !active);
+        // 3. Refresh & Hardware Signal
+        chrome.runtime.sendMessage({ action: 'manualSync' });
+        await refreshListOnly();
+      } catch (err) {
+        console.error('[FocusGate] Toggle Fail:', err);
+        alert(`SYNC ERROR: ${err.message}`);
+        btn.style.opacity = '1';
+        refreshListOnly();
+      }
     });
   });
 
@@ -501,16 +614,28 @@ async function setupHandlers(container, rules) {
       const pkg = btn.getAttribute('data-pkg');
       if (confirm(`Remove shield directive for ${pkg}?`)) {
         const ruleTarget = rules.find((r) => r.packageName === pkg);
-        await deleteRule(storage, pkg);
-        if (isConfigured) {
-          if (ruleTarget?.type === 'service') {
-            await nextDNSApi.setServiceState(pkg, false);
-          } else {
-            await nextDNSApi.setDenylistDomainState(pkg, false);
+        try {
+          if (isConfigured) {
+            const remoteId =
+              ruleTarget?.type === 'domain'
+                ? ruleTarget.customDomain || ruleTarget.packageName
+                : pkg;
+            const result = await nextDNSApi.setTargetState(
+              ruleTarget?.type || 'domain',
+              remoteId,
+              false,
+            );
+            if (!result.ok) {
+              throw new Error(result.error || 'Remove failed');
+            }
+            await nextDNSApi.refreshNextDNSMetadata();
           }
+          await deleteRule(storage, pkg);
+          chrome.runtime.sendMessage({ action: 'manualSync' });
+          await refreshListOnly();
+        } catch (err) {
+          alert(`DELETE ERROR: ${err.message}`);
         }
-        chrome.runtime.sendMessage({ action: 'manualSync' });
-        refreshListOnly();
       }
     });
   });

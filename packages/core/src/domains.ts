@@ -2,7 +2,7 @@
  * @focusgate/core — App Domain Mapping
  */
 
-import { AppRule } from '@focusgate/types';
+import { AppRule, ResolvedTarget } from '@focusgate/types';
 
 const APP_DOMAINS: Record<string, string> = {
   'com.instagram.android': 'instagram.com',
@@ -71,33 +71,113 @@ export const NEXTDNS_SERVICE_IDS = [
 ];
 
 const NEXTDNS_SERVICE_DOMAINS: Record<string, string> = {
+  '9gag': '9gag.com',
+  amazon: 'amazon.com',
+  bereal: 'bere.al',
+  blizzard: 'blizzard.com',
+  chatgpt: 'chat.openai.com',
+  dailymotion: 'dailymotion.com',
   bumble: 'bumble.com',
   discord: 'discord.com',
   disneyplus: 'disneyplus.com',
+  ebay: 'ebay.com',
   facebook: 'facebook.com',
   fortnite: 'fortnite.com',
+  'google-chat': 'chat.google.com',
   hulu: 'hulu.com',
+  hbomax: 'max.com',
+  imgur: 'imgur.com',
   instagram: 'instagram.com',
+  leagueoflegends: 'leagueoflegends.com',
   linkedin: 'linkedin.com',
+  mastodon: 'mastodon.social',
+  messenger: 'messenger.com',
   minecraft: 'minecraft.net',
   netflix: 'netflix.com',
   pinterest: 'pinterest.com',
+  'playstation-network': 'playstation.com',
   primevideo: 'primevideo.com',
   reddit: 'reddit.com',
   roblox: 'roblox.com',
+  signal: 'signal.org',
   skype: 'skype.com',
   slack: 'slack.com',
   snapchat: 'snapchat.com',
   spotify: 'spotify.com',
+  steam: 'steampowered.com',
   teams: 'teams.microsoft.com',
   telegram: 'telegram.org',
   tiktok: 'tiktok.com',
   tinder: 'tinder.com',
+  tumblr: 'tumblr.com',
   twitch: 'twitch.tv',
+  vimeo: 'vimeo.com',
+  vk: 'vk.com',
   twitter: 'x.com',
   whatsapp: 'whatsapp.net',
+  xboxlive: 'xbox.com',
   youtube: 'youtube.com',
   zoom: 'zoom.us',
+};
+
+const SERVICE_DOMAIN_ALIASES: Record<string, string> = {
+  '9gag.com': '9gag',
+  'amazon.com': 'amazon',
+  'amazon.in': 'amazon',
+  'amazonvideo.com': 'primevideo',
+  'bere.al': 'bereal',
+  'blizzard.com': 'blizzard',
+  'battle.net': 'blizzard',
+  'chat.google.com': 'google-chat',
+  'chat.openai.com': 'chatgpt',
+  'dailymotion.com': 'dailymotion',
+  'discord.com': 'discord',
+  'disneyplus.com': 'disneyplus',
+  'ebay.com': 'ebay',
+  'epicgames.com': 'fortnite',
+  'facebook.com': 'facebook',
+  'fbcdn.net': 'facebook',
+  'fortnite.com': 'fortnite',
+  'googlechat.com': 'google-chat',
+  'hbo.com': 'hbomax',
+  'hbomax.com': 'hbomax',
+  'hulu.com': 'hulu',
+  'imgur.com': 'imgur',
+  'instagram.com': 'instagram',
+  'leagueoflegends.com': 'leagueoflegends',
+  'mastodon.social': 'mastodon',
+  'max.com': 'hbomax',
+  'messenger.com': 'messenger',
+  'messenger.facebook.com': 'messenger',
+  'minecraft.net': 'minecraft',
+  'netflix.com': 'netflix',
+  'openai.com': 'chatgpt',
+  'pinterest.com': 'pinterest',
+  'playstation.com': 'playstation-network',
+  'primevideo.com': 'primevideo',
+  'reddit.com': 'reddit',
+  'roblox.com': 'roblox',
+  'signal.org': 'signal',
+  'skype.com': 'skype',
+  'snapchat.com': 'snapchat',
+  'spotify.com': 'spotify',
+  'steampowered.com': 'steam',
+  'telegram.org': 'telegram',
+  'teams.microsoft.com': 'teams',
+  'tiktok.com': 'tiktok',
+  'tumblr.com': 'tumblr',
+  'twitch.tv': 'twitch',
+  'twitter.com': 'twitter',
+  'vimeo.com': 'vimeo',
+  'vk.com': 'vk',
+  'whatsapp.com': 'whatsapp',
+  'whatsapp.net': 'whatsapp',
+  'x.com': 'twitter',
+  'xbox.com': 'xboxlive',
+  'xboxlive.com': 'xboxlive',
+  'youtu.be': 'youtube',
+  'youtube.com': 'youtube',
+  'zoom.us': 'zoom',
 };
 
 export function getDomainForRule(rule: Partial<AppRule>): string | null {
@@ -135,20 +215,18 @@ export function getDomainForRule(rule: Partial<AppRule>): string | null {
 }
 
 export function getNextDNSServiceId(rule: Partial<AppRule>): string | null {
-  const domain = getDomainForRule(rule);
-  if (!domain) {
+  if (rule.type === 'service' && rule.packageName) {
+    return rule.packageName;
+  }
+
+  const candidate = rule.customDomain || APP_DOMAINS[rule.packageName || ''];
+  if (!candidate) {
     return null;
   }
 
-  const name = domain.split('.')[0].toLowerCase();
-  if (NEXTDNS_SERVICE_IDS.includes(name)) {
-    return name;
-  }
-  if (name === 'x') {
-    return 'twitter';
-  }
-  if (name === 'primevideo') {
-    return 'primevideo';
+  const resolved = resolveTargetInput(candidate);
+  if (resolved.kind === 'service') {
+    return resolved.normalizedId;
   }
 
   return null;
@@ -187,6 +265,73 @@ export function sanitizeDomain(value: string): string {
     .replace(/\/.*$/, '')
     .replace(/^www\./, '');
   return clean.includes('.') ? clean : '';
+}
+
+export function getNextDNSServiceDomain(
+  serviceId: string,
+): string | null {
+  return NEXTDNS_SERVICE_DOMAINS[serviceId] || null;
+}
+
+export function findServiceIdByDomain(domain: string): string | null {
+  const normalized = sanitizeDomain(domain);
+  if (!normalized) {
+    return null;
+  }
+
+  const exactMatch = SERVICE_DOMAIN_ALIASES[normalized];
+  if (exactMatch) {
+    return exactMatch;
+  }
+
+  const sortedAliasDomains = Object.keys(SERVICE_DOMAIN_ALIASES).sort(
+    (a, b) => b.length - a.length,
+  );
+
+  for (const candidate of sortedAliasDomains) {
+    if (normalized === candidate || normalized.endsWith(`.${candidate}`)) {
+      return SERVICE_DOMAIN_ALIASES[candidate];
+    }
+  }
+
+  const sortedServiceDomains = Object.entries(NEXTDNS_SERVICE_DOMAINS).sort(
+    (a, b) => b[1].length - a[1].length,
+  );
+  for (const [serviceId, serviceDomain] of sortedServiceDomains) {
+    if (
+      normalized === serviceDomain ||
+      normalized.endsWith(`.${serviceDomain}`)
+    ) {
+      return serviceId;
+    }
+  }
+
+  return null;
+}
+
+export function resolveTargetInput(input: string): ResolvedTarget {
+  const normalized = sanitizeDomain(input) || String(input || '').trim();
+  const serviceId = findServiceIdByDomain(normalized);
+
+  if (serviceId) {
+    const service = NEXTDNS_SERVICES.find((item) => item.id === serviceId);
+    return {
+      kind: 'service',
+      normalizedId: serviceId,
+      displayName: service?.name || serviceId,
+      input,
+      matchedServiceId: serviceId,
+      matchedDomain: getNextDNSServiceDomain(serviceId) || normalized,
+    };
+  }
+
+  return {
+    kind: 'domain',
+    normalizedId: normalized,
+    displayName: normalized,
+    input,
+    matchedDomain: normalized,
+  };
 }
 
 export const UI_EXAMPLES = {
