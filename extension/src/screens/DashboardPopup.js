@@ -13,8 +13,6 @@ export async function renderDashboardPopup(container) {
       (a, b) => a + (b.time || 0),
       0,
     );
-    const isFocusing = await storage.getBoolean('focus_mode_active');
-    const endTime = await storage.getNumber('focus_mode_end_time');
 
     const topHtml = `
       <div id="dashShell" style="display: flex; flex-direction: column; gap: 24px;">
@@ -34,19 +32,19 @@ export async function renderDashboardPopup(container) {
             <div style="font-size: 16px; font-weight: 900; margin-top: 8px; color: var(--success);">ACTIVE</div>
           </div>
 
-          <!-- Focus Timer (Always Visible) -->
-          <div style="background: rgba(37, 99, 235, 0.05); border: 1px solid var(--accent); border-radius: 12px; padding: 14px;">
-            <div style="font-size: 9px; font-weight: 800; color: var(--accent); text-transform: uppercase;">TIMER</div>
+          <!-- Focus Timer (Perfectly Wired to Background) -->
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 12px; padding: 14px;">
+            <div style="font-size: 9px; font-weight: 800; color: var(--muted); text-transform: uppercase;">TIMER</div>
             <div id="countdownDisp" style="font-size: 16px; font-weight: 900; margin-top: 8px; font-variant-numeric: tabular-nums;">--:--</div>
           </div>
         </div>
 
         <!-- Activity Section -->
         <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
              <div style="font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: 1.5px;">RECOGNIZED ACTIVITY</div>
           </div>
-          <div id="usageList" style="display: flex; flex-direction: column; gap: 8px;">
+          <div id="usageList" style="display: flex; flex-direction: column; gap: 12px;">
              ${Object.entries(usage)
                .sort((a, b) => (b[1].time || 0) - (a[1].time || 0))
                .slice(0, 4)
@@ -61,28 +59,33 @@ export async function renderDashboardPopup(container) {
 
     container.innerHTML = topHtml;
 
-    // ── Self-Stabilizing Ticker Controller ──────────────
-    if (isFocusing) {
-      clearInterval(window.__dashTicker);
-      const updateTic = () => {
-        const now = Date.now();
-        const diff = Math.max(0, Math.floor((endTime - now) / 1000));
+    // ── Self-Stabilizing Real-Time Sync Controller ──────
+    clearInterval(window.__dashTicker);
+    const updateLoop = async () => {
+      // Re-fetch focus endTime directly for perfect background sync
+      const endTime = await storage.getNumber('focus_mode_end_time');
+      const d = document.getElementById('countdownDisp');
+      if (!d) {
+        clearInterval(window.__dashTicker);
+        return;
+      }
+
+      if (endTime > Date.now()) {
+        const diff = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
         const m = Math.floor(diff / 60);
         const s = diff % 60;
-        const d = document.getElementById('countdownDisp');
-        if (d) {
-          d.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(
-            2,
-            '0',
-          )}`;
-        }
-        if (diff <= 0) {
-          clearInterval(window.__dashTicker);
-        }
-      };
-      window.__dashTicker = setInterval(updateTic, 1000);
-      updateTic();
-    }
+        d.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(
+          2,
+          '0',
+        )}`;
+        d.style.color = 'var(--accent)';
+      } else {
+        d.textContent = '--:--';
+        d.style.color = 'var(--text)';
+      }
+    };
+    window.__dashTicker = setInterval(updateLoop, 1000);
+    updateLoop();
 
     // ── Silent Usage Sync (15s) ────────────────────────
     clearInterval(window.__dashUsageSync);
@@ -91,11 +94,11 @@ export async function renderDashboardPopup(container) {
         clearInterval(window.__dashUsageSync);
         return;
       }
-      const freshRes = await chrome.storage.local.get(['usage']);
-      const freshUsage = freshRes.usage || {};
-      const list = document.getElementById('usageList');
-      if (list) {
-        list.innerHTML = Object.entries(freshUsage)
+      const fr = await chrome.storage.local.get(['usage']);
+      const fu = fr.usage || {};
+      const l = document.getElementById('usageList');
+      if (l) {
+        l.innerHTML = Object.entries(fu)
           .sort((a, b) => (b[1].time || 0) - (a[1].time || 0))
           .slice(0, 4)
           .map(([domain, data]) => renderActivityRow(domain, data.time || 0))
@@ -115,14 +118,14 @@ function renderActivityRow(domain, timeMs) {
 
   return `
     <div style="display: flex; align-items: center; gap: 16px; padding: 12px; background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); border-radius: 12px;">
-      <div style="width: 32px; height: 32px; border-radius: 8px; overflow: hidden; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; position: relative;">
-         <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 850; color: var(--muted); z-index: 1;">${lbl}</div>
-         <img src="${ico}" style="width: 18px; height: 18px; object-fit: contain; z-index: 2; position: relative; display: block;">
+      <div style="width: 36px; height: 36px; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; position: relative;">
+         <div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 850; color: var(--muted); z-index: 1;">${lbl}</div>
+         <img src="${ico}" style="width: 20px; height: 20px; object-fit: contain; z-index: 2; position: relative; display: block;">
       </div>
       <div style="flex: 1; min-width: 0;">
-        <div style="font-size: 13px; font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${domain}</div>
+        <div style="font-size: 14px; font-weight: 800; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${domain}</div>
       </div>
-      <div style="font-size: 13px; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums;">${fmtTime(
+      <div style="font-size: 14px; font-weight: 900; color: var(--text); font-variant-numeric: tabular-nums;">${fmtTime(
         timeMs,
       )}</div>
     </div>

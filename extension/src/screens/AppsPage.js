@@ -24,39 +24,27 @@ let isConfigured = false;
 let globalContainer = null;
 
 function renderBrandLogo(identifier, name, size = 44) {
-  const icon = getServiceIcon({ id: identifier, name });
-  const iconSize = Math.floor(size * 0.7);
+  // Use the service brain to resolve the correct domain/mapping
+  const iconInfo = getServiceIcon({ id: identifier, name });
+  const targetDomain = iconInfo.domain || identifier;
 
-  const safeIconUrl =
-    icon.url ||
-    `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-      identifier,
-    )}&sz=128`;
+  const safeIconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
+    targetDomain,
+  )}&sz=128`;
+  const iconSize = Math.floor(size * 0.7);
 
   return `
     <div class="brand-logo-container" style="position: relative; width: ${size}px; height: ${size}px; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
        <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: ${Math.floor(
          size * 0.4,
-       )}px; font-weight: 900; color: var(--muted); z-index: 1;"></div>
+       )}px; font-weight: 900; color: var(--muted); z-index: 1;">${(
+    name || identifier
+  )
+    .slice(0, 2)
+    .toUpperCase()}</div>
        <img src="${safeIconUrl}" 
-            style="position: relative; width: ${iconSize}px; height: ${iconSize}px; object-fit: contain; z-index: 2; transition: opacity 0.2s ease;" 
-            onload="this.style.opacity='1';"
-            onerror="
-              if (!this.dataset.retried && this.src.indexOf('google.com') === -1) {
-                this.dataset.retried='1';
-                this.src='https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-                  identifier,
-                )}&sz=128';
-              } else {
-                this.style.display='none';
-                const fallbackElement = this.parentElement.querySelector('.logo-fallback');
-                if (fallbackElement) {
-                   fallbackElement.innerText = '${(name || identifier)
-                     .slice(0, 2)
-                     .toUpperCase()}';
-                }
-              }
-            " 
+            style="position: relative; width: ${iconSize}px; height: ${iconSize}px; object-fit: contain; z-index: 2;" 
+            onerror="this.style.display='none'; this.parentElement.querySelector('.logo-fallback').style.opacity='1';"
             alt="">
     </div>
   `;

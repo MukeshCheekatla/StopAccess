@@ -42,11 +42,15 @@ export async function renderAppsPopup(container) {
 
       <div style="display: flex; flex-direction: column; gap: 8px;">
         ${rules
-          .filter((r) =>
-            (r.customDomain || r.packageName || '')
+          .filter((r) => {
+            const matchesSearch = (r.customDomain || r.packageName || '')
               .toLowerCase()
-              .includes(searchTerm),
-          )
+              .includes(searchTerm);
+            const isServiceOrDomain =
+              r.type === 'service' || r.type === 'domain';
+            const isActive = isRuleActive(r);
+            return matchesSearch && isServiceOrDomain && isActive;
+          })
           .map(
             (rule) => `
           <div class="glass-card" style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.01);">
