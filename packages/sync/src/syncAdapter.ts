@@ -33,7 +33,15 @@ export class NextDNSSyncAdapter implements NextDNSSyncAdapterInterface {
     this.client = apiClient;
   }
 
-  async push(localRules: AppRule[], logger?: any): Promise<SyncPushResult> {
+  async push(
+    localRules: AppRule[],
+    mode: 'browser' | 'hybrid' | 'profile' = 'hybrid',
+    logger?: any,
+  ): Promise<SyncPushResult> {
+    if (mode === 'browser') {
+      return { ok: true, changedCount: 0 };
+    }
+
     const blocked = localRules.filter(
       (r) => r.desiredBlockingState ?? r.blockedToday,
     );

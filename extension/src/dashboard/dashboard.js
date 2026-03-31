@@ -125,8 +125,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // 6. Onboarding & Initial load
-  const isOnboardingDone = await storage.getString('fg_onboarding_done');
-  if (isOnboardingDone !== 'true') {
+  const isSet = await nextDNSApi.isConfigured();
+  const isOnboardingDone =
+    (await storage.getString('fg_onboarding_done')) === 'true';
+
+  if (!isSet && !isOnboardingDone) {
     const { renderOnboarding } = await import('../screens/OnboardingScreen.js');
     renderOnboarding(container, async (targetTab) => {
       await storage.set('fg_onboarding_done', 'true');

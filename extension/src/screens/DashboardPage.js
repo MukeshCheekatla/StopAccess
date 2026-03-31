@@ -82,7 +82,7 @@ export async function renderDashboardPage(container) {
     container.innerHTML = `
       <div class="page-intro" style="margin-bottom: 32px; display: flex; justify-content: space-between; align-items: flex-end;">
         <div>
-          <div style="font-size: 11px; font-weight: 800; color: var(--accent); letter-spacing: 2px; margin-bottom: 8px;">DASHBOARD OVERVIEW</div>
+          <div style="font-size: 13px; font-weight: 800; color: var(--accent); letter-spacing: 2px; margin-bottom: 8px;">DASHBOARD OVERVIEW</div>
           <div style="font-size: 40px; font-weight: 900; letter-spacing: -1.8px; line-height: 0.9;">FOCUS CONTROL</div>
           <div style="font-size: 14px; color: var(--muted); margin-top: 12px; font-weight: 500;">Monitor and manage your digital focus perimeter.</div>
         </div>
@@ -91,7 +91,7 @@ export async function renderDashboardPage(container) {
              undefined,
              { month: 'long', day: 'numeric' },
            )}</div>
-           <div style="font-size: 10px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-top: 4px;">Daily Stats</div>
+           <div style="font-size: 12px; color: var(--muted); font-weight: 700; text-transform: uppercase; margin-top: 4px;">Daily Stats</div>
         </div>
       </div>
 
@@ -140,8 +140,11 @@ export async function renderDashboardPage(container) {
           </div>
         </div>
 
-        <div class="glass-card widget-card">
-          <div class="widget-title">Shield integrity</div>
+        <div class="glass-card widget-card" id="cardShieldIntegrity">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+             <div class="widget-title" style="margin-bottom: 0;">Shield integrity</div>
+             <button class="btn-outline" id="btnDashSync" style="font-size: 8px; padding: 4px 8px; border-radius: 6px; text-transform: uppercase; font-weight: 800; border-color: rgba(255,255,255,0.1);">PULL REMOTE</button>
+          </div>
           <div style="font-size:24px; font-weight:900; color:${
             syncStatus === 'connected' ? 'var(--green)' : 'var(--red)'
           }; opacity: 0.9;">${
@@ -188,28 +191,13 @@ export async function renderDashboardPage(container) {
                 <div class="rule-item" style="padding: 20px; background: rgba(255,255,255,0.01);">
                    <div style="display:flex; align-items:center; gap:20px; min-width:0;">
                      <div class="brand-logo-container" style="position: relative; width: 40px; height: 40px; border-radius: 12px; overflow: hidden; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
-                       <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: var(--muted); z-index: 1;"></div>
-                       <img src="${safeIconUrl}" 
-                            style="position: relative; width: 22px; height:22px; object-fit: contain; z-index: 2; transition: opacity 0.2s ease;" 
-                            onload="this.style.opacity='1';"
-                            onerror="
-                              if (!this.dataset.retried && this.src.indexOf('google.com') === -1) {
-                                this.dataset.retried='1';
-                                this.src='https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-                                  d.domain,
-                                )}&sz=64';
-                              } else {
-                                this.style.display='none';
-                                const fallbackElement = this.parentElement.querySelector('.logo-fallback');
-                                if (fallbackElement) {
-                                  fallbackElement.innerText = '${(
-                                    d.domain || '?'
-                                  )
-                                    .slice(0, 2)
-                                    .toUpperCase()}';
-                                }
-                              }
-                            " 
+                       <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: var(--muted); z-index: 1; opacity: 0;"></div>
+                       <img src="${safeIconUrl}"
+                            data-domain="${d.domain}"
+                            data-fallback="https://www.google.com/s2/favicons?domain=${encodeURIComponent(
+                              d.domain,
+                            )}&sz=64"
+                            style="position: relative; width: 22px; height:22px; object-fit: contain; z-index: 2;"
                             alt="">
                      </div>
                      <div style="min-width:0;">
@@ -245,16 +233,36 @@ export async function renderDashboardPage(container) {
               <canvas id="liveUsageChart" style="width: 100% !important; height: 210px !important;"></canvas>
               ${
                 domainList.length === 0
-                  ? '<div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 11px; font-weight: 700;">No domain activity detected today.</div>'
+                  ? '<div style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 13px; font-weight: 700;">No domain activity detected today.</div>'
                   : ''
               }
            </div>
-           <div style="margin-top: 20px; font-size: 11px; color: var(--muted); line-height: 1.5; font-weight: 600;">
+           <div style="margin-top: 20px; font-size: 13px; color: var(--muted); line-height: 1.5; font-weight: 600;">
              Real-time monitoring enabled. Each bar represents actual time intercepted at the browser gate.
            </div>
         </div>
       </div>
     `;
+
+    // Wire icon fallbacks via JS (CSP blocks inline onload/onerror in extensions)
+    container.querySelectorAll('img[data-domain]').forEach((img) => {
+      img.addEventListener('error', function () {
+        const fallbackSrc = this.dataset.fallback;
+        if (fallbackSrc && this.src !== fallbackSrc) {
+          this.src = fallbackSrc;
+        } else {
+          this.style.display = 'none';
+          const fallbackEl =
+            this.parentElement?.querySelector('.logo-fallback');
+          if (fallbackEl) {
+            fallbackEl.style.opacity = '1';
+            fallbackEl.innerText = (this.dataset.domain || '?')
+              .slice(0, 2)
+              .toUpperCase();
+          }
+        }
+      });
+    });
 
     container
       .querySelector('#wb_settings')
@@ -265,6 +273,19 @@ export async function renderDashboardPage(container) {
         btn.click();
       }
     });
+
+    container
+      .querySelector('#btnDashSync')
+      ?.addEventListener('click', async () => {
+        const btn = container.querySelector('#btnDashSync');
+        btn.innerText = 'SYNCING...';
+        btn.disabled = true;
+        chrome.runtime.sendMessage({ action: 'manualSync' }, () => {
+          setTimeout(() => {
+            renderDashboardPage(container);
+          }, 1500);
+        });
+      });
 
     const ctx = container.querySelector('#liveUsageChart')?.getContext('2d');
     if (ctx && domainList.length > 0) {

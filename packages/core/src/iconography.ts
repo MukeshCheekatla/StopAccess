@@ -13,48 +13,167 @@ export const SERVICE_URLS = {
     'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap',
 };
 
-const BRAND_DATA: Record<string, { slug: string; color: string }> = {
-  facebook: { slug: 'facebook', color: '#1877F2' },
-  instagram: { slug: 'instagram', color: '#E4405F' },
-  whatsapp: { slug: 'whatsapp', color: '#25D366' },
-  youtube: { slug: 'youtube', color: '#FF0000' },
-  netflix: { slug: 'netflix', color: '#E50914' },
-  twitter: { slug: 'twitter', color: '#1DA1F2' },
-  x: { slug: 'x', color: '#ffffff' },
-  reddit: { slug: 'reddit', color: '#FF4500' },
-  linkedin: { slug: 'linkedin', color: '#0077B5' },
-  pinterest: { slug: 'pinterest', color: '#BD081C' },
-  spotify: { slug: 'spotify', color: '#1DB954' },
-  discord: { slug: 'discord', color: '#5865F2' },
-  telegram: { slug: 'telegram', color: '#26A5E4' },
-  twitch: { slug: 'twitch', color: '#9146FF' },
-  tiktok: { slug: 'tiktok', color: '#000000' },
-  amazon: { slug: 'amazon', color: '#FF9900' },
-  primevideo: { slug: 'primevideo', color: '#00A8E1' },
-  hulu: { slug: 'hulu', color: '#3DBB3E' },
-  disneyplus: { slug: 'disneyplus', color: '#292C6D' },
-  openai: { slug: 'openai', color: '#10a37f' },
-  chatgpt: { slug: 'openai', color: '#10a37f' },
-  duolingo: { slug: 'duolingo', color: '#58CC02' },
-  slack: { slug: 'slack', color: '#4A154B' },
-  microsoftteams: { slug: 'microsoftteams', color: '#6264A7' },
-  teams: { slug: 'microsoftteams', color: '#6264A7' },
-  zoom: { slug: 'zoom', color: '#2D8CFF' },
-  github: { slug: 'github', color: '#181717' },
-  google: { slug: 'google', color: '#4285F4' },
-  roblox: { slug: 'roblox', color: '#000000' },
-  minecraft: { slug: 'minecraft', color: '#2E2D2D' },
-  fortnite: { slug: 'fortnite', color: '#313131' },
-  skype: { slug: 'skype', color: '#00AFF0' },
-  signal: { slug: 'signal', color: '#3A76F0' },
-  messenger: { slug: 'messenger', color: '#006AFF' },
-  blizzard: { slug: 'blizzardentertainment', color: '#00B4FF' },
-  bereal: { slug: 'bereal', color: '#000000' },
-  steam: { slug: 'steam', color: '#000000' },
-  xbox: { slug: 'xbox', color: '#107C10' },
-  xboxlive: { slug: 'xbox', color: '#107C10' },
-  playstation: { slug: 'playstation', color: '#003791' },
-  'playstation-network': { slug: 'playstation', color: '#003791' },
+type BrandSource = 'simpleicon' | 'favicon';
+
+type BrandDefinition = {
+  color: string;
+  slug?: string;
+  domain?: string;
+  source?: BrandSource;
+};
+
+const BRAND_DATA: Record<string, BrandDefinition> = {
+  '9gag': {
+    slug: '9gag',
+    color: '#ffffff',
+    domain: '9gag.com',
+  },
+  amazon: {
+    source: 'favicon',
+    color: '#FF9900',
+    domain: 'amazon.com',
+  },
+  bereal: {
+    slug: 'bereal',
+    color: '#ffffff',
+    domain: 'bere.al',
+  },
+  blizzard: {
+    source: 'favicon',
+    color: '#00B4FF',
+    domain: 'blizzard.com',
+  },
+  chatgpt: {
+    source: 'favicon',
+    color: '#10a37f',
+    domain: 'chatgpt.com',
+  },
+  dailymotion: {
+    slug: 'dailymotion',
+    color: '#0066DC',
+    domain: 'dailymotion.com',
+  },
+  discord: { slug: 'discord', color: '#5865F2', domain: 'discord.com' },
+  disneyplus: {
+    source: 'favicon',
+    color: '#113CCF',
+    domain: 'disneyplus.com',
+  },
+  ebay: { slug: 'ebay', color: '#E53238', domain: 'ebay.com' },
+  facebook: { slug: 'facebook', color: '#1877F2', domain: 'facebook.com' },
+  fortnite: {
+    source: 'favicon',
+    color: '#ffffff',
+    domain: 'fortnite.com',
+  },
+  google: { slug: 'google', color: '#4285F4', domain: 'google.com' },
+  googlechat: {
+    source: 'favicon',
+    color: '#34A853',
+    domain: 'chat.google.com',
+  },
+  hbomax: {
+    source: 'favicon',
+    color: '#8B5CF6',
+    domain: 'max.com',
+  },
+  hulu: {
+    source: 'favicon',
+    color: '#1CE783',
+    domain: 'hulu.com',
+  },
+  imgur: { slug: 'imgur', color: '#1BB76E', domain: 'imgur.com' },
+  instagram: {
+    slug: 'instagram',
+    color: '#E4405F',
+    domain: 'instagram.com',
+  },
+  leagueoflegends: {
+    source: 'favicon',
+    color: '#C89B3C',
+    domain: 'leagueoflegends.com',
+  },
+  linkedin: { slug: 'linkedin', color: '#0077B5', domain: 'linkedin.com' },
+  mastodon: {
+    slug: 'mastodon',
+    color: '#6364FF',
+    domain: 'mastodon.social',
+  },
+  messenger: {
+    source: 'favicon',
+    color: '#0084FF',
+    domain: 'messenger.com',
+  },
+  minecraft: {
+    source: 'favicon',
+    color: '#62B74A',
+    domain: 'minecraft.net',
+  },
+  netflix: { slug: 'netflix', color: '#E50914', domain: 'netflix.com' },
+  openai: { slug: 'openai', color: '#10a37f', domain: 'openai.com' },
+  pinterest: {
+    slug: 'pinterest',
+    color: '#BD081C',
+    domain: 'pinterest.com',
+  },
+  playstation: {
+    slug: 'playstation',
+    color: '#003791',
+    domain: 'playstation.com',
+  },
+  'playstation-network': {
+    slug: 'playstation',
+    color: '#003791',
+    domain: 'playstation.com',
+  },
+  primevideo: {
+    source: 'favicon',
+    color: '#00A8E1',
+    domain: 'primevideo.com',
+  },
+  reddit: { slug: 'reddit', color: '#FF4500', domain: 'reddit.com' },
+  roblox: { slug: 'roblox', color: '#000000', domain: 'roblox.com' },
+  signal: { slug: 'signal', color: '#3A76F0', domain: 'signal.org' },
+  skype: {
+    source: 'favicon',
+    color: '#00AFF0',
+    domain: 'skype.com',
+  },
+  slack: { slug: 'slack', color: '#4A154B', domain: 'slack.com' },
+  snapchat: {
+    source: 'favicon',
+    color: '#FFFC00',
+    domain: 'snapchat.com',
+  },
+  spotify: { slug: 'spotify', color: '#1DB954', domain: 'spotify.com' },
+  steam: { slug: 'steam', color: '#ffffff', domain: 'steampowered.com' },
+  telegram: { slug: 'telegram', color: '#26A5E4', domain: 'telegram.org' },
+  teams: {
+    slug: 'microsoftteams',
+    color: '#6264A7',
+    domain: 'teams.microsoft.com',
+  },
+  tiktok: { slug: 'tiktok', color: '#ffffff', domain: 'tiktok.com' },
+  tinder: {
+    source: 'favicon',
+    color: '#FF4458',
+    domain: 'tinder.com',
+  },
+  tumblr: { slug: 'tumblr', color: '#36465D', domain: 'tumblr.com' },
+  twitch: { slug: 'twitch', color: '#9146FF', domain: 'twitch.tv' },
+  twitter: { slug: 'x', color: '#ffffff', domain: 'x.com' },
+  vimeo: { slug: 'vimeo', color: '#1AB7EA', domain: 'vimeo.com' },
+  vk: {
+    source: 'favicon',
+    color: '#0077FF',
+    domain: 'vk.com',
+  },
+  whatsapp: { slug: 'whatsapp', color: '#25D366', domain: 'whatsapp.com' },
+  x: { slug: 'x', color: '#ffffff', domain: 'x.com' },
+  xbox: { slug: 'xbox', color: '#107C10', domain: 'xbox.com' },
+  xboxlive: { slug: 'xbox', color: '#107C10', domain: 'xbox.com' },
+  youtube: { slug: 'youtube', color: '#FF0000', domain: 'youtube.com' },
+  zoom: { slug: 'zoom', color: '#2D8CFF', domain: 'zoom.us' },
 };
 
 function normalizeKey(value = ''): string {
@@ -63,6 +182,21 @@ function normalizeKey(value = ''): string {
     .replace(/[+]/g, 'plus')
     .replace(/[^a-z0-9]+/g, '')
     .trim();
+}
+
+function getBrandAssetUrls(match: BrandDefinition) {
+  const fallbackUrl = match.domain ? getFaviconUrl(match.domain) : null;
+  const primaryUrl =
+    match.source === 'favicon'
+      ? fallbackUrl
+      : match.slug
+      ? `${SERVICE_URLS.SIMPLE_ICONS_CDN}/${match.slug}`
+      : fallbackUrl;
+
+  return {
+    primaryUrl,
+    fallbackUrl,
+  };
 }
 
 /**
@@ -85,9 +219,13 @@ export function resolveServiceIcon(service: { id?: string; name?: string }) {
 
     const match = BRAND_DATA[norm];
     if (match) {
+      const { primaryUrl, fallbackUrl } = getBrandAssetUrls(match);
+
       return {
         kind: 'remote',
-        url: `${SERVICE_URLS.SIMPLE_ICONS_CDN}/${match.slug}`,
+        url: primaryUrl,
+        fallbackUrl,
+        domain: match.domain || null,
         accent: match.color,
         label: (service?.name || service?.id || '?')[0].toUpperCase(),
       };
@@ -108,6 +246,8 @@ export function resolveServiceIcon(service: { id?: string; name?: string }) {
       return {
         kind: 'remote',
         url,
+        fallbackUrl: null,
+        domain: domainCandidate,
         accent: '#3b82f6',
         label: domainCandidate[0].toUpperCase(),
       };
@@ -133,6 +273,8 @@ export function resolveServiceIcon(service: { id?: string; name?: string }) {
       return {
         kind: 'remote',
         url: `${SERVICE_URLS.SIMPLE_ICONS_CDN}/${norm}`,
+        fallbackUrl: null,
+        domain: null,
         accent: '#3b82f6',
         label: (service?.name || service?.id || '?')[0].toUpperCase(),
       };
@@ -143,6 +285,8 @@ export function resolveServiceIcon(service: { id?: string; name?: string }) {
     kind: 'fallback',
     label: (service?.name || service?.id || '?').slice(0, 2).toUpperCase(),
     accent: '#3b82f6',
+    fallbackUrl: null,
+    domain: null,
   };
 }
 
@@ -209,7 +353,7 @@ export function getAppIconUrl(identifier: string): string | null {
   for (const seg of segments) {
     const norm = normalizeKey(seg);
     if (BRAND_DATA[norm]) {
-      return `${SERVICE_URLS.SIMPLE_ICONS_CDN}/${BRAND_DATA[norm].slug}`;
+      return getBrandAssetUrls(BRAND_DATA[norm]).primaryUrl;
     }
   }
 

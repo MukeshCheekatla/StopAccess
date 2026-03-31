@@ -109,7 +109,12 @@ export class SyncOrchestrator {
       };
 
       if (forcePush) {
-        const result: SyncPushResult = await this.adapter.push(rules, logger);
+        const mode = (await storage.getString('fg_sync_mode')) || 'hybrid';
+        const result: SyncPushResult = await this.adapter.push(
+          rules,
+          mode,
+          logger,
+        );
         if (result.ok) {
           await this.updateState({
             status: 'success',

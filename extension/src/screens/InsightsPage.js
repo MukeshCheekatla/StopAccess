@@ -117,9 +117,9 @@ export async function renderInsightsPage(container) {
                       return `
               <div class="glass-card" style="display:flex; align-items:center; gap:14px; padding:12px 16px; border-radius:14px;">
                  <div class="brand-logo-container" style="position: relative; width: 32px; height: 32px; border-radius: 8px; overflow: hidden; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
-                    <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: var(--muted); z-index: 1;"></div>
-                    <img src="${safeIconUrl}" alt="" style="width: 18px; height: 18px; object-fit: contain; z-index: 2; transition: opacity 0.2s ease;" 
-                         onload="this.style.opacity='1';"
+                    <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: var(--muted); z-index: 1; opacity: 0;"></div>
+                    <img src="${safeIconUrl}" alt="" style="width: 18px; height: 18px; object-fit: contain; z-index: 2; transition: opacity 0.2s ease; opacity: 0;" 
+                         onload="this.style.opacity='1'; const fallback = this.parentElement.querySelector('.logo-fallback'); if (fallback) fallback.style.opacity='0';"
                          onerror="
                             if (!this.dataset.retried && this.src.indexOf('google.com') === -1) {
                               this.dataset.retried = '1';
@@ -130,6 +130,7 @@ export async function renderInsightsPage(container) {
                               this.style.display = 'none';
                               const fallbackElement = this.parentElement.querySelector('.logo-fallback');
                               if (fallbackElement) {
+                                fallbackElement.style.opacity='1';
                                 fallbackElement.innerText = '${(
                                   log.domain || '?'
                                 )
@@ -191,9 +192,9 @@ export async function renderInsightsPage(container) {
               <div class="glass-card" style="display:flex; align-items:center; justify-content:space-between; padding:16px;">
                 <div style="display:flex; align-items:center; gap:16px;">
                   <div class="brand-logo-container" style="position: relative; width: 32px; height: 32px; border-radius: 8px; overflow: hidden; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
-                    <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: var(--muted); z-index: 1;"></div>
-                    <img src="${safeIconUrl}" alt="" style="width: 18px; height: 18px; object-fit: contain; z-index: 2; transition: opacity 0.2s ease;" 
-                         onload="this.style.opacity='1';"
+                    <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; color: var(--muted); z-index: 1; opacity: 0;"></div>
+                    <img src="${safeIconUrl}" alt="" style="width: 18px; height: 18px; object-fit: contain; z-index: 2; transition: opacity 0.2s ease; opacity: 0;" 
+                         onload="this.style.opacity='1'; const fallback = this.parentElement.querySelector('.logo-fallback'); if (fallback) fallback.style.opacity='0';"
                          onerror="
                             if (!this.dataset.retried && this.src.indexOf('google.com') === -1) {
                               this.dataset.retried = '1';
@@ -204,6 +205,7 @@ export async function renderInsightsPage(container) {
                               this.style.display = 'none';
                               const fallbackElement = this.parentElement.querySelector('.logo-fallback');
                               if (fallbackElement) {
+                                fallbackElement.style.opacity='1';
                                 fallbackElement.innerText = '${(
                                   item.name || '?'
                                 )

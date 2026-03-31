@@ -88,7 +88,7 @@ export async function renderAppsPage(container) {
           })" id="appSearch" value="${escapeHtml(
       searchTerm,
     )}" class="input-premium" style="width:100%; height:60px; font-size:15px; border-radius:20px; padding-left: 24px; background: rgba(15, 15, 22, 0.4);">
-          <div id="searchBadge" style="position: absolute; right: 20px; top: 20px; font-size: 10px; font-weight: 800; color: var(--muted); background: rgba(255,255,255,0.03); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--glass-border); pointer-events: none;">CTRL + F</div>
+          <div id="searchBadge" style="position: absolute; right: 20px; top: 20px; font-size: 12px; font-weight: 800; color: var(--muted); background: rgba(255,255,255,0.03); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--glass-border); pointer-events: none;">CTRL + F</div>
         </div>
         <div id="searchActionContainer"></div>
       </div>
@@ -341,7 +341,7 @@ function renderDomainRuleCard(rule) {
              <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">${escapeHtml(
                rule.appName || rule.packageName,
              )}</div>
-             <div class="stat-lbl" style="font-size: 10px;">${escapeHtml(
+             <div class="stat-lbl" style="font-size: 12px;">${escapeHtml(
                rule.customDomain || rule.packageName,
              )}</div>
            </div>
@@ -352,7 +352,8 @@ function renderDomainRuleCard(rule) {
           }" data-kind="domain" data-pkg="${escapeHtml(
     rule.packageName,
   )}" data-name="${escapeHtml(rule.appName || rule.packageName)}">
-            <span>${active ? 'ON' : 'OFF'}</span>
+            <span class="on-text">ON</span>
+            <span class="off-text">OFF</span>
           </button>
           <button class="btn-icon delete-rule" data-pkg="${escapeHtml(
             rule.packageName,
@@ -365,8 +366,8 @@ function renderDomainRuleCard(rule) {
         <div style="display:flex; align-items:center; gap: 8px;">
            <input type="number" class="input edit-limit" value="${limitValue}" data-pkg="${escapeHtml(
     rule.packageName,
-  )}" style="width: 50px; padding: 4px; font-size: 11px; text-align: center;">
-           <span style="font-size: 10px; color: var(--muted); font-weight: 700;">MIN</span>
+  )}" style="width: 50px; padding: 4px; font-size: 13px; text-align: center;">
+           <span style="font-size: 12px; color: var(--muted); font-weight: 700;">MIN</span>
         </div>
         <div style="font-size: 9px; color: var(--muted); text-transform: uppercase;">Daily Limit</div>
       </div>
@@ -391,7 +392,7 @@ function renderServiceCard(service, rules) {
              <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">${escapeHtml(
                service.name,
              )}</div>
-             <div class="stat-lbl" style="font-size: 10px;">App</div>
+             <div class="stat-lbl" style="font-size: 12px;">App</div>
            </div>
         </div>
         <button class="toggle-switch-btn ${
@@ -399,7 +400,8 @@ function renderServiceCard(service, rules) {
         }" data-kind="service" data-id="${escapeHtml(
     service.id,
   )}" data-name="${escapeHtml(service.name)}">
-          <span>${active ? 'ON' : 'OFF'}</span>
+          <span class="on-text">ON</span>
+          <span class="off-text">OFF</span>
         </button>
       </div>
     </div>
@@ -423,7 +425,7 @@ function renderCategoryCard(category, rules) {
              <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">${escapeHtml(
                category.name,
              )}</div>
-             <div class="stat-lbl" style="font-size: 10px;">Category</div>
+             <div class="stat-lbl" style="font-size: 12px;">Category</div>
            </div>
         </div>
         <button class="toggle-switch-btn ${
@@ -431,7 +433,8 @@ function renderCategoryCard(category, rules) {
         }" data-kind="category" data-id="${escapeHtml(
     category.id,
   )}" data-name="${escapeHtml(category.name)}">
-          <span>${active ? 'ON' : 'OFF'}</span>
+          <span class="on-text">ON</span>
+          <span class="off-text">OFF</span>
         </button>
       </div>
     </div>
@@ -496,7 +499,6 @@ async function setupHandlers(container, rules) {
 
       chrome.runtime.sendMessage({ action: 'manualSync' });
       btn.classList.toggle('active', !active);
-      btn.querySelector('span').innerText = !active ? 'ON' : 'OFF';
       btn.closest('.service-card').classList.toggle('active', !active);
     });
   });

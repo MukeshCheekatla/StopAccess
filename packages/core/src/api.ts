@@ -69,11 +69,19 @@ async function wrapResponse<T>(
 
   const errorData = await readJsonIfPresent(res);
   const code = mapStatusToErrorCode(res.status);
+
+  // NextDNS typically returns { "errors": [{ "detail": "...", "code": "..." }] }
+  const message =
+    errorData?.errors?.[0]?.detail ||
+    errorData?.error ||
+    errorData?.message ||
+    res.statusText;
+
   return {
     ok: false,
     error: {
       code,
-      message: errorData?.error || errorData?.message || res.statusText,
+      message,
       status: res.status,
       details: errorData,
     },
@@ -204,6 +212,72 @@ export class NextDNSClient {
       },
     );
     return wrapResponse(res);
+  }
+
+  // --- Individual Resource Methods (Refined Enforcement) ---
+
+  async addDenylistItem(id: string): Promise<NextDNSResponse<boolean>> {
+    const res = await this.fetch(`/profiles/${this.cfg.profileId}/denylist`, {
+      method: 'POST',
+      body: JSON.stringify({ id, active: true }),
+    });
+    return wrapResponse(res, () => true);
+  }
+
+  async removeDenylistItem(id: string): Promise<NextDNSResponse<boolean>> {
+    const res = await this.fetch(
+      `/profiles/${this.cfg.profileId}/denylist/${encodeURIComponent(id)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+    return wrapResponse(res, () => true);
+  }
+
+  async addServiceItem(id: string): Promise<NextDNSResponse<boolean>> {
+    const res = await this.fetch(
+      `/profiles/${this.cfg.profileId}/parentalControl/services`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ id, active: true }),
+      },
+    );
+    return wrapResponse(res, () => true);
+  }
+
+  async removeServiceItem(id: string): Promise<NextDNSResponse<boolean>> {
+    const res = await this.fetch(
+      `/profiles/${
+        this.cfg.profileId
+      }/parentalControl/services/${encodeURIComponent(id)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+    return wrapResponse(res, () => true);
+  }
+
+  async addCategoryItem(id: string): Promise<NextDNSResponse<boolean>> {
+    const res = await this.fetch(
+      `/profiles/${this.cfg.profileId}/parentalControl/categories`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ id, active: true }),
+      },
+    );
+    return wrapResponse(res, () => true);
+  }
+
+  async removeCategoryItem(id: string): Promise<NextDNSResponse<boolean>> {
+    const res = await this.fetch(
+      `/profiles/${
+        this.cfg.profileId
+      }/parentalControl/categories/${encodeURIComponent(id)}`,
+      {
+        method: 'DELETE',
+      },
+    );
+    return wrapResponse(res, () => true);
   }
 
   async getLogs(
@@ -429,29 +503,13 @@ export async function setParentalControlServiceState(
   active: boolean,
   cfg: NextDNSConfig,
   log: any,
-): Promise<NextDNSService[]> {
+): Promise<NextDNSResponse<boolean>> {
   const client = new NextDNSClient(cfg, log);
-  const currentRes = await client.getServices();
-  if (!currentRes.ok) {
-    return [];
-  }
-
-  let items = currentRes.data;
   if (active) {
-    // Add or Update to active: true
-    const idx = items.findIndex((i) => i.id === serviceId);
-    if (idx >= 0) {
-      items[idx].active = true;
-    } else {
-      items.push({ id: serviceId, active: true });
-    }
+    return client.addServiceItem(serviceId);
   } else {
-    // UNBLOCK: Remove from list
-    items = items.filter((i) => i.id !== serviceId);
+    return client.removeServiceItem(serviceId);
   }
-
-  const res = await client.setServices(items);
-  return res.ok ? res.data : [];
 }
 
 export async function setParentalControlCategoryState(
@@ -459,27 +517,13 @@ export async function setParentalControlCategoryState(
   active: boolean,
   cfg: NextDNSConfig,
   log: any,
-): Promise<NextDNSCategory[]> {
+): Promise<NextDNSResponse<boolean>> {
   const client = new NextDNSClient(cfg, log);
-  const currentRes = await client.getCategories();
-  if (!currentRes.ok) {
-    return [];
-  }
-
-  let items = currentRes.data;
   if (active) {
-    const idx = items.findIndex((i) => i.id === categoryId);
-    if (idx >= 0) {
-      items[idx].active = true;
-    } else {
-      items.push({ id: categoryId, active: true });
-    }
+    return client.addCategoryItem(categoryId);
   } else {
-    items = items.filter((i) => i.id !== categoryId);
+    return client.removeCategoryItem(categoryId);
   }
-
-  const res = await client.setCategories(items);
-  return res.ok ? res.data : [];
 }
 
 export async function setDenylistDomainState(
@@ -487,29 +531,11 @@ export async function setDenylistDomainState(
   active: boolean,
   cfg: NextDNSConfig,
   log: any,
-): Promise<NextDNSEntity[]> {
+): Promise<NextDNSResponse<boolean>> {
   const client = new NextDNSClient(cfg, log);
-  const currentRes = await client.getDenylist();
-  if (!currentRes.ok) {
-    return [];
-  }
-
-  let items = currentRes.data;
-  const targetId = domain.toLowerCase();
-
   if (active) {
-    // BLOCK: Add if not present
-    const idx = items.findIndex((i) => i.id.toLowerCase() === targetId);
-    if (idx < 0) {
-      items.push({ id: targetId, active: true });
-    } else {
-      items[idx].active = true;
-    }
+    return client.addDenylistItem(domain);
   } else {
-    // UNBLOCK: Completely remove from denylist
-    items = items.filter((i) => i.id.toLowerCase() !== targetId);
+    return client.removeDenylistItem(domain);
   }
-
-  const res = await client.setDenylist(items);
-  return res.ok ? res.data : [];
 }

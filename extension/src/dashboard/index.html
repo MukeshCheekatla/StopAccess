@@ -8,14 +8,14 @@
 
     :root {
       --bg-dark: #08080a;
-      --accent: #2563eb;
+      --accent: #52525b;
       --accent-alt: #1e40af;
       --glass-bg: rgba(255, 255, 255, 0.02);
       --glass-border: rgba(255, 255, 255, 0.08);
       --text: #f4f4f5;
-      --muted: #71717a;
+      --muted: #a1a1aa;
       --green: #10b981;
-      --red: #f43f5e;
+      --red: #ef4444;
       --yellow: #f59e0b;
       --sidebar-w: 220px;
     }
@@ -136,33 +136,68 @@
     .service-card:hover { 
       transform: translateY(-4px); 
       background: rgba(255, 255, 255, 0.04);
-      border-color: var(--accent);
+      border-color: rgba(255, 255, 255, 0.2);
       box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
     }
     .service-card.active {
-      border-color: var(--accent);
-      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.05);
     }
 
     /* ── Toggles & Controls ── */
     .toggle-switch-btn {
+      position: relative;
+      width: 64px;
+      height: 32px;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--glass-border);
-      color: var(--muted);
-      padding: 6px 12px; min-width: 80px;
-      border-radius: 12px;
-      font-size: 10px;
-      font-weight: 900;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      border-radius: 100px;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
+    .toggle-switch-btn::before {
+      content: "";
+      position: absolute;
+      left: 4px;
+      width: 24px;
+      height: 24px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 2;
+    }
+    .toggle-switch-btn .on-text, .toggle-switch-btn .off-text {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: 0.5px;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .toggle-switch-btn .on-text { left: 10px; opacity: 0; }
+    .toggle-switch-btn .off-text { right: 10px; opacity: 0.6; color: var(--muted); }
+    
     .toggle-switch-btn.active {
       background: var(--red);
-      color: #fff;
       border-color: var(--red);
     }
+    .toggle-switch-btn.active::before {
+      transform: translateX(32px);
+    }
+    .toggle-switch-btn.active .on-text { opacity: 1; }
+    .toggle-switch-btn.active .off-text { opacity: 0; }
+    
+    /* Category/Service specific color override if needed */
+    .toggle-switch-btn.active[data-kind="category"] { background: var(--accent); border-color: var(--accent); }
+    .toggle-switch-btn.active[data-kind="domain"] { background: var(--red); border-color: var(--red); }
 
     .btn-icon {
       width: 32px; height: 32px; min-width:32px; min-height:32px; display: flex; align-items: center; justify-content: center;

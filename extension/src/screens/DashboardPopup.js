@@ -120,9 +120,9 @@ export async function renderDashboardPopup(container) {
             <div class="glass-card" style="padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.015);">
               <div style="display:flex; align-items:center; gap:12px;">
                  <div class="brand-logo-container" style="position: relative; width: 22px; height: 22px; border-radius: 6px; overflow: hidden; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0;">
-                    <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; color: var(--muted); z-index: 1;"></div>
-                    <img src="${safeIconUrl}" style="position: relative; width: 14px; height: 14px; object-fit: contain; z-index: 2; transition: opacity 0.2s ease;" 
-                         onload="this.style.opacity='1';"
+                    <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 900; color: var(--muted); z-index: 1; opacity: 0;"></div>
+                    <img src="${safeIconUrl}" style="position: relative; width: 14px; height: 14px; object-fit: contain; z-index: 2; transition: opacity 0.2s ease; opacity: 0;" 
+                         onload="this.style.opacity='1'; const fallback = this.parentElement.querySelector('.logo-fallback'); if (fallback) fallback.style.opacity='0';"
                          onerror="
                             if (!this.dataset.retried && this.src.indexOf('google.com') === -1) {
                               this.dataset.retried = '1';
@@ -133,6 +133,7 @@ export async function renderDashboardPopup(container) {
                               this.style.display = 'none';
                               const fallbackElement = this.parentElement.querySelector('.logo-fallback');
                               if (fallbackElement) {
+                                fallbackElement.style.opacity='1';
                                 fallbackElement.innerText = '${(d.domain || '?')
                                   .slice(0, 2)
                                   .toUpperCase()}';

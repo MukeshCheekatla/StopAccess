@@ -13,10 +13,10 @@
       --glass-bg: rgba(18, 18, 20, 0.7);
       --glass-border: rgba(255, 255, 255, 0.04);
       --text: #F4F4F5;
-      --muted: rgba(161, 161, 170, 0.4);
+      --muted: #a1a1aa;
       --green: #71717A;
-      --red: #52525B;
-      --yellow: #71717A;
+      --red: #ef4444;
+      --yellow: #f59e0b;
       --sidebar-w: 180px;
     }
 
@@ -197,7 +197,7 @@
       gap: 6px;
       padding: 4px 10px;
       border-radius: 20px;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: 700;
       background: rgba(255,255,255,0.05);
       border: 1px solid var(--glass-border);
@@ -205,6 +205,57 @@
     .status-badge.active { color: var(--green); background: rgba(255,255,255,0.05); border-color: var(--glass-border); }
 
     /* Apps & Rules styling (closer to Image) */
+    /* ── Toggles & Controls ── */
+    .toggle-switch-btn {
+      position: relative;
+      width: 52px;
+      height: 24px;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: 100px;
+      cursor: pointer;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .toggle-switch-btn::before {
+      content: "";
+      position: absolute;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 2;
+    }
+    .toggle-switch-btn .on-text, .toggle-switch-btn .off-text {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 7px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 0.2px;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    .toggle-switch-btn .on-text { left: 8px; opacity: 0; }
+    .toggle-switch-btn .off-text { right: 8px; opacity: 0.6; color: var(--muted); }
+    
+    .toggle-switch-btn.active {
+      background: var(--red);
+      border-color: var(--red);
+    }
+    .toggle-switch-btn.active::before {
+      transform: translateX(28px);
+    }
+    .toggle-switch-btn.active .on-text { opacity: 1; }
+    .toggle-switch-btn.active .off-text { opacity: 0; }
+    
     .rule-item {
       display: flex;
       align-items: center;

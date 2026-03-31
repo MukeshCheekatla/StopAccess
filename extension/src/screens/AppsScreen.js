@@ -59,10 +59,10 @@ export async function renderAppsScreen(container) {
     <div id="tabContent">
       <div class="app-card" style="background: rgba(255, 71, 87, 0.05); border-color: rgba(255, 71, 87, 0.2); margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
         <div style="flex: 1;">
-          <div style="font-weight: 700; color: var(--red); font-size: 12px; text-transform: uppercase; margin-bottom: 4px;">Emergency Protocol</div>
-          <div style="font-size: 11px; color: var(--muted); line-height: 1.4;">Bypass all active blocks across all synchronized devices temporarily.</div>
+          <div style="font-weight: 700; color: var(--red); font-size: 14px; text-transform: uppercase; margin-bottom: 4px;">Emergency Protocol</div>
+          <div style="font-size: 13px; color: var(--muted); line-height: 1.4;">Bypass all active blocks across all synchronized devices temporarily.</div>
         </div>
-        <button class="btn btn-outline" id="panicButton" style="border-color: var(--red); color: var(--red); padding: 8px 16px; font-size: 12px;">Reset All</button>
+        <button class="btn btn-outline" id="panicButton" style="border-color: var(--red); color: var(--red); padding: 8px 16px; font-size: 14px;">Reset All</button>
       </div>
 
       ${
@@ -70,7 +70,7 @@ export async function renderAppsScreen(container) {
           ? `
         <div class="app-card" style="background: rgba(255, 184, 0, 0.08); border-color: rgba(255, 184, 0, 0.3); margin-bottom: 24px; display: flex; align-items: center; gap: 12px; padding: 12px 16px;">
           <div style="font-size: 20px;">⚠️</div>
-          <div style="font-size: 11px; line-height: 1.5; color: var(--text);">
+          <div style="font-size: 13px; line-height: 1.5; color: var(--text);">
             <strong style="color: var(--yellow);">Profile-Wide Enforcement Active.</strong> Changes to services and categories affect <strong>all devices</strong> linked to this NextDNS profile.
           </div>
         </div>
@@ -118,14 +118,14 @@ async function renderSubTab(rules) {
       </div>
       <div class="section-title">Popular Distractions</div>
       <div class="empty-state" style="height: auto; padding: 20px 0; border-style: dashed; background: transparent; opacity: 0.8; margin-bottom: 24px;">
-        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 12px;">Quick Add Recommended</div>
+        <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); font-weight: 700; margin-bottom: 12px;">Quick Add Recommended</div>
         <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; padding: 0 10px;">
           ${POPULAR_DISTRACTIONS.filter(
             (d) => !rules.some((r) => r.customDomain === d.id),
           )
             .map(
               (d) =>
-                `<button class="btn btn-outline quick-add-domain" data-domain="${d.id}" data-name="${d.name}" style="padding: 6px 14px; font-size: 11px; border-radius: 20px; border-color: rgba(255,255,255,0.1); color: var(--text);">+ ${d.name}</button>`,
+                `<button class="btn btn-outline quick-add-domain" data-domain="${d.id}" data-name="${d.name}" style="padding: 6px 14px; font-size: 13px; border-radius: 20px; border-color: rgba(255,255,255,0.1); color: var(--text);">+ ${d.name}</button>`,
             )
             .join('')}
         </div>
@@ -141,7 +141,7 @@ async function renderSubTab(rules) {
             <div class="empty-state" style="height: 160px; border-style: dashed; background: transparent; opacity: 0.8;">
               <div style="font-size: 32px; margin-bottom: 12px;">🛡️</div>
               <div style="font-weight: 700;">Shield Is Idle</div>
-              <div style="font-size: 11px; color: var(--muted); margin-top: 4px; max-width: 200px; text-align: center;">Add your first custom domain or NextDNS app to start enforcing focus.</div>
+              <div style="font-size: 13px; color: var(--muted); margin-top: 4px; max-width: 200px; text-align: center;">Add your first custom domain or NextDNS app to start enforcing focus.</div>
             </div>
             `
         }
@@ -218,7 +218,7 @@ function renderNeedsLoginState(copy) {
   return `
     <div class="app-card" style="background: rgba(255, 184, 0, 0.05); border-color: rgba(255, 184, 0, 0.2);">
       <div class="section-title" style="margin-top: 0; color: var(--yellow);">NextDNS Login Required</div>
-      <div style="font-size: 12px; line-height: 1.5; color: var(--text);">${copy}</div>
+      <div style="font-size: 14px; line-height: 1.5; color: var(--text);">${copy}</div>
       <div class="stat-lbl" style="margin-top: 12px;">Open Settings, paste your NextDNS Profile ID and API key, then save.</div>
     </div>
   `;
@@ -273,12 +273,12 @@ function renderDomainRuleCard(rule) {
       </div>
       
       <div style="display:flex; align-items:center; justify-content:space-between; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05);">
-        <div style="font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase;">Daily Limit (Minutes)</div>
+        <div style="font-size: 13px; color: var(--muted); font-weight: 700; text-transform: uppercase;">Daily Limit (Minutes)</div>
         <div style="display:flex; align-items:center; gap: 8px;">
            <input type="number" class="input edit-limit" value="${limitValue}" data-pkg="${escapeHtml(
     rule.packageName,
-  )}" style="width: 60px; padding: 4px 8px; font-size: 12px; text-align: center;">
-           <span style="font-size: 11px; color: var(--muted);">min</span>
+  )}" style="width: 60px; padding: 4px 8px; font-size: 14px; text-align: center;">
+           <span style="font-size: 13px; color: var(--muted);">min</span>
         </div>
       </div>
     </div>

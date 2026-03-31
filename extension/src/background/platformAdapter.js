@@ -155,6 +155,9 @@ export const nextDNSApi = {
       extensionLogger.add,
     );
   },
+  setServiceState: async (serviceId, active) => {
+    return nextDNSApi.setParentalControlServiceState(serviceId, active);
+  },
 
   setParentalControlCategoryState: async (categoryId, active) => {
     const cfg = await nextDNSApi.getConfig();
@@ -164,6 +167,9 @@ export const nextDNSApi = {
       cfg,
       extensionLogger.add,
     );
+  },
+  setCategoryState: async (categoryId, active) => {
+    return nextDNSApi.setParentalControlCategoryState(categoryId, active);
   },
 
   setDenylistDomainState: async (domain, active) => {
