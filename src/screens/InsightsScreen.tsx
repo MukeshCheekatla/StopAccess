@@ -13,7 +13,7 @@ import { COLORS, SPACING, RADIUS } from '../components/theme';
 import { getSnapshots } from '@focusgate/state/insights';
 import { getFocusStreak } from '@focusgate/core/insights';
 import { storageAdapter } from '../store/storageAdapter';
-import { DailySnapshot } from '../types';
+import { DailySnapshot } from '@focusgate/types';
 import { formatDuration } from '../utils/time';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');

@@ -38,27 +38,34 @@ async function build() {
     // Service Worker
     esbuild.build({
       ...baseConfig,
-      entryPoints: [resolve(SRC_DIR, 'background/lifecycle.js')],
+      entryPoints: [resolve(SRC_DIR, 'background/lifecycle.ts')],
       outfile: resolve(DIST_DIR, 'background.js'),
     }),
     // Popup App
     esbuild.build({
       ...baseConfig,
-      entryPoints: [resolve(SRC_DIR, 'popup/popup.js')],
+      entryPoints: [resolve(SRC_DIR, 'popup/popup.ts')],
       outfile: resolve(DIST_DIR, 'popup/popup.js'),
     }),
     // Dashboard App
     esbuild.build({
       ...baseConfig,
-      entryPoints: [resolve(SRC_DIR, 'dashboard/dashboard.js')],
+      entryPoints: [resolve(SRC_DIR, 'dashboard/dashboard.ts')],
       outfile: resolve(DIST_DIR, 'dashboard.js'),
     }),
     // Content Script (SPA blocker)
     esbuild.build({
       ...baseConfig,
-      entryPoints: [resolve(SRC_DIR, 'background/contentScript.js')],
+      entryPoints: [resolve(SRC_DIR, 'background/contentScript.ts')],
       outfile: resolve(DIST_DIR, 'contentScript.js'),
       format: 'iife', // Content scripts must be IIFE
+    }),
+    // Blocked page logic
+    esbuild.build({
+      ...baseConfig,
+      entryPoints: [resolve(SRC_DIR, 'blocked/blocked.ts')],
+      outfile: resolve(DIST_DIR, 'blocked.js'),
+      format: 'iife',
     }),
   ]);
 
@@ -67,7 +74,6 @@ async function build() {
     ['src/popup/popup.html', 'dist/popup/popup.html'],
     ['src/dashboard/index.html', 'dist/dashboard.html'],
     ['src/blocked/blocked.html', 'dist/blocked.html'],
-    ['src/blocked/blocked.js', 'dist/blocked.js'],
     ['assets/icon.png', 'dist/assets/icon.png'],
   ];
 
@@ -116,4 +122,7 @@ async function build() {
   );
 }
 
-build();
+build().catch((err) => {
+  console.error('[FocusGate] Build failed:', err);
+  process.exit(1);
+});

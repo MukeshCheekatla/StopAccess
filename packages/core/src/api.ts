@@ -20,7 +20,7 @@ import {
   getDomainForRule,
   getNextDNSServiceId,
   resolveTargetInput,
-} from './domains.ts';
+} from './domains';
 
 const BASE_URL = 'https://api.nextdns.io';
 const MAX_RETRIES = 3;
@@ -235,13 +235,13 @@ export class NextDNSClient {
     ]);
 
     if (!services.ok) {
-      return services;
+      return services as any;
     }
     if (!categories.ok) {
-      return categories;
+      return categories as any;
     }
     if (!denylist.ok) {
-      return denylist;
+      return denylist as any;
     }
 
     return {
@@ -419,16 +419,28 @@ export class NextDNSClient {
     }
   }
 
-  async unblockAll(): Promise<boolean> {
+  async unblockAll(): Promise<NextDNSResponse<boolean>> {
     try {
       const [resDeny, resSvc, resCat] = await Promise.all([
         this.setDenylist([]),
         this.setServices([]),
         this.setCategories([]),
       ]);
-      return resDeny.ok && resSvc.ok && resCat.ok;
-    } catch {
-      return false;
+      if (resDeny.ok && resSvc.ok && resCat.ok) {
+        return { ok: true, data: true };
+      }
+      return {
+        ok: false,
+        error: {
+          code: 'network_failure',
+          message: 'One or more resets failed',
+        },
+      };
+    } catch (e: any) {
+      return {
+        ok: false,
+        error: { code: 'network_failure', message: e.message },
+      };
     }
   }
 }
@@ -450,14 +462,6 @@ export async function blockApps(
 ): Promise<{ ok: boolean; error?: string; domains?: string[] }> {
   const client = new NextDNSClient(cfg, log);
   return client.blockApps(rulesToBlock);
-}
-
-export async function unblockAll(
-  cfg: NextDNSConfig,
-  log: any,
-): Promise<boolean> {
-  const client = new NextDNSClient(cfg, log);
-  return client.unblockAll();
 }
 
 export async function getParentalControlServices(
@@ -683,4 +687,11 @@ export async function setDenylistDomainState(
   } else {
     return client.removeDenylistItem(domain);
   }
+}
+export async function unblockAll(
+  cfg: NextDNSConfig,
+  log: any,
+): Promise<NextDNSResponse<boolean>> {
+  const client = new NextDNSClient(cfg, log);
+  return client.unblockAll();
 }

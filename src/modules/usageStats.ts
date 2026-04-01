@@ -16,7 +16,7 @@
 
 import { NativeModules, Platform } from 'react-native';
 import { storage } from '../store/storageAdapter';
-import { AppUsageStat } from '../types';
+import { AppUsageStat } from '@focusgate/types';
 
 // --- Internal types ---
 

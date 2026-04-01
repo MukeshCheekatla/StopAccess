@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
-import { orchestrator } from './src/engine';
+import { orchestrator } from './src/engine/nativeEngine';
 import { storageAdapter } from './src/store/storageAdapter';
 import * as nextDNS from './src/api/nextdns';
 import { addLog } from './src/services/logger';

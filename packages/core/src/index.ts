@@ -3,11 +3,11 @@
  * 100% Platform Agnostic — Works in React Native AND Browser Extension.
  */
 
-export * from './api.ts';
-export * from './engine.ts';
-export * from './sync.ts';
-export * from './syncAdapter.ts';
-export * from './domains.ts';
-export * from './insights.ts';
-export * from './iconography.ts';
-export * from './utils.ts';
+export * from './api';
+export * from './engine';
+export * from './sync';
+export * from './syncAdapter';
+export * from './domains';
+export * from './insights';
+export * from './iconography';
+export * from './utils';

@@ -18,8 +18,8 @@ import {
   hasUsagePermission,
   requestUsagePermission,
 } from '../modules/usageStats';
-import { DailySnapshot, AppRule, AppUsageStat } from '../types';
-import { AppIconImage } from '../components/AppIconImage';
+import { DailySnapshot, AppRule, AppUsageStat } from '@focusgate/types';
+import AppIcon from '../components/AppIcon';
 import { formatDuration } from '../utils/time';
 import { formatAppName } from '../utils/text';
 import { getRules, updateRule, saveRules } from '@focusgate/state/rules';
@@ -545,7 +545,7 @@ export default function DashboardScreen() {
               return (
                 <View key={item.packageName} style={styles.appCard}>
                   <View style={styles.appTop}>
-                    <AppIconImage
+                    <AppIcon
                       packageName={item.packageName}
                       size={40}
                       iconBase64={rule?.iconBase64}
@@ -594,7 +594,7 @@ export default function DashboardScreen() {
                 onPress={() => onQuickAdd(item)}
               >
                 <View style={styles.appTop}>
-                  <AppIconImage packageName={item.packageName} size={40} />
+                  <AppIcon packageName={item.packageName} size={40} />
                   <View style={styles.infoCol}>
                     <Text style={styles.appName} numberOfLines={1}>
                       {formatAppName(item.appName)}

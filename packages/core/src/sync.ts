@@ -12,9 +12,9 @@ import {
   NextDNSSyncAdapter,
   SyncPullResult,
   SyncPushResult,
-} from './syncAdapter.ts';
+} from './syncAdapter';
 
-export * from './syncAdapter.ts';
+export * from './syncAdapter';
 
 export class SyncOrchestrator {
   ctx: SyncContext;

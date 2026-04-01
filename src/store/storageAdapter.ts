@@ -3,11 +3,10 @@
  * Implements the @focusgate/types/StorageAdapter interface using react-native-mmkv.
  */
 import { MMKV } from 'react-native-mmkv';
-import { AppRule, GlobalState } from '../types';
+import { AppRule, GlobalState, SyncState } from '@focusgate/types';
 import * as rulesState from '@focusgate/state/rules';
 import * as schedulesState from '@focusgate/state/schedules';
 import * as syncState from '@focusgate/state/sync';
-import { SyncState } from '@focusgate/types';
 
 export const storage = new MMKV({ id: 'focusgate-storage' });
 

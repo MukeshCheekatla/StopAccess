@@ -28,7 +28,7 @@ import {
 } from '../modules/usageStats';
 import { notifyBlocked } from '../services/notifications';
 import { UI_EXAMPLES, runFullEngineCycle } from '@focusgate/core';
-import { orchestrator } from '../engine';
+import { orchestrator } from '../engine/nativeEngine';
 import { storageAdapter, storage } from '../store/storageAdapter';
 import { getLogs, LogEntry, addLog } from '../services/logger';
 import { AppRule, SyncState } from '@focusgate/types';

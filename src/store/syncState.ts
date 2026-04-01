@@ -1,5 +1,5 @@
 import { storage } from './storageAdapter';
-import { SyncState, SyncStatus } from '../types';
+import { SyncState, SyncStatus } from '@focusgate/types';
 
 const SYNC_STATE_KEY = 'nextdns_sync_state';
 

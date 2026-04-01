@@ -1,6 +1,6 @@
 import { AppRule, ScheduleRule, SyncContext } from '@focusgate/types';
-import { getDomainForRule, FALLBACK_DOMAINS } from './domains.ts';
-import { SyncOrchestrator } from './sync.ts';
+import { getDomainForRule, FALLBACK_DOMAINS } from './domains';
+import { SyncOrchestrator } from './sync';
 
 export class FocusEngine {
   private ctx: SyncContext;

@@ -22,8 +22,8 @@ import {
   toggleSchedule,
 } from '@focusgate/state/schedules';
 import { storageAdapter } from '../store/storageAdapter';
-import { ScheduleRule } from '../types';
-import { AppIconImage } from '../components/AppIconImage';
+import { ScheduleRule } from '@focusgate/types';
+import AppIcon from '../components/AppIcon';
 import { getRules } from '@focusgate/state/rules';
 
 const { width } = Dimensions.get('window');
@@ -160,7 +160,7 @@ export default function ScheduleScreen() {
               <View style={styles.iconsRow}>
                 {item.appNames.slice(0, 5).map((pkg) => (
                   <View key={pkg} style={styles.miniIcon}>
-                    <AppIconImage packageName={pkg} size={24} />
+                    <AppIcon packageName={pkg} size={24} />
                   </View>
                 ))}
                 {item.appNames.length > 5 && (

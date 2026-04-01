@@ -42,8 +42,8 @@ export function buildExtensionPagePath(page: string): string {
   ).chrome;
 
   try {
-    const serviceWorkerPath =
-      runtimeChrome?.runtime?.getManifest?.()?.background?.service_worker;
+    const manifest = runtimeChrome?.runtime?.getManifest?.() as any;
+    const serviceWorkerPath = manifest?.background?.service_worker;
 
     if (
       typeof serviceWorkerPath === 'string' &&

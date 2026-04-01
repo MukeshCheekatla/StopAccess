@@ -15,10 +15,10 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../components/theme';
 import { getRules, updateRule, deleteRule } from '@focusgate/state/rules';
 import { storageAdapter } from '../store/storageAdapter';
-import { AppRule, RuleMode } from '../types';
+import { AppRule, RuleMode } from '@focusgate/types';
 import * as nextDNS from '../api/nextdns';
 import { AppPickerModal } from '../components/AppPickerModal';
-import { AppIconImage } from '../components/AppIconImage';
+import AppIcon from '../components/AppIcon';
 import { formatDuration } from '../utils/time';
 import { getWeeklyAverage } from '../modules/usageStats';
 import { PinGate } from '../components/PinGate';
@@ -297,7 +297,7 @@ export default function AppsScreen() {
   const renderItem = ({ item }: { item: AppRule }) => (
     <View style={styles.card}>
       <View style={styles.cardTop}>
-        <AppIconImage
+        <AppIcon
           packageName={item.packageName}
           iconBase64={item.iconBase64}
           appName={item.appName}

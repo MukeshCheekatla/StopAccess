@@ -2,179 +2,56 @@
  * @focusgate/core — Iconography Engine
  * Resolves brands and domains to high-quality assets.
  */
+import { BrandDefinition, ServiceIconResult } from '@focusgate/types';
+import { BRAND_DATA } from './iconography.data';
 
 export const SERVICE_URLS = {
   NEXTDNS_LOGIN: 'https://my.nextdns.io/login',
   SIMPLE_ICONS_CDN: 'https://cdn.simpleicons.org',
   GOOGLE_FAVICON_API: 'https://www.google.com/s2/favicons',
-  DUCKDUCKGO_ICONS: 'https://icons.duckduckgo.com/ip3',
-  CLEARBIT_LOGO: 'https://logo.clearbit.com',
   GOOGLE_FONTS_URL:
     'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap',
 };
 
-type BrandSource = 'simpleicon' | 'favicon';
+const DOMAIN_TO_BRAND: Record<string, string> = {};
+for (const [key, def] of Object.entries(BRAND_DATA)) {
+  if (def.domain) {
+    DOMAIN_TO_BRAND[def.domain] = key;
+  }
+}
 
-type BrandDefinition = {
-  color: string;
-  slug?: string;
-  domain?: string;
-  source?: BrandSource;
-};
+const COMMON_TLDS = new Set([
+  'com',
+  'net',
+  'org',
+  'edu',
+  'gov',
+  'io',
+  'co',
+  'tv',
+  'app',
+  'dev',
+]);
 
-const BRAND_DATA: Record<string, BrandDefinition> = {
-  '9gag': {
-    slug: '9gag',
-    color: '#ffffff',
-    domain: '9gag.com',
-  },
-  amazon: {
-    source: 'favicon',
-    color: '#FF9900',
-    domain: 'amazon.com',
-  },
-  bereal: {
-    slug: 'bereal',
-    color: '#ffffff',
-    domain: 'bere.al',
-  },
-  blizzard: {
-    source: 'favicon',
-    color: '#00B4FF',
-    domain: 'blizzard.com',
-  },
-  chatgpt: {
-    source: 'favicon',
-    color: '#10a37f',
-    domain: 'chatgpt.com',
-  },
-  dailymotion: {
-    slug: 'dailymotion',
-    color: '#0066DC',
-    domain: 'dailymotion.com',
-  },
-  discord: { slug: 'discord', color: '#5865F2', domain: 'discord.com' },
-  disneyplus: {
-    source: 'favicon',
-    color: '#113CCF',
-    domain: 'disneyplus.com',
-  },
-  ebay: { slug: 'ebay', color: '#E53238', domain: 'ebay.com' },
-  facebook: { slug: 'facebook', color: '#1877F2', domain: 'facebook.com' },
-  fortnite: {
-    source: 'favicon',
-    color: '#ffffff',
-    domain: 'fortnite.com',
-  },
-  google: { slug: 'google', color: '#4285F4', domain: 'google.com' },
-  googlechat: {
-    source: 'favicon',
-    color: '#34A853',
-    domain: 'chat.google.com',
-  },
-  hbomax: {
-    source: 'favicon',
-    color: '#8B5CF6',
-    domain: 'max.com',
-  },
-  hulu: {
-    source: 'favicon',
-    color: '#1CE783',
-    domain: 'hulu.com',
-  },
-  imgur: { slug: 'imgur', color: '#1BB76E', domain: 'imgur.com' },
-  instagram: {
-    slug: 'instagram',
-    color: '#E4405F',
-    domain: 'instagram.com',
-  },
-  leagueoflegends: {
-    source: 'favicon',
-    color: '#C89B3C',
-    domain: 'leagueoflegends.com',
-  },
-  linkedin: { slug: 'linkedin', color: '#0077B5', domain: 'linkedin.com' },
-  mastodon: {
-    slug: 'mastodon',
-    color: '#6364FF',
-    domain: 'mastodon.social',
-  },
-  messenger: {
-    source: 'favicon',
-    color: '#0084FF',
-    domain: 'messenger.com',
-  },
-  minecraft: {
-    source: 'favicon',
-    color: '#62B74A',
-    domain: 'minecraft.net',
-  },
-  netflix: { slug: 'netflix', color: '#E50914', domain: 'netflix.com' },
-  openai: { slug: 'openai', color: '#10a37f', domain: 'openai.com' },
-  pinterest: {
-    slug: 'pinterest',
-    color: '#BD081C',
-    domain: 'pinterest.com',
-  },
-  playstation: {
-    slug: 'playstation',
-    color: '#003791',
-    domain: 'playstation.com',
-  },
-  'playstation-network': {
-    slug: 'playstation',
-    color: '#003791',
-    domain: 'playstation.com',
-  },
-  primevideo: {
-    source: 'favicon',
-    color: '#00A8E1',
-    domain: 'primevideo.com',
-  },
-  reddit: { slug: 'reddit', color: '#FF4500', domain: 'reddit.com' },
-  roblox: { slug: 'roblox', color: '#000000', domain: 'roblox.com' },
-  signal: { slug: 'signal', color: '#3A76F0', domain: 'signal.org' },
-  skype: {
-    source: 'favicon',
-    color: '#00AFF0',
-    domain: 'skype.com',
-  },
-  slack: { slug: 'slack', color: '#4A154B', domain: 'slack.com' },
-  snapchat: {
-    source: 'favicon',
-    color: '#FFFC00',
-    domain: 'snapchat.com',
-  },
-  spotify: { slug: 'spotify', color: '#1DB954', domain: 'spotify.com' },
-  steam: { slug: 'steam', color: '#ffffff', domain: 'steampowered.com' },
-  telegram: { slug: 'telegram', color: '#26A5E4', domain: 'telegram.org' },
-  teams: {
-    slug: 'microsoftteams',
-    color: '#6264A7',
-    domain: 'teams.microsoft.com',
-  },
-  tiktok: { slug: 'tiktok', color: '#ffffff', domain: 'tiktok.com' },
-  tinder: {
-    source: 'favicon',
-    color: '#FF4458',
-    domain: 'tinder.com',
-  },
-  tumblr: { slug: 'tumblr', color: '#36465D', domain: 'tumblr.com' },
-  twitch: { slug: 'twitch', color: '#9146FF', domain: 'twitch.tv' },
-  twitter: { slug: 'x', color: '#ffffff', domain: 'x.com' },
-  vimeo: { slug: 'vimeo', color: '#1AB7EA', domain: 'vimeo.com' },
-  vk: {
-    source: 'favicon',
-    color: '#0077FF',
-    domain: 'vk.com',
-  },
-  whatsapp: { slug: 'whatsapp', color: '#25D366', domain: 'whatsapp.com' },
-  x: { slug: 'x', color: '#ffffff', domain: 'x.com' },
-  xbox: { slug: 'xbox', color: '#107C10', domain: 'xbox.com' },
-  xboxlive: { slug: 'xbox', color: '#107C10', domain: 'xbox.com' },
-  youtube: { slug: 'youtube', color: '#FF0000', domain: 'youtube.com' },
-  zoom: { slug: 'zoom', color: '#2D8CFF', domain: 'zoom.us' },
-};
+const SKIP_WORDS = new Set([
+  'login',
+  'auth',
+  'signin',
+  'signup',
+  'sso',
+  'api',
+  'app',
+  'www',
+  'mail',
+  'smtp',
+  'cdn',
+  'static',
+  'admin',
+  'portal',
+  'my',
+  'account',
+  'dashboard',
+]);
 
 function normalizeKey(value = ''): string {
   return String(value)
@@ -190,7 +67,9 @@ function getBrandAssetUrls(match: BrandDefinition) {
     match.source === 'favicon'
       ? fallbackUrl
       : match.slug
-      ? `${SERVICE_URLS.SIMPLE_ICONS_CDN}/${match.slug}`
+      ? `${SERVICE_URLS.SIMPLE_ICONS_CDN}/${match.slug}/${(
+          match.color || '#FFFFFF'
+        ).replace('#', '')}`
       : fallbackUrl;
 
   return {
@@ -201,38 +80,47 @@ function getBrandAssetUrls(match: BrandDefinition) {
 
 /**
  * Resolves a NextDNS service/app ID to a high-fidelity vibrant icon asset.
+ * @deprecated Use resolveIconUrl for a simpler identifier-to-URL mapping.
+ * This is maintained for legacy NextDNS entity mapping that requires full 'ServiceIconResult'.
  */
-export function resolveServiceIcon(service: { id?: string; name?: string }) {
+export function resolveServiceIcon(service: {
+  id?: string;
+  name?: string;
+}): ServiceIconResult {
   const keys = [
     service?.id,
     service?.name,
     ...(service?.id?.includes('.') ? service.id.split('.') : []),
     ...(service?.name?.includes('.') ? service.name.split('.') : []),
-  ];
+  ].filter(Boolean) as string[];
 
   // 1. BRAND_DATA (Verified Assets)
   for (const k of keys) {
-    const norm = normalizeKey(k || '');
+    const norm = normalizeKey(k);
     if (!norm || norm.length <= 2) {
       continue;
     }
 
-    const match = BRAND_DATA[norm];
+    const brandKey = DOMAIN_TO_BRAND[k] || norm;
+    const match = BRAND_DATA[brandKey];
     if (match) {
       const { primaryUrl, fallbackUrl } = getBrandAssetUrls(match);
+      if (!primaryUrl && !fallbackUrl) {
+        continue;
+      }
 
       return {
         kind: 'remote',
-        url: primaryUrl,
+        url: (primaryUrl || fallbackUrl) as string,
         fallbackUrl,
         domain: match.domain || null,
         accent: match.color,
-        label: (service?.name || service?.id || '?')[0].toUpperCase(),
+        label: String(service?.name || service?.id || '?')[0].toUpperCase(),
       };
     }
   }
 
-  // 2. Google Favicon (More reliable than Clearbit) — we use favicon here too!
+  // 2. Google Favicon (More reliable than Clearbit)
   const domainCandidate =
     service?.id?.includes('.') && service.id.length > 4
       ? service.id
@@ -241,49 +129,42 @@ export function resolveServiceIcon(service: { id?: string; name?: string }) {
       : null;
 
   if (domainCandidate) {
-    const url = getFaviconUrl(domainCandidate);
-    if (url) {
+    const rootDomain = getRootDomain(domainCandidate);
+    const rootUrl = getFaviconUrl(rootDomain);
+    const subUrl = getFaviconUrl(domainCandidate);
+
+    if (rootUrl) {
       return {
         kind: 'remote',
-        url,
-        fallbackUrl: null,
-        domain: domainCandidate,
+        url: rootUrl, // Lead with the brand (root) icon
+        fallbackUrl: subUrl, // Fallback to subdomain if needed
+        domain: rootDomain,
         accent: '#3b82f6',
         label: domainCandidate[0].toUpperCase(),
       };
     }
   }
 
-  // 3. Fallback to Simple Icons Slug
-  for (const k of keys) {
-    const norm = normalizeKey(k || '');
-    const commonTlds = [
-      'com',
-      'net',
-      'org',
-      'edu',
-      'gov',
-      'io',
-      'co',
-      'tv',
-      'app',
-      'dev',
-    ];
-    if (norm.length > 3 && !commonTlds.includes(norm)) {
+  // 3. Fallback to Simple Icons Slug (Reverse scan to prefer brand segments)
+  for (const k of [...keys].reverse()) {
+    const norm = normalizeKey(k);
+    if (norm.length > 3 && !COMMON_TLDS.has(norm) && !SKIP_WORDS.has(norm)) {
       return {
         kind: 'remote',
         url: `${SERVICE_URLS.SIMPLE_ICONS_CDN}/${norm}`,
         fallbackUrl: null,
         domain: null,
         accent: '#3b82f6',
-        label: (service?.name || service?.id || '?')[0].toUpperCase(),
+        label: String(service?.name || service?.id || '?')[0].toUpperCase(),
       };
     }
   }
 
   return {
     kind: 'fallback',
-    label: (service?.name || service?.id || '?').slice(0, 2).toUpperCase(),
+    label: String(service?.name || service?.id || '?')
+      .slice(0, 2)
+      .toUpperCase(),
     accent: '#3b82f6',
     fallbackUrl: null,
     domain: null,
@@ -305,9 +186,42 @@ export function getFaviconUrl(domain: string): string | null {
     return null;
   }
 
+  // Fallback check: if it's a subdomain, we might want the root domain instead
+  // However, we'll return the most specific one first.
   return `${SERVICE_URLS.GOOGLE_FAVICON_API}?domain=${encodeURIComponent(
     clean,
   )}&sz=128`;
+}
+
+/**
+ * Extracts the base domain (e.g. example.com) from a full domain string.
+ */
+export function getRootDomain(domain: string): string {
+  const clean = domain
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .split('/')[0]
+    .replace(/^www\./, '');
+
+  const parts = clean.split('.');
+  if (parts.length <= 2) {
+    return clean;
+  }
+
+  // Handle common multi-part TLDs (e.g. .co.uk, .com.br)
+  const isMultiPartTld =
+    parts.length > 2 &&
+    (parts[parts.length - 2] === 'co' ||
+      parts[parts.length - 2] === 'com' ||
+      parts[parts.length - 2] === 'org' ||
+      parts[parts.length - 2] === 'gov' ||
+      parts[parts.length - 2] === 'edu');
+
+  if (isMultiPartTld && parts.length > 2) {
+    return parts.slice(-3).join('.');
+  }
+
+  return parts.slice(-2).join('.');
 }
 
 const CATEGORY_EMOJI_MAP: Record<string, string> = {
@@ -337,6 +251,17 @@ export function getCategoryBadge(category: { id?: string; name?: string }) {
  * High-level resolver: Simple Icons -> Google Favicon (Clearbit unreliable)
  */
 export function getAppIconUrl(identifier: string): string | null {
+  return resolveIconUrl(identifier) || null;
+}
+
+/**
+ * THE single source of truth for icon resolution across all screens.
+ * Priority order:
+ *   1. BRAND_DATA slug → Simple Icons CDN (full-color SVG, most vibrant)
+ *   2. BRAND_DATA favicon → Google Favicon on brand domain
+ *   3. Root domain → Google Favicon on stripped root
+ */
+export function resolveIconUrl(identifier: string): string | null {
   if (!identifier) {
     return null;
   }
@@ -348,14 +273,32 @@ export function getAppIconUrl(identifier: string): string | null {
     .replace(/^www\./, '')
     .split('/')[0];
 
-  const segments = cleanId.split('.');
+  // 1. BRAND_DATA Lookup (Domain & Segment)
+  const root = getRootDomain(cleanId);
 
-  for (const seg of segments) {
-    const norm = normalizeKey(seg);
-    if (BRAND_DATA[norm]) {
-      return getBrandAssetUrls(BRAND_DATA[norm]).primaryUrl;
+  // A. Precise Domain Lookup (Highest Priority - e.g. steampowered.com, chat.google.com)
+  const domainKey = DOMAIN_TO_BRAND[cleanId] || DOMAIN_TO_BRAND[root];
+  if (domainKey && BRAND_DATA[domainKey]) {
+    const { primaryUrl, fallbackUrl } = getBrandAssetUrls(
+      BRAND_DATA[domainKey],
+    );
+    if (primaryUrl || fallbackUrl) {
+      return (primaryUrl || fallbackUrl) as string;
     }
   }
 
-  return getFaviconUrl(cleanId);
+  // B. Segment Match (Fallback logic)
+  const segments = cleanId.split('.');
+  for (const seg of segments) {
+    const norm = normalizeKey(seg);
+    if (norm.length > 2 && BRAND_DATA[norm]) {
+      const { primaryUrl, fallbackUrl } = getBrandAssetUrls(BRAND_DATA[norm]);
+      if (primaryUrl || fallbackUrl) {
+        return (primaryUrl || fallbackUrl) as string;
+      }
+    }
+  }
+
+  // 3. Google Favicon Root
+  return getFaviconUrl(root);
 }

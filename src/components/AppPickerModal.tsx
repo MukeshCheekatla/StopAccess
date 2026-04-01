@@ -23,9 +23,9 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, SPACING, RADIUS, FONT } from './theme';
 import { getInstalledApps, InstalledApp } from '../modules/installedApps';
-import { AppIconImage } from './AppIconImage';
+import AppIcon from './AppIcon';
 import { refreshTodayUsage, getCachedUsage } from '../modules/usageStats';
-import { AppUsageStat } from '../types';
+import { AppUsageStat } from '@focusgate/types';
 import { formatDuration } from '../utils/time';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -286,7 +286,7 @@ export const AppPickerModal: React.FC<Props> = ({
                     disabled={isAdded}
                     onPress={() => onSelect(item)}
                   >
-                    <AppIconImage
+                    <AppIcon
                       packageName={item.packageName}
                       appName={item.appName}
                       size={44}
