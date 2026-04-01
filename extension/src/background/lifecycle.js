@@ -101,12 +101,11 @@ async function saveUsage(domain, durationMs) {
 
     // Check for limit hit
     if (
-      rule.dailyLimitMinutes > 0 &&
-      rule.usedMinutesToday >= rule.dailyLimitMinutes
+      rule.mode === 'limit' &&
+      (rule.usedMinutesToday || 0) >= (rule.dailyLimitMinutes || 0)
     ) {
       if (!rule.blockedToday) {
         rule.blockedToday = true;
-        rule.mode = 'block';
         extensionLogger.add('info', `Limit reached for ${domain}. Blocking.`);
       }
     }
@@ -215,6 +214,17 @@ async function runCycle(forceSync = false) {
 
     if (lastReset && lastReset !== todayStr) {
       await chrome.storage.local.set({ usage: {} });
+      const currentRules = await getRules(extensionAdapter);
+      const resetRules = currentRules.map((r) => ({
+        ...r,
+        usedMinutesToday: 0,
+        blockedToday: false,
+        desiredBlockingState:
+          r.mode === 'limit' ? true : r.desiredBlockingState,
+      }));
+      await saveRules(extensionAdapter, resetRules);
+      await extensionAdapter.set(STORAGE_KEYS.LAST_RESET, todayStr);
+      extensionLogger.add('info', `Daily reset performed for ${todayStr}`);
     }
 
     const cfg = await chrome.storage.local.get([
@@ -352,6 +362,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       [STORAGE_KEYS.LOGS]: JSON.stringify([]),
       usage: {},
       fg_sync_mode: 'hybrid',
+      [STORAGE_KEYS.LAST_RESET]: new Date().toISOString().split('T')[0],
     });
     // Open full-page dashboard on install
     const url = chrome.runtime.getURL(buildExtensionPagePath('dashboard.html'));

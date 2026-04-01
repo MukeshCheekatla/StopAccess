@@ -295,8 +295,39 @@ function buildRuleFromTarget(target, active) {
 
 function getRuleActiveState(rule) {
   return Boolean(
-    rule?.desiredBlockingState ?? rule?.blockedToday ?? rule?.mode === 'block',
+    rule?.desiredBlockingState ?? rule?.blockedToday ?? rule?.mode !== 'allow',
   );
+}
+
+function renderLimitSelector(rule) {
+  const limitValue = rule.dailyLimitMinutes || 0;
+  const options = [
+    { value: 0, label: 'Instant Block' },
+    { value: 5, label: '5 min' },
+    { value: 10, label: '10 min' },
+    { value: 15, label: '15 min' },
+    { value: 30, label: '30 min' },
+    { value: 45, label: '45 min' },
+    { value: 60, label: '1 hour' },
+    { value: 90, label: '1.5 hours' },
+    { value: 120, label: '2 hours' },
+  ];
+
+  return `
+    <select class="input-premium edit-limit-select" data-pkg="${escapeHtml(
+      rule.packageName,
+    )}" style="width: 130px; height: 32px; font-size: 11px; padding: 0 10px; border-radius: 10px; background: rgba(15, 15, 22, 0.4); font-weight: 800;">
+      ${options
+        .map(
+          (opt) => `
+        <option value="${opt.value}" ${
+            limitValue === opt.value ? 'selected' : ''
+          }>${opt.label}</option>
+      `,
+        )
+        .join('')}
+    </select>
+  `;
 }
 
 async function renderSubTab(rules) {
@@ -398,7 +429,6 @@ async function renderSubTab(rules) {
 
 function renderDomainRuleCard(rule) {
   const active = getRuleActiveState(rule);
-  const limitValue = rule.dailyLimitMinutes || 0;
 
   return `
     <div class="service-card ${
@@ -415,9 +445,7 @@ function renderDomainRuleCard(rule) {
              <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">${escapeHtml(
                rule.appName || rule.packageName,
              )}</div>
-             <div class="stat-lbl" style="font-size: 12px;">${escapeHtml(
-               rule.customDomain || rule.packageName,
-             )}</div>
+             <div class="stat-lbl" style="font-size: 11px;">Domain</div>
            </div>
         </div>
         <div style="display:flex; align-items:center; gap: 8px;">
@@ -438,12 +466,9 @@ function renderDomainRuleCard(rule) {
       </div>
       <div style="display:flex; align-items:center; justify-content:space-between; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
         <div style="display:flex; align-items:center; gap: 8px;">
-           <input type="number" class="input edit-limit" value="${limitValue}" data-pkg="${escapeHtml(
-    rule.packageName,
-  )}" style="width: 50px; padding: 4px; font-size: 13px; text-align: center;">
-           <span style="font-size: 12px; color: var(--muted); font-weight: 700;">MIN</span>
+           ${renderLimitSelector(rule)}
         </div>
-        <div style="font-size: 9px; color: var(--muted); text-transform: uppercase;">Daily Limit</div>
+        <div style="font-size: 8px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Usage Allowance</div>
       </div>
     </div>
   `;
@@ -461,7 +486,7 @@ function renderServiceCard(service, rules) {
   return `
     <div class="service-card ${
       active ? 'active' : ''
-    }" style="display:flex; flex-direction:column; gap: 12px; height: auto; padding: 16px;">
+    }" style="display:flex; flex-direction:column; gap: 12px; height: auto; min-height: 140px; padding: 16px;">
       <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%;">
         <div style="display:flex; align-items:center; gap: 12px; min-width: 0;">
            ${renderBrandLogo(service.id, service.name, 44)}
@@ -469,7 +494,7 @@ function renderServiceCard(service, rules) {
              <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">${escapeHtml(
                service.name,
              )}</div>
-             <div class="stat-lbl" style="font-size: 12px;">App</div>
+             <div class="stat-lbl" style="font-size: 11px;">App</div>
            </div>
         </div>
         <div style="display:flex; align-items:center; gap: 8px;">
@@ -488,6 +513,14 @@ function renderServiceCard(service, rules) {
           </button>
         </div>
       </div>
+      <div style="display:${
+        active ? 'flex' : 'none'
+      }; align-items:center; justify-content:space-between; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
+        <div style="display:flex; align-items:center; gap: 8px;">
+           ${localRule ? renderLimitSelector(localRule) : ''}
+        </div>
+        <div style="font-size: 8px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Usage Allowance</div>
+      </div>
     </div>
   `;
 }
@@ -505,7 +538,7 @@ function renderCategoryCard(category, rules) {
   return `
     <div class="service-card ${
       active ? 'active' : ''
-    }" style="display:flex; flex-direction:column; gap: 12px; height: auto; padding: 16px;">
+    }" style="display:flex; flex-direction:column; gap: 12px; height: auto; min-height: 140px; padding: 16px;">
       <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%;">
         <div style="display:flex; align-items:center; gap: 12px; min-width: 0;">
            <div style="width: 44px; height: 44px; border-radius: 12px; background: rgba(255,255,255,0.03); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; color: var(--accent); border: 1px solid var(--glass-border); flex-shrink: 0;">
@@ -515,7 +548,7 @@ function renderCategoryCard(category, rules) {
              <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px;">${escapeHtml(
                category.name,
              )}</div>
-             <div class="stat-lbl" style="font-size: 12px;">Category</div>
+             <div class="stat-lbl" style="font-size: 11px;">Category</div>
            </div>
         </div>
         <div style="display:flex; align-items:center; gap: 8px;">
@@ -533,6 +566,14 @@ function renderCategoryCard(category, rules) {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
           </button>
         </div>
+      </div>
+      <div style="display:${
+        active ? 'flex' : 'none'
+      }; align-items:center; justify-content:space-between; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); width: 100%;">
+        <div style="display:flex; align-items:center; gap: 8px;">
+           ${localRule ? renderLimitSelector(localRule) : ''}
+        </div>
+        <div style="font-size: 8px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Usage Allowance</div>
       </div>
     </div>
   `;
@@ -610,10 +651,17 @@ async function setupHandlers(container, rules) {
               }
             : buildRule(id, kind, name, targetState));
 
+        const newMode = !targetState
+          ? 'allow'
+          : (baseRule.dailyLimitMinutes || 0) > 0
+          ? 'limit'
+          : 'block';
+
         await updateRule(storage, {
           ...baseRule,
           blockedToday: targetState,
-          mode: targetState ? 'block' : 'allow',
+          mode: newMode,
+          dailyLimitMinutes: baseRule.dailyLimitMinutes ?? 0,
           desiredBlockingState: targetState,
           updatedAt: Date.now(),
         });
@@ -660,18 +708,24 @@ async function setupHandlers(container, rules) {
     });
   });
 
-  container.querySelectorAll('.edit-limit').forEach((input) => {
+  container.querySelectorAll('.edit-limit-select').forEach((input) => {
     input.addEventListener('change', async () => {
       const pkg = input.getAttribute('data-pkg');
       const val = parseInt(input.value, 10) || 0;
       const rule = rules.find((r) => (r.customDomain || r.packageName) === pkg);
       if (rule) {
+        const newMode = val > 0 ? 'limit' : 'block';
         await updateRule(storage, {
           ...rule,
           dailyLimitMinutes: val,
+          mode: newMode,
           updatedAt: Date.now(),
         });
         chrome.runtime.sendMessage({ action: 'manualSync' });
+        toast.info(
+          `Usage limit updated: ${input.options[input.selectedIndex].text}`,
+        );
+        await refreshListOnly();
       }
     });
   });

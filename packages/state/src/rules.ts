@@ -50,7 +50,9 @@ export async function deleteRule(
 
 export function isRuleActive(rule?: Partial<AppRule> | null): boolean {
   return Boolean(
-    rule?.desiredBlockingState ?? rule?.blockedToday ?? rule?.mode === 'block',
+    rule?.desiredBlockingState ??
+      rule?.blockedToday ??
+      (rule?.mode === 'block' || rule?.mode === 'limit'),
   );
 }
 
@@ -66,7 +68,7 @@ export function createRule(
     customDomain: type === 'domain' ? id : undefined,
     type,
     scope: type === 'domain' ? 'browser' : 'profile',
-    mode: active ? 'block' : 'allow',
+    mode: active ? 'limit' : 'allow',
     dailyLimitMinutes: 0,
     blockedToday: active,
     desiredBlockingState: active,

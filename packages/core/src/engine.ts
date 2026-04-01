@@ -78,14 +78,16 @@ export function evaluateRules({
       shouldBlock = true;
     }
 
-    if (r.mode === 'limit' && (r.dailyLimitMinutes || 0) > 0) {
-      if ((r.usedMinutesToday || 0) >= r.dailyLimitMinutes) {
-        shouldBlock = true;
-      }
-    }
-
     if (r.mode === 'block') {
       shouldBlock = true;
+    }
+
+    if (r.mode === 'limit') {
+      const limit = r.dailyLimitMinutes || 0;
+      const used = r.usedMinutesToday || 0;
+      if (used >= limit || limit === 0) {
+        shouldBlock = true;
+      }
     }
 
     const updated = { ...r, blockedToday: shouldBlock };

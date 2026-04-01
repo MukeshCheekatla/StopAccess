@@ -39,18 +39,60 @@ export async function renderAppsPopup(container) {
     // Get top 3 sites by usage that aren't already blocked
     const recentActivity = Object.entries(usage)
       .map(([domain, d]) => ({ domain, time: d.time || 0 }))
-      .filter(
-        (d) =>
-          d.time > 60000 &&
-          !rules.some((r) => (r.customDomain || r.packageName) === d.domain),
-      )
+      .filter((d) => {
+        const isAlreadyBlocked = rules.some((r) => {
+          const ruleDomain = r.customDomain || r.packageName;
+          return (
+            ruleDomain === d.domain ||
+            (ruleDomain && d.domain.endsWith(`.${ruleDomain}`))
+          );
+        });
+        return d.time > 60000 && !isAlreadyBlocked;
+      })
       .sort((a, b) => b.time - a.time)
       .slice(0, 3);
 
     const render = () => {
       const isAlreadyBlocked =
         currentDomain &&
-        rules.some((r) => (r.customDomain || r.packageName) === currentDomain);
+        rules.some((r) => {
+          const ruleDomain = r.customDomain || r.packageName;
+          return (
+            ruleDomain === currentDomain ||
+            (ruleDomain && currentDomain.endsWith(`.${ruleDomain}`))
+          );
+        });
+
+      const renderLimitSelector = (rule) => {
+        const limitValue = rule.dailyLimitMinutes || 0;
+        const options = [
+          { value: 0, label: 'Instant Block' },
+          { value: 5, label: '5m' },
+          { value: 10, label: '10m' },
+          { value: 15, label: '15m' },
+          { value: 30, label: '30m' },
+          { value: 45, label: '45m' },
+          { value: 60, label: '1h' },
+          { value: 90, label: '1.5h' },
+          { value: 120, label: '2h' },
+        ];
+
+        return `
+          <select class="edit-limit-select-popup" data-pkg="${escapeHtml(
+            rule.packageName,
+          )}" style="background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 6px; color: var(--text); font-size: 10px; padding: 2px 4px; outline: none; font-weight: 700;">
+            ${options
+              .map(
+                (opt) => `
+              <option value="${opt.value}" ${
+                  limitValue === opt.value ? 'selected' : ''
+                }>${opt.label}</option>
+            `,
+              )
+              .join('')}
+          </select>
+        `;
+      };
 
       container.innerHTML = `
       <div style="margin-bottom: 16px; display: flex; gap: 8px;">
@@ -67,7 +109,9 @@ export async function renderAppsPopup(container) {
           ? `
       <div class="glass-card" style="margin-bottom: 20px; padding: 12px 14px; background: linear-gradient(135deg, rgba(82, 82, 91, 0.05), transparent); border-color: rgba(82, 82, 91, 0.2); display: flex; align-items: center; justify-content: space-between;">
         <div style="display: flex; align-items: center; gap: 12px;">
-          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center; font-size: 14px;">🌐</div>
+          <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center;">
+            <img src="https://www.google.com/s2/favicons?domain=${currentDomain}&sz=64" style="width: 20px; height: 20px; border-radius: 4px;">
+          </div>
           <div>
             <div style="font-size: 12px; font-weight: 800; color: #fff;">${currentDomain}</div>
             <div style="font-size: 9px; color: var(--muted); font-weight: 700; text-transform: uppercase;">CURRENT SITE</div>
@@ -103,13 +147,14 @@ export async function renderAppsPopup(container) {
             <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:0;">
               ${renderRuleIcon(rule)}
               <div style="min-width:0; flex:1;">
-                 <div style="font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(
-                   rule.appName || rule.packageName,
-                 )}</div>
-                 <div style="font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase;">${
-                   rule.scope || 'LOCAL'
-                 }</div>
-              </div>
+                  <div style="font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(
+                    rule.appName || rule.packageName,
+                  )}</div>
+                  <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                    <div style="font-size: 9px; color: var(--muted); font-weight: 600; text-transform: uppercase;">Allowance:</div>
+                    ${renderLimitSelector(rule)}
+                  </div>
+               </div>
             </div>
             <div style="display:flex; align-items:center; gap:8px;">
               <button class="toggle-switch-btn ${
@@ -237,7 +282,13 @@ export async function renderAppsPopup(container) {
             }
 
             // 2. Local State Commit
-            rule.mode = targetState ? 'block' : 'allow';
+            const newMode = !targetState
+              ? 'allow'
+              : (rule.dailyLimitMinutes || 0) > 0
+              ? 'limit'
+              : 'block';
+            rule.mode = newMode;
+            rule.dailyLimitMinutes = rule.dailyLimitMinutes ?? 0;
             rule.blockedToday = targetState;
             rule.desiredBlockingState = targetState;
             rule.updatedAt = Date.now();
@@ -285,6 +336,7 @@ export async function renderAppsPopup(container) {
                 res.kind === 'domain' ? res.normalizedId : undefined,
               scope: res.kind === 'service' ? 'profile' : 'browser',
               mode: 'block',
+              dailyLimitMinutes: 0,
               blockedToday: true,
               desiredBlockingState: true,
               usedMinutesToday: 0,
@@ -328,6 +380,7 @@ export async function renderAppsPopup(container) {
                 res.kind === 'domain' ? res.normalizedId : undefined,
               scope: res.kind === 'service' ? 'profile' : 'browser',
               mode: 'block',
+              dailyLimitMinutes: 0,
               blockedToday: true,
               desiredBlockingState: true,
               usedMinutesToday: 0,
@@ -359,6 +412,7 @@ export async function renderAppsPopup(container) {
               customDomain: domain,
               scope: 'browser',
               mode: 'block',
+              dailyLimitMinutes: 0,
               blockedToday: true,
               desiredBlockingState: true,
               usedMinutesToday: 0,
@@ -377,6 +431,28 @@ export async function renderAppsPopup(container) {
           }
         });
       });
+      // Limit Change
+      container
+        .querySelectorAll('.edit-limit-select-popup')
+        .forEach((select) => {
+          select.addEventListener('change', async () => {
+            const pkg = select.dataset.pkg;
+            const val = parseInt(select.value, 10) || 0;
+            const rule = rules.find((r) => r.packageName === pkg);
+            if (rule) {
+              const newMode = val > 0 ? 'limit' : 'block';
+              rule.dailyLimitMinutes = val;
+              rule.mode = newMode;
+              rule.updatedAt = Date.now();
+              await updateRule(storage, rule);
+              chrome.runtime.sendMessage({ action: 'manualSync' });
+              toast.success(
+                `Limit set to ${select.options[select.selectedIndex].text}`,
+              );
+              renderAppsPopup(container);
+            }
+          });
+        });
     };
 
     render();
