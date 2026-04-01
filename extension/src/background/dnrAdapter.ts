@@ -1,8 +1,3 @@
-/**
- * DNR Adapter for FocusGate Extension
- * Synchronizes domain rules with chrome.declarativeNetRequest
- */
-
 import { getLockedTargets } from './sessionGuard';
 
 export async function syncDNRRules(domains: string[]) {
@@ -11,7 +6,6 @@ export async function syncDNRRules(domains: string[]) {
   }
 
   try {
-    // 1. Guard rule reduction during focus sessions
     const locked = await getLockedTargets();
     const incomingNormalized = domains.map((d) =>
       String(d || '')
@@ -28,7 +22,6 @@ export async function syncDNRRules(domains: string[]) {
         '[FocusGate] Protection: Re-injecting locked domains into DNR rules:',
         missingLocked,
       );
-      // Ensure they are added back so they cannot be removed via rule sync
       domains = [...domains, ...missingLocked];
     }
 
@@ -44,9 +37,8 @@ export async function syncDNRRules(domains: string[]) {
       ),
     );
 
-    // Only block sub-resources via DNR.
-    // main_frame blocking is handled entirely by the content script overlay,
-    // which allows for a smoother transition and more context-aware blocking UI.
+    // Sub-resource blocking only.
+    // main_frame is handled by content script overlay.
     const netRules = uniqueDomains.map((domain, index) => ({
       id: index + 1,
       priority: 1,

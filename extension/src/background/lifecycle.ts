@@ -8,6 +8,7 @@ import {
   NextDNSClient,
   SyncOrchestrator,
   buildExtensionPagePath,
+  getDomainForRule,
 } from '@focusgate/core';
 import { NextDNSConfig } from '@focusgate/types';
 import { getRules, saveRules } from '@focusgate/state/rules';
@@ -101,7 +102,19 @@ async function saveUsage(domain, durationMs) {
 
   await recordDailySnapshot(extensionAdapter, totalMins, blockedCount);
 
-  const ruleIdx = rules.findIndex((r) => matchesDomain(domain, r.packageName));
+  const ruleIdx = rules.findIndex((r) => {
+    if (matchesDomain(domain, r.packageName)) {
+      return true;
+    }
+    if (r.customDomain && matchesDomain(domain, r.customDomain)) {
+      return true;
+    }
+    const mapped = getDomainForRule(r);
+    if (mapped && matchesDomain(domain, mapped)) {
+      return true;
+    }
+    return false;
+  });
   if (ruleIdx >= 0) {
     const mins = durationMs / 60000;
     const rule = rules[ruleIdx];
@@ -227,10 +240,16 @@ async function runCycle(forceSync = false) {
         ...r,
         usedMinutesToday: 0,
         blockedToday: false,
+        extensionCountToday: 0,
         desiredBlockingState:
           r.mode === 'limit' ? true : r.desiredBlockingState,
       }));
       await saveRules(extensionAdapter, resetRules);
+      // Clean temp passes and extension counts
+      await chrome.storage.local.set({
+        fg_temp_passes: {},
+        fg_extension_counts: {},
+      });
       await extensionAdapter.set(STORAGE_KEYS.LAST_RESET, todayStr);
       extensionLogger.add('info', `Daily reset performed for ${todayStr}`);
     }

@@ -13,6 +13,7 @@ export interface AppRule {
   dailyLimitMinutes: number;
   blockedToday: boolean;
   usedMinutesToday: number;
+  extensionCountToday?: number;
   customDomain?: string;
   iconBase64?: string;
   addedByUser: boolean;

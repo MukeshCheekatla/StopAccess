@@ -137,6 +137,35 @@ export async function renderDashboard(container) {
         </div>
       </div>
 
+      ${(() => {
+        const extensionRules = rules.filter(
+          (r) => (r.extensionCountToday || 0) > 0,
+        );
+        const totalExtensions = extensionRules.reduce(
+          (sum, r) => sum + (r.extensionCountToday || 0),
+          0,
+        );
+        if (totalExtensions === 0) {
+          return '';
+        }
+        return `
+          <div class="stats-row" style="margin-top:-4px;">
+            <div class="stat-card" style="grid-column:1/-1; flex-direction:row; display:flex; align-items:center; justify-content:space-between; border-color: rgba(108, 71, 255, 0.2); background: rgba(108, 71, 255, 0.04);">
+              <div>
+                <div class="stat-val" style="font-size:16px; color:#9f8cff;">${totalExtensions}</div>
+                <div class="stat-lbl">Time Extensions Used Today</div>
+              </div>
+              <div style="font-size:10px; color:var(--muted); text-align:right; line-height:1.5;">
+                ${extensionRules.length} app${
+          extensionRules.length !== 1 ? 's' : ''
+        } extended<br>
+                via block screen
+              </div>
+            </div>
+          </div>
+        `;
+      })()}
+
       ${
         limitCount > 0
           ? `
