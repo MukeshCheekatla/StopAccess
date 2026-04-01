@@ -521,6 +521,7 @@ function injectOverlay(domain, options: any = {}) {
 
       const ok = await grantTempPass(domain, minutes);
       if (ok) {
+        await chrome.runtime.sendMessage({ action: 'manualSync' });
         removeOverlay();
         // Page will load naturally now — checkAndBlock will see the active pass
       } else {

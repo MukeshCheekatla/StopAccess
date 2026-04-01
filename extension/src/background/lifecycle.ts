@@ -314,7 +314,28 @@ async function runCycle(forceSync = false) {
     // 2. Engine Logic (DNR Sync - All Levels)
     const result = await runFullEngineCycle(ctx);
 
-    const blockedDomains = result?.ok && result?.domains ? result.domains : [];
+    let blockedDomains = result?.ok && result?.domains ? result.domains : [];
+
+    // Filter out domains with active temporary passes
+    const passRes = await chrome.storage.local.get(['fg_temp_passes']);
+    const passes = passRes.fg_temp_passes || {};
+    const domainsWithPasses = Object.keys(passes).filter((domain) => {
+      const pass = passes[domain];
+      if (pass && Date.now() < pass.expiresAt) {
+        return true;
+      }
+      return false;
+    });
+
+    if (domainsWithPasses.length > 0) {
+      blockedDomains = blockedDomains.filter((domain) => {
+        // Matches exact or subdomains
+        return !domainsWithPasses.some(
+          (pd) => domain === pd || domain.endsWith('.' + pd),
+        );
+      });
+    }
+
     const dnrResult = await syncDNRRules(blockedDomains);
     await chrome.storage.local.set({
       [BLOCKED_DOMAINS_KEY]: blockedDomains,
