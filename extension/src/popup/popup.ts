@@ -93,4 +93,51 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // ── Core Sync Polling ────────────────────────────
   setInterval(updateStatus, 15 * 1000);
+
+  // ── Pass HUD logic ───────────────────────────────
+  const passHUD = document.getElementById('passHUD');
+  const clockSvg =
+    '<svg class="pass-timer-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
+
+  async function updatePassHUD() {
+    if (!passHUD) {
+      return;
+    }
+    const res = await chrome.storage.local.get(['fg_temp_passes']);
+    const passes = res.fg_temp_passes || {};
+    const activeEntries = Object.entries(passes)
+      .map(([domain, data]: [string, any]) => ({ domain, ...data }))
+      .filter((p) => p.expiresAt > Date.now());
+
+    if (activeEntries.length === 0) {
+      passHUD.style.display = 'none';
+      passHUD.innerHTML = '';
+      return;
+    }
+
+    passHUD.style.display = 'flex';
+    passHUD.innerHTML = activeEntries
+      .map((p) => {
+        const diffMs = p.expiresAt - Date.now();
+        const mins = Math.floor(diffMs / 60000);
+        const secs = Math.floor((diffMs % 60000) / 1000);
+        const timeStr = `${String(mins).padStart(2, '0')}:${String(
+          secs,
+        ).padStart(2, '0')}`;
+        return `
+        <div class="pass-item">
+          <div class="pass-domain">${p.domain}</div>
+          <div class="pass-timer-wrap">
+            ${clockSvg}
+            <div class="pass-timer-val">${timeStr}</div>
+            <div class="pass-label">PASS</div>
+          </div>
+        </div>
+      `;
+      })
+      .join('');
+  }
+
+  updatePassHUD();
+  setInterval(updatePassHUD, 1000);
 });

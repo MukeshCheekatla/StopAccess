@@ -530,6 +530,67 @@
       background: var(--glass-border);
       margin: 24px 0;
     }
+    /* ── Pass HUD ── */
+    #passHUD {
+      background: rgba(255, 255, 255, 0.02);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 10px 16px;
+      display: none; /* Hidden by default */
+      flex-direction: column;
+      gap: 6px;
+      animation: fadeIn 0.3s ease-out;
+    }
+    .pass-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .pass-domain {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--muted);
+      letter-spacing: -0.01em;
+      text-transform: lowercase;
+      max-width: 180px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pass-timer-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.04);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--glass-border);
+    }
+    .pass-timer-clock {
+      width: 10px;
+      height: 10px;
+      color: var(--accent);
+      animation: pulse 2s infinite ease-in-out;
+    }
+    .pass-timer-val {
+      font-size: 12px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      letter-spacing: -0.02em;
+    }
+    .pass-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.15);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
 
 
 
@@ -537,6 +598,7 @@
 </head>
 <body>
   <div class="main">
+    <div id="passHUD"></div>
     <div style="display: flex; gap: 8px; padding: 12px 16px; background: rgba(0,0,0,0.1); border-bottom: 1px solid var(--glass-border);">
       <button class="nav-item active" data-tab="dash" style="padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); color: var(--muted); font-size: 10px; font-weight: 800; cursor: pointer; white-space: nowrap;">DASHBOARD</button>
       <button class="nav-item" data-tab="apps" style="padding: 6px 12px; border-radius: 8px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); color: var(--muted); font-size: 10px; font-weight: 800; cursor: pointer; white-space: nowrap;">BLOCK LIST</button>
