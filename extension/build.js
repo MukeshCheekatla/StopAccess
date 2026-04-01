@@ -60,20 +60,12 @@ async function build() {
       outfile: resolve(DIST_DIR, 'contentScript.js'),
       format: 'iife', // Content scripts must be IIFE
     }),
-    // Blocked page logic
-    esbuild.build({
-      ...baseConfig,
-      entryPoints: [resolve(SRC_DIR, 'blocked/blocked.ts')],
-      outfile: resolve(DIST_DIR, 'blocked.js'),
-      format: 'iife',
-    }),
   ]);
 
   // Wiring and Static Assets
   const statics = [
     ['src/popup/popup.html', 'dist/popup/popup.html'],
     ['src/dashboard/index.html', 'dist/dashboard.html'],
-    ['src/blocked/blocked.html', 'dist/blocked.html'],
     ['assets/icon.png', 'dist/assets/icon.png'],
   ];
 
@@ -99,11 +91,8 @@ async function build() {
       rawManifest.content_scripts[0].js = ['contentScript.js'];
     }
 
-    if (
-      rawManifest.web_accessible_resources &&
-      rawManifest.web_accessible_resources[0]
-    ) {
-      rawManifest.web_accessible_resources[0].resources = ['blocked.html'];
+    if (rawManifest.web_accessible_resources) {
+      delete rawManifest.web_accessible_resources;
     }
 
     // Save the re-mapped manifest into dist/

@@ -3,7 +3,6 @@
  * Synchronizes domain rules with chrome.declarativeNetRequest
  */
 
-import { buildExtensionPagePath } from '@focusgate/core';
 import { getLockedTargets } from './sessionGuard';
 
 export async function syncDNRRules(domains: string[]) {
@@ -45,48 +44,31 @@ export async function syncDNRRules(domains: string[]) {
       ),
     );
 
-    const blockedPagePath = `/${buildExtensionPagePath('blocked.html')}`;
-    const netRules = uniqueDomains.flatMap((domain, index) => {
-      const baseId = index * 2 + 1;
-      return [
-        {
-          id: baseId,
-          priority: 2,
-          action: {
-            type: 'redirect',
-            redirect: {
-              extensionPath: blockedPagePath,
-            },
-          },
-          condition: {
-            urlFilter: `||${domain}^`,
-            resourceTypes: ['main_frame'],
-          },
-        },
-        {
-          id: baseId + 1,
-          priority: 1,
-          action: { type: 'block' },
-          condition: {
-            urlFilter: `||${domain}^`,
-            resourceTypes: [
-              'sub_frame',
-              'stylesheet',
-              'script',
-              'image',
-              'font',
-              'object',
-              'xmlhttprequest',
-              'ping',
-              'csp_report',
-              'media',
-              'websocket',
-              'other',
-            ],
-          },
-        },
-      ];
-    });
+    // Only block sub-resources via DNR.
+    // main_frame blocking is handled entirely by the content script overlay,
+    // which allows for a smoother transition and more context-aware blocking UI.
+    const netRules = uniqueDomains.map((domain, index) => ({
+      id: index + 1,
+      priority: 1,
+      action: { type: 'block' as const },
+      condition: {
+        urlFilter: `||${domain}^`,
+        resourceTypes: [
+          'sub_frame',
+          'stylesheet',
+          'script',
+          'image',
+          'font',
+          'object',
+          'xmlhttprequest',
+          'ping',
+          'csp_report',
+          'media',
+          'websocket',
+          'other',
+        ],
+      },
+    }));
 
     const oldRules = await chrome.declarativeNetRequest.getDynamicRules();
     await chrome.declarativeNetRequest.updateDynamicRules({
@@ -94,7 +76,9 @@ export async function syncDNRRules(domains: string[]) {
       addRules: netRules as any,
     });
 
-    console.log(`[FocusGate] DNR Synced: ${netRules.length} rules active.`);
+    console.log(
+      `[FocusGate] DNR Synced: ${netRules.length} sub-resource rules active.`,
+    );
     return { ok: true, count: netRules.length };
   } catch (error) {
     console.error('[FocusGate] DNR Sync failed:', error);
