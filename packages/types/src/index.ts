@@ -180,3 +180,63 @@ export interface SyncContext {
     applyBlockedPackages: (packageNames: string[]) => Promise<void>;
   };
 }
+
+// --- Iconography ---
+
+export type BrandSource = 'simpleicon' | 'favicon';
+
+export interface BrandDefinition {
+  color: string;
+  slug?: string;
+  domain?: string;
+  source?: BrandSource;
+}
+
+export type ServiceIconResult =
+  | {
+      kind: 'remote';
+      url: string;
+      fallbackUrl: string | null;
+      domain: string | null;
+      accent: string;
+      label: string;
+    }
+  | {
+      kind: 'fallback';
+      url?: null;
+      fallbackUrl: null;
+      domain: null;
+      accent: string;
+      label: string;
+    };
+
+export type SessionStatus =
+  | 'idle'
+  | 'focusing'
+  | 'break'
+  | 'completed'
+  | 'cancelled';
+
+export interface FocusSessionConfig {
+  duration: number; // minutes
+  breakDuration?: number; // minutes
+  blockedDomains: string[];
+}
+
+export interface FocusSessionRecord {
+  id: string;
+  status: SessionStatus;
+  startedAt: number;
+  endedAt?: number;
+  duration: number; // total focus minutes
+  actualMinutes?: number;
+  breakDuration: number;
+  blockedDomains: string[];
+  elapsed: number; // seconds elapsed
+  blockedAtStart?: {
+    denylist: string[];
+    services: string[];
+    categories: string[];
+  };
+  blockBypassEnabled?: boolean;
+}
