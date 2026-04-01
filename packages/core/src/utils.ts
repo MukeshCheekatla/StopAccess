@@ -42,11 +42,13 @@ export function buildExtensionPagePath(page: string): string {
   ).chrome;
 
   try {
-    const serviceWorkerPath = runtimeChrome?.runtime
-      ?.getManifest?.()
-      ?.background?.service_worker;
+    const serviceWorkerPath =
+      runtimeChrome?.runtime?.getManifest?.()?.background?.service_worker;
 
-    if (typeof serviceWorkerPath === 'string' && serviceWorkerPath.startsWith('dist/')) {
+    if (
+      typeof serviceWorkerPath === 'string' &&
+      serviceWorkerPath.startsWith('dist/')
+    ) {
       return `dist/${safePage}`;
     }
   } catch {
@@ -57,5 +59,7 @@ export function buildExtensionPagePath(page: string): string {
 }
 
 export function buildDashboardTabPath(tab: string): string {
-  return `${buildExtensionPagePath('dashboard.html')}?tab=${encodeURIComponent(tab)}`;
+  return `${buildExtensionPagePath('dashboard.html')}?tab=${encodeURIComponent(
+    tab,
+  )}`;
 }

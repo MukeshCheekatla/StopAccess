@@ -9,5 +9,10 @@
     "./rules": "./src/rules.ts",
     "./schedules": "./src/schedules.ts",
     "./insights": "./src/insights.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/** --fix",
+    "typecheck": "tsc --noEmit"
   }
 }

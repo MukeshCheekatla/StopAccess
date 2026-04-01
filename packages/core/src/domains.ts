@@ -268,9 +268,7 @@ export function sanitizeDomain(value: string): string {
   return clean.includes('.') ? clean : '';
 }
 
-export function getNextDNSServiceDomain(
-  serviceId: string,
-): string | null {
+export function getNextDNSServiceDomain(serviceId: string): string | null {
   return NEXTDNS_SERVICE_DOMAINS[serviceId] || null;
 }
 

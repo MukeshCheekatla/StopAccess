@@ -99,7 +99,7 @@ export class NextDNSClient {
   constructor(
     private cfg: NextDNSConfig,
     private log: (level: string, msg: string, details?: string) => void,
-  ) { }
+  ) {}
 
   private async fetch(
     path: string,
@@ -287,7 +287,8 @@ export class NextDNSClient {
 
   async removeServiceItem(id: string): Promise<NextDNSResponse<boolean>> {
     const res = await this.fetch(
-      `/profiles/${this.cfg.profileId
+      `/profiles/${
+        this.cfg.profileId
       }/parentalControl/services/${encodeURIComponent(id)}`,
       {
         method: 'DELETE',
@@ -309,7 +310,8 @@ export class NextDNSClient {
 
   async removeCategoryItem(id: string): Promise<NextDNSResponse<boolean>> {
     const res = await this.fetch(
-      `/profiles/${this.cfg.profileId
+      `/profiles/${
+        this.cfg.profileId
       }/parentalControl/categories/${encodeURIComponent(id)}`,
       {
         method: 'DELETE',

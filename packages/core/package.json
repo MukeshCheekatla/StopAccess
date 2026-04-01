@@ -13,7 +13,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "lint": "eslint src/**",
+    "lint": "eslint src/** --fix",
     "typecheck": "tsc --noEmit"
   }
 }

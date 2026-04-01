@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run lint -- --fix && npm run typecheck && node build.js",
+    "build": "npm run typecheck && node build.js",
     "watch": "node build.js --watch",
     "check": "node ../scripts/check-extension.mjs",
-    "lint": "eslint .",
+    "lint": "eslint . --fix",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
