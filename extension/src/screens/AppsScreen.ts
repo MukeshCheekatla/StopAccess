@@ -640,7 +640,9 @@ async function loadNextDNSMetaData() {
       nextDNSApi.getParentalControlServices(),
       nextDNSApi.getParentalControlCategories(),
     ]);
-    availableServices = services.ok ? services.data.filter((service) => service.id) : [];
+    availableServices = services.ok
+      ? services.data.filter((service) => service.id)
+      : [];
     availableCategories = categories.ok
       ? categories.data.filter((category) => category.id)
       : [];

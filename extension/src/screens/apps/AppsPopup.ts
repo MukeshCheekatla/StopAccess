@@ -255,7 +255,7 @@ export async function renderAppsPopup(container) {
       const recentActivityBox = container.querySelector('#recentActivityBox');
       if (recentActivityBox) {
         recentActivityBox.innerHTML =
-        recentActivity.length > 0
+          recentActivity.length > 0
             ? `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding: 0 2px;">
           <div>
