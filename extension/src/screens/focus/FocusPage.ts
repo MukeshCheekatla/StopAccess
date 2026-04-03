@@ -53,7 +53,8 @@ function isSameDay(leftTs: number, rightTs: number): boolean {
 }
 
 function getTodayHistory(): FocusSessionRecord[] {
-  const history = ((window as any).__focusHistory as FocusSessionRecord[]) || [];
+  const history =
+    ((window as any).__focusHistory as FocusSessionRecord[]) || [];
   const now = Date.now();
   return history
     .filter((session) => session.endedAt && isSameDay(session.endedAt, now))
@@ -93,8 +94,8 @@ function renderTodayRecords(): string {
         session.status === 'completed'
           ? 'rgba(255,255,255,0.88)'
           : session.status === 'cancelled'
-            ? 'var(--red)'
-            : 'var(--muted)';
+          ? 'var(--red)'
+          : 'var(--muted)';
 
       return `
         <div style="display:grid; grid-template-columns:56px 1fr auto; gap:14px; align-items:center; padding:14px 0; border-top:1px solid rgba(255,255,255,0.06);">
@@ -107,22 +108,22 @@ function renderTodayRecords(): string {
     .join('');
 }
 
-function renderAmbientShell(centerContent: string, sideContent: string): string {
+function renderAmbientShell(
+  centerContent: string,
+  sideContent: string,
+): string {
   return `
-    <div style="position:relative; min-height:720px; border-radius:28px; overflow:hidden; background:
-      radial-gradient(circle at 48% 46%, rgba(0,135,120,0.18), transparent 24%),
-      radial-gradient(circle at 68% 34%, rgba(14,108,96,0.14), transparent 22%),
-      radial-gradient(circle at 36% 62%, rgba(7,80,74,0.1), transparent 22%),
-      linear-gradient(180deg, rgba(11,13,18,0.96), rgba(9,10,14,0.99));
-      border:1px solid rgba(255,255,255,0.05);">
+    <div style="position:relative; min-height:600px; border-radius:24px; overflow:hidden; background:
+      radial-gradient(circle at 48% 46%, rgba(0,180,160,0.12), transparent 30%),
+      linear-gradient(180deg, #09090b, #0c0d12);
+      border:1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column;">
       <div style="position:absolute; inset:0; background:
-        radial-gradient(circle at 50% 50%, transparent 0%, rgba(0,0,0,0.1) 54%, rgba(0,0,0,0.42) 100%),
-        linear-gradient(90deg, rgba(0,0,0,0.18), transparent 18%, transparent 78%, rgba(0,0,0,0.18));"></div>
-      <div style="position:relative; z-index:1; display:grid; grid-template-columns:minmax(0,1fr) 360px; gap:36px; min-height:720px; padding:40px;">
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 12px 30px;">
+        radial-gradient(circle at 50% 50%, transparent 20%, rgba(0,0,0,0.4) 100%);"></div>
+      <div style="position:relative; z-index:1; display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:24px; flex: 1; padding:32px;">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px;">
           ${centerContent}
         </div>
-        <div style="display:flex; flex-direction:column; gap:18px; padding-top:6px;">
+        <div style="display:flex; flex-direction:column; gap:16px;">
           ${sideContent}
         </div>
       </div>
@@ -136,38 +137,36 @@ function renderRingMarkup(
   label: string,
   sublabel: string,
 ): string {
-  const radius = 220;
+  const radius = 170;
   const tickCount = 120;
   const activeTicks = Math.round(progress * tickCount);
   const lines = Array.from({ length: tickCount }, (_, index) => {
     const angle = (index / tickCount) * Math.PI * 2 - Math.PI / 2;
-    const inner = radius - (index % 5 === 0 ? 26 : 16);
+    const inner = radius - (index % 5 === 0 ? 20 : 12);
     const outer = radius;
-    const x1 = 290 + inner * Math.cos(angle);
-    const y1 = 290 + inner * Math.sin(angle);
-    const x2 = 290 + outer * Math.cos(angle);
-    const y2 = 290 + outer * Math.sin(angle);
+    const x1 = 230 + inner * Math.cos(angle);
+    const y1 = 230 + inner * Math.sin(angle);
+    const x2 = 230 + outer * Math.cos(angle);
+    const y2 = 230 + outer * Math.sin(angle);
     const stroke =
-      index < activeTicks
-        ? 'rgba(132,255,228,0.92)'
-        : 'rgba(255,255,255,0.35)';
-    const strokeWidth = index % 5 === 0 ? 6 : 5;
+      index < activeTicks ? 'rgba(132,255,228,0.92)' : 'rgba(255,255,255,0.25)';
+    const strokeWidth = index % 5 === 0 ? 4 : 3;
     return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
   }).join('');
 
   return `
-    <div style="position:relative; width:580px; height:580px; max-width:100%;">
-      <svg viewBox="0 0 580 580" style="position:absolute; inset:0; width:100%; height:100%;">
-        <circle cx="290" cy="290" r="166" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
+    <div style="position:relative; width:460px; height:460px; max-width:100%;">
+      <svg viewBox="0 0 460 460" style="position:absolute; inset:0; width:100%; height:100%;">
+        <circle cx="230" cy="230" r="130" fill="rgba(82, 82, 91, 0.03)" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
         ${lines}
       </svg>
       <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <div id="liveTimerDisplay" style="font-size:96px; font-weight:300; line-height:0.95; letter-spacing:-0.08em; color:rgba(255,255,255,0.96); font-variant-numeric:tabular-nums;">${timeDisplay}</div>
-        <div style="margin-top:16px; display:inline-flex; align-items:center; gap:10px; color:rgba(255,255,255,0.58); font-size:12px; letter-spacing:0.12em; text-transform:uppercase;">
-          <span style="width:8px; height:8px; border-radius:50%; background:rgba(132,255,228,0.95); box-shadow:0 0 10px rgba(132,255,228,0.45);"></span>
+        <div id="liveTimerDisplay" style="font-size:72px; font-weight:300; line-height:0.95; letter-spacing:-0.06em; color:rgba(255,255,255,0.96); font-variant-numeric:tabular-nums;">${timeDisplay}</div>
+        <div style="margin-top:12px; display:inline-flex; align-items:center; gap:8px; color:rgba(255,255,255,0.58); font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">
+          <span style="width:6px; height:6px; border-radius:50%; background:rgba(132,255,228,0.95); box-shadow:0 0 8px rgba(132,255,228,0.45);"></span>
           ${label}
         </div>
-        <div style="margin-top:10px; max-width:280px; text-align:center; font-size:14px; line-height:1.6; color:rgba(255,255,255,0.54);">${sublabel}</div>
+        <div style="margin-top:8px; max-width:240px; text-align:center; font-size:13px; line-height:1.5; color:rgba(255,255,255,0.45);">${sublabel}</div>
       </div>
     </div>
   `;
@@ -195,7 +194,7 @@ function renderSessionNotes(items: string[]): string {
 
 function renderPresetButtons(): string {
   return `
-    <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:16px; width:100%; max-width:440px; margin-top:34px;">
+    <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; width:100%; max-width:400px; margin-top:20px;">
       ${[
         { m: 15, tag: 'Quick Sprint' },
         { m: 25, tag: 'Pomodoro' },
@@ -204,9 +203,9 @@ function renderPresetButtons(): string {
       ]
         .map(
           (preset) => `
-        <button class="btn-premium start-focus" data-mins="${preset.m}" style="display:flex; flex-direction:column; align-items:flex-start; gap:8px; padding:22px 20px; min-height:110px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); box-shadow:none; border-radius:22px; text-align:left;">
-          <span style="font-size:28px; font-weight:900; color:var(--text); line-height:1;">${preset.m}m</span>
-          <span style="font-size:11px; color:var(--muted); font-weight:800; text-transform:uppercase; letter-spacing:0.12em;">${preset.tag}</span>
+        <button class="btn-premium start-focus" data-mins="${preset.m}" style="display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:16px 18px; min-height:80px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); box-shadow:none; border-radius:18px; text-align:left;">
+          <span style="font-size:22px; font-weight:900; color:var(--text); line-height:1;">${preset.m}m</span>
+          <span style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.1em;">${preset.tag}</span>
         </button>
       `,
         )
@@ -367,10 +366,9 @@ function _renderActivePage(
     0,
     Math.min(1, 1 - Math.max(0, focusEnd - Date.now()) / totalDuration),
   );
-  const currentFocus =
-    activeSession?.blockedDomains?.length
-      ? activeSession.blockedDomains.slice(0, 2).join(' / ')
-      : 'Focus session active';
+  const currentFocus = activeSession?.blockedDomains?.length
+    ? activeSession.blockedDomains.slice(0, 2).join(' / ')
+    : 'Focus session active';
   const sublabel = `${Math.round(progress * 100)}% complete`;
 
   const centerContent = `
@@ -482,7 +480,12 @@ function _renderIdle(container: HTMLElement, context: 'page' | 'popup'): void {
 function _renderIdlePage(container: HTMLElement): void {
   const centerContent = `
     ${renderIdleStateSummary()}
-    ${renderRingMarkup('--:--', 0, 'Ready to Start', 'The timer appears only after you begin a real session.')}
+    ${renderRingMarkup(
+      '--:--',
+      0,
+      'Ready to Start',
+      'The timer appears only after you begin a real session.',
+    )}
     ${renderPresetButtons()}
   `;
 
@@ -593,7 +596,9 @@ function _showAbortModal(
   };">ABORT</button>
       </div>
     </div>
-    <div style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:9999; backdrop-filter:blur(${isPopup ? '4px' : '8px'});"></div>
+    <div style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:9999; backdrop-filter:blur(${
+      isPopup ? '4px' : '8px'
+    });"></div>
   `;
   document.body.appendChild(modalContainer);
 

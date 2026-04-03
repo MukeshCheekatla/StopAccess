@@ -38,31 +38,30 @@ export async function renderFocusPopup(container) {
     const totalDuration = focusEnd - focusStart;
     const remaining = focusEnd - now;
     const progress = Math.max(0, Math.min(1, remaining / totalDuration));
-
-    const radius = 90; // Smaller for popup
+    const radius = 82;
     const circum = 2 * Math.PI * radius;
     const offset = circum * (1 - progress);
 
     container.innerHTML = `
-      <div class="focus-container" style="padding: 20px 0;">
-        <div class="focus-timer-v2" style="width: 200px; height: 200px; margin-bottom: 24px;">
+      <div class="focus-container" style="padding: 10px 0;">
+        <div class="focus-timer-v2" style="width: 180px; height: 180px; margin-bottom: 16px;">
           <div class="focus-active-glow"></div>
-          <svg class="focus-timer-svg" viewBox="0 0 200 200">
-            <circle class="focus-timer-track" cx="100" cy="100" r="90" style="stroke-width: 6;" />
-            <circle class="focus-timer-progress" cx="100" cy="100" r="90" 
-                    style="stroke-width: 6;"
+          <svg class="focus-timer-svg" viewBox="0 0 180 180">
+            <circle class="focus-timer-track" cx="90" cy="90" r="82" style="stroke-width: 5;" />
+            <circle class="focus-timer-progress" cx="90" cy="90" r="82" 
+                    style="stroke-width: 5;"
                     stroke-dasharray="${circum}" 
                     stroke-dashoffset="${offset}" />
           </svg>
           <div class="focus-timer-text">
-            <div class="focus-timer-val" id="preciseTimerPopup" style="font-size: 2.5rem;">${formatTimePrecise(
+            <div class="focus-timer-val" id="preciseTimerPopup" style="font-size: 2.2rem;">${formatTimePrecise(
               remaining,
             )}</div>
             <div class="focus-timer-label" style="font-size: 8px;">Shield Active</div>
           </div>
         </div>
 
-        <button class="btn-premium" id="stopFocusPopup" style="background: rgba(255,255,255,0.02); color: var(--muted); border: 1px solid var(--glass-border); box-shadow: none; font-size: 10px; padding: 8px 16px;">
+        <button class="btn-premium" id="stopFocusPopup" style="background: rgba(255,255,255,0.02); color: var(--muted); border: 1px solid var(--glass-border); box-shadow: none; font-size: 10px; padding: 6px 14px;">
           ABORT SESSION
         </button>
       </div>
@@ -146,13 +145,13 @@ export async function renderFocusPopup(container) {
   } else {
     container.innerHTML = `
       <div class="focus-container" style="padding: 10px 0;">
-        <div style="text-align: center; margin-bottom: 24px;">
-            <div style="font-size: 32px; margin-bottom: 8px;">⏳</div>
-            <div class="widget-title" style="color: var(--text); font-size: 14px;">IGNITE DEEP FOCUS</div>
-            <div style="font-size: 10px; color: var(--muted); font-weight: 600; margin-top: 4px;">Network-wide synchronization lock.</div>
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 28px; margin-bottom: 6px;">⏳</div>
+            <div class="widget-title" style="color: var(--text); font-size: 13px;">IGNITE DEEP FOCUS</div>
+            <div style="font-size: 9px; color: var(--muted); font-weight: 600; margin-top: 2px;">Network-wide synchronization lock.</div>
         </div>
 
-        <div class="focus-presets" style="gap: 10px;">
+        <div class="focus-presets" style="gap: 8px; width: 100%; max-width: 280px;">
           ${[
             { m: 15, tag: 'Quick' },
             { m: 25, tag: 'Pomo' },
@@ -161,9 +160,9 @@ export async function renderFocusPopup(container) {
           ]
             .map(
               (p) => `
-            <div class="focus-preset-card start-focus" data-mins="${p.m}" style="padding: 14px 10px;">
-                <div class="focus-preset-time" style="font-size: 1.1rem;">${p.m}M</div>
-                <div class="focus-preset-tag" style="font-size: 8px;">${p.tag}</div>
+            <div class="focus-preset-card start-focus" data-mins="${p.m}" style="padding: 10px 8px; min-height: 60px;">
+                <div class="focus-preset-time" style="font-size: 1rem;">${p.m}M</div>
+                <div class="focus-preset-tag" style="font-size: 7px;">${p.tag}</div>
             </div>
           `,
             )
