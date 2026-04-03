@@ -63,14 +63,22 @@ export async function syncDNRRules(domains: string[]) {
     }));
 
     const oldRules = await chrome.declarativeNetRequest.getDynamicRules();
-    await chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: oldRules.map((r) => r.id),
-      addRules: netRules as any,
-    });
 
-    console.log(
-      `[FocusGate] DNR Synced: ${netRules.length} sub-resource rules active.`,
-    );
+    // Delay DNR block by 2 seconds to allow the page and block overlay to load first
+    setTimeout(async () => {
+      try {
+        await chrome.declarativeNetRequest.updateDynamicRules({
+          removeRuleIds: oldRules.map((r) => r.id),
+          addRules: netRules as any,
+        });
+        console.log(
+          `[FocusGate] DNR Synced (Delayed): ${netRules.length} sub-resource rules active.`,
+        );
+      } catch (e) {
+        console.error('[FocusGate] Delayed DNR update failed', e);
+      }
+    }, 2000);
+
     return { ok: true, count: netRules.length };
   } catch (error) {
     console.error('[FocusGate] DNR Sync failed:', error);
