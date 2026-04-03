@@ -23,7 +23,6 @@ let availableServices = [];
 let availableCategories = [];
 let isLoadingNextDNS = false;
 let searchTerm = '';
-let isConfigured = false;
 let globalContainer = null;
 
 function renderBrandLogo(identifier, name, size = 44) {
@@ -59,21 +58,17 @@ function renderAppIcon(domain, name) {
 
 export async function renderAppsPage(container) {
   globalContainer = container;
-  isConfigured = await nextDNSApi.isConfigured();
   await loadNextDNSMetadata();
 
   if (!container.querySelector('.search-bar')) {
     container.innerHTML = `
-      <div class="search-bar" style="margin-bottom: 32px; display: flex; gap: 12px; align-items: stretch;">
-        <div style="position: relative; flex: 1;">
-          <input type="text" placeholder="Filter or Add Domain (e.g. ${
-            UI_EXAMPLES.DOMAIN
-          })" id="appSearch" value="${escapeHtml(
+      <div class="search-bar" style="margin-bottom: 32px; position: relative;">
+        <input type="text" placeholder="Filter or Add Domain (e.g. ${
+          UI_EXAMPLES.DOMAIN
+        })" id="appSearch" value="${escapeHtml(
       searchTerm,
     )}" class="input-premium" style="width:100%; height:60px; font-size:15px; border-radius:20px; padding-left: 24px; background: rgba(15, 15, 22, 0.4);">
-          <div id="searchBadge" style="position: absolute; right: 20px; top: 20px; font-size: 12px; font-weight: 800; color: var(--muted); background: rgba(255,255,255,0.03); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--glass-border); pointer-events: none;">CTRL + F</div>
-        </div>
-        <div id="searchActionContainer"></div>
+        <div id="searchBadge" style="position: absolute; right: 20px; top: 15px; font-size: 12px; font-weight: 800; color: var(--muted); background: rgba(255,255,255,0.03); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--glass-border); pointer-events: none;">CTRL + F</div>
       </div>
 
       <div style="display: flex; padding: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 14px; margin-bottom: 40px; width: fit-content; min-width: 400px;">
@@ -81,13 +76,37 @@ export async function renderAppsPage(container) {
         <button class="nav-item-tab" data-tab="categories">CATEGORIES</button>
       </div>
 
-      <div id="tabContent"></div>
+      <div id="tabContent" style="padding-bottom: 100px;"></div>
+
+      <div id="searchActionContainer" style="position: fixed; bottom: 40px; right: 60px; z-index: 100;"></div>
     `;
 
-    container.querySelector('#appSearch')?.addEventListener('input', (e) => {
-      searchTerm = e.target.value.toLowerCase();
-      refreshListOnly();
-    });
+    if (!(window as any).__appsCtrlFBound) {
+      window.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key.toLowerCase() === 'f') {
+          const searchInput = document.getElementById('appSearch');
+          if (searchInput) {
+            e.preventDefault();
+            searchInput.focus();
+          }
+        }
+      });
+      (window as any).__appsCtrlFBound = true;
+    }
+
+    const searchInputEl = container.querySelector('#appSearch');
+    if (searchInputEl) {
+      searchInputEl.addEventListener('input', (e) => {
+        searchTerm = (e.target as HTMLInputElement).value.toLowerCase();
+        refreshListOnly();
+      });
+      searchInputEl.addEventListener('keydown', (e) => {
+        if ((e as KeyboardEvent).key === 'Enter') {
+          e.preventDefault();
+          handleAddDomain();
+        }
+      });
+    }
 
     container.querySelectorAll('.nav-item-tab').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -145,26 +164,9 @@ async function refreshListOnly() {
   }
 
   if (actionContainer) {
-    const normalizedSearch = searchTerm.includes('.')
-      ? searchTerm.trim().toLowerCase()
-      : '';
-    const resolvedTarget = normalizedSearch
-      ? await nextDNSApi.resolveTargetInput(normalizedSearch)
-      : null;
-    const existingId =
-      resolvedTarget?.kind === 'service'
-        ? resolvedTarget.normalizedId
-        : normalizedSearch;
-    const showAdd =
-      Boolean(normalizedSearch) &&
-      !rules.some((r) => (r.customDomain || r.packageName) === existingId);
-    actionContainer.innerHTML = showAdd
-      ? '<button class="btn-premium" id="btnAddDomainUnified" style="padding: 0 24px; border-radius: 20px; white-space: nowrap; height: 60px;">ADD RULE</button>'
-      : '<button class="btn-premium" id="btnOpenTargetDrawer" style="width: 60px; height: 60px; font-size: 24px; display: flex; align-items: center; justify-content: center; border-radius: 20px; padding: 0;">+</button>';
+    actionContainer.innerHTML =
+      '<button class="btn-premium" id="btnOpenTargetDrawer" style="width: 64px; height: 64px; font-size: 28px; display: flex; align-items: center; justify-content: center; border-radius: 32px; padding: 0; box-shadow: 0 10px 30px rgba(0,0,0,0.6); background: var(--accent);">+</button>';
 
-    globalContainer
-      .querySelector('#btnAddDomainUnified')
-      ?.addEventListener('click', handleAddDomain);
     globalContainer
       .querySelector('#btnOpenTargetDrawer')
       ?.addEventListener('click', () => {
@@ -204,26 +206,28 @@ async function handleAddDomain() {
     return;
   }
 
-  const btn = globalContainer.querySelector('#btnAddDomainUnified');
-  if (btn) {
-    btn.innerText = 'BLOCKING...';
-    btn.disabled = true;
+  const searchInput = globalContainer.querySelector(
+    '#appSearch',
+  ) as HTMLInputElement;
+  if (searchInput) {
+    searchInput.disabled = true;
   }
 
   const result = await appsController.addDomainRule(input);
   if (result.ok) {
     searchTerm = '';
-    const searchInput = globalContainer.querySelector('#appSearch');
     if (searchInput) {
       searchInput.value = '';
+      searchInput.disabled = false;
+      searchInput.focus();
     }
     await refreshListOnly();
-  } else if (btn) {
-    btn.innerText = 'FAILED';
-    setTimeout(() => {
-      btn.innerText = 'ADD RULE';
-      btn.disabled = false;
-    }, 2000);
+  } else {
+    if (searchInput) {
+      searchInput.disabled = false;
+      searchInput.focus();
+    }
+    toast.error('Failed to add rule');
   }
 }
 
@@ -311,55 +315,62 @@ async function renderSubTab(rules, lockedDomains: string[]) {
     const visibleApps = activeApps.filter(matchesSearch);
 
     return `
-      <div id="targetDrawerOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; background: rgba(5, 5, 10, 0.9); backdrop-filter: blur(20px);">
-        <div style="padding: 40px; height: 100%; overflow-y: auto;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px;">
+      <div id="targetDrawerOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px);">
+        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 900px; max-width: 90vw; height: 75vh; max-height: 800px; background: #0c0c0e; border: 1px solid var(--glass-border); border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);">
+          <div style="padding: 32px 40px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.03); flex-shrink: 0;">
             <div>
               <div style="font-size: 0.75rem; font-weight: 800; color: var(--accent); letter-spacing: 2px;">QUICK SETUP</div>
               <div style="font-size: 1.5rem; font-weight: 900; margin-top: 4px;">Initialize Active Rules</div>
             </div>
+            <div style="flex: 1;"></div>
             <button class="btn-premium" style="background: transparent; box-shadow: none; border: 1px solid var(--glass-border); padding: 8px 16px;" id="btnCloseTargetDrawer">CLOSE</button>
           </div>
           
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 16px; padding-bottom: 60px;">
-            ${NEXTDNS_SERVICES.filter(
-              (s) =>
-                !rules.some((r) => (r.customDomain || r.packageName) === s.id),
-            )
-              .map(
-                (s) => `
+          <div style="padding: 32px 40px; overflow-y: auto; flex: 1;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding-bottom: 60px;">
+            ${
+              NEXTDNS_SERVICES.filter(
+                (s) =>
+                  !rules.some(
+                    (r) => (r.customDomain || r.packageName) === s.id,
+                  ),
+              )
+                .sort((a, b) => a.name.localeCompare(b.name))
+                .map(
+                  (s) => `
                 <button class="btn-premium quick-add-service" data-id="${
                   s.id
                 }" data-name="${s.name}" 
-                  style="padding: 24px 16px; flex-direction: column; gap: 14px; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); box-shadow:none; min-height: 140px; justify-content: center; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position:relative; overflow:hidden;">
-                  <div style="position:absolute; top:10px; right:12px; width:22px; height:22px; border-radius:50%; background: #3F3F46; color:#FFFFFF; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:400; box-shadow: 0 4px 8px rgba(0,0,0,0.4);">+</div>
-                  ${renderAppIcon(s.id, s.name)}
-                  <div style="font-size: 0.9375rem; font-weight: 800; color: #FFFFFF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; letter-spacing: -0.01em;">${
-                    s.name
-                  }</div>
+                  style="padding: 14px 20px; display: flex; flex-direction: row; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 16px; box-shadow:none; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); width: 100%; cursor: pointer;">
+                  <div style="display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0;">
+                    <div style="width: 32px; height: 32px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+                      ${renderAppIcon(s.id, s.name)}
+                    </div>
+                    <div style="font-size: 0.95rem; font-weight: 600; color: #E4E4E5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${
+                      s.name
+                    }</div>
+                  </div>
+                  <div style="font-size: 24px; font-weight: 300; color: #FFFFFF; opacity: 0.4;">+</div>
                 </button>`,
-              )
-              .join('')}
+                )
+                .join('') ||
+              `<div style="grid-column: 1/-1; text-align: center; padding: 120px 20px; color: var(--muted); background: rgba(255,255,255,0.01); border-radius: 24px; border: 1px dashed var(--glass-border);">
+                <div style="font-size: 1.25rem; font-weight: 800; margin-bottom: 8px;">No matching apps found</div>
+                <div style="font-size: 0.875rem; opacity: 0.6;">Try adding a custom domain from the main search bar.</div>
+              </div>`
+            }
+
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="glass-card" style="padding: 18px 20px; margin-bottom: 24px; background: rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:space-between; gap: 16px;">
-        <div>
-          <div style="font-size: 10px; font-weight: 800; color: var(--muted); letter-spacing: 1.6px; text-transform: uppercase; margin-bottom: 6px;">Blocklist Modes</div>
-          <div style="font-size: 15px; font-weight: 800; color: #FFFFFF; margin-bottom: 4px;">Local rules and NextDNS rules are separated below</div>
-          <div style="font-size: 12px; color: var(--muted); line-height: 1.5;">Local blocklist covers custom domains in this extension. NextDNS blocklist covers synced apps and categories on your profile.</div>
-        </div>
-        <div style="display:flex; gap: 8px; flex-shrink: 0;">
-          <div class="status-pill muted">LOCAL</div>
-          <div class="status-pill active">NEXTDNS</div>
-        </div>
-      </div>
+      
 
       <div style="margin-bottom: 40px;">
         <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px;">
           <div style="font-weight: 800; color: #FFFFFF; font-size: 1.125rem; letter-spacing: -0.01em;">NextDNS Blocklist</div>
-          <div class="status-pill active">SYNCED APPS</div>
+          
         </div>
         <div style="font-size: 0.875rem; color: var(--muted); opacity: 0.8; line-height: 1.6; margin-bottom: 24px;">Configured app perimeters under profile control.</div>
         <div class="service-grid">
@@ -584,7 +595,9 @@ async function setupHandlers(container, rules) {
   container
     .querySelector('#btnCloseTargetDrawer')
     ?.addEventListener('click', () => {
-      const overlay = container.querySelector('#targetDrawerOverlay');
+      const overlay = container.querySelector(
+        '#targetDrawerOverlay',
+      ) as HTMLElement;
       if (overlay) {
         overlay.style.display = 'none';
       }
@@ -604,15 +617,16 @@ async function setupHandlers(container, rules) {
       const kind = btn.getAttribute('data-kind');
       const id = btn.getAttribute('data-id') || btn.getAttribute('data-pkg');
       const active = btn.classList.contains('active');
+      const isTabConfigured = kind !== 'domain';
       const targetState = !active;
-      const name = btn.getAttribute('data-name') || id;
+      const targetName = btn.getAttribute('data-name') || id;
 
       // Optimistic visual feedback (using partial opacity to signify pending)
       btn.style.opacity = '0.5';
 
       try {
         // 1. Remote Sync First
-        if (isConfigured) {
+        if (isTabConfigured) {
           const result = await nextDNSApi.setTargetState(kind, id, targetState);
           if (!result.ok) {
             const failedResult = result as { ok: false; error?: unknown };
@@ -626,7 +640,6 @@ async function setupHandlers(container, rules) {
           }
           await nextDNSApi.refreshNextDNSMetadata();
         }
-
         // 2. Commit Local State
         const existingRule = rules.find(
           (r) =>
@@ -637,10 +650,10 @@ async function setupHandlers(container, rules) {
           existingRule ||
           (kind === 'domain'
             ? {
-                ...buildRule(id, 'domain', name, targetState),
+                ...buildRule(id, 'domain', targetName, targetState),
                 customDomain: id,
               }
-            : buildRule(id, kind, name, targetState));
+            : buildRule(id, kind, targetName, targetState));
 
         const newMode = !targetState
           ? 'allow'
