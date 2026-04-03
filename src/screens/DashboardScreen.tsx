@@ -1,14 +1,23 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, {
+  useMemo,
+  useReducer,
+  useCallback,
+  useEffect,
+  useRef,
+} from 'react';
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Alert,
   NativeModules,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, SPACING, RADIUS } from '../components/theme';
@@ -29,6 +38,66 @@ import { isConfigured, unblockAll } from '../api/nextdns';
 const { RuleEngine } = NativeModules;
 import { getFocusStreak } from '@focusgate/core/insights';
 import { getLogs, LogEntry } from '../services/logger';
+
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
+// --- State Management ---
+
+interface DashboardState {
+  controlledUsage: AppUsageStat[];
+  distractingApps: AppUsageStat[];
+  rules: AppRule[];
+  refreshing: boolean;
+  hasPerm: boolean;
+  totalMins: number;
+  configured: boolean;
+  weeklySnapshots: DailySnapshot[];
+  focusStreak: number;
+  recentLogs: LogEntry[];
+  protectionLevel: string;
+  a11yEnabled: boolean;
+}
+
+type DashboardAction =
+  | { type: 'START_REFRESH' }
+  | { type: 'SET_DATA'; payload: Partial<DashboardState> }
+  | { type: 'END_REFRESH' };
+
+const initialState: DashboardState = {
+  controlledUsage: [],
+  distractingApps: [],
+  rules: [],
+  refreshing: false,
+  hasPerm: true,
+  totalMins: 0,
+  configured: false,
+  weeklySnapshots: [],
+  focusStreak: 0,
+  recentLogs: [],
+  protectionLevel: 'NONE',
+  a11yEnabled: true,
+};
+
+function dashboardReducer(
+  state: DashboardState,
+  action: DashboardAction,
+): DashboardState {
+  switch (action.type) {
+    case 'START_REFRESH':
+      return { ...state, refreshing: true };
+    case 'SET_DATA':
+      return { ...state, ...action.payload };
+    case 'END_REFRESH':
+      return { ...state, refreshing: false };
+    default:
+      return state;
+  }
+}
 
 // --- Sub-components ---
 
@@ -85,30 +154,43 @@ function WeeklyInsights({
   snapshots: DailySnapshot[];
   streak: number;
 }) {
-  if (
-    snapshots.every((s) => s.screenTimeMinutes === 0 && s.focusSessions === 0)
-  ) {
-    return null; // No data yet — hide until there's something to show
+  const hasData = useMemo(
+    () => snapshots.some((s) => s.screenTimeMinutes > 0 || s.focusSessions > 0),
+    [snapshots],
+  );
+
+  const stats = useMemo(() => {
+    if (!hasData) {
+      return null;
+    }
+
+    const weeklyBlocks = snapshots.reduce((s, d) => s + d.blockedAppsCount, 0);
+    const weeklyFocusMins = snapshots.reduce((s, d) => s + d.focusMinutes, 0);
+    const maxBar = Math.max(...snapshots.map((s) => s.screenTimeMinutes), 1);
+
+    const dayLabels = snapshots
+      .map((s) =>
+        new Date(s.date + 'T12:00:00').toLocaleDateString(undefined, {
+          weekday: 'short',
+        }),
+      )
+      .reverse();
+
+    const barValues = [...snapshots].reverse().map((s) => s.screenTimeMinutes);
+
+    return { weeklyBlocks, weeklyFocusMins, maxBar, dayLabels, barValues };
+  }, [snapshots, hasData]);
+
+  if (!hasData || !stats) {
+    return null;
   }
 
-  const weeklyBlocks = snapshots.reduce((s, d) => s + d.blockedAppsCount, 0);
-  const weeklyFocusMins = snapshots.reduce((s, d) => s + d.focusMinutes, 0);
-  const maxBar = Math.max(...snapshots.map((s) => s.screenTimeMinutes), 1);
-
-  const dayLabels = snapshots
-    .map((s) =>
-      new Date(s.date + 'T12:00:00').toLocaleDateString(undefined, {
-        weekday: 'short',
-      }),
-    )
-    .reverse();
-  const barValues = [...snapshots].reverse().map((s) => s.screenTimeMinutes);
+  const { weeklyBlocks, weeklyFocusMins, maxBar, dayLabels, barValues } = stats;
 
   return (
     <View style={insightStyles.card}>
       <Text style={insightStyles.cardTitle}>This Week</Text>
 
-      {/* 7-day bar chart */}
       <View style={insightStyles.chart}>
         {barValues.map((val, i) => (
           <View key={i} style={insightStyles.barCol}>
@@ -126,7 +208,6 @@ function WeeklyInsights({
         ))}
       </View>
 
-      {/* Stat pills */}
       <View style={insightStyles.pills}>
         <View style={insightStyles.pill}>
           <Icon name="fire" size={16} color={COLORS.accent} />
@@ -290,81 +371,122 @@ const nudgeStyles = StyleSheet.create({
 // --- Main Screen ---
 
 export default function DashboardScreen() {
-  const [controlledUsage, setControlledUsage] = useState<AppUsageStat[]>([]);
-  const [distractingApps, setDistractingApps] = useState<AppUsageStat[]>([]);
-  const [rules, setRules] = useState<AppRule[]>([]);
-  const [refreshing, setRefreshing] = useState(false);
-  const [hasPerm, setHasPerm] = useState(true);
-  const [totalMins, setTotalMins] = useState(0);
-  const [configured, setConfigured] = useState(false);
-  const [weeklySnapshots, setWeeklySnapshots] = useState<DailySnapshot[]>([]);
-  const [focusStreak, setFocusStreak] = useState(0);
-  const [recentLogs, setRecentLogs] = useState<LogEntry[]>([]);
-  const [protectionLevel, setProtectionLevel] = useState('NONE');
-  const [a11yEnabled, setA11yEnabled] = useState(true);
+  const [state, dispatch] = useReducer(dashboardReducer, initialState);
+  const isCancelled = useRef(false);
+  const insets = useSafeAreaInsets();
 
-  const load = useCallback(async (isAuto = false) => {
+  const loadData = useCallback(async (isAuto = false) => {
+    isCancelled.current = false;
     if (!isAuto) {
-      setRefreshing(true);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      dispatch({ type: 'START_REFRESH' });
     }
 
-    const isConfig = await isConfigured();
-    const [perm] = await Promise.all([hasUsagePermission()]);
+    try {
+      const isConfig = await isConfigured();
+      if (isCancelled.current) {
+        return;
+      }
 
-    setHasPerm(perm);
-    setConfigured(isConfig);
-    setWeeklySnapshots(await getSnapshots(storageAdapter));
-    setFocusStreak(await getFocusStreak(storageAdapter));
-    setRecentLogs(getLogs().slice(0, 5));
+      const [perm] = await Promise.all([hasUsagePermission()]);
+      if (isCancelled.current) {
+        return;
+      }
 
-    if (RuleEngine) {
-      const level = await RuleEngine.getProtectionLevel();
-      const a11y = await RuleEngine.isAccessibilityServiceEnabled();
-      setProtectionLevel(level);
-      setA11yEnabled(a11y);
+      const snapshots = await getSnapshots(storageAdapter);
+      const streak = await getFocusStreak(storageAdapter);
+      const logs = getLogs().slice(0, 5);
+      let level = 'NONE';
+      let a11y = true;
+
+      if (RuleEngine) {
+        try {
+          if (typeof RuleEngine.getProtectionLevel === 'function') {
+            const rawLevel = await RuleEngine.getProtectionLevel();
+            level = String(rawLevel || 'NONE');
+          }
+          if (typeof RuleEngine.isAccessibilityServiceEnabled === 'function') {
+            a11y = await RuleEngine.isAccessibilityServiceEnabled();
+          }
+        } catch (e: any) {
+          console.warn('[Dashboard] RuleEngine call failed:', e.message);
+        }
+      }
+
+      if (isCancelled.current) {
+        return;
+      }
+
+      const updateData: Partial<DashboardState> = {
+        hasPerm: perm,
+        configured: isConfig,
+        weeklySnapshots: snapshots,
+        focusStreak: streak,
+        recentLogs: logs,
+        protectionLevel: level,
+        a11yEnabled: a11y,
+      };
+
+      if (perm) {
+        const stats = await refreshTodayUsage().catch(
+          () => getCachedUsage() as AppUsageStat[],
+        );
+        const currentRules = await getRules(storageAdapter);
+
+        if (isCancelled.current) {
+          return;
+        }
+
+        const total = stats.reduce((sum, a) => sum + a.totalMinutes, 0);
+        // Filter and sort
+        const controlled = stats
+          .filter((s) =>
+            currentRules.some((r: AppRule) => r.packageName === s.packageName),
+          )
+          .sort((a, b) => b.totalMinutes - a.totalMinutes);
+
+        const distracting = stats
+          .filter(
+            (s) =>
+              !currentRules.some(
+                (r: AppRule) => r.packageName === s.packageName,
+              ),
+          )
+          .sort((a, b) => b.totalMinutes - a.totalMinutes)
+          .slice(0, 5);
+
+        Object.assign(updateData, {
+          totalMins: total,
+          controlledUsage: controlled,
+          distractingApps: distracting,
+          rules: currentRules,
+        });
+      }
+
+      dispatch({ type: 'SET_DATA', payload: updateData });
+    } catch (err) {
+      console.error('[Dashboard] Load failed', err);
+    } finally {
+      dispatch({ type: 'END_REFRESH' });
     }
-
-    if (perm) {
-      const stats = await refreshTodayUsage().catch(
-        () => getCachedUsage() as AppUsageStat[],
-      );
-      const currentRules = await getRules(storageAdapter);
-
-      const total = stats.reduce((sum, a) => sum + a.totalMinutes, 0);
-      setTotalMins(total);
-
-      // Filter
-      const controlled = stats.filter((s) =>
-        currentRules.some((r: AppRule) => r.packageName === s.packageName),
-      );
-      const distracting = stats
-        .filter(
-          (s) =>
-            !currentRules.some((r: AppRule) => r.packageName === s.packageName),
-        )
-        .sort((a, b) => b.totalMinutes - a.totalMinutes)
-        .slice(0, 5);
-
-      setControlledUsage(
-        controlled.sort((a, b) => b.totalMinutes - a.totalMinutes),
-      );
-      setDistractingApps(distracting);
-      setRules(currentRules);
-    }
-
-    setRefreshing(false);
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      load();
-    }, [load]),
+      loadData();
+      return () => {
+        isCancelled.current = true;
+      };
+    }, [loadData]),
   );
 
   useEffect(() => {
-    const timer = setInterval(() => load(true), 30000);
-    return () => clearInterval(timer);
-  }, [load]);
+    const timer = setInterval(() => loadData(true), 30000);
+    return () => {
+      clearInterval(timer);
+      isCancelled.current = true;
+    };
+  }, [loadData]);
 
   const onQuickAdd = async (app: any) => {
     const newRule: AppRule = {
@@ -379,13 +501,28 @@ export default function DashboardScreen() {
       addedByUser: true,
     };
     await updateRule(storageAdapter, newRule);
-    load();
+    loadData();
   };
+
+  const {
+    rules,
+    protectionLevel,
+    a11yEnabled,
+    totalMins,
+    configured,
+    weeklySnapshots,
+    focusStreak,
+    hasPerm,
+    controlledUsage,
+    distractingApps,
+    recentLogs,
+    refreshing,
+  } = state;
 
   const blockedCount = rules.filter((r) => r.blockedToday).length;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Header */}
         <View style={styles.header}>
@@ -482,7 +619,7 @@ export default function DashboardScreen() {
                           if (configured) {
                             await unblockAll().catch(() => {});
                           }
-                          load();
+                          await loadData();
                         },
                       },
                     ],
@@ -658,7 +795,7 @@ export default function DashboardScreen() {
             </View>
           )}
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

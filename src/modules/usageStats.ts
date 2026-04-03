@@ -163,6 +163,22 @@ export async function getWeeklyAverage(packageName: string): Promise<number> {
   }
 }
 
+/**
+ * Get the currently visible (foreground) package name.
+ * Returns "" if unavailable.
+ */
+export async function getForegroundApp(): Promise<string> {
+  const mod = (NativeModules as any).UsageStats;
+  if (!mod || typeof mod.getForegroundApp !== 'function') {
+    return '';
+  }
+  try {
+    return await mod.getForegroundApp();
+  } catch {
+    return '';
+  }
+}
+
 // --- Formatting ---
 
 /**

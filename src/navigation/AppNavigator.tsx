@@ -30,38 +30,26 @@ export default function AppNavigator() {
     !storage.getBoolean('onboarding_done'),
   );
 
+  const handleFinish = async () => {
+    storage.set('onboarding_done', true);
+    setShowOnboarding(false);
+  };
+
   if (showOnboarding) {
-    return <OnboardingScreen onFinish={() => setShowOnboarding(false)} />;
+    return <OnboardingScreen onFinish={handleFinish} />;
   }
 
   return (
     <NavigationContainer>
       <Tab.Navigator
         screenOptions={{
-          headerStyle: {
-            backgroundColor: COLORS.bg,
-            elevation: 0,
-            shadowOpacity: 0,
-          },
-          headerShadowVisible: false,
-          headerTintColor: COLORS.text,
+          headerShown: false,
           tabBarStyle: {
             backgroundColor: COLORS.card,
             borderTopWidth: 0,
             elevation: 0,
             height: 64,
             paddingBottom: 10,
-            paddingTop: 8,
-          },
-          tabBarLabelStyle: {
-            fontSize: 10,
-            marginBottom: 4,
-          },
-          tabBarActiveTintColor: COLORS.accent,
-          tabBarInactiveTintColor: COLORS.muted,
-          headerTitleStyle: {
-            color: COLORS.text,
-            fontWeight: 'bold',
           },
         }}
       >

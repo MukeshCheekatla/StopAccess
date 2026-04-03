@@ -47,6 +47,7 @@ class BlockerAccessibilityService : AccessibilityService() {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
 
         val pkg = event.packageName?.toString() ?: return
+        Log.d(TAG, "Window Switch: $pkg")
 
         // Never block ourselves or the system UI
         if (pkg == packageName || pkg == "com.android.systemui") {
@@ -54,13 +55,17 @@ class BlockerAccessibilityService : AccessibilityService() {
             return
         }
 
-        if (RuleEngine.isBlocked(applicationContext, pkg)) {
+        val isBlocked = RuleEngine.isBlocked(applicationContext, pkg)
+        Log.d(TAG, "Checking block for $pkg: $isBlocked")
+
+        if (isBlocked) {
             if (!OverlayManager.isShowing) {
-                Log.i(TAG, "Blocking: $pkg")
+                Log.i(TAG, "Blocking active distraction: $pkg")
                 OverlayManager.showOverlay(applicationContext, pkg)
             }
         } else {
             if (OverlayManager.isShowing) {
+                Log.d(TAG, "Dismissing overlay for $pkg")
                 OverlayManager.dismissOverlay()
             }
         }

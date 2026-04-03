@@ -25,13 +25,18 @@ object RuleEngine {
     /** Returns true if [packageName] is in the active blocklist. */
     fun isBlocked(context: Context, packageName: String): Boolean {
         val blocked = getBlockedPackages(context)
-        return packageName in blocked
+        val result = packageName in blocked
+        if (result) {
+            Log.d(TAG, "Block Match Found: $packageName")
+        }
+        return result
     }
 
     /** Returns the full set of currently blocked package names. */
     fun getBlockedPackages(context: Context): Set<String> {
         val prefs = prefs(context)
         val json = prefs.getString(KEY_BLOCKED_PACKAGES, "[]") ?: "[]"
+        Log.d(TAG, "Native Blocklist Content: $json")
         return try {
             val arr = JSONArray(json)
             (0 until arr.length()).map { arr.getString(it) }.toSet()

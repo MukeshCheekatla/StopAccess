@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     opacity: 0.9,
   },
-  
+
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',

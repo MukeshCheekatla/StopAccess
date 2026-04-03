@@ -8,8 +8,11 @@ import {
   Modal,
   TextInput,
   Alert,
-  SafeAreaView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../components/theme';
@@ -23,6 +26,7 @@ import { formatDuration } from '../utils/time';
 import { getWeeklyAverage } from '../modules/usageStats';
 import { PinGate } from '../components/PinGate';
 import { storage } from '../store/storageAdapter';
+import { orchestrator } from '../engine/nativeEngine';
 import { formatAppName } from '../utils/text';
 import { getInstalledApps, InstalledApp } from '../modules/installedApps';
 import {
@@ -39,7 +43,15 @@ import {
   UI_EXAMPLES,
 } from '@focusgate/core';
 
+if (
+  Platform.OS === 'android' &&
+  UIManager.setLayoutAnimationEnabledExperimental
+) {
+  UIManager.setLayoutAnimationEnabledExperimental(true);
+}
+
 export default function AppsScreen() {
+  const insets = useSafeAreaInsets();
   const [rules, setRules] = useState<AppRule[]>([]);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [limitModalVisible, setLimitModalVisible] = useState(false);
@@ -76,6 +88,7 @@ export default function AppsScreen() {
 
   const load = useCallback(async () => {
     const r = await getRules(storageAdapter);
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setRules(r);
   }, []);
 
@@ -149,6 +162,7 @@ export default function AppsScreen() {
     await updateRule(storageAdapter, newRule);
     setPickerVisible(false);
     load();
+    orchestrator.runCycle();
   };
 
   const onRemoveApp = (pkg: string) => {
@@ -157,6 +171,7 @@ export default function AppsScreen() {
       await deleteRule(storageAdapter, pkg);
       nextDNS.unblockApp(pkg).catch(() => {});
       load();
+      orchestrator.runCycle();
     });
   };
 
@@ -207,6 +222,8 @@ export default function AppsScreen() {
 
     await updateRule(storageAdapter, updated);
     load();
+    // Force immediate engine update so native service knows about the new block
+    orchestrator.runCycle();
   };
 
   useFocusEffect(
@@ -359,7 +376,7 @@ export default function AppsScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       {/* Degraded protection banner */}
       {!configured && (
         <View style={styles.warnBanner}>
@@ -635,7 +652,7 @@ export default function AppsScreen() {
           setPendingAction(null);
         }}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 

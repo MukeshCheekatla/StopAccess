@@ -8,20 +8,24 @@
     "packages/*"
   ],
   "scripts": {
-    "android": "react-native run-android",
+    "android": "npx react-native run-android",
+    "android:clean": "powershell -Command \"Get-Process -Id (Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue).OwningProcess -ErrorAction SilentlyContinue | Stop-Process -Force; npm run android\"",
     "android:bundle": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res --max-workers 1",
     "ios": "react-native run-ios",
-    "build": "turbo run build",
+    "start": "npx react-native start --reset-cache",
     "dev": "turbo run dev",
-    "lint": "turbo run lint",
+    "build": "turbo run build",
+    "lint": "npm run lint:root && turbo run lint",
     "test": "turbo run test",
-    "typecheck": "turbo run typecheck",
+    "typecheck": "npm run typecheck:root && turbo run typecheck",
     "turbo": "turbo",
     "tree": "node docs/update_tree.js",
     "extension:check": "node scripts/check-extension.mjs",
     "verify:extension": "npm run build -w extension && npm run check -w extension",
     "verify:all": "npm run typecheck && npm run verify:extension && npm run lint",
-    "doctor": "node scripts/doctor.mjs"
+    "doctor": "node scripts/doctor.mjs",
+    "lint:root": "eslint . --ext .js,.jsx,.ts,.tsx --fix",
+    "typecheck:root": "tsc --noEmit"
   },
   "dependencies": {
     "@notifee/react-native": "7.8.2",

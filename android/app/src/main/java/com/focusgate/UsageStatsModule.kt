@@ -150,6 +150,27 @@ class UsageStatsModule(private val reactContext: ReactApplicationContext) :
         }
     }
 
+    @ReactMethod
+    fun getForegroundApp(promise: Promise) {
+        try {
+            val usm = reactContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val time = System.currentTimeMillis()
+            val events = usm.queryEvents(time - 10_000, time)
+            val event = android.app.usage.UsageEvents.Event()
+            var lastPackage: String? = null
+            
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                if (event.eventType == android.app.usage.UsageEvents.Event.MOVE_TO_FOREGROUND) {
+                    lastPackage = event.packageName
+                }
+            }
+            promise.resolve(lastPackage ?: "")
+        } catch (e: Exception) {
+            promise.resolve("")
+        }
+    }
+
     private fun todayMidnightMillis(): Long {
         return Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)

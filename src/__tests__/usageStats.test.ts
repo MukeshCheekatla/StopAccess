@@ -64,11 +64,17 @@ import {
 
 // --- Setup ---
 
+let originalPlatformOS: string;
+
+beforeAll(() => {
+  originalPlatformOS = Platform.OS;
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
 
-  // Default: Android, with all native methods wired up
-  (Platform as { OS: string }).OS = 'android';
+  // Reset Platform.OS and NativeModules before every test
+  (Platform as { OS: string }).OS = originalPlatformOS || 'android';
   (NativeModules as Record<string, unknown>).UsageStats = {
     hasPermission: mockHasPermission,
     requestPermission: mockRequestPermission,
@@ -107,6 +113,7 @@ describe('hasUsagePermission', () => {
 
 describe('requestUsagePermission', () => {
   it('calls native requestPermission on Android', async () => {
+    (Platform as { OS: string }).OS = 'android';
     mockRequestPermission.mockResolvedValue(undefined);
     await requestUsagePermission();
     expect(mockRequestPermission).toHaveBeenCalledTimes(1);
@@ -119,6 +126,7 @@ describe('requestUsagePermission', () => {
   });
 
   it('propagates rejection from the native module', async () => {
+    (Platform as { OS: string }).OS = 'android';
     mockRequestPermission.mockRejectedValue(new Error('PERMISSION_ERROR'));
     await expect(requestUsagePermission()).rejects.toThrow('PERMISSION_ERROR');
   });
@@ -128,6 +136,7 @@ describe('requestUsagePermission', () => {
 
 describe('refreshTodayUsage', () => {
   it('maps usageMinutes -> totalMinutes and persists to cache', async () => {
+    (Platform as { OS: string }).OS = 'android';
     const raw = [
       makeRawRecord('com.instagram.android', 'Instagram', 90),
       makeRawRecord('com.twitter.android', 'Twitter', 30),
@@ -157,6 +166,7 @@ describe('refreshTodayUsage', () => {
   });
 
   it('returns an empty array when native module returns empty', async () => {
+    (Platform as { OS: string }).OS = 'android';
     mockGetTodayUsage.mockResolvedValue([]);
     const result = await refreshTodayUsage();
     expect(result).toEqual([]);
@@ -177,6 +187,36 @@ describe('refreshTodayUsage', () => {
     const result = await refreshTodayUsage();
     expect(mockGetTodayUsage).not.toHaveBeenCalled();
     expect(result[0].totalMinutes).toBe(10);
+  });
+
+  it('clamps negative usageMinutes to 0', async () => {
+    (Platform as { OS: string }).OS = 'android';
+    mockGetTodayUsage.mockResolvedValue([makeRawRecord('com.bad', 'Bad', -50)]);
+    const result = await refreshTodayUsage();
+    expect(result[0].totalMinutes).toBe(0);
+  });
+
+  it('falls back to cache if native getTodayUsage rejects', async () => {
+    (Platform as { OS: string }).OS = 'android';
+    mockGetTodayUsage.mockRejectedValue(new Error('FAIL'));
+    mockStorageGet.mockReturnValue(
+      JSON.stringify([
+        { packageName: 'com.cached', appName: 'C', totalMinutes: 5 },
+      ]),
+    );
+    const result = await refreshTodayUsage();
+    expect(result[0].packageName).toBe('com.cached');
+  });
+
+  it('handles MMKV write failures gracefully (no-op)', async () => {
+    (Platform as { OS: string }).OS = 'android';
+    mockGetTodayUsage.mockResolvedValue([makeRawRecord()]);
+    mockStorageSet.mockImplementation(() => {
+      throw new Error('DISK_FULL');
+    });
+    const result = await refreshTodayUsage();
+    expect(result).toHaveLength(1);
+    expect(mockStorageSet).toHaveBeenCalled();
   });
 });
 
@@ -206,6 +246,7 @@ describe('getCachedUsage', () => {
 
 describe('getAppMinutesToday', () => {
   it('returns usageMinutes from native getAppUsage', async () => {
+    (Platform as { OS: string }).OS = 'android';
     mockGetAppUsage.mockResolvedValue(
       makeRawRecord('com.example', 'Example', 77),
     );
@@ -214,6 +255,7 @@ describe('getAppMinutesToday', () => {
   });
 
   it('returns 0 when native module rejects', async () => {
+    (Platform as { OS: string }).OS = 'android';
     mockGetAppUsage.mockRejectedValue(new Error('crash'));
     await expect(getAppMinutesToday('com.example')).resolves.toBe(0);
   });

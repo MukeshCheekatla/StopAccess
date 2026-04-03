@@ -16,6 +16,7 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../components/theme';
+import * as nextDNSApi from '../api/nextdns';
 import {
   saveConfig,
   getConfig,
@@ -48,6 +49,8 @@ export default function SettingsScreen() {
   const [testDomain, setTestDomain] = useState('');
   const [testResult, setTestResult] = useState('');
   const [newPin, setNewPin] = useState('');
+  const [removePinVisible, setRemovePinVisible] = useState(false);
+  const [removePinInput, setRemovePinInput] = useState('');
   const [protectionLevel, setProtectionLevel] = useState('NONE');
   const [protectionWarning, setProtectionWarning] = useState<string | null>(
     null,
@@ -87,10 +90,9 @@ export default function SettingsScreen() {
   );
 
   const triggerEngineCycle = async () => {
-    const cfg = await getConfig();
     const ctx = {
       storage: storageAdapter,
-      api: { isConfigured, config: cfg },
+      api: nextDNSApi as any,
       logger: { add: addLog },
       notifications: { notifyBlocked },
       enforcements: {
@@ -156,18 +158,20 @@ export default function SettingsScreen() {
       Alert.alert('No PIN', 'Guardian PIN is not set.');
       return;
     }
-    Alert.prompt(
-      'Confirm PIN',
-      'Enter current PIN to remove protection:',
-      (entered) => {
-        if (entered === current) {
-          storage.delete('guardian_pin');
-          Alert.alert('Removed', 'Guardian PIN has been removed.');
-        } else {
-          Alert.alert('Error', 'Incorrect PIN.');
-        }
-      },
-    );
+    setRemovePinInput('');
+    setRemovePinVisible(true);
+  };
+
+  const confirmRemovePin = () => {
+    const current = storage.getString('guardian_pin');
+    if (removePinInput === current) {
+      storage.delete('guardian_pin');
+      setRemovePinVisible(false);
+      setRemovePinInput('');
+      Alert.alert('Removed', 'Guardian PIN has been removed.');
+    } else {
+      Alert.alert('Error', 'Incorrect PIN.');
+    }
   };
 
   const handleSavePin = async () => {
@@ -511,8 +515,7 @@ export default function SettingsScreen() {
                     color:
                       syncState?.status === 'error'
                         ? COLORS.red
-                        : syncState?.status === 'success' ||
-                          syncState?.status === 'ok'
+                        : syncState?.status === 'success'
                         ? COLORS.green
                         : COLORS.text,
                   },
@@ -597,6 +600,48 @@ export default function SettingsScreen() {
           </ScrollView>
         </SafeAreaView>
       </Modal>
+
+      <Modal visible={removePinVisible} transparent animationType="fade">
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            <Text style={styles.modalTitle}>Confirm PIN Removal</Text>
+            <Text style={styles.overrideDesc}>
+              Enter your current Guardian PIN to remove protection.
+            </Text>
+            <TextInput
+              style={styles.textEntryInput}
+              value={removePinInput}
+              onChangeText={setRemovePinInput}
+              placeholder="Current PIN"
+              placeholderTextColor={COLORS.muted}
+              keyboardType="number-pad"
+              secureTextEntry
+              maxLength={4}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalAction}
+                onPress={() => {
+                  setRemovePinVisible(false);
+                  setRemovePinInput('');
+                }}
+              >
+                <Text style={styles.modalActionText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalAction, styles.modalActionDanger]}
+                onPress={confirmRemovePin}
+              >
+                <Text
+                  style={[styles.modalActionText, styles.modalActionTextDanger]}
+                >
+                  Remove
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -623,7 +668,7 @@ function SettingRow({ icon, label, sub, children }: SettingRowProps) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.bg },
-  scroll: { padding: 20, paddingBottom: 60 },
+  scroll: { padding: 16, paddingBottom: 40 },
   header: { marginBottom: 32, marginTop: 10 },
   headerTitle: {
     color: COLORS.text,
@@ -643,8 +688,8 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: 'rgba(255,255,255,0.02)',
-    padding: 24,
-    borderRadius: 24,
+    padding: 16,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.04)',
     shadowColor: '#000',
@@ -662,8 +707,8 @@ const styles = StyleSheet.create({
   },
   input: {
     backgroundColor: 'rgba(255,255,255,0.03)',
-    padding: 16,
-    borderRadius: 16,
+    padding: 14,
+    borderRadius: 14,
     color: '#fff',
     marginBottom: 20,
     fontSize: 15,
@@ -695,8 +740,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
     backgroundColor: 'rgba(255,255,255,0.02)',
-    padding: 20,
-    borderRadius: 20,
+    padding: 16,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.04)',
   },
@@ -915,4 +960,75 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   logMsg: { color: COLORS.text, fontSize: 14, fontWeight: '500' },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modal: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: COLORS.card,
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  modalTitle: {
+    color: COLORS.text,
+    fontSize: 22,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 12,
+    letterSpacing: -0.4,
+  },
+  overrideDesc: {
+    color: COLORS.muted,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  textEntryInput: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    padding: 14,
+    borderRadius: 14,
+    color: COLORS.text,
+    marginBottom: 20,
+    fontSize: 16,
+    fontWeight: '600',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+    textAlign: 'center',
+    letterSpacing: 4,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalAction: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  modalActionDanger: {
+    borderColor: 'rgba(239,68,68,0.25)',
+  },
+  modalActionText: {
+    color: COLORS.text,
+    fontWeight: '800',
+    fontSize: 13,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  modalActionTextDanger: {
+    color: COLORS.red,
+  },
 });

@@ -1,6 +1,10 @@
 package com.focusgate
 
+import android.app.NotificationManager
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import android.provider.Settings
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -89,5 +93,72 @@ class RuleEngineModule(private val ctx: ReactApplicationContext) :
         } catch (e: Exception) {
             promise.reject("SETTINGS_ERROR", e.message)
         }
+    }
+
+    @ReactMethod
+    fun isOverlayEnabled(promise: Promise) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            promise.resolve(Settings.canDrawOverlays(ctx))
+        } else {
+            promise.resolve(true)
+        }
+    }
+
+    @ReactMethod
+    fun openOverlaySettings() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            try {
+                val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    data = Uri.parse("package:${ctx.packageName}")
+                }
+                ctx.startActivity(intent)
+            } catch (e: Exception) {
+                // Fallback to general overlay settings if package-specific fails
+                val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                ctx.startActivity(intent)
+            }
+        }
+    }
+
+    @ReactMethod
+    fun areNotificationsEnabled(promise: Promise) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val manager = ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            promise.resolve(manager.areNotificationsEnabled())
+        } else {
+            promise.resolve(true)
+        }
+    }
+
+    @ReactMethod
+    fun openNotificationSettings() {
+        val intent = Intent().apply {
+            when {
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                    action = Settings.ACTION_APP_NOTIFICATION_SETTINGS
+                    putExtra(Settings.EXTRA_APP_PACKAGE, ctx.packageName)
+                }
+                else -> {
+                    action = "android.settings.APP_NOTIFICATION_SETTINGS"
+                    putExtra("app_package", ctx.packageName)
+                    putExtra("app_uid", ctx.applicationInfo.uid)
+                }
+            }
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        ctx.startActivity(intent)
+    }
+
+    @ReactMethod
+    fun showOverlay(packageName: String) {
+        OverlayManager.showOverlay(ctx, packageName)
+    }
+
+    @ReactMethod
+    fun hideOverlay() {
+        OverlayManager.dismissOverlay()
     }
 }

@@ -27,6 +27,9 @@ export class EngineOrchestrator {
     // This starts the periodic cycle (Evaluation + Sync)
     await this.engine.start();
   }
+  async onForeground() {
+    return this.runCycle();
+  }
 
   async runCycle(forcePush = false) {
     if (!this.engine) {

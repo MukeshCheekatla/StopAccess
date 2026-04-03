@@ -3,20 +3,45 @@
  * Implements the @focusgate/types/StorageAdapter interface using react-native-mmkv.
  */
 import { MMKV } from 'react-native-mmkv';
-import { AppRule, GlobalState, SyncState } from '@focusgate/types';
+import {
+  AppRule,
+  GlobalState,
+  SyncState,
+  StorageAdapter,
+} from '@focusgate/types';
 import * as rulesState from '@focusgate/state/rules';
 import * as schedulesState from '@focusgate/state/schedules';
 import * as syncState from '@focusgate/state/sync';
+import { STORAGE_KEYS } from '@focusgate/state';
 
 export const storage = new MMKV({ id: 'focusgate-storage' });
 
-export const storageAdapter = {
-  getString: async (key: string): Promise<string | null> =>
-    storage.getString(key) ?? null,
-  getBoolean: async (key: string): Promise<boolean | null> =>
-    storage.getBoolean(key) ?? null,
-  getNumber: async (key: string): Promise<number | null> =>
-    storage.getNumber(key) ?? null,
+export const storageAdapter: StorageAdapter = {
+  getString: async (key: string, fallback?: string): Promise<string | null> =>
+    storage.getString(key) ?? fallback ?? null,
+  getBoolean: async (
+    key: string,
+    fallback?: boolean,
+  ): Promise<boolean | null> => {
+    const val = storage.getBoolean(key);
+    return val !== undefined ? val : fallback ?? null;
+  },
+  getNumber: async (key: string, fallback?: number): Promise<number | null> => {
+    const val = storage.getNumber(key);
+    return val !== undefined ? val : fallback ?? null;
+  },
+  getArray: async (key: string): Promise<any[]> => {
+    const raw = storage.getString(key);
+    if (!raw) {
+      return [];
+    }
+    try {
+      const data = JSON.parse(raw);
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
+  },
   set: async (key: string, val: string | number | boolean): Promise<void> => {
     storage.set(key, val);
   },
@@ -28,7 +53,7 @@ export const storageAdapter = {
   loadGlobalState: async (): Promise<GlobalState> => {
     const rules = await rulesState.getRules(storageAdapter);
     const schedules = await schedulesState.getSchedules(storageAdapter);
-    const focusEndTime = (storage.getNumber('focus_mode_end_time') ||
+    const focusEndTime = (storage.getNumber(STORAGE_KEYS.FOCUS_END) ||
       0) as number;
     return { rules, schedules, focusEndTime };
   },

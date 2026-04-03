@@ -1,4 +1,4 @@
-import { AppRule, ScheduleRule } from '@focusgate/types';
+// Core types imported from shared packages
 
 /**
  * React Native specific navigation types.

@@ -18,10 +18,7 @@ import { getRules } from '@focusgate/state/rules';
 import { storageAdapter } from '../store/storageAdapter';
 import * as nextDNS from '../api/nextdns';
 import { recordFocusSession } from '@focusgate/core/insights';
-import { runFullEngineCycle } from '@focusgate/core';
-import { addLog } from '../services/logger';
-import { notifyBlocked } from '../services/notifications';
-import { isConfigured, getConfig } from '../api/nextdns';
+import { orchestrator } from '../engine/nativeEngine';
 
 const { width } = Dimensions.get('window');
 const RING_SIZE = width * 0.7;
@@ -60,9 +57,6 @@ export default function FocusScreen() {
   const endFocus = useCallback(
     async (completed: boolean) => {
       setIsActive(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
 
       // Unblock all apps
       nextDNS
@@ -80,31 +74,12 @@ export default function FocusScreen() {
 
       setTimeLeft(selectedDuration * 60);
       await storageAdapter.set('focus_mode_end_time', 0);
-      await triggerEngineCycle();
+      await orchestrator.runCycle(true);
     },
     [selectedDuration],
   );
 
-  const triggerEngineCycle = async () => {
-    const cfg = await getConfig();
-    const ctx = {
-      storage: storageAdapter,
-      api: { isConfigured, config: cfg },
-      logger: { add: addLog },
-      notifications: { notifyBlocked },
-      enforcements: {
-        applyBlockedPackages: async (pkgs: string[]) => {
-          if (RuleEngine) {
-            RuleEngine.setBlockedPackages(pkgs);
-          }
-        },
-      },
-    };
-    await runFullEngineCycle(ctx);
-  };
-
   const startFocus = async () => {
-    const isConfig = await nextDNS.isConfigured();
     const a11y = await RuleEngine?.isAccessibilityServiceEnabled();
 
     if (!a11y) {
@@ -122,10 +97,6 @@ export default function FocusScreen() {
       return;
     }
 
-    if (!isConfig && protectionLevel === 'STRONG') {
-      // Should not happen if level is strong, but safe check
-    }
-
     setIsActive(true);
     const rules = await getRules(storageAdapter);
 
@@ -137,7 +108,7 @@ export default function FocusScreen() {
     // Local layer sync
     const endTime = Date.now() + selectedDuration * 60 * 1000;
     await storageAdapter.set('focus_mode_end_time', endTime);
-    await triggerEngineCycle();
+    await orchestrator.runCycle(true);
 
     Vibration.vibrate(50);
   };
@@ -166,21 +137,39 @@ export default function FocusScreen() {
     }
   }, [isActive, pulseAnim]);
 
-  // Timer logic
+  // Timer logic - split into separate effects for tick and completion
   useEffect(() => {
-    if (isActive && timeLeft > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => prev - 1);
-      }, 1000);
-    } else if (timeLeft === 0 && isActive) {
-      endFocus(true);
+    if (!isActive) {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      return;
     }
+
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          if (timerRef.current) {
+            clearInterval(timerRef.current);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
     };
-  }, [isActive, timeLeft, endFocus]);
+  }, [isActive]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && isActive) {
+      endFocus(true);
+    }
+  }, [timeLeft, isActive, endFocus]);
 
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

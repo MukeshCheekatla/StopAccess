@@ -1,15 +1,15 @@
 export const COLORS = {
-  bg: '#0A0A0F', // Pure Midnight
-  card: '#111116', // High-density Slate
-  border: '#27272A', // Professional muted border
-  text: '#F8FAFC', // Crisp white text
-  muted: '#52525B', // Industrial grey
-  accent: '#3F3F46', // Slate accent for focus
-  green: '#F8FAFC', // Monochrome success
-  yellow: '#71717A', // Monochrome warning
-  red: '#A1A1AA', // Monochrome blockage
-  blue: '#3F3F46', // Utility info
-  glass: 'rgba(255,255,255,0.03)', // Subtle transparency
+  bg: '#05050A', // Deep Midnight (Blackened Navy)
+  card: '#12121A', // Dark Slate for glass/card
+  border: '#1E1E2D', // Professional muted border
+  text: '#FFFFFF', // Pure crisp white
+  muted: '#A1A1AA', // Medium-high contrast grey
+  accent: '#00D1FF', // Focus Cyan (Vibrant)
+  green: '#10B981', // Emerald Success
+  yellow: '#F59E0B', // Amber Warning
+  red: '#EF4444', // Rose Alert/Block
+  blue: '#3B82F6', // Royal Info
+  glass: 'rgba(255, 255, 255, 0.04)',
 };
 
 export const FONTS = {
