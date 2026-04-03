@@ -114,7 +114,7 @@ export default function App() {
         <ActivityIndicator
           size="small"
           color={COLORS.muted}
-          style={{ marginTop: 24 }}
+          style={styles.loader}
         />
       </View>
     );
@@ -158,5 +158,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: 'rgba(0, 209, 255, 0.1)',
+  },
+  loader: {
+    marginTop: 24,
   },
 });
