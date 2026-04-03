@@ -38,7 +38,6 @@ async function _renderPage(container: HTMLElement): Promise<void> {
     snapshots,
     blockedLogs,
     topBlocked,
-    maxMins,
     avgFocusTime,
     focusConsistency,
   } = await loadInsightsData();
@@ -75,9 +74,9 @@ async function _renderPage(container: HTMLElement): Promise<void> {
         <div>
           <div class="section-label" style="margin:0;">Last 7 Days Focus Minutes</div>
           <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">${activeDays} of ${Math.max(
-            weeklySnapshots.length,
-            1,
-          )} tracked days had focus activity.</div>
+    weeklySnapshots.length,
+    1,
+  )} tracked days had focus activity.</div>
         </div>
         <div style="font-size:12px; color:var(--text); font-weight:800;">${avgFocusTime}m avg</div>
       </div>
@@ -102,14 +101,14 @@ async function _renderPage(container: HTMLElement): Promise<void> {
                   }; border-radius:6px; transition: height 0.6s cubic-bezier(0.4,0,0.2,1);"></div>
                       </div>
                       <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-                        <span style="font-size:11px; font-weight:800; color:${isLatest ? 'var(--text)' : 'var(--muted)'};">${
-                          s.screenTimeMinutes || 0
-                        }m</span>
+                        <span style="font-size:11px; font-weight:800; color:${
+                          isLatest ? 'var(--text)' : 'var(--muted)'
+                        };">${s.screenTimeMinutes || 0}m</span>
                         <span style="font-size:10px; font-weight:800; font-family: monospace; color: ${
                           isLatest ? 'var(--text)' : 'var(--muted)'
                         };">${new Date(s.date).toLocaleDateString([], {
-                          weekday: 'short',
-                        })}</span>
+                    weekday: 'short',
+                  })}</span>
                       </div>
                     </div>`;
                 })
