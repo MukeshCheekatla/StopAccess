@@ -163,6 +163,12 @@ export function DashboardShell<T extends string>({
             </div>
           </div>
         </div>
+        <div className="sidebar-status-row">
+          <div className="sidebar-status-label">{pageTitle}</div>
+          <div id="statusBadge" className={statusClassName}>
+            {status.label}
+          </div>
+        </div>
         <nav className="nav-list">
           {tabs.map((tab) => (
             <button
@@ -184,17 +190,6 @@ export function DashboardShell<T extends string>({
         </div>
       </div>
       <div className="main">
-        <div className="topbar">
-          <div className="topbar-copy">
-            <div className="topbar-eyebrow">FocusGate</div>
-            <div id="pageTitle" className="page-label">
-              {pageTitle}
-            </div>
-          </div>
-          <div id="statusBadge" className={statusClassName}>
-            {status.label}
-          </div>
-        </div>
         <div id="mainContent" ref={contentRef}>
           <div className="loader-spinner" />
         </div>
