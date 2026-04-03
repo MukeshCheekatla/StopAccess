@@ -9,6 +9,8 @@ import {
   AppRule,
 } from '@focusgate/types';
 
+import { NEXTDNS_SERVICES, NEXTDNS_CATEGORIES } from './constants';
+
 import { NextDNSClient } from './client';
 import { getServices, addServiceItem, removeServiceItem } from './services';
 import {
@@ -225,30 +227,31 @@ export async function resolveAndSetTargetState(
 
 export async function resolveNextDNSTarget(input: string): Promise<any> {
   const norm = input.toLowerCase().trim();
-  if (NEXT_DNS_CATEGORY_MAP[norm]) {
+
+  // Try matching Categories first
+  const category = NEXTDNS_CATEGORIES.find(
+    (c) => c.id === norm || c.name.toLowerCase() === norm,
+  );
+  if (category) {
     return {
       kind: 'category',
-      normalizedId: NEXT_DNS_CATEGORY_MAP[norm],
-      label: norm,
+      normalizedId: category.id,
+      label: category.name,
     };
   }
-  if (NEXT_DNS_SERVICE_MAP[norm]) {
+
+  // Try matching Services next
+  const service = NEXTDNS_SERVICES.find(
+    (s) => s.id === norm || s.name.toLowerCase() === norm,
+  );
+  if (service) {
     return {
       kind: 'service',
-      normalizedId: NEXT_DNS_SERVICE_MAP[norm],
-      label: norm,
+      normalizedId: service.id,
+      label: service.name,
     };
   }
+
+  // Fallback to domain
   return { kind: 'domain', normalizedId: norm, label: norm };
 }
-
-const NEXT_DNS_CATEGORY_MAP: any = {
-  social: 'social-networks',
-  games: 'games',
-  video: 'video-streaming',
-};
-const NEXT_DNS_SERVICE_MAP: any = {
-  fb: 'facebook',
-  ig: 'instagram',
-  yt: 'youtube',
-};
