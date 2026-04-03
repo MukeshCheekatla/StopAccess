@@ -1,15 +1,11 @@
-import {
-  getSchedules,
-  updateSchedule,
-  deleteSchedule,
-} from '@focusgate/state/schedules';
-import { extensionAdapter as storage } from '../background/platformAdapter';
-
 export async function renderScheduleScreen(container) {
   container.innerHTML = '<div class="loader">Loading...</div>';
 
   try {
-    const schedules = await getSchedules(storage);
+    const { loadScheduleData } = await import(
+      '../../../../packages/viewmodels/src/useScheduleVM'
+    );
+    const schedules = await loadScheduleData();
 
     container.innerHTML = `
       <div class="app-card" style="border-style: dashed; background: transparent; display: flex; flex-direction: column; gap: 12px; margin-bottom: 24px;">
@@ -141,8 +137,10 @@ export async function renderScheduleScreen(container) {
           appNames: [],
         };
 
-        await updateSchedule(storage, newSch);
-        chrome.runtime.sendMessage({ action: 'manualSync' });
+        const { createScheduleAction } = await import(
+          '../../../../packages/viewmodels/src/useScheduleVM'
+        );
+        await createScheduleAction(newSch);
         renderScheduleScreen(container);
       });
 
@@ -151,8 +149,10 @@ export async function renderScheduleScreen(container) {
         const id = btn.getAttribute('data-id');
         btn.innerHTML = '...';
         btn.disabled = true;
-        await deleteSchedule(storage, id);
-        chrome.runtime.sendMessage({ action: 'manualSync' });
+        const { deleteScheduleAction } = await import(
+          '../../../../packages/viewmodels/src/useScheduleVM'
+        );
+        await deleteScheduleAction(id);
         renderScheduleScreen(container);
       });
     });

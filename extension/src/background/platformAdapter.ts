@@ -3,15 +3,33 @@
  * Thin bridge between Chrome APIs and @focusgate/core.
  */
 
+declare var chrome: any;
 import * as ndnsCore from '@focusgate/core';
-import { NextDNSConfig } from '@focusgate/types';
+import {
+  NextDNSService,
+  NextDNSCategory,
+  NextDNSConfig,
+  NextDNSSecuritySettings,
+  NextDNSPrivacySettings,
+  StorageAdapter,
+  AppRule,
+  SyncState,
+  GlobalState,
+} from '@focusgate/types';
+import { STORAGE_KEYS } from '@focusgate/state';
 import { checkGuard } from './sessionGuard';
+
+export { STORAGE_KEYS } from '@focusgate/state';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Add this helper at the TOP of the file
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 type GuardAction = 'remove_app' | 'disable_blocking' | 'modify_blocklist';
+
+function normalizeSyncMode(mode?: string | null): 'browser' | 'profile' {
+  return mode === 'profile' ? 'profile' : 'browser';
+}
 
 async function requireUnlocked(action: GuardAction): Promise<
   | {
@@ -38,49 +56,52 @@ async function requireUnlocked(action: GuardAction): Promise<
   return { locked: false };
 }
 
-export const STORAGE_KEYS = {
-  RULES: 'rules',
-  SCHEDULES: 'schedules',
-  FOCUS_END: 'focus_mode_end_time',
-  LAST_RESET: 'last_reset_day',
-  PROFILE_ID: 'nextdns_profile_id',
-  API_KEY: 'nextdns_api_key',
-  LOGS: 'app_system_logs',
-};
-
-export const extensionAdapter = {
-  getString: async (key) => {
+export const extensionAdapter: StorageAdapter = {
+  getString: async (key: string, fallback?: string): Promise<string | null> => {
     const res = await chrome.storage.local.get(key);
-    return res[key] ?? null;
+    return (res[key] as string) ?? fallback ?? null;
   },
-  getBoolean: async (key) => {
+  getBoolean: async (
+    key: string,
+    fallback?: boolean,
+  ): Promise<boolean | null> => {
     const res = await chrome.storage.local.get(key);
-    return res[key] ?? !!res[key];
+    const val = res[key];
+    if (val === undefined || val === null) {
+      return fallback ?? null;
+    }
+    return typeof val === 'boolean' ? val : !!val;
   },
-  getNumber: async (key, fallback = 0) => {
+  getNumber: async (key: string, fallback?: number): Promise<number | null> => {
     const res = await chrome.storage.local.get(key);
-    return Number(res[key]) || fallback;
+    const val = Number(res[key]);
+    if (isNaN(val) || res[key] === undefined) {
+      return fallback ?? null;
+    }
+    return val;
   },
-  set: async (key, val) => {
+  set: async (key: string, val: string | number | boolean): Promise<void> => {
     await chrome.storage.local.set({ [key]: val });
   },
-  delete: async (key) => {
+  delete: async (key: string): Promise<void> => {
     await chrome.storage.local.remove(key);
   },
-  getArray: async (key: string) => {
+  // Internal extension helper now in StorageAdapter
+  getArray: async (key: string): Promise<any[]> => {
     const res = await chrome.storage.local.get(key);
     const raw = res[key];
     if (!raw) {
       return [];
     }
     try {
-      return typeof raw === 'string' ? JSON.parse(raw) : raw;
+      const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      return Array.isArray(data) ? data : [];
     } catch {
       return [];
     }
   },
 
-  loadGlobalState: async () => {
+  loadGlobalState: async (): Promise<GlobalState> => {
     const res = await chrome.storage.local.get([
       STORAGE_KEYS.RULES,
       STORAGE_KEYS.SCHEDULES,
@@ -97,16 +118,17 @@ export const extensionAdapter = {
     };
   },
 
-  saveRules: async (rules) => {
+  saveRules: async (rules: AppRule[]): Promise<void> => {
     await chrome.storage.local.set({
       [STORAGE_KEYS.RULES]: JSON.stringify(rules),
     });
   },
 
-  getSyncState: async () => {
-    const res = await chrome.storage.local.get('sync_state');
-    return res.sync_state
-      ? JSON.parse(res.sync_state as string)
+  getSyncState: async (): Promise<SyncState> => {
+    const res = await chrome.storage.local.get(STORAGE_KEYS.SYNC_STATE);
+    const raw = res[STORAGE_KEYS.SYNC_STATE];
+    return raw
+      ? JSON.parse(raw as string)
       : {
           status: 'idle',
           lastSyncAt: null,
@@ -120,15 +142,15 @@ export const extensionAdapter = {
         };
   },
 
-  saveSyncState: async (state) => {
+  saveSyncState: async (state: SyncState): Promise<void> => {
     await chrome.storage.local.set({
-      sync_state: JSON.stringify(state),
+      [STORAGE_KEYS.SYNC_STATE]: JSON.stringify(state),
     });
   },
 };
 
 export const extensionLogger = {
-  add: async (level, message, details = '') => {
+  add: async (level: any, message: string, details = '') => {
     const current = await extensionAdapter.getString(STORAGE_KEYS.LOGS);
     const logs = current ? JSON.parse(current as string) : [];
     const updated = [
@@ -154,6 +176,11 @@ export const nextDNSApi = {
     return !!(res[STORAGE_KEYS.PROFILE_ID] && res[STORAGE_KEYS.API_KEY]);
   },
 
+  shouldSync: async () => {
+    const res = await chrome.storage.local.get(STORAGE_KEYS.SYNC_MODE);
+    return normalizeSyncMode(res[STORAGE_KEYS.SYNC_MODE]) === 'profile';
+  },
+
   getConfig: async (): Promise<NextDNSConfig> => {
     const res = await chrome.storage.local.get([
       STORAGE_KEYS.PROFILE_ID,
@@ -175,16 +202,19 @@ export const nextDNSApi = {
     return ndnsCore.getParentalControlCategories(cfg, extensionLogger.add);
   },
 
-  syncParentalControlServices: async (services) => {
+  syncParentalControlServices: async (services: NextDNSService[]) => {
     // Check if we're REMOVING any currently active services
-    const current = await nextDNSApi.getParentalControlServices();
+    const currentRes: any = await nextDNSApi.getParentalControlServices();
+    const current = currentRes.ok ? currentRes.data : [];
     const currentActiveIds = (current || [])
-      .filter((s) => s.active)
-      .map((s) => s.id);
+      .filter((s: any) => s.active)
+      .map((s: any) => s.id);
     const newActiveIds = (services || [])
-      .filter((s) => s.active)
-      .map((s) => s.id);
-    const removing = currentActiveIds.some((id) => !newActiveIds.includes(id));
+      .filter((s: any) => s.active)
+      .map((s: any) => s.id);
+    const removing = currentActiveIds.some(
+      (id: string) => !newActiveIds.includes(id),
+    );
 
     if (removing) {
       const check = await requireUnlocked('modify_blocklist');
@@ -201,15 +231,18 @@ export const nextDNSApi = {
     );
   },
 
-  syncParentalControlCategories: async (categories) => {
-    const current = await nextDNSApi.getParentalControlCategories();
+  syncParentalControlCategories: async (categories: NextDNSCategory[]) => {
+    const currentRes: any = await nextDNSApi.getParentalControlCategories();
+    const current = currentRes.ok ? currentRes.data : [];
     const currentActiveIds = (current || [])
-      .filter((c) => c.active)
-      .map((c) => c.id);
+      .filter((c: any) => c.active)
+      .map((c: any) => c.id);
     const newActiveIds = (categories || [])
-      .filter((c) => c.active)
-      .map((c) => c.id);
-    const removing = currentActiveIds.some((id) => !newActiveIds.includes(id));
+      .filter((c: any) => c.active)
+      .map((c: any) => c.id);
+    const removing = currentActiveIds.some(
+      (id: string) => !newActiveIds.includes(id),
+    );
 
     if (removing) {
       const check = await requireUnlocked('modify_blocklist');
@@ -226,7 +259,10 @@ export const nextDNSApi = {
     );
   },
 
-  setParentalControlServiceState: async (serviceId, active) => {
+  setParentalControlServiceState: async (
+    serviceId: string,
+    active: boolean,
+  ) => {
     if (!active) {
       const check = await requireUnlocked('remove_app');
       if (check.locked) {
@@ -242,11 +278,14 @@ export const nextDNSApi = {
       extensionLogger.add,
     );
   },
-  setServiceState: async (serviceId, active) => {
+  setServiceState: async (serviceId: string, active: boolean) => {
     return nextDNSApi.setParentalControlServiceState(serviceId, active);
   },
 
-  setParentalControlCategoryState: async (categoryId, active) => {
+  setParentalControlCategoryState: async (
+    categoryId: string,
+    active: boolean,
+  ) => {
     if (!active) {
       const check = await requireUnlocked('remove_app');
       if (check.locked) {
@@ -262,11 +301,11 @@ export const nextDNSApi = {
       extensionLogger.add,
     );
   },
-  setCategoryState: async (categoryId, active) => {
+  setCategoryState: async (categoryId: string, active: boolean) => {
     return nextDNSApi.setParentalControlCategoryState(categoryId, active);
   },
 
-  setDenylistDomainState: async (domain, active) => {
+  setDenylistDomainState: async (domain: string, active: boolean) => {
     if (!active) {
       const check = await requireUnlocked('remove_app');
       if (check.locked) {
@@ -283,12 +322,12 @@ export const nextDNSApi = {
     );
   },
 
-  getLogs: async (status, limit) => {
+  getLogs: async (status: string, limit: number) => {
     const cfg = await nextDNSApi.getConfig();
     return ndnsCore.getLogs(cfg, extensionLogger.add, status, limit);
   },
 
-  getTopBlockedDomains: async (limit) => {
+  getTopBlockedDomains: async (limit: number) => {
     const cfg = await nextDNSApi.getConfig();
     return ndnsCore.getTopBlockedDomains(cfg, extensionLogger.add, limit);
   },
@@ -298,6 +337,9 @@ export const nextDNSApi = {
   },
 
   getRemoteSnapshot: async () => {
+    if (!(await nextDNSApi.shouldSync())) {
+      return { ok: true, data: { denylist: [], services: [], categories: [] } };
+    }
     const cfg = await nextDNSApi.getConfig();
     return ndnsCore.getRemoteSnapshot(cfg, extensionLogger.add);
   },
@@ -305,25 +347,33 @@ export const nextDNSApi = {
   refreshNextDNSMetadata: async () => {
     if (!(await nextDNSApi.isConfigured())) {
       const empty = { services: [], categories: [], denylist: [] };
-      await chrome.storage.local.set({ cached_ndns_metadata: empty });
+      await chrome.storage.local.set({ [STORAGE_KEYS.CACHED_METADATA]: empty });
       return empty;
     }
 
-    const snapshot = await nextDNSApi.getRemoteSnapshot();
+    const snapshotRes: any = await nextDNSApi.getRemoteSnapshot();
+    const snapshot = snapshotRes.ok
+      ? snapshotRes.data
+      : { services: [], categories: [], denylist: [] };
     const metadata = {
       services: snapshot.services || [],
       categories: snapshot.categories || [],
       denylist: snapshot.denylist || [],
     };
-    await chrome.storage.local.set({ cached_ndns_metadata: metadata });
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.CACHED_METADATA]: metadata,
+    });
     return metadata;
   },
 
-  resolveTargetInput: async (input) => {
+  resolveTargetInput: async (input: string) => {
     return ndnsCore.resolveTargetInput(input);
   },
 
-  setTargetState: async (kind, id, active) => {
+  setTargetState: async (kind: string, id: string, active: boolean) => {
+    if (!(await nextDNSApi.shouldSync())) {
+      return { ok: true };
+    }
     if (!active) {
       const check = await requireUnlocked('remove_app');
       if (check.locked) {
@@ -332,10 +382,16 @@ export const nextDNSApi = {
     }
 
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.setTargetState(kind, id, active, cfg, extensionLogger.add);
+    return ndnsCore.setTargetState(
+      kind as any,
+      id,
+      active,
+      cfg,
+      extensionLogger.add,
+    );
   },
 
-  addResolvedTarget: async (target) => {
+  addResolvedTarget: async (target: any) => {
     const cfg = await nextDNSApi.getConfig();
     return ndnsCore.setResolvedTargetState(
       target,
@@ -345,7 +401,7 @@ export const nextDNSApi = {
     );
   },
 
-  resolveAndAddTarget: async (input) => {
+  resolveAndAddTarget: async (input: string) => {
     const cfg = await nextDNSApi.getConfig();
     return ndnsCore.resolveAndSetTargetState(
       input,
@@ -362,6 +418,97 @@ export const nextDNSApi = {
     }
     return ndnsCore.testConnection(cfg, extensionLogger.add);
   },
+
+  getSecurity: async () => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.getSecuritySettings(cfg, extensionLogger.add);
+  },
+  patchSecurity: async (patch: Partial<NextDNSSecuritySettings>) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.patchSecuritySettings(patch, cfg, extensionLogger.add);
+  },
+  getBlockedTlds: async () => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.getBlockedTldsForProfile(cfg, extensionLogger.add);
+  },
+  addBlockedTld: async (id: string) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.addBlockedTldToProfile(id, cfg, extensionLogger.add);
+  },
+  removeBlockedTld: async (id: string) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.removeBlockedTldFromProfile(id, cfg, extensionLogger.add);
+  },
+
+  getPrivacy: async () => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.getPrivacySettings(cfg, extensionLogger.add);
+  },
+  patchPrivacy: async (patch: Partial<NextDNSPrivacySettings>) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.patchPrivacySettings(patch, cfg, extensionLogger.add);
+  },
+  getBlocklists: async () => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.getBlocklistsForProfile(cfg, extensionLogger.add);
+  },
+  addBlocklist: async (id: string) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.addBlocklistToProfile(id, cfg, extensionLogger.add);
+  },
+  removeBlocklist: async (id: string) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.removeBlocklistFromProfile(id, cfg, extensionLogger.add);
+  },
+  getNativeTracking: async () => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.getNativeTrackingForProfile(cfg, extensionLogger.add);
+  },
+  addNativeTracking: async (id: string) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.addNativeTrackingToProfile(id, cfg, extensionLogger.add);
+  },
+  removeNativeTracking: async (id: string) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.removeNativeTrackingFromProfile(
+      id,
+      cfg,
+      extensionLogger.add,
+    );
+  },
+
   unblockAll: async () => {
     const check = await requireUnlocked('disable_blocking');
     if (check.locked) {

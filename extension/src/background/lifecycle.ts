@@ -12,11 +12,8 @@ import {
 } from '@focusgate/core';
 import { NextDNSConfig } from '@focusgate/types';
 import { getRules, saveRules } from '@focusgate/state/rules';
-import {
-  extensionAdapter,
-  extensionLogger,
-  STORAGE_KEYS,
-} from './platformAdapter';
+import { extensionAdapter, extensionLogger } from './platformAdapter';
+import { STORAGE_KEYS } from '@focusgate/state';
 import { syncDNRRules } from './dnrAdapter';
 import {
   handleAlarm,
@@ -27,12 +24,37 @@ import {
 } from './sessionManager';
 
 // --- Local-First Tracking State ---
-let current = null;
 let sync = null;
 let isRunningCycle = false;
-const BLOCKED_DOMAINS_KEY = 'blocked_domains';
-const BLOCK_DEBUG_KEY = 'fg_block_debug';
-const RUNTIME_ERROR_KEY = 'fg_last_runtime_error';
+
+const ACTIVE_TAB_KEY = 'active_tab_state';
+
+async function getActiveTabState(): Promise<{
+  domain: string | null;
+  start: number;
+  tabId: number;
+} | null> {
+  const res = await chrome.storage.local.get([ACTIVE_TAB_KEY]);
+  return (
+    (res[ACTIVE_TAB_KEY] as {
+      domain: string | null;
+      start: number;
+      tabId: number;
+    } | null) ?? null
+  );
+}
+
+async function setActiveTabState(state: any) {
+  if (state) {
+    await chrome.storage.local.set({ [ACTIVE_TAB_KEY]: state });
+  } else {
+    await chrome.storage.local.remove(ACTIVE_TAB_KEY);
+  }
+}
+
+function normalizeSyncMode(mode?: string | null): 'browser' | 'profile' {
+  return mode === 'profile' ? 'profile' : 'browser';
+}
 
 console.log('[FocusGate] TRACKER INITIALIZING');
 
@@ -42,7 +64,7 @@ function recordRuntimeError(source, error) {
   console.error(`[FocusGate] ${source}`, error);
   chrome.storage.local
     .set({
-      [RUNTIME_ERROR_KEY]: JSON.stringify({
+      [STORAGE_KEYS.RUNTIME_ERROR]: JSON.stringify({
         at: new Date().toISOString(),
         source,
         error: message,
@@ -82,15 +104,15 @@ async function saveUsage(domain, durationMs) {
   }
 
   // 1. Raw Accumulated Usage
-  const res = await chrome.storage.local.get(['usage']);
-  const usage = res.usage || {};
+  const res = await chrome.storage.local.get([STORAGE_KEYS.USAGE]);
+  const usage = res[STORAGE_KEYS.USAGE] || {};
 
   if (!usage[domain]) {
     usage[domain] = { time: 0, sessions: 0 };
   }
 
   usage[domain].time += durationMs;
-  await chrome.storage.local.set({ usage });
+  await chrome.storage.local.set({ [STORAGE_KEYS.USAGE]: usage });
 
   // 2. Aggregate Snapshots (Dashboard Parity)
   const totalMs = Object.values(usage).reduce((a, b) => a + (b.time || 0), 0);
@@ -140,37 +162,35 @@ async function incrementSession(domain) {
   if (!domain) {
     return;
   }
-  const res = await chrome.storage.local.get(['usage']);
-  const usage = res.usage || {};
+  const res = await chrome.storage.local.get([STORAGE_KEYS.USAGE]);
+  const usage = res[STORAGE_KEYS.USAGE] || {};
   if (!usage[domain]) {
     usage[domain] = { time: 0, sessions: 0 };
   }
   usage[domain].sessions += 1;
-  await chrome.storage.local.set({ usage });
+  await chrome.storage.local.set({ [STORAGE_KEYS.USAGE]: usage });
 }
 
-// HYBRID ACCURATE MODEL: Interval-based flush (1s)
-setInterval(async () => {
-  const activeSession = current;
-  if (activeSession && activeSession.domain) {
+async function flushActiveTabUsage() {
+  const current = await getActiveTabState();
+  if (current && current.domain) {
     const now = Date.now();
-    const duration = now - activeSession.start;
-
+    const duration = now - current.start;
     if (duration > 1000) {
       try {
-        await saveUsage(activeSession.domain, duration);
-        if (current === activeSession) {
-          current.start = now;
-        }
+        await saveUsage(current.domain, duration);
+        current.start = now;
+        await setActiveTabState(current);
       } catch (error) {
-        recordRuntimeError('interval_flush', error);
+        recordRuntimeError('flush_active_tab', error);
       }
     }
   }
-}, 1000);
+}
 
 async function switchTab(tabId) {
   const now = Date.now();
+  const current = await getActiveTabState();
 
   if (tabId === -1) {
     if (current && current.domain) {
@@ -179,7 +199,7 @@ async function switchTab(tabId) {
         await saveUsage(current.domain, duration);
       }
     }
-    current = null;
+    await setActiveTabState(null);
     return;
   }
 
@@ -198,12 +218,13 @@ async function switchTab(tabId) {
       }
     }
 
-    current = { domain, start: now, tabId };
+    const nextState = { domain, start: now, tabId };
+    await setActiveTabState(nextState);
     if (domain) {
       await incrementSession(domain);
     }
   } catch (e) {
-    current = null;
+    await setActiveTabState(null);
   }
 }
 
@@ -212,13 +233,14 @@ async function initActiveTab() {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tabs[0]) {
       const domain = getDomain(tabs[0].url);
-      current = { domain, start: Date.now(), tabId: tabs[0].id };
+      const nextState = { domain, start: Date.now(), tabId: tabs[0].id };
+      await setActiveTabState(nextState);
       if (domain) {
         await incrementSession(domain);
       }
     }
   } catch {
-    current = null;
+    await setActiveTabState(null);
   }
 }
 
@@ -230,11 +252,33 @@ async function runCycle(forceSync = false) {
   isRunningCycle = true;
 
   try {
+    await flushActiveTabUsage();
     const lastReset = await extensionAdapter.getString(STORAGE_KEYS.LAST_RESET);
-    const todayStr = new Date().toISOString().split('T')[0];
+    // Use local date string (YYYY-MM-DD) for more natural 12 AM reset
+    const todayStr = new Date().toLocaleDateString('en-CA');
 
     if (lastReset && lastReset !== todayStr) {
-      await chrome.storage.local.set({ usage: {} });
+      // 1. Archive previous day usage before clearing
+      const archiveRes = await chrome.storage.local.get([
+        STORAGE_KEYS.USAGE,
+        STORAGE_KEYS.USAGE_HISTORY,
+      ]);
+      const oldUsage = archiveRes[STORAGE_KEYS.USAGE] || {};
+      const usageHistory = archiveRes[STORAGE_KEYS.USAGE_HISTORY] || {};
+
+      usageHistory[todayStr] = oldUsage; // Use canonical reset date
+
+      // Prune history to keep only last 3entries
+      const historyKeys = Object.keys(usageHistory).sort();
+      if (historyKeys.length > 30) {
+        delete usageHistory[historyKeys[0]];
+      }
+
+      await chrome.storage.local.set({
+        [STORAGE_KEYS.USAGE]: {},
+        [STORAGE_KEYS.USAGE_HISTORY]: usageHistory,
+      });
+
       const currentRules = await getRules(extensionAdapter);
       const resetRules = currentRules.map((r) => ({
         ...r,
@@ -247,8 +291,8 @@ async function runCycle(forceSync = false) {
       await saveRules(extensionAdapter, resetRules);
       // Clean temp passes and extension counts
       await chrome.storage.local.set({
-        fg_temp_passes: {},
-        fg_extension_counts: {},
+        [STORAGE_KEYS.TEMP_PASSES]: {},
+        [STORAGE_KEYS.EXTENSION_COUNTS]: {},
       });
       await extensionAdapter.set(STORAGE_KEYS.LAST_RESET, todayStr);
       extensionLogger.add('info', `Daily reset performed for ${todayStr}`);
@@ -282,8 +326,12 @@ async function runCycle(forceSync = false) {
       },
     };
 
-    // 1. NextDNS Cloud Sync (Automated if configured)
-    if (nextdns_cfg.profileId && nextdns_cfg.apiKey) {
+    const syncMode = normalizeSyncMode(
+      await extensionAdapter.getString(STORAGE_KEYS.SYNC_MODE),
+    );
+
+    // 1. NextDNS Cloud Sync (Only if STRONG protection is active)
+    if (nextdns_cfg.profileId && nextdns_cfg.apiKey && syncMode === 'profile') {
       if (!sync) {
         sync = new SyncOrchestrator(ctx);
         await sync.onLaunch();
@@ -301,14 +349,19 @@ async function runCycle(forceSync = false) {
         const connectedRes = await client.testConnection();
         const connected = connectedRes.ok;
         await extensionAdapter.set(
-          'nextdns_connection_status',
+          STORAGE_KEYS.CONNECTION_STATUS,
           connected ? 'connected' : 'error',
         );
       } catch (e) {
-        await extensionAdapter.set('nextdns_connection_status', 'error');
+        await extensionAdapter.set(STORAGE_KEYS.CONNECTION_STATUS, 'error');
       }
     } else {
-      await extensionAdapter.set('nextdns_connection_status', 'not_configured');
+      await extensionAdapter.set(
+        STORAGE_KEYS.CONNECTION_STATUS,
+        nextdns_cfg.profileId && nextdns_cfg.apiKey
+          ? 'browser_mode'
+          : 'not_configured',
+      );
     }
 
     // 2. Engine Logic (DNR Sync - All Levels)
@@ -317,8 +370,8 @@ async function runCycle(forceSync = false) {
     let blockedDomains = result?.ok && result?.domains ? result.domains : [];
 
     // Filter out domains with active temporary passes
-    const passRes = await chrome.storage.local.get(['fg_temp_passes']);
-    const passes = passRes.fg_temp_passes || {};
+    const passRes = await chrome.storage.local.get([STORAGE_KEYS.TEMP_PASSES]);
+    const passes = passRes[STORAGE_KEYS.TEMP_PASSES] || {};
     const domainsWithPasses = Object.keys(passes).filter((domain) => {
       const pass = passes[domain];
       if (pass && Date.now() < pass.expiresAt) {
@@ -338,8 +391,8 @@ async function runCycle(forceSync = false) {
 
     const dnrResult = await syncDNRRules(blockedDomains);
     await chrome.storage.local.set({
-      [BLOCKED_DOMAINS_KEY]: blockedDomains,
-      [BLOCK_DEBUG_KEY]: JSON.stringify({
+      [STORAGE_KEYS.BLOCKED_DOMAINS]: blockedDomains,
+      [STORAGE_KEYS.BLOCK_DEBUG]: JSON.stringify({
         at: new Date().toISOString(),
         ok: result?.ok ?? false,
         blockedDomains,
@@ -349,7 +402,7 @@ async function runCycle(forceSync = false) {
   } catch (e) {
     extensionLogger.add('error', 'Lifecycle Engine Fail', String(e));
     await chrome.storage.local.set({
-      [BLOCK_DEBUG_KEY]: JSON.stringify({
+      [STORAGE_KEYS.BLOCK_DEBUG]: JSON.stringify({
         at: new Date().toISOString(),
         ok: false,
         error: String(e),
@@ -389,8 +442,11 @@ chrome.idle.onStateChanged.addListener((state) => {
 });
 
 // Bootstrapper
-initActiveTab().catch(() => {});
-setTimeout(() => runCycle().catch(() => {}), 100);
+initActiveTab().catch((err) => recordRuntimeError('boot_init_tab', err));
+setTimeout(
+  () => runCycle().catch((err) => recordRuntimeError('boot_run_cycle', err)),
+  100,
+);
 
 self.addEventListener('error', (event) => {
   recordRuntimeError('service_worker_error', event.error || event.message);
@@ -408,9 +464,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       [STORAGE_KEYS.SCHEDULES]: JSON.stringify([]),
       [STORAGE_KEYS.FOCUS_END]: 0,
       [STORAGE_KEYS.LOGS]: JSON.stringify([]),
-      usage: {},
-      fg_sync_mode: 'hybrid',
-      [STORAGE_KEYS.LAST_RESET]: new Date().toISOString().split('T')[0],
+      [STORAGE_KEYS.USAGE]: {},
+      [STORAGE_KEYS.SYNC_MODE]: 'browser',
+      [STORAGE_KEYS.LAST_RESET]: new Date().toLocaleDateString('en-CA'),
     });
     // Open full-page dashboard on install
     const url = chrome.runtime.getURL(buildExtensionPagePath('dashboard.html'));
@@ -421,7 +477,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     periodInMinutes: 1,
     when: Date.now() + 500,
   });
-  runCycle().catch(() => {});
+  runCycle().catch((err) => recordRuntimeError('install_run_cycle', err));
 });
 
 chrome.runtime.onStartup.addListener(async () => {
@@ -430,13 +486,14 @@ chrome.runtime.onStartup.addListener(async () => {
     periodInMinutes: 1,
     when: Date.now() + 500,
   });
-  runCycle().catch(() => {});
+  runCycle().catch((err) => recordRuntimeError('startup_run_cycle', err));
 
   const session = await getActiveSession();
   if (session && session.status === 'focusing') {
     const elapsed = (Date.now() - session.startedAt) / 60000;
     if (elapsed >= session.duration) {
       await endSession('completed');
+      await runCycle();
     } else {
       await updateBadge(session);
     }
@@ -445,9 +502,17 @@ chrome.runtime.onStartup.addListener(async () => {
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   if (alarm.name === 'focusgate_engine') {
-    runCycle().catch(() => {});
+    runCycle().catch((err) => recordRuntimeError('alarm_run_cycle', err));
   }
-  handleAlarm(alarm).catch(() => {});
+  handleAlarm(alarm)
+    .then((shouldRefresh) => {
+      if (shouldRefresh) {
+        runCycle().catch((err) =>
+          recordRuntimeError('alarm_run_cycle_after_refresh', err),
+        );
+      }
+    })
+    .catch((err) => recordRuntimeError('alarm_handler_error', err));
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
@@ -460,9 +525,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.action === 'startFocus') {
     (async () => {
       try {
-        const { blocked_domains = [] } = (await chrome.storage.local.get([
-          'blocked_domains',
+        const res = (await chrome.storage.local.get([
+          STORAGE_KEYS.BLOCKED_DOMAINS,
         ])) as any;
+        const blocked_domains = res[STORAGE_KEYS.BLOCKED_DOMAINS] || [];
         await startSession({
           duration: msg.minutes,
           blockedDomains: blocked_domains,
@@ -479,9 +545,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.action === 'stopFocus') {
     (async () => {
       try {
-        const { strict_mode_enabled } = await chrome.storage.local.get([
-          'strict_mode_enabled',
-        ]);
+        const res = await chrome.storage.local.get([STORAGE_KEYS.STRICT_MODE]);
+        const strict_mode_enabled = res[STORAGE_KEYS.STRICT_MODE] || false;
         const session = await getActiveSession();
         const isFocusing = session && session.status === 'focusing';
 

@@ -44,13 +44,13 @@ async function build() {
     // Popup App
     esbuild.build({
       ...baseConfig,
-      entryPoints: [resolve(SRC_DIR, 'popup/popup.ts')],
+      entryPoints: [resolve(SRC_DIR, 'popup/popup.tsx')],
       outfile: resolve(DIST_DIR, 'popup/popup.js'),
     }),
     // Dashboard App
     esbuild.build({
       ...baseConfig,
-      entryPoints: [resolve(SRC_DIR, 'dashboard/dashboard.ts')],
+      entryPoints: [resolve(SRC_DIR, 'dashboard/dashboard.tsx')],
       outfile: resolve(DIST_DIR, 'dashboard.js'),
     }),
     // Content Script (SPA blocker)

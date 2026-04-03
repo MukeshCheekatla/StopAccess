@@ -41,5 +41,10 @@
     "48": "assets/icon.png",
     "128": "assets/icon.png"
   },
-  "minimum_chrome_version": "100"
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "focusgate@focusgate.io",
+      "strict_min_version": "100.0"
+    }
+  }
 }

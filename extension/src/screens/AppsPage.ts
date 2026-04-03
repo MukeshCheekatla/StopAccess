@@ -344,8 +344,23 @@ async function renderSubTab(rules, lockedDomains: string[]) {
         </div>
       </div>
 
-      <div style="margin-bottom: 32px;">
-        <div style="font-weight: 800; color: #FFFFFF; font-size: 1.125rem; letter-spacing: -0.01em; margin-bottom: 8px;">Enforced Apps</div>
+      <div class="glass-card" style="padding: 18px 20px; margin-bottom: 24px; background: rgba(255,255,255,0.02); display:flex; align-items:center; justify-content:space-between; gap: 16px;">
+        <div>
+          <div style="font-size: 10px; font-weight: 800; color: var(--muted); letter-spacing: 1.6px; text-transform: uppercase; margin-bottom: 6px;">Blocklist Modes</div>
+          <div style="font-size: 15px; font-weight: 800; color: #FFFFFF; margin-bottom: 4px;">Local rules and NextDNS rules are separated below</div>
+          <div style="font-size: 12px; color: var(--muted); line-height: 1.5;">Local blocklist covers custom domains in this extension. NextDNS blocklist covers synced apps and categories on your profile.</div>
+        </div>
+        <div style="display:flex; gap: 8px; flex-shrink: 0;">
+          <div class="status-pill muted">LOCAL</div>
+          <div class="status-pill active">NEXTDNS</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 40px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px;">
+          <div style="font-weight: 800; color: #FFFFFF; font-size: 1.125rem; letter-spacing: -0.01em;">NextDNS Blocklist</div>
+          <div class="status-pill active">SYNCED APPS</div>
+        </div>
         <div style="font-size: 0.875rem; color: var(--muted); opacity: 0.8; line-height: 1.6; margin-bottom: 24px;">Configured app perimeters under profile control.</div>
         <div class="service-grid">
           ${
@@ -359,8 +374,11 @@ async function renderSubTab(rules, lockedDomains: string[]) {
       </div>
 
       <div style="margin-top: 48px; border-top: 1px solid var(--glass-border); padding-top: 48px;">
-        <div style="font-weight: 800; color: #FFFFFF; font-size: 1.125rem; letter-spacing: -0.01em; margin-bottom: 8px;">Custom Domain Blocks</div>
-        <div style="font-size: 0.875rem; color: var(--muted); opacity: 0.8; line-height: 1.6; margin-bottom: 24px;">Granular domain-level intercepts.</div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom: 8px;">
+          <div style="font-weight: 800; color: #FFFFFF; font-size: 1.125rem; letter-spacing: -0.01em;">Normal Blocklist</div>
+          <div class="status-pill muted">LOCAL DOMAINS</div>
+        </div>
+        <div style="font-size: 0.875rem; color: var(--muted); opacity: 0.8; line-height: 1.6; margin-bottom: 24px;">Granular domain-level intercepts stored and enforced by this extension.</div>
         <div class="service-grid">
           ${
             visibleDomains.length
@@ -597,10 +615,13 @@ async function setupHandlers(container, rules) {
         if (isConfigured) {
           const result = await nextDNSApi.setTargetState(kind, id, targetState);
           if (!result.ok) {
+            const failedResult = result as { ok: false; error?: unknown };
             const errorMsg =
-              typeof (result.error as any) === 'object'
-                ? (result.error as any).message
-                : result.error;
+              typeof failedResult.error === 'object' &&
+              failedResult.error !== null &&
+              'message' in failedResult.error
+                ? String((failedResult.error as { message?: string }).message)
+                : String(failedResult.error || 'Sync failed');
             throw new Error(errorMsg || 'Sync failed');
           }
           await nextDNSApi.refreshNextDNSMetadata();

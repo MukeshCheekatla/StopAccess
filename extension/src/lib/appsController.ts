@@ -21,6 +21,26 @@ export const appsController = {
     }
   },
 
+  /**
+   * Internal helper to execute a cloud action only if Strong Protection (syncMode=profile) is active.
+   */
+  async _runCloudSync(action: () => Promise<any>) {
+    const syncMode = (await storage.getString('fg_sync_mode')) || 'browser';
+    const isConfigured = await nextDNSApi.isConfigured();
+
+    if (isConfigured && syncMode === 'profile') {
+      const result = await action();
+      if (result && result.ok === false) {
+        const errorMsg =
+          typeof result.error === 'object'
+            ? result.error.message
+            : result.error;
+        throw new Error(errorMsg || 'NextDNS Sync Failed');
+      }
+      await nextDNSApi.refreshNextDNSMetadata();
+    }
+  },
+
   async toggleRule(
     kind: string,
     id: string,
@@ -36,20 +56,13 @@ export const appsController = {
       }
     }
 
-    const isConfigured = await nextDNSApi.isConfigured();
     try {
-      if (isConfigured) {
-        const result = await nextDNSApi.setTargetState(kind, id, nextState);
-        if (!result.ok) {
-          const errorMsg =
-            typeof (result.error as any) === 'object'
-              ? (result.error as any).message
-              : result.error;
-          throw new Error(errorMsg || 'Sync failed');
-        }
-        await nextDNSApi.refreshNextDNSMetadata();
-      }
+      // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode
+      await this._runCloudSync(() =>
+        nextDNSApi.setTargetState(kind, id, nextState),
+      );
 
+      // 2. Local Layer (Browser DNR) - Always runs
       const existingRule = rules.find(
         (r) =>
           (r.customDomain || r.packageName) === id &&
@@ -90,28 +103,19 @@ export const appsController = {
       chrome.runtime.sendMessage({ action: 'manualSync' });
       return { ok: true };
     } catch (err: any) {
-      toast.error(`Toggle Error: ${err.message}`);
+      toast.error(err.message);
       return { ok: false, error: err.message };
     }
   },
 
   async addDomainRule(domain: string) {
-    const isConfigured = await nextDNSApi.isConfigured();
     try {
       const resolved = await nextDNSApi.resolveTargetInput(domain);
 
-      if (isConfigured) {
-        const result = await nextDNSApi.addResolvedTarget(resolved);
-        if (!result.ok) {
-          const errorMsg =
-            typeof (result.error as any) === 'object'
-              ? (result.error as any).message
-              : result.error;
-          throw new Error(errorMsg || 'Add failed');
-        }
-        await nextDNSApi.refreshNextDNSMetadata();
-      }
+      // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode
+      await this._runCloudSync(() => nextDNSApi.addResolvedTarget(resolved));
 
+      // 2. Local Layer (Browser DNR) - Always runs
       const rule = {
         packageName: resolved.normalizedId,
         appName: resolved.displayName,
@@ -132,7 +136,7 @@ export const appsController = {
       toast.success(`Shielded: ${resolved.displayName}`);
       return { ok: true };
     } catch (err: any) {
-      toast.error(`Add Error: ${err.message}`);
+      toast.error(err.message);
       return { ok: false, error: err.message };
     }
   },
@@ -145,18 +149,21 @@ export const appsController = {
       return { ok: false, error: msg };
     }
 
-    const isConfigured = await nextDNSApi.isConfigured();
     const rule = rules.find((r) => r.packageName === id);
     try {
-      if (isConfigured && rule) {
-        await nextDNSApi.setTargetState(rule.type || 'domain', id, false);
-        await nextDNSApi.refreshNextDNSMetadata();
+      // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode
+      if (rule) {
+        await this._runCloudSync(() =>
+          nextDNSApi.setTargetState(rule.type || 'domain', id, false),
+        );
       }
+
+      // 2. Local Layer (Browser DNR) - Always runs
       await deleteRule(storage, id);
       chrome.runtime.sendMessage({ action: 'manualSync' });
       return { ok: true };
     } catch (err: any) {
-      toast.error(`Delete Error: ${err.message}`);
+      toast.error(err.message);
       return { ok: false };
     }
   },

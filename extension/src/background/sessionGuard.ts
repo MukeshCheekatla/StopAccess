@@ -3,6 +3,7 @@
  * Uses blockedAtStart snapshot to enforce immutability during focus.
  */
 
+declare var chrome: any;
 import { FocusSessionRecord } from '@focusgate/types';
 
 const SESSION_KEY = 'fg_active_session';

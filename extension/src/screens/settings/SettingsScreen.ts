@@ -1,26 +1,17 @@
 import {
   extensionAdapter as storage,
   STORAGE_KEYS,
-} from '../background/platformAdapter';
+} from '../../background/platformAdapter';
 import { UI_EXAMPLES } from '@focusgate/core';
-import { addActionLog } from '../lib/logger';
-import { toast } from '../lib/toast';
+import { addActionLog } from '../../lib/logger';
+import { toast } from '../../lib/toast';
 
 export async function renderSettingsScreen(container) {
-  const profileId = (await storage.getString(STORAGE_KEYS.PROFILE_ID)) || '';
-  const apiKey = (await storage.getString(STORAGE_KEYS.API_KEY)) || '';
-  const strict = await storage.getBoolean('strict_mode_enabled');
-  const syncMode = (await storage.getString('fg_sync_mode')) || 'hybrid';
-
-  const dnrRules = (await new Promise((resolve) => {
-    if (chrome?.declarativeNetRequest?.getDynamicRules) {
-      chrome.declarativeNetRequest.getDynamicRules(resolve);
-    } else {
-      resolve([]);
-    }
-  })) as any[];
-
-  const healthOk = !!(profileId && apiKey);
+  const { loadSettingsData } = await import(
+    '../../../../packages/viewmodels/src/useSettingsVM'
+  );
+  const { profileId, apiKey, strict, syncMode, dnrRules, healthOk } =
+    await loadSettingsData();
 
   container.innerHTML = `
     <div class="app-card" style="margin-bottom: 24px; border-color: ${
@@ -61,25 +52,19 @@ export async function renderSettingsScreen(container) {
 
     <div class="app-card" style="margin-bottom: 24px;">
 
-      <div class="section-title">Focus Enforcement Level</div>
       <div class="btn-group" id="enforcement_modes">
         <button class="btn-tab ${
           syncMode === 'browser' ? 'active' : ''
-        }" data-val="browser">Level 1: Local</button>
-        <button class="btn-tab ${
-          syncMode === 'hybrid' ? 'active' : ''
-        }" data-val="hybrid">Level 2: Hybrid</button>
+        }" data-val="browser">Standard</button>
         <button class="btn-tab ${
           syncMode === 'profile' ? 'active' : ''
-        }" data-val="profile">Level 3: Full</button>
+        }" data-val="profile">Strong Protection</button>
       </div>
       <div class="stat-lbl" style="line-height: 1.4; margin-top: 12px; height: 32px;">
         ${
           syncMode === 'browser'
-            ? 'Browser-only: FASTEST setup, local rules only.'
-            : syncMode === 'hybrid'
-            ? 'Hybrid: DNS + Browser blocking. Stronger persistence.'
-            : 'Full: Network-wide services & categories via NextDNS.'
+            ? 'Standard: Normal local-only blocking. Fast and offline.'
+            : 'Strong: Cloud-hardened with NextDNS network-wide sync.'
         }
       </div>
     </div>
@@ -208,26 +193,18 @@ export async function renderSettingsScreen(container) {
       feedback.innerText = 'Connecting to NextDNS API...';
 
       try {
-        await storage.set(STORAGE_KEYS.PROFILE_ID, pid);
-        await storage.set(STORAGE_KEYS.API_KEY, key);
+        const { connectNextDNSAction } = await import(
+          '../../../../packages/viewmodels/src/useSettingsVM'
+        );
+        await connectNextDNSAction(pid, key);
 
-        // Real validation call
-        const { nextDNSApi } = await import('../background/platformAdapter');
-        const ok = await nextDNSApi.testConnection();
-
-        if (ok) {
-          feedback.style.background = 'rgba(0, 196, 140, 0.1)';
-          feedback.style.border = '1px solid rgba(0, 196, 140, 0.2)';
-          feedback.style.color = 'var(--green)';
-          feedback.innerHTML =
-            '<strong>Connection Success!</strong><br>Account linked. Rules are now live.';
-          btn.innerText = 'Connected';
-          await addActionLog('Successfully linked NextDNS account', 'success');
-        } else {
-          throw new Error('Invalid Profile ID or API Key');
-        }
-
-        chrome.runtime.sendMessage({ action: 'manualSync' });
+        feedback.style.background = 'rgba(0, 196, 140, 0.1)';
+        feedback.style.border = '1px solid rgba(0, 196, 140, 0.2)';
+        feedback.style.color = 'var(--green)';
+        feedback.innerHTML =
+          '<strong>Connection Success!</strong><br>Account linked. Rules are now live.';
+        btn.innerText = 'Connected';
+        await addActionLog('Successfully linked NextDNS account', 'success');
       } catch (err) {
         await addActionLog(`Failed to link NextDNS: ${err.message}`, 'error');
         feedback.style.background = 'rgba(255, 71, 87, 0.1)';

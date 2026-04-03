@@ -1,9 +1,7 @@
-import { getRules } from '@focusgate/state/rules';
-import { extensionAdapter as storage } from '../background/platformAdapter';
 import {
   fmtTime,
   buildDashboardTabPath,
-  resolveIconUrl as getDomainIcon,
+  resolveFaviconUrl as getDomainIcon,
 } from '@focusgate/core';
 
 function fmtDate(iso) {
@@ -36,41 +34,22 @@ export async function renderDashboard(container) {
 
   try {
     // ── Data ──────────────────────────────────────────
-    let rules = [];
-    try {
-      rules = await getRules(storage);
-    } catch {}
-
-    const usageRes = (await chrome.storage.local.get([
-      'usage',
-      'fg_logs',
-    ])) as any;
-    const usage = usageRes.usage || {};
-    const fgLogs = ((usageRes.fg_logs || []) as any[]).slice(-3).reverse();
-
-    const allTotalMs = Object.values(usage as any).reduce(
-      (a: number, b: any) => a + (b.time || 0),
-      0,
+    const { loadDashboardData } = await import(
+      '../../../../packages/viewmodels/src/useDashboardVM'
     );
-    const domainList = Object.entries(usage as any)
-      .map(([domain, d]: [string, any]) => ({
-        domain,
-        timeMs: d.time || 0,
-        sessions: d.sessions || 0,
-      }))
-      .filter((d) => d.timeMs > 0)
-      .sort((a, b) => b.timeMs - a.timeMs)
-      .slice(0, 5);
-
-    const syncStatus = await storage.getString('nextdns_connection_status');
-    const syncMode = (await storage.getString('fg_sync_mode')) || 'browser';
-    const lastSync = await storage.getString('fg_last_sync_at');
-    const isNew = rules.length === 0 && !syncStatus;
-
-    const blockedCount = rules.filter(
-      (r) => r.blockedToday || r.mode === 'block',
-    ).length;
-    const limitCount = rules.filter((r) => r.mode === 'limit').length;
+    const data = await loadDashboardData();
+    const {
+      rules,
+      fgLogs,
+      allTotalMs,
+      domainList,
+      syncStatus,
+      syncMode,
+      lastSync,
+      isNew,
+      blockedCount,
+      limitCount,
+    } = data;
 
     // ── Shield state ──────────────────────────────────
     let shieldClass = '';
@@ -208,9 +187,7 @@ export async function renderDashboard(container) {
                 )}" class="domain-icon" alt="">
                 <div>
                   <div class="domain-name" style="${
-                    isBlocked
-                      ? 'color:var(--red);text-decoration:line-through;'
-                      : ''
+                    isBlocked ? 'color:var(--red);' : ''
                   }">${d.domain}</div>
                   <div class="domain-sessions">${d.sessions} session${
                     d.sessions !== 1 ? 's' : ''

@@ -697,9 +697,30 @@ async function checkAndBlock() {
   }
 }
 
+// ── Persistence Engine ──────────────────────────
+
+// Watch for DOM changes to ensure overlay isn't removed
+const persistenceObserver = new MutationObserver((_mutations) => {
+  if (!overlayActive) {
+    return;
+  }
+  // If overlay element is gone from the DOM, re-inject
+  if (!document.getElementById(OVERLAY_ID)) {
+    checkAndBlock();
+  }
+});
+
+function startPersistence() {
+  persistenceObserver.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
+}
+
 // ── Bootstrap ─────────────────────────────────────
 
 checkAndBlock();
+startPersistence();
 
 const _pushState = history.pushState.bind(history);
 const _replaceState = history.replaceState.bind(history);
@@ -716,6 +737,13 @@ history.replaceState = function (...args) {
 
 window.addEventListener('popstate', checkAndBlock);
 window.addEventListener('hashchange', checkAndBlock);
+
+// Re-check on visibility change (prevents bypasses when switching tabs)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    checkAndBlock();
+  }
+});
 
 chrome.storage.onChanged.addListener((changes) => {
   if (

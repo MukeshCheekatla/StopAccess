@@ -1,11 +1,4 @@
-import {
-  getRecentSnapshots,
-  resolveIconUrl as getDomainIcon,
-} from '@focusgate/core';
-import {
-  extensionAdapter as storage,
-  nextDNSApi,
-} from '../background/platformAdapter';
+import { resolveIconUrl as getDomainIcon } from '@focusgate/core';
 
 function formatTimeAgo(timestamp) {
   const diff = Date.now() - new Date(timestamp).getTime();
@@ -36,36 +29,17 @@ export async function renderInsightsScreen(container) {
   container.innerHTML = '<div class="loader">Compiling Engine Logs...</div>';
 
   try {
-    const isConfigured = await nextDNSApi.isConfigured();
-    const isSyncModeFull =
-      (await storage.getString('fg_sync_mode')) !== 'browser';
-
-    let snapshots = await getRecentSnapshots(storage, 14); // 2 weeks trend
-    if (!Array.isArray(snapshots)) {
-      snapshots = [];
-    }
-
-    let blockedLogs = [];
-    let topBlocked = [];
-
-    if (isConfigured && isSyncModeFull) {
-      try {
-        const [logsRes, domainsRes] = await Promise.all([
-          nextDNSApi.getLogs('blocked', 8),
-          nextDNSApi.getTopBlockedDomains(5),
-        ]);
-        blockedLogs = logsRes || [];
-        topBlocked = domainsRes || [];
-      } catch (e) {
-        console.warn('NextDNS insights fetch failed', e);
-      }
-    }
-
-    const { usage = {} } = (await chrome.storage.local.get(['usage'])) as any;
-    const allTotalMs = Object.values(usage).reduce(
-      (a: number, b: any) => a + (b.time || 0),
-      0,
+    const { loadInsightsData } = await import(
+      '../../../../packages/viewmodels/src/useInsightsVM'
     );
+    const {
+      isConfigured,
+      isSyncModeFull,
+      snapshots,
+      blockedLogs,
+      topBlocked,
+      allTotalMs,
+    } = await loadInsightsData();
     const avgMins = snapshots.length
       ? Math.round(
           snapshots.reduce((sum, s) => sum + (s.screenTimeMinutes || 0), 0) /

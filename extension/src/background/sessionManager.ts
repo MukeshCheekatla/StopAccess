@@ -1,10 +1,7 @@
-import { FocusSessionRecord } from '@focusgate/types';
+import { FocusSessionRecord, NextDNSEntity } from '@focusgate/types';
 import { syncDNRRules } from './dnrAdapter';
 import { nextDNSApi } from './platformAdapter';
-
-const SESSION_KEY = 'fg_active_session';
-const HISTORY_KEY = 'fg_session_history';
-
+import { STORAGE_KEYS } from '@focusgate/state';
 /**
  * Starts a new focus session.
  * Snapshots current blocked state and optionally enables NextDNS block bypass protection.
@@ -15,20 +12,29 @@ export async function startSession(config: {
   blockedDomains: string[];
   enableBlockBypass?: boolean;
 }): Promise<FocusSessionRecord> {
+  // 0. Session Guard: Prevent starting if one is already active
+  const existing = await getActiveSession();
+  if (existing) {
+    throw new Error('A focus session is already active.');
+  }
+
   // 1. Snapshot current NextDNS state for the guard
   let blockedAtStart = { denylist: [], services: [], categories: [] };
   try {
-    const snapshot = await nextDNSApi.getRemoteSnapshot();
+    const snapshotRes = await nextDNSApi.getRemoteSnapshot();
+    const data = snapshotRes.ok
+      ? snapshotRes.data
+      : { denylist: [], services: [], categories: [] };
     blockedAtStart = {
-      denylist: (snapshot.denylist || [])
-        .filter((d) => d.active)
-        .map((d) => d.id),
-      services: (snapshot.services || [])
-        .filter((s) => s.active)
-        .map((s) => s.id),
-      categories: (snapshot.categories || [])
-        .filter((c) => c.active)
-        .map((c) => c.id),
+      denylist: (data.denylist || [])
+        .filter((d: NextDNSEntity) => d.active)
+        .map((d: NextDNSEntity) => d.id),
+      services: (data.services || [])
+        .filter((s: NextDNSEntity) => s.active)
+        .map((s: NextDNSEntity) => s.id),
+      categories: (data.categories || [])
+        .filter((c: NextDNSEntity) => c.active)
+        .map((c: NextDNSEntity) => c.id),
     };
   } catch (e) {
     console.warn('[FocusGate] Could not snapshot NextDNS state:', e);
@@ -51,10 +57,11 @@ export async function startSession(config: {
     elapsed: 0,
   };
 
+  // 3. Centralized Save
   await chrome.storage.local.set({
-    [SESSION_KEY]: session,
-    fg_focus_session_start: session.startedAt,
-    focus_end_time: session.startedAt + config.duration * 60000,
+    [STORAGE_KEYS.SESSION]: session,
+    [STORAGE_KEYS.SESSION_START]: session.startedAt,
+    [STORAGE_KEYS.FOCUS_END]: session.startedAt + config.duration * 60000,
   });
 
   // Activate DNR rules
@@ -73,8 +80,8 @@ export async function startSession(config: {
 }
 
 export async function getActiveSession(): Promise<FocusSessionRecord | null> {
-  const result = await chrome.storage.local.get(SESSION_KEY);
-  return (result[SESSION_KEY] as FocusSessionRecord) || null;
+  const result = await chrome.storage.local.get(STORAGE_KEYS.SESSION);
+  return (result[STORAGE_KEYS.SESSION] as FocusSessionRecord) || null;
 }
 
 /**
@@ -93,7 +100,7 @@ export async function endSession(
     await toggleBlockBypass(false);
   }
 
-  // Clear DNR rules
+  // Clear DNR rules until the lifecycle engine reapplies the steady state.
   await syncDNRRules([]);
 
   // Clear alarms
@@ -101,8 +108,11 @@ export async function endSession(
   await chrome.alarms.clear('fg_session_end');
 
   // Save to history
-  const historyRes = await chrome.storage.local.get(HISTORY_KEY);
-  const history = (historyRes[HISTORY_KEY] || []) as FocusSessionRecord[];
+  const historyRes = await chrome.storage.local.get(
+    STORAGE_KEYS.SESSION_HISTORY,
+  );
+  const history = (historyRes[STORAGE_KEYS.SESSION_HISTORY] ||
+    []) as FocusSessionRecord[];
 
   const endedAt = Date.now();
   history.push({
@@ -113,8 +123,10 @@ export async function endSession(
   });
 
   await chrome.storage.local.set({
-    [HISTORY_KEY]: history,
-    [SESSION_KEY]: null,
+    [STORAGE_KEYS.SESSION_HISTORY]: history,
+    [STORAGE_KEYS.SESSION]: null,
+    [STORAGE_KEYS.SESSION_START]: 0,
+    [STORAGE_KEYS.FOCUS_END]: 0,
   });
 
   // Clear badge
@@ -148,14 +160,17 @@ async function toggleBlockBypass(enabled: boolean) {
   }
 }
 
-export async function handleAlarm(alarm: chrome.alarms.Alarm) {
+export async function handleAlarm(
+  alarm: chrome.alarms.Alarm,
+): Promise<boolean> {
   if (alarm.name === 'fg_session_tick') {
     const session = await getActiveSession();
     if (session) {
       session.elapsed = Math.round((Date.now() - session.startedAt) / 1000);
-      await chrome.storage.local.set({ [SESSION_KEY]: session });
+      await chrome.storage.local.set({ [STORAGE_KEYS.SESSION]: session });
       await updateBadge(session);
     }
+    return false;
   }
 
   if (alarm.name === 'fg_session_end') {
@@ -163,15 +178,18 @@ export async function handleAlarm(alarm: chrome.alarms.Alarm) {
     chrome.notifications.create('fg_session_done', {
       type: 'basic',
       iconUrl: 'assets/icon.png',
-      title: 'Focus Session Complete 🎯',
+      title: 'Focus Session Complete',
       message: 'Great work! Your focus session has ended.',
     });
+    return true;
   }
+
+  return false;
 }
 
 export async function updateBadge(session: FocusSessionRecord) {
   const remaining = session.duration - Math.floor(session.elapsed / 60);
-  const text = remaining > 0 ? `${remaining}m` : '✓';
+  const text = remaining > 0 ? `${remaining}m` : 'OK';
   await chrome.action.setBadgeText({ text });
   await chrome.action.setBadgeBackgroundColor({ color: '#6366f1' });
 }

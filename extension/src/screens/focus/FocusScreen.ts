@@ -1,9 +1,4 @@
-import {
-  extensionAdapter as storage,
-  STORAGE_KEYS,
-} from '../background/platformAdapter';
-import { FocusSessionRecord } from '@focusgate/types';
-import { toast } from '../lib/toast';
+import { toast } from '../../lib/toast';
 
 function formatTimePrecise(ms) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -26,29 +21,20 @@ export async function renderFocusScreen(container) {
     return;
   }
 
-  const activeSessionResults = await chrome.storage.local.get([
-    'fg_active_session',
-  ]);
-  const activeSession =
-    activeSessionResults.fg_active_session as FocusSessionRecord | null;
-
-  const focusEnd =
-    activeSession?.status === 'focusing'
-      ? activeSession.startedAt + activeSession.duration * 60000
-      : await storage.getNumber(STORAGE_KEYS.FOCUS_END, 0);
-
-  const focusStart =
-    activeSession?.status === 'focusing'
-      ? activeSession.startedAt
-      : (await storage.getNumber('fg_focus_session_start', 0)) ||
-        focusEnd - 1500000;
-
-  const now = Date.now();
-  const isFocusing = focusEnd > now;
+  const { loadFocusData } = await import(
+    '../../../../packages/viewmodels/src/useFocusVM'
+  );
+  const data = await loadFocusData();
+  const {
+    focusEnd,
+    isFocusing,
+    totalDuration: calcDuration,
+    remaining: calcRemaining,
+  } = data;
 
   if (isFocusing) {
-    const totalDuration = focusEnd - focusStart;
-    const remaining = focusEnd - now;
+    const totalDuration = calcDuration;
+    const remaining = calcRemaining;
     const progress = Math.max(0, Math.min(1, remaining / totalDuration));
 
     // SVG Dash calculation
@@ -145,25 +131,27 @@ export async function renderFocusScreen(container) {
           ?.addEventListener('click', cleanup);
         modalContainer
           .querySelector('.btn-confirm-abort')
-          ?.addEventListener('click', () => {
+          ?.addEventListener('click', async () => {
             cleanup();
             btn.disabled = true;
             let countdown = 5;
-            const interval = setInterval(() => {
+            const interval = setInterval(async () => {
               countdown--;
               if (countdown > 0) {
                 btn.innerText = `ENDING IN ${countdown}S...`;
               } else {
                 clearInterval(interval);
-                chrome.runtime.sendMessage({ action: 'stopFocus' }, (res) => {
-                  if (res?.error) {
-                    btn.innerText = 'ERROR';
-                    btn.disabled = false;
-                    toast.error(res.error);
-                  } else {
-                    renderFocusScreen(container);
-                  }
-                });
+                const { stopFocusSessionAction } = await import(
+                  '../../../../packages/viewmodels/src/useFocusVM'
+                );
+                const res = await stopFocusSessionAction();
+                if (res?.error) {
+                  btn.innerText = 'ERROR';
+                  btn.disabled = false;
+                  toast.error(res.error);
+                } else {
+                  renderFocusScreen(container);
+                }
               }
             }, 1000);
             btn.innerText = `ENDING IN ${countdown}S...`;
@@ -204,20 +192,15 @@ export async function renderFocusScreen(container) {
     container.querySelectorAll('.start-focus').forEach((btn) => {
       btn.addEventListener('click', async () => {
         const mins = parseInt(btn.getAttribute('data-mins'), 10);
-        const startTime = Date.now();
-
-        // Save start time for progress bar calculation
-        await chrome.storage.local.set({ fg_focus_session_start: startTime });
 
         btn.style.borderColor = 'var(--accent)';
         btn.style.background = 'rgba(255,255,255,0.05)';
 
-        chrome.runtime.sendMessage(
-          { action: 'startFocus', minutes: mins },
-          () => {
-            renderFocusScreen(container);
-          },
+        const { startFocusSessionAction } = await import(
+          '../../../../packages/viewmodels/src/useFocusVM'
         );
+        await startFocusSessionAction(mins);
+        renderFocusScreen(container);
       });
     });
   }

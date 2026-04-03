@@ -1,7 +1,7 @@
 import {
   extensionAdapter as storage,
   STORAGE_KEYS,
-} from '../background/platformAdapter';
+} from '../../background/platformAdapter';
 import { FocusSessionRecord } from '@focusgate/types';
 
 function formatTimePrecise(ms) {

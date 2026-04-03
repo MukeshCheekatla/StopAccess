@@ -640,8 +640,10 @@ async function loadNextDNSMetaData() {
       nextDNSApi.getParentalControlServices(),
       nextDNSApi.getParentalControlCategories(),
     ]);
-    availableServices = services.filter((service) => service.id);
-    availableCategories = categories.filter((category) => category.id);
+    availableServices = services.ok ? services.data.filter((service) => service.id) : [];
+    availableCategories = categories.ok
+      ? categories.data.filter((category) => category.id)
+      : [];
     await chrome.storage.local.set({
       cached_ndns_metadata: {
         services: availableServices,

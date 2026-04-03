@@ -1,7 +1,7 @@
 import {
   extensionAdapter as storage,
   STORAGE_KEYS,
-} from '../background/platformAdapter';
+} from '../../background/platformAdapter';
 import { buildDashboardTabPath } from '@focusgate/core';
 
 export async function renderSettingsPopup(container) {
@@ -42,7 +42,7 @@ export async function renderSettingsPopup(container) {
 
     <div class="settings-section">
       <div class="field-label" style="margin-bottom: 12px;">ENFORCEMENT TIER</div>
-      <div class="enforcement-grid" style="grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 0;">
+      <div class="enforcement-grid" style="grid-template-columns: repeat(2, 1fr); gap: 6px; margin: 0;">
         <div class="enforcement-card ${
           syncMode === 'browser' ? 'active' : ''
         }" data-mode="browser" style="padding: 10px 4px; border-radius: 8px;">
@@ -50,15 +50,9 @@ export async function renderSettingsPopup(container) {
           <div class="enforcement-tag" style="font-size: 8px;">LOCAL</div>
         </div>
         <div class="enforcement-card ${
-          syncMode === 'hybrid' ? 'active' : ''
-        }" data-mode="hybrid" style="padding: 10px 4px; border-radius: 8px;">
-          <div class="enforcement-level" style="font-size: 11px;">L2</div>
-          <div class="enforcement-tag" style="font-size: 8px;">HYBRID</div>
-        </div>
-        <div class="enforcement-card ${
           syncMode === 'profile' ? 'active' : ''
         }" data-mode="profile" style="padding: 10px 4px; border-radius: 8px;">
-          <div class="enforcement-level" style="font-size: 11px;">L3</div>
+          <div class="enforcement-level" style="font-size: 11px;">L2</div>
           <div class="enforcement-tag" style="font-size: 8px;">CLOUD</div>
         </div>
       </div>
