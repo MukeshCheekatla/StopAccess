@@ -3,11 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { renderDashboardPopup as renderDashboardScreen } from '../screens/dashboard/DashboardPopup';
 import { renderAppsPopup } from '../screens/AppsPopup';
 import { renderFocusPopup as renderFocusScreen } from '../screens/focus/FocusPopup';
-import { renderSettingsPopup as renderSettingsScreen } from '../screens/settings/SettingsPopup';
-import { renderScheduleScreen as renderSchedule } from '../screens/schedule/ScheduleScreen';
-import { renderInsightsScreen as renderInsights } from '../screens/insights/InsightsScreen';
-import { renderSecurityScreen as renderSecurity } from '../screens/security/SecurityScreen';
-import { renderPrivacyScreen as renderPrivacy } from '../screens/privacy/PrivacyScreen';
+
 import {
   extensionAdapter as storage,
   nextDNSApi,
@@ -19,15 +15,7 @@ import {
   type ShellTab,
 } from '../ui/react/ExtensionShell';
 
-type TabId =
-  | 'dash'
-  | 'apps'
-  | 'focus'
-  | 'schedule'
-  | 'insights'
-  | 'privacy'
-  | 'security'
-  | 'settings';
+type TabId = 'dash' | 'apps' | 'focus';
 
 type PassEntry = {
   domain: string;
@@ -38,11 +26,6 @@ const TABS: Array<ShellTab<TabId>> = [
   { id: 'dash', label: 'DASHBOARD' },
   { id: 'apps', label: 'BLOCK LIST' },
   { id: 'focus', label: 'FOCUS TIMER' },
-  { id: 'schedule', label: 'SCHEDULE' },
-  { id: 'insights', label: 'INSIGHTS' },
-  { id: 'privacy', label: 'PRIVACY' },
-  { id: 'security', label: 'SECURITY' },
-  { id: 'settings', label: 'SETTINGS' },
 ];
 
 const TAB_SET = new Set<string>(TABS.map((tab) => tab.id));
@@ -85,24 +68,10 @@ async function renderTab(container: HTMLElement, tabId: TabId) {
       await renderAppsPopup(container);
       return;
     }
-    case 'focus':
+    case 'focus': {
       await renderFocusScreen(container);
       return;
-    case 'schedule':
-      await renderSchedule(container);
-      return;
-    case 'insights':
-      await renderInsights(container);
-      return;
-    case 'privacy':
-      await renderPrivacy(container);
-      return;
-    case 'security':
-      await renderSecurity(container);
-      return;
-    case 'settings':
-      await renderSettingsScreen(container);
-      return;
+    }
     default:
       container.innerHTML = '';
   }
