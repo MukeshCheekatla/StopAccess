@@ -2,6 +2,7 @@ import React, {
   type CSSProperties,
   type ReactNode,
   useEffect,
+  useState,
   useMemo,
   useRef,
 } from 'react';
@@ -137,6 +138,31 @@ export function DashboardShell<T extends string>({
     [status.tone],
   );
 
+  const navListRef = useRef<HTMLElement>(null);
+  const [indicatorData, setIndicatorData] = useState({
+    top: 0,
+    height: 0,
+    opacity: 0,
+  });
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (navListRef.current) {
+        const activeEl = navListRef.current.querySelector(
+          '.nav-item.active',
+        ) as HTMLElement;
+        if (activeEl) {
+          setIndicatorData({
+            top: activeEl.offsetTop,
+            height: activeEl.offsetHeight,
+            opacity: 1,
+          });
+        }
+      }
+    }, 10);
+    return () => clearTimeout(timer);
+  }, [activeTab]);
+
   return (
     <>
       <div
@@ -159,7 +185,6 @@ export function DashboardShell<T extends string>({
             </div>
             <div>
               <div className="brand-name">FocusGate</div>
-              <div className="brand-subtitle">Extension workspace</div>
             </div>
           </div>
         </div>
@@ -169,14 +194,55 @@ export function DashboardShell<T extends string>({
             {status.label}
           </div>
         </div>
-        <nav className="nav-list">
+        <nav
+          className="nav-list"
+          ref={navListRef}
+          style={{ position: 'relative' }}
+        >
+          <div
+            className="nav-snake-bg"
+            style={{
+              position: 'absolute',
+              left: '8px',
+              right: '8px',
+              top: `${indicatorData.top}px`,
+              height: `${indicatorData.height}px`,
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: '14px',
+              opacity: indicatorData.opacity,
+              transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+          />
+          <div
+            className="nav-snake-bar"
+            style={{
+              position: 'absolute',
+              left: '8px',
+              top: `${indicatorData.top + indicatorData.height * 0.225}px`,
+              height: `${indicatorData.height * 0.55}px`,
+              width: '4px',
+              background: '#fff',
+              borderRadius: '0 4px 4px 0',
+              opacity: indicatorData.opacity,
+              transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              pointerEvents: 'none',
+              zIndex: 1,
+            }}
+          />
           {tabs.map((tab) => (
             <button
               key={tab.id}
               className={`nav-item${activeTab === tab.id ? ' active' : ''}`}
               data-tab={tab.id}
               onClick={() => onTabChange(tab.id)}
-              style={dashboardNavButtonStyle}
+              style={{
+                ...dashboardNavButtonStyle,
+                zIndex: 2,
+                position: 'relative',
+              }}
               type="button"
             >
               {tab.icon}
