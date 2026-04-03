@@ -9,6 +9,7 @@ export const SERVICE_URLS = {
   NEXTDNS_LOGIN: 'https://my.nextdns.io/login',
   SIMPLE_ICONS_CDN: 'https://cdn.simpleicons.org',
   GOOGLE_FAVICON_API: 'https://www.google.com/s2/favicons',
+  GOOGLE_FAVICON_V2_API: 'https://t1.gstatic.com/faviconV2',
   GOOGLE_FONTS_URL:
     'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap',
 };
@@ -186,11 +187,14 @@ export function getFaviconUrl(domain: string): string | null {
     return null;
   }
 
-  // Fallback check: if it's a subdomain, we might want the root domain instead
-  // However, we'll return the most specific one first.
-  return `${SERVICE_URLS.GOOGLE_FAVICON_API}?domain=${encodeURIComponent(
-    clean,
-  )}&sz=128`;
+  // Use Google's newer Favicon V2 API which handles subdomains (like Gmail) much better
+  // providing product-specific icons instead of just the root brand logo.
+  const fullUrl = `https://${clean}/`;
+  return `${
+    SERVICE_URLS.GOOGLE_FAVICON_V2_API
+  }?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${encodeURIComponent(
+    fullUrl,
+  )}&size=128`;
 }
 
 /**
@@ -252,6 +256,24 @@ export function getCategoryBadge(category: { id?: string; name?: string }) {
  */
 export function getAppIconUrl(identifier: string): string | null {
   return resolveIconUrl(identifier) || null;
+}
+
+/**
+ * Resolves to a high-quality Google Favicon by first resolving the domain to its brand root.
+ * This matches the high-quality resolution logic used in the Apps/Blocklist popup.
+ */
+export function resolveFaviconUrl(identifier: string): string {
+  const cleanId = String(identifier || '')
+    .toLowerCase()
+    .trim()
+    .replace(/^https?:\/\//, '')
+    .replace(/^www\./, '')
+    .split('/')[0];
+
+  // We prioritize the specific domain because the Google Favicon API
+  // is capable of returning product-specific icons (like Gmail) or
+  // falling back to the root domain automatically if needed.
+  return getFaviconUrl(cleanId)!;
 }
 
 /**

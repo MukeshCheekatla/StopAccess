@@ -2,11 +2,11 @@
  * @focusgate/state — Rule Persistence
  */
 
-import { AppRule } from '@focusgate/types';
+import { AppRule, StorageAdapter } from '@focusgate/types';
 
 export const RULES_KEY = 'rules';
 
-export async function getRules(storage: any): Promise<AppRule[]> {
+export async function getRules(storage: StorageAdapter): Promise<AppRule[]> {
   const raw = await storage.getString(RULES_KEY);
   if (!raw) {
     return [];
@@ -14,15 +14,15 @@ export async function getRules(storage: any): Promise<AppRule[]> {
   return typeof raw === 'string' ? JSON.parse(raw) : raw;
 }
 
-export async function saveRules(storage: any, rules: AppRule[]): Promise<void> {
-  await storage.set(
-    RULES_KEY,
-    typeof rules === 'string' ? rules : JSON.stringify(rules),
-  );
+export async function saveRules(
+  storage: StorageAdapter,
+  rules: AppRule[],
+): Promise<void> {
+  await storage.set(RULES_KEY, JSON.stringify(rules));
 }
 
 export async function updateRule(
-  storage: any,
+  storage: StorageAdapter,
   updated: AppRule,
 ): Promise<AppRule[]> {
   const rules = await getRules(storage);
@@ -39,7 +39,7 @@ export async function updateRule(
 }
 
 export async function deleteRule(
-  storage: any,
+  storage: StorageAdapter,
   packageName: string,
 ): Promise<AppRule[]> {
   let rules = await getRules(storage);

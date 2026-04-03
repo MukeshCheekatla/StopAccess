@@ -1,4 +1,8 @@
-import { getRootDomain, resolveIconUrl, getCategoryBadge } from '../src/iconography';
+import {
+  getRootDomain,
+  resolveIconUrl,
+  getCategoryBadge,
+} from '../src/iconography';
 
 describe('getRootDomain', () => {
   it('extracts root domain from standard domains', () => {

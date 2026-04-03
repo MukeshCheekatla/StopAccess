@@ -2,11 +2,13 @@
  * @focusgate/state — Schedule Persistence
  */
 
-import { ScheduleRule } from '@focusgate/types';
+import { ScheduleRule, StorageAdapter } from '@focusgate/types';
 
 export const SCHEDULES_KEY = 'schedules';
 
-export async function getSchedules(storage: any): Promise<ScheduleRule[]> {
+export async function getSchedules(
+  storage: StorageAdapter,
+): Promise<ScheduleRule[]> {
   const raw = await storage.getString(SCHEDULES_KEY);
   if (!raw) {
     return [];
@@ -15,14 +17,14 @@ export async function getSchedules(storage: any): Promise<ScheduleRule[]> {
 }
 
 export async function saveSchedules(
-  storage: any,
+  storage: StorageAdapter,
   schedules: ScheduleRule[],
 ): Promise<void> {
   await storage.set(SCHEDULES_KEY, JSON.stringify(schedules));
 }
 
 export async function addSchedule(
-  storage: any,
+  storage: StorageAdapter,
   schedule: Partial<ScheduleRule>,
 ): Promise<ScheduleRule[]> {
   const schedules = await getSchedules(storage);
@@ -43,7 +45,7 @@ export async function addSchedule(
 }
 
 export async function toggleSchedule(
-  storage: any,
+  storage: StorageAdapter,
   id: string,
   value?: boolean,
 ): Promise<ScheduleRule[]> {
@@ -59,7 +61,7 @@ export async function toggleSchedule(
 }
 
 export async function updateSchedule(
-  storage: any,
+  storage: StorageAdapter,
   updated: ScheduleRule,
 ): Promise<ScheduleRule[]> {
   const schedules = await getSchedules(storage);

@@ -1,4 +1,5 @@
-import { fmtTime, escapeHtml } from '../src/utils';
+import { fmtTime } from '../src/utils/time';
+import { escapeHtml } from '../src/utils/text';
 
 describe('fmtTime', () => {
   it('formats milliseconds into hours, minutes, and seconds', () => {

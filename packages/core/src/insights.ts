@@ -2,22 +2,18 @@
  * @focusgate/core — Focus Insights Engine
  */
 
-import { DailySnapshot } from '@focusgate/types';
+import { DailySnapshot, StorageAdapter } from '@focusgate/types';
 
 export const INSIGHTS_KEY = 'insights_v2';
 
 export async function recordDailySnapshot(
-  storage: any,
+  storage: StorageAdapter,
   totalMinutes: number,
   blockedCount: number,
 ): Promise<void> {
   const date = new Date().toISOString().split('T')[0];
   const raw = await storage.getString(INSIGHTS_KEY);
-  let insights: DailySnapshot[] = raw
-    ? typeof raw === 'string'
-      ? JSON.parse(raw)
-      : raw
-    : [];
+  let insights: DailySnapshot[] = raw ? JSON.parse(raw) : [];
 
   const idx = insights.findIndex((d) => d.date === date);
   if (idx >= 0) {
@@ -41,7 +37,9 @@ export async function recordDailySnapshot(
   await storage.set(INSIGHTS_KEY, JSON.stringify(insights));
 }
 
-export async function getInsights(storage: any): Promise<DailySnapshot[]> {
+export async function getInsights(
+  storage: StorageAdapter,
+): Promise<DailySnapshot[]> {
   const raw = await storage.getString(INSIGHTS_KEY);
   if (!raw) {
     return [];
@@ -53,7 +51,7 @@ export async function getInsights(storage: any): Promise<DailySnapshot[]> {
  * Platform Agnostic Snapshot Retriever
  */
 export async function getRecentSnapshots(
-  storage: any,
+  storage: StorageAdapter,
   limit = 7,
 ): Promise<DailySnapshot[]> {
   const insights = await getInsights(storage);

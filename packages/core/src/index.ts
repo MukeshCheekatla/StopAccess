@@ -1,13 +1,14 @@
 /**
- * @focusgate/core — Shared Engine & Cloud API
- * 100% Platform Agnostic — Works in React Native AND Browser Extension.
+ * @focusgate/core — Core Logic and API Client
  */
 
-export * from './api';
-export * from './engine';
-export * from './sync';
-export * from './syncAdapter';
-export * from './domains';
-export * from './insights';
+export * from './nextdns/index';
+export * from './engine/domains';
+export * from './engine/rules';
+export * from './engine/sync';
 export * from './iconography';
-export * from './utils';
+export * from './insights';
+export * from './utils/time';
+export * from './utils/text';
+export * from './utils/retry';
+export * from './utils/navigation';

@@ -1,9 +1,11 @@
 /**
  * @focusgate/state — Shared State Persistence Logic
- * 100% Shared — Rules, Schedules, and Insights.
  */
 
-export * from './rules.ts';
-export * from './schedules.ts';
-export * from './insights.ts';
-export * from './sync.ts';
+export * from './rules';
+export * from './schedules';
+export * from './insights';
+export * from './sync';
+export * from './security';
+export * from './privacy';
+export * from './registry';

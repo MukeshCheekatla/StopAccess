@@ -8,7 +8,10 @@
     ".": "./src/index.ts",
     "./rules": "./src/rules.ts",
     "./schedules": "./src/schedules.ts",
-    "./insights": "./src/insights.ts"
+    "./insights": "./src/insights.ts",
+    "./sync": "./src/sync.ts",
+    "./security": "./src/security.ts",
+    "./privacy": "./src/privacy.ts"
   },
   "scripts": {
     "build": "tsc",

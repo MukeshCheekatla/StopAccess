@@ -2,7 +2,7 @@ import {
   sanitizeDomain,
   findServiceIdByDomain,
   resolveTargetInput,
-} from '../src/domains';
+} from '../src/engine/domains';
 
 describe('sanitizeDomain', () => {
   it('removes protocol and www', () => {

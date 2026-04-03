@@ -2,7 +2,7 @@
  * @focusgate/state — Sync State Persistence
  */
 
-import { SyncState, SyncTelemetry } from '@focusgate/types';
+import { SyncState, SyncTelemetry, StorageAdapter } from '@focusgate/types';
 
 export const SYNC_STATE_KEY = 'sync_state';
 
@@ -20,7 +20,9 @@ const INITIAL_STATE: SyncState = {
   telemetry: INITIAL_TELEMETRY,
 };
 
-export async function getSyncState(storage: any): Promise<SyncState> {
+export async function getSyncState(
+  storage: StorageAdapter,
+): Promise<SyncState> {
   const raw = await storage.getString(SYNC_STATE_KEY);
   if (!raw) {
     return INITIAL_STATE;
@@ -34,17 +36,14 @@ export async function getSyncState(storage: any): Promise<SyncState> {
 }
 
 export async function saveSyncState(
-  storage: any,
+  storage: StorageAdapter,
   state: SyncState,
 ): Promise<void> {
-  await storage.set(
-    SYNC_STATE_KEY,
-    typeof state === 'string' ? state : JSON.stringify(state),
-  );
+  await storage.set(SYNC_STATE_KEY, JSON.stringify(state));
 }
 
 export async function updateSyncTelemetry(
-  storage: any,
+  storage: StorageAdapter,
   update: Partial<SyncTelemetry>,
 ): Promise<SyncState> {
   const state = await getSyncState(storage);

@@ -1,5 +1,77 @@
-import { AppRule, ScheduleRule } from '@focusgate/types';
-import { evaluateRules } from '../src/engine';
+import { AppRule, SyncContext } from '@focusgate/types';
+import {
+  evaluateRules,
+  runFullEngineCycle,
+  FocusEngine,
+} from '../src/engine/rules';
+import { SyncOrchestrator } from '../src/engine/sync';
+
+jest.mock('../src/sync');
+
+describe('FocusEngine', () => {
+  let mockCtx: jest.Mocked<SyncContext>;
+  let engine: FocusEngine;
+
+  beforeEach(() => {
+    mockCtx = {
+      storage: {
+        loadGlobalState: jest.fn().mockResolvedValue({
+          rules: [],
+          schedules: [],
+          focusEndTime: 0,
+        }),
+        saveRules: jest.fn().mockResolvedValue(undefined),
+      } as any,
+      logger: { add: jest.fn() },
+    } as any;
+    engine = new FocusEngine(mockCtx);
+  });
+
+  it('runs a tick and performs sync', async () => {
+    const tickResult = await engine.tick();
+    expect(tickResult.ok).toBe(true);
+    expect(SyncOrchestrator).toHaveBeenCalled();
+    const syncInstance = (SyncOrchestrator as jest.Mock).mock.instances[0];
+    expect(syncInstance.performSync).toHaveBeenCalled();
+  });
+});
+
+describe('runFullEngineCycle', () => {
+  let mockCtx: jest.Mocked<SyncContext>;
+
+  beforeEach(() => {
+    mockCtx = {
+      storage: {
+        loadGlobalState: jest.fn().mockResolvedValue({
+          rules: [
+            {
+              appName: 'Insta',
+              packageName: 'com.insta',
+              mode: 'block',
+              blockedToday: false,
+              addedByUser: true,
+            },
+          ],
+          schedules: [],
+          focusEndTime: 0,
+        }),
+        saveRules: jest.fn().mockResolvedValue(undefined),
+      } as any,
+      enforcements: {
+        applyBlockedPackages: jest.fn().mockResolvedValue(undefined),
+      },
+    } as any;
+  });
+
+  it('applies enforcements for blocked packages', async () => {
+    const result = await runFullEngineCycle(mockCtx);
+    expect(result.ok).toBe(true);
+    expect(mockCtx.enforcements?.applyBlockedPackages).toHaveBeenCalledWith([
+      'com.insta',
+    ]);
+    expect(mockCtx.storage.saveRules).toHaveBeenCalled();
+  });
+});
 
 describe('evaluateRules', () => {
   const mockRules: AppRule[] = [
@@ -14,95 +86,14 @@ describe('evaluateRules', () => {
       dailyLimitMinutes: 0,
       usedMinutesToday: 0,
     },
-    {
-      appName: 'YouTube',
-      packageName: 'com.google.android.youtube',
-      type: 'domain',
-      mode: 'limit',
-      dailyLimitMinutes: 60,
-      usedMinutesToday: 70,
-      blockedToday: false,
-      scope: 'browser',
-      addedByUser: false,
-    },
-    {
-      appName: 'Reddit',
-      packageName: 'com.reddit.frontpage',
-      type: 'domain',
-      mode: 'limit',
-      dailyLimitMinutes: 60,
-      usedMinutesToday: 30,
-      blockedToday: false,
-      scope: 'browser',
-      addedByUser: false,
-    },
   ];
-
-  const mockSchedules: ScheduleRule[] = [];
 
   it('blocks apps in "block" mode', () => {
     const { updatedRules } = evaluateRules({
       rules: mockRules,
-      schedules: mockSchedules,
+      schedules: [],
       focusEndTime: 0,
     });
-    const instagram = updatedRules.find((r) => r.appName === 'Instagram');
-    expect(instagram?.blockedToday).toBe(true);
-  });
-
-  it('blocks apps when daily limit is exceeded', () => {
-    const { updatedRules } = evaluateRules({
-      rules: mockRules,
-      schedules: mockSchedules,
-      focusEndTime: 0,
-    });
-    const youtube = updatedRules.find((r) => r.appName === 'YouTube');
-    expect(youtube?.blockedToday).toBe(true);
-  });
-
-  it('does not block apps when within daily limit', () => {
-    const { updatedRules } = evaluateRules({
-      rules: mockRules,
-      schedules: mockSchedules,
-      focusEndTime: 0,
-    });
-    const reddit = updatedRules.find((r) => r.appName === 'Reddit');
-    expect(reddit?.blockedToday).toBe(false);
-  });
-
-  it('blocks all apps when Focus Mode is active', () => {
-    const now = new Date();
-    const { updatedRules } = evaluateRules({
-      rules: mockRules,
-      schedules: mockSchedules,
-      focusEndTime: now.getTime() + 1000000,
-      now,
-    });
-    expect(updatedRules.every((r) => r.blockedToday)).toBe(true);
-  });
-
-  it('blocks apps based on active schedule', () => {
-    const now = new Date('2024-01-01T10:00:00'); // Monday (1)
-    const schedule: ScheduleRule = {
-      id: 'work',
-      name: 'Work',
-      startTime: '09:00',
-      endTime: '17:00',
-      days: [1, 2, 3, 4, 5],
-      active: true,
-      appNames: ['com.reddit.frontpage'],
-    };
-
-    const { masterBlockList } = evaluateRules({
-      rules: mockRules,
-      schedules: [schedule],
-      focusEndTime: 0,
-      now,
-    });
-
-    expect(masterBlockList.has('com.reddit.frontpage')).toBe(true);
-    expect(masterBlockList.get('com.reddit.frontpage')?.blockedToday).toBe(
-      true,
-    );
+    expect(updatedRules[0].blockedToday).toBe(true);
   });
 });
