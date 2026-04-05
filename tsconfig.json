@@ -3,7 +3,7 @@
   "compilerOptions": {
     "lib": ["ESNext", "DOM"],
     "module": "ESNext",
-    "types": ["jest"],
+    "types": ["jest", "nativewind/types"],
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
@@ -13,12 +13,15 @@
       "@focusgate/state/*": ["packages/state/src/*.ts"],
       "@focusgate/sync": ["packages/sync/src/index.ts"],
       "@focusgate/sync/*": ["packages/sync/src/*.ts"],
-      "@focusgate/types": ["packages/types/src/index.ts"]
+      "@focusgate/types": ["packages/types/src/index.ts"],
+      "@focusgate/viewmodels": ["packages/viewmodels/src/index.ts"],
+      "@focusgate/viewmodels/*": ["packages/viewmodels/src/*.ts"]
     }
   },
   "include": [
     "App.tsx",
     "index.js",
+    "nativewind-env.d.ts",
     "react-native.config.js",
     "src/**/*",
     "types/**/*.d.ts",

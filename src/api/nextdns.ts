@@ -4,6 +4,12 @@ import { addLog } from '../services/logger';
 import { NextDNSConfig, AppRule, NextDNSService } from '@focusgate/types';
 import { storageAdapter as storage } from '../store/storageAdapter';
 
+import {
+  getSecureApiKey,
+  setSecureApiKey,
+  resetSecureApiKey,
+} from '../services/keychain';
+
 let configCache: NextDNSConfig | null = null;
 
 const logger = (
@@ -13,25 +19,57 @@ const logger = (
 ) => addLog(level, msg, detail);
 
 export const isConfigured = async (): Promise<boolean> => {
-  const cfg = await getConfig();
+  const cfg = await getConfig(true); // Force refresh to ensure we see new credentials immediately
   return !!(cfg.profileId && cfg.apiKey);
 };
 
-export const getConfig = async (): Promise<NextDNSConfig> => {
-  if (configCache) {
+export const getConfig = async (
+  forceRefresh = false,
+): Promise<NextDNSConfig> => {
+  if (configCache && !forceRefresh) {
     return configCache;
   }
+
+  // 1. Try secure storage first
+  let apiKey = await getSecureApiKey();
+
+  // 2. Fallback to legacy MMKV storage for migration
+  if (!apiKey) {
+    const legacyKey = await storage.getString('nextdns_api_key');
+    if (legacyKey) {
+      // Migrate to secure storage
+      await setSecureApiKey(legacyKey);
+      // Delete from insecure storage
+      await storage.delete('nextdns_api_key');
+      apiKey = legacyKey;
+      addLog('info', 'Migrated NextDNS API Key to secure storage');
+    }
+  }
+
   configCache = {
     profileId: (await storage.getString('nextdns_profile_id')) || '',
-    apiKey: (await storage.getString('nextdns_api_key')) || '',
+    apiKey: apiKey || '',
   };
   return configCache;
 };
 
 export const saveConfig = async (cfg: NextDNSConfig): Promise<void> => {
   await storage.set('nextdns_profile_id', cfg.profileId);
-  await storage.set('nextdns_api_key', cfg.apiKey);
+
+  if (cfg.apiKey) {
+    await setSecureApiKey(cfg.apiKey);
+  }
+
+  // Ensure legacy key is removed if it somehow exists
+  await storage.delete('nextdns_api_key');
+
   configCache = cfg;
+};
+
+export const resetConfig = async (): Promise<void> => {
+  await storage.delete('nextdns_profile_id');
+  await resetSecureApiKey();
+  configCache = null;
 };
 
 export const testConnection = async (cfg?: NextDNSConfig) => {

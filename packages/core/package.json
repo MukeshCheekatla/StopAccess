@@ -10,8 +10,8 @@
     "./engine": "./src/engine/rules.ts",
     "./sync": "./src/engine/sync.ts",
     "./api": "./src/nextdns/index.ts",
-    "./insights": "./src/insights/index.ts",
-    "./utils": "./src/utils/index.ts"
+    "./insights": "./src/insights.ts",
+    "./utils": "./src/index.ts"
   },
   "scripts": {
     "build": "tsc",

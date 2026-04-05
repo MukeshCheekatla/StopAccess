@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   StatusBar,
   StyleSheet,
   AppState,
   View,
   ActivityIndicator,
+  Animated,
 } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -24,7 +25,8 @@ import { getForegroundApp } from './src/modules/usageStats';
 const { RuleEngine } = require('react-native').NativeModules;
 
 export default function App() {
-  const [isLoaded, setIsLoaded] = useState(false);
+  const fadeAnim = useRef(new Animated.Value(1)).current;
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     let initialized = false;
@@ -38,13 +40,15 @@ export default function App() {
 
         const ctx = {
           storage: storageAdapter,
-          api: nextDNS as any, // Cast to satisfy SyncContext interface
+          api: nextDNS as any,
           logger: { add: addLog },
           notifications: { notifyBlocked },
           enforcements: {
             applyBlockedPackages: async (pkgs: string[]) => {
-              console.log('[NativeBridge] Syncing Blocklist:', pkgs);
-              if (RuleEngine) {
+              if (
+                RuleEngine &&
+                typeof RuleEngine.setBlockedPackages === 'function'
+              ) {
                 RuleEngine.setBlockedPackages(pkgs);
               }
             },
@@ -66,22 +70,24 @@ export default function App() {
           'onboarding_done',
           false,
         );
-        // FORCE init even if NextDNS is not fully set up
         if (onboardingDone && !orchestrator.getEngine()) {
           initialized = true;
           await orchestrator.init(ctx);
-          console.log('[Engine] Started successfully');
         }
       } catch (e) {
         addLog('error', 'App Bootstrap Failed', String(e));
       } finally {
-        setIsLoaded(true);
+        // Seamless fade out for the splash overlay
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 400,
+          useNativeDriver: true,
+        }).start(() => setShowSplash(false));
       }
     }
 
     init();
 
-    // Listen for MMKV changes (onboarding finish)
     const listener = storage.addOnValueChangedListener((key: string) => {
       if (key === 'onboarding_done') {
         init();
@@ -98,37 +104,33 @@ export default function App() {
       listener.remove?.();
       sub.remove();
     };
-  }, []);
-
-  if (!isLoaded) {
-    return (
-      <View style={styles.splash}>
-        <StatusBar
-          barStyle="light-content"
-          translucent
-          backgroundColor="transparent"
-        />
-        <View style={styles.logoGlow}>
-          <Icon name="shield-lock" size={80} color={COLORS.accent} />
-        </View>
-        <ActivityIndicator
-          size="small"
-          color={COLORS.muted}
-          style={styles.loader}
-        />
-      </View>
-    );
-  }
+  }, [fadeAnim]); // Added fadeAnim as dependency
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ backgroundColor: COLORS.bg }}>
       <GestureHandlerRootView style={styles.container}>
         <StatusBar
           barStyle="light-content"
           translucent
           backgroundColor="transparent"
         />
+
+        {/* Render Navigator early to avoid blank transition */}
         <AppNavigator />
+
+        {/* Seamless Splash Overlay */}
+        {showSplash && (
+          <Animated.View style={[styles.splash, { opacity: fadeAnim }]}>
+            <View className="h-36 w-36 items-center justify-center rounded-full">
+              <Icon name="shield-lock" size={80} color={COLORS.accent} />
+            </View>
+            <ActivityIndicator
+              size="small"
+              color={COLORS.muted}
+              style={styles.loader}
+            />
+          </Animated.View>
+        )}
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );
@@ -139,25 +141,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.bg,
   },
-  center: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   splash: {
-    flex: 1,
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: COLORS.bg,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  logoGlow: {
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(0, 209, 255, 0.05)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(0, 209, 255, 0.1)',
+    zIndex: 9999,
   },
   loader: {
     marginTop: 24,

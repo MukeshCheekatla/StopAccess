@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   Modal,
   SafeAreaView,
+  Dimensions,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { COLORS, SPACING } from './theme';
+import { COLORS } from './theme';
 import { storage } from '../store/storageAdapter';
 
+const { width } = Dimensions.get('window');
 const PIN_KEY = 'guardian_pin';
 
 export const PinGate = ({
@@ -39,7 +41,8 @@ export const PinGate = ({
         if (newVal === savedPin) {
           onSuccess();
         } else {
-          setTimeout(() => setInput(''), 500);
+          // Vibration or shake effect could go here
+          setTimeout(() => setInput(''), 400);
         }
       }
     }
@@ -54,26 +57,45 @@ export const PinGate = ({
   }
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="fade" transparent>
       <SafeAreaView style={styles.overlay}>
         <View style={styles.container}>
-          <TouchableOpacity style={styles.closeBtn} onPress={onCancel}>
+          <TouchableOpacity
+            style={styles.closeBtn}
+            onPress={onCancel}
+            activeOpacity={0.7}
+          >
             <Icon name="close" size={24} color={COLORS.muted} />
           </TouchableOpacity>
 
-          <Icon name="lock-outline" size={48} color={COLORS.accent} />
-          <Text style={styles.title}>Guardian PIN</Text>
-          <Text style={styles.subtitle}>Enter PIN to access settings</Text>
+          <View style={styles.heroGlow} />
+          <Icon
+            name="shield-lock"
+            size={64}
+            color={COLORS.accent}
+            style={styles.lockIcon}
+          />
+          <Text style={styles.title}>Secure Gateway</Text>
+          <Text style={styles.subtitle}>
+            AUTHORIZATION REQUIRED TO MODIFY ENGINE
+          </Text>
 
           <View style={styles.dots}>
             {[1, 2, 3, 4].map((i) => (
               <View
                 key={i}
                 style={[
-                  styles.dot,
-                  input.length >= i && { backgroundColor: COLORS.accent },
+                  styles.dotOuter,
+                  input.length >= i && { borderColor: COLORS.accent },
                 ]}
-              />
+              >
+                <View
+                  style={[
+                    styles.dotInner,
+                    input.length >= i && { backgroundColor: COLORS.accent },
+                  ]}
+                />
+              </View>
             ))}
           </View>
 
@@ -83,6 +105,7 @@ export const PinGate = ({
                 key={num}
                 style={styles.key}
                 onPress={() => onKeyPress(String(num))}
+                activeOpacity={0.6}
               >
                 <Text style={styles.keyText}>{num}</Text>
               </TouchableOpacity>
@@ -91,13 +114,20 @@ export const PinGate = ({
             <TouchableOpacity
               style={styles.key}
               onPress={() => onKeyPress('0')}
+              activeOpacity={0.6}
             >
               <Text style={styles.keyText}>0</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.key} onPress={onBackspace}>
-              <Icon name="backspace-outline" size={24} color={COLORS.text} />
+            <TouchableOpacity
+              style={styles.key}
+              onPress={onBackspace}
+              activeOpacity={0.6}
+            >
+              <Icon name="backspace-outline" size={24} color={COLORS.muted} />
             </TouchableOpacity>
           </View>
+
+          <Text style={styles.footerHint}>POWERED BY NEXTDNS ENFORCEMENT</Text>
         </View>
       </SafeAreaView>
     </Modal>
@@ -114,53 +144,85 @@ const styles = StyleSheet.create({
   container: {
     width: '100%',
     alignItems: 'center',
-    padding: SPACING.xl,
+    padding: 32,
   },
   closeBtn: {
     position: 'absolute',
     top: 20,
-    right: 20,
+    right: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    justifyContent: 'center',
+    alignItems: 'center',
     zIndex: 10,
   },
+  heroGlow: {
+    display: 'none',
+  },
+  lockIcon: { marginTop: 20, marginBottom: 24 },
   title: {
     color: COLORS.text,
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 20,
+    fontSize: 28,
+    fontWeight: '900',
+    letterSpacing: -1,
   },
   subtitle: {
     color: COLORS.muted,
-    fontSize: 14,
-    marginTop: 8,
-    marginBottom: 40,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1.5,
+    marginTop: 10,
+    marginBottom: 60,
+    opacity: 0.6,
   },
   dots: {
     flexDirection: 'row',
-    gap: 20,
-    marginBottom: 60,
+    gap: 24,
+    marginBottom: 80,
   },
-  dot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+  dotOuter: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dotInner: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'transparent',
   },
   keypad: {
-    width: '80%',
+    width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
   },
   key: {
-    width: '33%',
-    height: 80,
+    width: width / 4,
+    height: width / 4,
     justifyContent: 'center',
     alignItems: 'center',
+    margin: 4,
+    borderRadius: width / 4 / 2,
+    backgroundColor: 'rgba(255,255,255,0.01)',
   },
   keyText: {
     color: COLORS.text,
-    fontSize: 28,
-    fontWeight: '500',
+    fontSize: 32,
+    fontWeight: '300',
+  },
+  footerHint: {
+    marginTop: 60,
+    color: COLORS.muted,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 2,
+    opacity: 0.3,
   },
 });
