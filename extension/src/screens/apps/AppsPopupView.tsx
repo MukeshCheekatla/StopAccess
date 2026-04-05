@@ -126,7 +126,9 @@ export const AppsPopupView: React.FC = () => {
           const alreadyBlocked = rules.some((rule: any) => {
             const ruleDomain = rule.customDomain || rule.packageName;
             const active = Boolean(
-              rule.blockedToday || rule.mode === 'block' || rule.mode === 'limit',
+              rule.blockedToday ||
+                rule.mode === 'block' ||
+                rule.mode === 'limit',
             );
 
             if (!active) {

@@ -111,7 +111,10 @@ export function DashboardPopupView() {
           const totalSeconds = Math.floor(remaining / 1000);
           const mins = Math.floor(totalSeconds / 60);
           const secs = totalSeconds % 60;
-          return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+          return `${String(mins).padStart(2, '0')}:${String(secs).padStart(
+            2,
+            '0',
+          )}`;
         })()
       : '--:--';
 
@@ -119,11 +122,7 @@ export function DashboardPopupView() {
     <div className="fg-flex fg-flex-col fg-gap-4 fg-p-4">
       <div className="fg-grid fg-grid-cols-3 fg-gap-3">
         <StatTile label="Daily Usage" value={fmtTime(totalUsageMs)} />
-        <StatTile
-          label="Shield Status"
-          value="ACTIVE"
-          tone="active"
-        />
+        <StatTile label="Shield Status" value="ACTIVE" tone="active" />
         <StatTile
           label="Timer"
           value={timerLabel}
@@ -140,9 +139,7 @@ export function DashboardPopupView() {
 
       <div className="fg-flex fg-min-h-0 fg-flex-1 fg-flex-col fg-gap-3 fg-overflow-y-auto fg-pr-1">
         {activityRows.length > 0 ? (
-          activityRows.map((row) => (
-            <ActivityCard key={row.domain} row={row} />
-          ))
+          activityRows.map((row) => <ActivityCard key={row.domain} row={row} />)
         ) : !loading ? (
           <div className="fg-panel-muted fg-rounded-[18px] fg-px-4 fg-py-10 fg-text-center">
             <div className="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.2em] fg-text-slate-400">
@@ -194,7 +191,8 @@ function StatTile({
 
 function ActivityCard({ row }: { row: ActivityRow }) {
   const faviconUrl = resolveFaviconUrl(row.domain);
-  const fallbackLabel = row.domain.split('.')[0].slice(0, 2).toUpperCase() || '?';
+  const fallbackLabel =
+    row.domain.split('.')[0].slice(0, 2).toUpperCase() || '?';
 
   return (
     <div className="fg-flex fg-items-center fg-gap-4 fg-rounded-[12px] fg-bg-white/[0.03] fg-p-3">

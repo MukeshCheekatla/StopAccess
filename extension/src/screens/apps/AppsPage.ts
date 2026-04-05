@@ -218,7 +218,7 @@ async function refreshListOnly(passedRules?: any[]) {
   }
 
   const vmData: any = await loadAppsData();
-  const { rules, nextDNSApi } = vmData;
+  const { rules } = vmData;
   const rulesToUse = passedRules || rules;
   const lockedDomains = await getLockedDomains();
   const tabContent = globalContainer.querySelector(
@@ -229,8 +229,7 @@ async function refreshListOnly(passedRules?: any[]) {
   ) as HTMLElement;
 
   if (tabContent && isLoadingNextDNS && availableServices.length === 0) {
-    tabContent.innerHTML =
-      '<div class="loader">Syncing with NextDNS...</div>';
+    tabContent.innerHTML = '<div class="loader">Syncing with NextDNS...</div>';
   }
 
   globalContainer.querySelectorAll('.nav-item-tab').forEach((btn) => {

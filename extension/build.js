@@ -67,6 +67,11 @@ async function build() {
     ['src/popup/popup.html', 'dist/popup/popup.html'],
     ['src/dashboard/index.html', 'dist/dashboard.html'],
     ['assets/icon.png', 'dist/assets/icon.png'],
+    ['assets/icon-16.png', 'dist/assets/icon-16.png'],
+    ['assets/icon-32.png', 'dist/assets/icon-32.png'],
+    ['assets/icon-48.png', 'dist/assets/icon-48.png'],
+    ['assets/icon-96.png', 'dist/assets/icon-96.png'],
+    ['assets/icon-128.png', 'dist/assets/icon-128.png'],
   ];
 
   for (const [src, dst] of statics) {

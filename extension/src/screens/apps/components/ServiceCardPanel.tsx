@@ -27,9 +27,7 @@ export const ServiceCardPanel: React.FC<ServiceCardProps> = ({
   return (
     <div
       className={`fg-flex fg-items-center fg-justify-between fg-gap-[6px] fg-rounded-[12px] fg-px-[14px] fg-py-3 ${
-        active
-          ? 'fg-bg-white/[0.05]'
-          : 'fg-bg-white/[0.01]'
+        active ? 'fg-bg-white/[0.05]' : 'fg-bg-white/[0.01]'
       }`}
     >
       <div className="fg-flex fg-min-w-0 fg-flex-1 fg-items-center fg-gap-3">
@@ -74,9 +72,7 @@ export const ServiceCardPanel: React.FC<ServiceCardProps> = ({
       <div className="fg-flex fg-shrink-0 fg-items-center fg-gap-[6px]">
         <button
           className={`fg-relative fg-h-8 fg-w-16 fg-overflow-hidden fg-rounded-full fg-border-0 ${
-            active
-              ? 'fg-bg-[var(--red)]'
-              : 'fg-bg-white/[0.05]'
+            active ? 'fg-bg-[var(--red)]' : 'fg-bg-white/[0.05]'
           }`}
           disabled={isLocked}
           onClick={onToggle}

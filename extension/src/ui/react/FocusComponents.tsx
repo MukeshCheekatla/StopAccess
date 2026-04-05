@@ -19,14 +19,13 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    'fg-inline-flex fg-items-center fg-justify-center fg-gap-2 fg-font-black fg-tracking-[0.14em] fg-uppercase disabled:fg-opacity-50 disabled:fg-pointer-events-none';
+    'fg-inline-flex fg-items-center fg-justify-center fg-gap-2 fg-font-black fg-tracking-[0.14em] fg-uppercase fg-border-0 fg-outline-none fg-shadow-none [appearance:none] disabled:fg-opacity-50 disabled:fg-pointer-events-none';
 
   const variants = {
     primary: 'fg-bg-[var(--accent)] fg-text-white hover:fg-bg-[#3b3b43]',
     secondary:
-      'fg-bg-white/5 fg-text-slate-200 fg-border fg-border-[var(--glass-border)] hover:fg-bg-white/10 hover:fg-text-white',
-    danger:
-      'fg-bg-[var(--red)] fg-text-white fg-border fg-border-[var(--red)] hover:fg-bg-[#991b1b]',
+      'fg-bg-white/5 fg-text-slate-200 hover:fg-bg-white/10 hover:fg-text-white',
+    danger: 'fg-bg-[var(--red)] fg-text-white hover:fg-bg-[#991b1b]',
     ghost: 'fg-bg-transparent fg-text-slate-400 hover:fg-text-slate-200',
   };
 

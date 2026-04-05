@@ -23,6 +23,28 @@ export async function renderSettingsPage(container) {
 
   const { profileId, apiKey, strict, syncMode, dnrRules, healthOk } =
     await loadSettingsData();
+  const browserGuide = /firefox/i.test(navigator.userAgent)
+    ? {
+        name: 'Firefox',
+        steps: [
+          'Open Settings > Privacy & Security.',
+          'Go to DNS over HTTPS.',
+          'Choose Max Protection.',
+          'Select Custom and paste your NextDNS endpoint.',
+        ],
+      }
+    : {
+        name: 'Chrome / Brave / Edge',
+        steps: [
+          'Open Settings > Privacy and security > Security.',
+          'Find Use secure DNS.',
+          'Choose Custom.',
+          'Paste your NextDNS endpoint and save the browser setting.',
+        ],
+      };
+  const dnsEndpoint = profileId
+    ? `https://dns.nextdns.io/${profileId}`
+    : 'https://dns.nextdns.io/YOUR_PROFILE_ID';
 
   const sessionGuardResult = await checkGuard('change_settings');
   const isLocked = !sessionGuardResult.allowed;
@@ -128,8 +150,84 @@ export async function renderSettingsPage(container) {
           
           <!-- Section 4: Credentials -->
           <section>
-            <div class="section-label">DNS Credentials</div>
+            <div class="section-label">NextDNS Profile</div>
+            <div class="glass-card" style="padding: var(--space-lg); margin-bottom: var(--space-md);">
+              <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:14px;">
+                <div>
+                  <div style="font-weight: 800; font-size: 15px; margin-bottom: 6px;">Quick setup for extension sync</div>
+                  <div style="font-size: 12px; color: var(--muted); line-height: 1.55;">
+                    This is the permanent setup hub, just like mobile. Link your NextDNS profile here, then add the same endpoint to ${
+                      browserGuide.name
+                    }.
+                  </div>
+                </div>
+                <div style="padding: 8px 12px; border-radius: 999px; background: ${
+                  healthOk
+                    ? 'rgba(16, 185, 129, 0.12)'
+                    : 'rgba(245, 158, 11, 0.12)'
+                }; color: ${
+    healthOk ? 'var(--green)' : 'var(--yellow)'
+  }; font-size: 10px; font-weight: 900; letter-spacing: 1px;">
+                  ${healthOk ? 'LINKED' : 'SETUP'}
+                </div>
+              </div>
+              <div style="display:grid; gap:10px;">
+                <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:14px; background:rgba(255,255,255,0.02);">
+                  <div style="min-width:20px; color: var(--accent); font-size:11px; font-weight:900;">1</div>
+                  <div>
+                    <div style="font-size:12px; font-weight:800; color:var(--text); margin-bottom:4px;">Open NextDNS</div>
+                    <div style="font-size:11px; color:var(--muted); line-height:1.5;">Open the setup page for your Profile ID and the account page for your API Key.</div>
+                  </div>
+                </div>
+                <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:14px; background:rgba(255,255,255,0.02);">
+                  <div style="min-width:20px; color: var(--accent); font-size:11px; font-weight:900;">2</div>
+                  <div>
+                    <div style="font-size:12px; font-weight:800; color:var(--text); margin-bottom:4px;">Save and test credentials</div>
+                    <div style="font-size:11px; color:var(--muted); line-height:1.5;">FocusGate verifies the profile before sync is enabled.</div>
+                  </div>
+                </div>
+                <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:14px; background:rgba(255,255,255,0.02);">
+                  <div style="min-width:20px; color: var(--accent); font-size:11px; font-weight:900;">3</div>
+                  <div>
+                    <div style="font-size:12px; font-weight:800; color:var(--text); margin-bottom:4px;">Finish browser DNS</div>
+                    <div style="font-size:11px; color:var(--muted); line-height:1.5;">Paste the same DoH endpoint into ${
+                      browserGuide.name
+                    } so browser protection matches the linked profile.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="section-label">Quick Setup</div>
+            <div class="glass-card" style="padding: var(--space-lg); margin-bottom: var(--space-md);">
+              <div style="font-weight: 800; font-size: 14px; margin-bottom: 6px;">Open pages and copy the DNS endpoint</div>
+              <div style="font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 16px;">
+                Use these shortcuts anytime you need to reconnect or verify the browser DNS step.
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
+                <button class="btn-premium" id="btn_open_nextdns_setup" style="background: rgba(255,255,255,0.04); box-shadow: none; border: none;">OPEN SETUP</button>
+                <button class="btn-premium" id="btn_open_nextdns_account" style="background: rgba(255,255,255,0.04); box-shadow: none; border: none;">OPEN ACCOUNT</button>
+                <button class="btn-premium" id="btn_copy_doh_url" style="background: rgba(255,255,255,0.04); box-shadow: none; border: none;">COPY DNS URL</button>
+              </div>
+              <div style="padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.03); font-family: monospace; font-size: 11px; color: var(--text); margin-bottom: 16px; word-break: break-all;" id="setup_doh_url">${dnsEndpoint}</div>
+              <div style="display: grid; gap: 8px;">
+                ${browserGuide.steps
+                  .map(
+                    (step, index) => `
+                  <div style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.02);">
+                    <div style="font-size: 11px; font-weight: 900; color: var(--accent); min-width: 18px;">${
+                      index + 1
+                    }</div>
+                    <div style="font-size: 12px; color: var(--text); line-height: 1.45;">${step}</div>
+                  </div>`,
+                  )
+                  .join('')}
+              </div>
+            </div>
+            <div class="section-label">Credentials</div>
             <div class="glass-card" style="padding: var(--space-lg);">
+              <div style="font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 16px;">
+                Save your Profile ID and API Key here. This is the same detailed setup area you can return to later, even after onboarding.
+              </div>
               <div class="field-group">
                 <div>
                   <label class="field-label">Profile ID</label>
@@ -185,6 +283,26 @@ export async function renderSettingsPage(container) {
 
   // --- Logic & Event Handlers ---
 
+  const openExternal = (url: string) => {
+    if (chrome?.windows?.create) {
+      chrome.windows.create({
+        url,
+        type: 'popup',
+        width: 1180,
+        height: 900,
+        focused: true,
+      });
+      return;
+    }
+
+    if (chrome?.tabs?.create) {
+      chrome.tabs.create({ url });
+      return;
+    }
+
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
   // Blocking Mode Selection
   container.querySelectorAll('.enforcement-card').forEach((card) => {
     card.addEventListener('click', async () => {
@@ -224,6 +342,53 @@ export async function renderSettingsPage(container) {
   });
 
   // NextDNS Save
+  container
+    .querySelector('#btn_open_nextdns_setup')
+    ?.addEventListener('click', () =>
+      openExternal('https://my.nextdns.io/setup'),
+    );
+
+  container
+    .querySelector('#btn_open_nextdns_account')
+    ?.addEventListener('click', () =>
+      openExternal('https://my.nextdns.io/account'),
+    );
+
+  container
+    .querySelector('#btn_copy_doh_url')
+    ?.addEventListener('click', async () => {
+      const currentProfile = (
+        container.querySelector('#cfg_profile') as HTMLInputElement
+      )?.value.trim();
+      const currentDnsUrl = currentProfile
+        ? `https://dns.nextdns.io/${currentProfile}`
+        : 'https://dns.nextdns.io/YOUR_PROFILE_ID';
+
+      try {
+        if (!navigator.clipboard?.writeText) {
+          throw new Error('Clipboard unavailable');
+        }
+        await navigator.clipboard.writeText(currentDnsUrl);
+        toast.success('DNS URL copied.');
+      } catch {
+        toast.error('Could not copy DNS URL.');
+      }
+    });
+
+  container
+    .querySelector('#cfg_profile')
+    ?.addEventListener('input', (event) => {
+      const value = (event.target as HTMLInputElement).value.trim();
+      const dnsView = container.querySelector('#setup_doh_url') as HTMLElement;
+      if (!dnsView) {
+        return;
+      }
+
+      dnsView.innerText = value
+        ? `https://dns.nextdns.io/${value}`
+        : 'https://dns.nextdns.io/YOUR_PROFILE_ID';
+    });
+
   container
     .querySelector('#btn_save_config')
     ?.addEventListener('click', async () => {
@@ -276,6 +441,12 @@ export async function renderSettingsPage(container) {
       try {
         const result = await connectNextDNSAction(pid, key);
         if (result.ok) {
+          const dnsView = container.querySelector(
+            '#setup_doh_url',
+          ) as HTMLElement;
+          if (dnsView) {
+            dnsView.innerText = `https://dns.nextdns.io/${pid}`;
+          }
           feedback.style.background = 'rgba(16, 185, 129, 0.1)';
           feedback.style.borderColor = 'rgba(16, 185, 129, 0.2)';
           feedback.style.color = 'var(--green)';
