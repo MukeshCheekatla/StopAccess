@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   NativeModules,
   View,
@@ -6,47 +6,26 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
-  Alert,
-  TextInput,
-  Platform,
-  UIManager,
+  StatusBar,
 } from 'react-native';
-import Animated, { SlideInRight, SlideOutLeft } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../components/theme';
+import { isShort } from '../constants/layout';
+import { AppScreen, PrimaryButton, SurfaceCard } from '../ui/mobile';
 import {
   hasUsagePermission,
   requestUsagePermission,
 } from '../modules/usageStats';
-import { saveConfig, testConnection } from '../api/nextdns';
-import { AutoSetupModal } from '../components/AutoSetupModal';
 
-if (
-  Platform.OS === 'android' &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
-// ---------------------------------------------------------------------------
-// Step definitions
-// ---------------------------------------------------------------------------
-
-const TOTAL_STEPS = 3; // 0: Welcome, 1: Credentials, 2: Permissions
-
-// ---------------------------------------------------------------------------
-// Checklist item
-// ---------------------------------------------------------------------------
+const TOTAL_STEPS = 2; // 0: Welcome, 1: Permissions
 
 const CheckItem = ({ done, label }: { done: boolean; label: string }) => (
-  <View style={styles.checkItem}>
+  <View className="mb-[18px] flex-row items-center gap-3.5">
     <View style={[styles.checkCircle, done && styles.checkCircleDone]}>
       <Icon
         name={done ? 'check' : 'circle-outline'}
         size={14}
-        color={done ? '#000' : COLORS.muted}
+        color={done ? COLORS.bg : COLORS.muted}
       />
     </View>
     <Text style={[styles.checkLabel, done && styles.checkLabelDone]}>
@@ -55,17 +34,39 @@ const CheckItem = ({ done, label }: { done: boolean; label: string }) => (
   </View>
 );
 
-// ---------------------------------------------------------------------------
-// Main screen
-// ---------------------------------------------------------------------------
-
 export default function OnboardingScreen({
   onFinish,
 }: {
   onFinish: () => void;
 }) {
   const [step, setStep] = useState(0);
-  const insets = useSafeAreaInsets();
+
+  const responsive = useMemo(
+    () => ({
+      heroSize: isShort ? 80 : 120,
+      heroIcon: isShort ? 36 : 56,
+      titleSize: isShort ? 28 : 34,
+      descMargin: isShort ? 12 : 16,
+      cardPadding: isShort ? 20 : 28,
+      vSpacing: isShort ? 16 : 40,
+    }),
+    [],
+  );
+
+  const containerStyle = useMemo(
+    () =>
+      ({
+        justifyContent: (isShort ? 'flex-start' : 'center') as
+          | 'flex-start'
+          | 'center',
+        paddingTop: isShort ? 20 : 10,
+        paddingBottom: 60,
+      } as const),
+    [],
+  );
+
+  const titleFontSize = useMemo(() => (isShort ? 13 : 15), []);
+  const marginStyle = useMemo(() => ({ marginBottom: isShort ? 12 : 24 }), []);
 
   const nextStep = () => {
     setStep((s) => Math.min(s + 1, TOTAL_STEPS - 1));
@@ -75,20 +76,11 @@ export default function OnboardingScreen({
     setStep((s) => Math.max(s - 1, 0));
   };
 
-  // Step 1 state
-  const [profileId, setProfileId] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [autoSetupVisible, setAutoSetupVisible] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [credsSaved, setCredsSaved] = useState(false);
-
-  // Step 2 state
   const [usagePerm, setUsagePerm] = useState(false);
   const [a11yPerm, setA11yPerm] = useState(false);
   const [overlayPerm, setOverlayPerm] = useState(false);
   const [notiPerm, setNotiPerm] = useState(false);
 
-  // Check permissions once on mount (user may have already granted them)
   const refreshPerms = useCallback(async () => {
     const usageOk = await hasUsagePermission();
     setUsagePerm(usageOk);
@@ -107,55 +99,12 @@ export default function OnboardingScreen({
     }
   }, []);
 
-  // Re-check on every step or interval if needed
   React.useEffect(() => {
-    if (step === 2) {
+    if (step === 1) {
       const timer = setInterval(refreshPerms, 2000);
       return () => clearInterval(timer);
     }
   }, [step, refreshPerms]);
-
-  const handleAutoSetupSuccess = useCallback(
-    async (pid: string, key: string) => {
-      setAutoSetupVisible(false);
-      setProfileId(pid);
-      setApiKey(key);
-      setTesting(true);
-
-      await saveConfig({ profileId: pid.trim(), apiKey: key.trim() });
-      const ok = await testConnection();
-      setTesting(false);
-
-      if (ok) {
-        setCredsSaved(true);
-        setTimeout(() => nextStep(), 500);
-      } else {
-        Alert.alert(
-          'Connection failed',
-          'Could not reach NextDNS. Please check your credentials.',
-        );
-      }
-    },
-    [],
-  );
-
-  const handleManualSave = async () => {
-    if (!profileId || !apiKey) {
-      Alert.alert('Missing Info', 'Please enter both ID and Password.');
-      return;
-    }
-    setTesting(true);
-    await saveConfig({ profileId: profileId.trim(), apiKey: apiKey.trim() });
-    const ok = await testConnection();
-    setTesting(false);
-
-    if (ok) {
-      setCredsSaved(true);
-      nextStep();
-    } else {
-      Alert.alert('Connection Failed', 'Invalid ID or Password.');
-    }
-  };
 
   const handleGrantUsage = async () => {
     await requestUsagePermission();
@@ -190,282 +139,220 @@ export default function OnboardingScreen({
   };
 
   const handleFinish = async () => {
-    await refreshPerms();
-    if (!usagePerm || !a11yPerm || !overlayPerm || !notiPerm) {
-      Alert.alert(
-        'Required',
-        'Please turn on all protection layers to secure your phone.',
-      );
-      return;
-    }
     onFinish();
   };
 
-  // removed unused canAdvanceStep1 constant
   const progressPct = (step / (TOTAL_STEPS - 1)) * 100;
 
   return (
-    <View
-      style={[
-        styles.container,
-        { paddingTop: insets.top, paddingBottom: insets.bottom },
-      ]}
-    >
-      {/* Top Banner / Progress Indicator */}
-      <View style={styles.header}>
-        <View style={styles.logoRow}>
-          <Icon name="gate" size={24} color={COLORS.accent} />
-          <Text style={styles.brandText}>FOCUSGATE</Text>
-        </View>
-        <View style={styles.progressRow}>
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progressPct}%` }]} />
-          </View>
-        </View>
-      </View>
-
+    <AppScreen>
+      <StatusBar barStyle="light-content" backgroundColor={COLORS.bg} />
       <ScrollView
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, containerStyle]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        <View style={styles.header}>
+          <View style={styles.logoRow}>
+            <Icon name="shield-lock" size={24} color={COLORS.accent} />
+            <Text style={styles.brandText}>FOCUSGATE</Text>
+          </View>
+          <View style={styles.progressRow}>
+            <View style={styles.progressTrack}>
+              <View
+                style={[styles.progressFill, { width: `${progressPct}%` }]}
+              />
+            </View>
+          </View>
+        </View>
+
         {step === 0 && (
-          <Animated.View
-            key="step_welcome"
-            entering={SlideInRight.duration(400)}
-            exiting={SlideOutLeft.duration(200)}
-            style={styles.stepWrap}
-          >
-            <View style={styles.heroCircle}>
-              <Icon name="shield-check" size={64} color={COLORS.accent} />
-            </View>
-            <Text style={styles.stepTitle}>Block Distractions</Text>
-            <Text style={styles.stepDesc}>
-              Stop wasting time on addictive apps. FocusGate builds a wall
-              around your focus so you can get things done.
-            </Text>
-
-            <View style={styles.glassCard}>
-              <Text style={styles.cardHeader}>HOW IT WORKS</Text>
-              <CheckItem done={false} label="Rules Stay Synced" />
-              <CheckItem done={false} label="Works in Every App" />
-              <CheckItem done={false} label="Hard to Bypass" />
-            </View>
-          </Animated.View>
-        )}
-
-        {step === 1 && (
-          <Animated.View
-            key="step_creds"
-            entering={SlideInRight.duration(400)}
-            exiting={SlideOutLeft.duration(200)}
-            style={styles.stepWrap}
-          >
-            <View style={styles.heroCircle}>
-              <Icon name="dns" size={64} color={COLORS.accent} />
-            </View>
-            <Text style={styles.stepTitle}>Connect Filter</Text>
-            <Text style={styles.stepDesc}>
-              We use NextDNS to filter out unwanted apps. Link your account to
-              keep your custom rules active.
-            </Text>
-
-            <View style={styles.formCard}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>ID NUMBER</Text>
-                <TextInput
-                  style={styles.input}
-                  value={profileId}
-                  onChangeText={setProfileId}
-                  placeholder="e.g. abc123"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-
-              <View style={styles.inputGroup}>
-                <Text style={styles.fieldLabel}>SECRET KEY</Text>
-                <TextInput
-                  style={styles.input}
-                  value={apiKey}
-                  onChangeText={setApiKey}
-                  placeholder="Your secure password"
-                  placeholderTextColor="rgba(255,255,255,0.4)"
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                />
-              </View>
-
-              <TouchableOpacity
+          <View key="step_welcome" className="w-full">
+            <View
+              style={[
+                styles.heroCircle,
+                {
+                  width: responsive.heroSize,
+                  height: responsive.heroSize,
+                  marginBottom: responsive.vSpacing,
+                },
+              ]}
+            >
+              <View
                 style={[
-                  styles.primaryBtn,
-                  (testing || credsSaved) && styles.dimmed,
+                  styles.heroGlow,
+                  {
+                    width: responsive.heroSize / 2,
+                    height: responsive.heroSize / 2,
+                  },
                 ]}
-                onPress={handleManualSave}
-                disabled={testing || credsSaved}
-              >
-                {testing ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <Icon
-                      name={credsSaved ? 'check-decagram' : 'connection'}
-                      size={20}
-                      color="#fff"
-                    />
-                    <Text style={styles.primaryBtnTxt}>
-                      {credsSaved ? 'LINKED' : 'CONNECT NOW'}
-                    </Text>
-                  </>
-                )}
-              </TouchableOpacity>
-
-              <View style={styles.cardDivider} />
-
-              <TouchableOpacity
-                style={styles.ghostBtn}
-                onPress={() => setAutoSetupVisible(true)}
-                disabled={testing || credsSaved}
-              >
-                <Icon name="auto-fix" size={18} color="rgba(255,255,255,0.6)" />
-                <Text style={styles.ghostBtnTxt}>I need help logging in</Text>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        )}
-
-        {step === 2 && (
-          <Animated.View
-            key="step_perms"
-            entering={SlideInRight.duration(400)}
-            exiting={SlideOutLeft.duration(200)}
-            style={styles.stepWrap}
-          >
-            <View style={styles.heroCircle}>
+              />
               <Icon
-                name="shield-lock-outline"
-                size={64}
+                name="shield-check"
+                size={responsive.heroIcon}
                 color={COLORS.accent}
               />
             </View>
-            <Text style={styles.stepTitle}>Final Step</Text>
-            <Text style={styles.stepDesc}>
-              Last few things to secure your phone. All permissions are required
-              to ensure your rules can't be easily bypassed.
+            <Text
+              style={[styles.stepTitle, { fontSize: responsive.titleSize }]}
+            >
+              Modern Discipline
+            </Text>
+            <Text
+              style={[
+                styles.stepDesc,
+                {
+                  marginBottom: responsive.vSpacing,
+                  fontSize: titleFontSize,
+                },
+              ]}
+            >
+              Stop wasting time on addictive apps. FocusGate builds a
+              state-of-the-art wall around your flow state.
             </Text>
 
-            <View style={styles.glassCard}>
-              <CheckItem done={credsSaved} label="Filter Connected" />
-              <CheckItem done={usagePerm} label="Usage Tracking" />
-              <CheckItem done={a11yPerm} label="Blocker Service" />
-              <CheckItem done={overlayPerm} label="Display Overlay" />
-              <CheckItem done={notiPerm} label="Status Alerts" />
+            <SurfaceCard
+              className="mb-6 rounded-[28px] px-7 py-7"
+              style={{ paddingHorizontal: responsive.cardPadding }}
+            >
+              <View style={styles.cardHeaderRow}>
+                <Icon name="auto-fix" size={14} color={COLORS.accent} />
+                <Text style={styles.cardHeader}>INTELLIGENT ENFORCEMENT</Text>
+              </View>
+              <CheckItem done={false} label="System-Level Interception" />
+              <CheckItem done={false} label="NextDNS Infrastructure" />
+              <CheckItem done={false} label="Impulse Control Protocols" />
+            </SurfaceCard>
+          </View>
+        )}
+
+        {step === 1 && (
+          <View key="step_perms" className="w-full">
+            <View
+              style={[
+                styles.heroCircle,
+                {
+                  width: responsive.heroSize,
+                  height: responsive.heroSize,
+                  marginBottom: responsive.vSpacing,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  styles.heroGlow,
+                  {
+                    width: responsive.heroSize / 2,
+                    height: responsive.heroSize / 2,
+                  },
+                ]}
+              />
+              <Icon
+                name="shield-key-outline"
+                size={responsive.heroIcon}
+                color={COLORS.accent}
+              />
+            </View>
+            <Text
+              style={[styles.stepTitle, { fontSize: responsive.titleSize }]}
+            >
+              Enforcement
+            </Text>
+            <Text
+              style={[
+                styles.stepDesc,
+                {
+                  marginBottom: responsive.vSpacing,
+                  fontSize: titleFontSize,
+                },
+              ]}
+            >
+              Enable the following permissions to ensure your focus protocols
+              can't be easily bypassed.
+            </Text>
+
+            <SurfaceCard
+              className="rounded-[28px] p-7"
+              style={{
+                padding: responsive.cardPadding,
+                marginBottom: marginStyle.marginBottom,
+              }}
+            >
+              <CheckItem done={usagePerm} label="Real-Time Usage Tracking" />
+              <CheckItem done={a11yPerm} label="Active Layer Interception" />
+              <CheckItem done={overlayPerm} label="HUD Overlay Protection" />
+              <CheckItem done={notiPerm} label="System Alerts" />
+            </SurfaceCard>
+
+            <View style={styles.permGrid}>
+              {!usagePerm && (
+                <PrimaryButton
+                  label="Grant Usage"
+                  icon="chart-box-outline"
+                  onPress={handleGrantUsage}
+                  style={styles.permBtn}
+                  textStyle={styles.permBtnTextColor}
+                />
+              )}
+
+              {!a11yPerm && (
+                <PrimaryButton
+                  label="Enable Blocker"
+                  icon="gesture-tap"
+                  onPress={handleGrantA11y}
+                  style={styles.permBtn}
+                  textStyle={styles.permBtnTextColor}
+                />
+              )}
+
+              {!overlayPerm && (
+                <PrimaryButton
+                  label="HUD Overlay"
+                  icon="layers-outline"
+                  onPress={handleGrantOverlay}
+                  style={styles.permBtn}
+                  textStyle={styles.permBtnTextColor}
+                />
+              )}
+
+              {!notiPerm && (
+                <PrimaryButton
+                  label="System Alerts"
+                  icon="bell-outline"
+                  onPress={handleGrantNoti}
+                  style={styles.permBtn}
+                  textStyle={styles.permBtnTextColor}
+                />
+              )}
+
+              {usagePerm && a11yPerm && overlayPerm && notiPerm && (
+                <View className="mt-2.5 flex-row items-center justify-center gap-3 rounded-3xl border border-[#03DAC633] bg-[#03DAC61A] p-6">
+                  <Icon name="check-decagram" size={24} color={COLORS.green} />
+                  <Text style={styles.successBadgeTxt}>ALL LAYERS ACTIVE</Text>
+                </View>
+              )}
             </View>
 
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.permScroll}
-            >
-              <View style={styles.permGroup}>
-                {!usagePerm && (
-                  <TouchableOpacity
-                    style={styles.primaryBtnSmall}
-                    onPress={handleGrantUsage}
-                  >
-                    <Icon name="chart-line" size={16} color="#000" />
-                    <Text style={styles.primaryBtnTxtSmall}>USAGE</Text>
-                  </TouchableOpacity>
-                )}
-
-                {!a11yPerm && (
-                  <TouchableOpacity
-                    style={[
-                      styles.primaryBtnSmall,
-                      { backgroundColor: COLORS.blue },
-                    ]}
-                    onPress={handleGrantA11y}
-                  >
-                    <Icon name="gesture-tap" size={16} color="#fff" />
-                    <Text
-                      style={[
-                        styles.primaryBtnTxtSmall,
-                        styles.primaryBtnTxtSmallWhite,
-                      ]}
-                    >
-                      BLOCKER
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                {!overlayPerm && (
-                  <TouchableOpacity
-                    style={[
-                      styles.primaryBtnSmall,
-                      { backgroundColor: COLORS.yellow },
-                    ]}
-                    onPress={handleGrantOverlay}
-                  >
-                    <Icon name="layers-outline" size={16} color="#000" />
-                    <Text style={styles.primaryBtnTxtSmall}>OVERLAY</Text>
-                  </TouchableOpacity>
-                )}
-
-                {!notiPerm && (
-                  <TouchableOpacity
-                    style={[
-                      styles.primaryBtnSmall,
-                      { backgroundColor: COLORS.green },
-                    ]}
-                    onPress={handleGrantNoti}
-                  >
-                    <Icon name="bell-outline" size={16} color="#fff" />
-                    <Text
-                      style={[
-                        styles.primaryBtnTxtSmall,
-                        styles.primaryBtnTxtSmallWhite,
-                      ]}
-                    >
-                      ALERTS
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                {usagePerm && a11yPerm && overlayPerm && notiPerm && (
-                  <View style={styles.successBadge}>
-                    <Icon
-                      name="check-decagram"
-                      size={22}
-                      color={COLORS.green}
-                    />
-                    <Text style={styles.successBadgeTxt}>SHIELD ACTIVE</Text>
-                  </View>
-                )}
-              </View>
-            </ScrollView>
-
             <Text style={styles.skipHint}>
-              All must be turned on to secure your phone.
+              Full activation is recommended for maximum discipline.
             </Text>
-          </Animated.View>
+          </View>
         )}
       </ScrollView>
 
-      {/* Modern Footer Nav */}
       <View style={styles.footer}>
-        <View style={[styles.sideBtnSlot, styles.sideBtnSlotStart]}>
+        <View style={styles.sideBtnSlotStart}>
           {step > 0 ? (
             <TouchableOpacity
               key="back_active"
               style={styles.backBtn}
               onPress={prevStep}
+              activeOpacity={0.7}
             >
-              <Icon name="chevron-left" size={28} color={COLORS.muted} />
+              <Icon name="chevron-left" size={32} color={COLORS.muted} />
             </TouchableOpacity>
           ) : (
-            <View key="back_placeholder" style={styles.backBtn} />
+            <View style={styles.backBtn} />
           )}
         </View>
 
@@ -481,56 +368,32 @@ export default function OnboardingScreen({
           ))}
         </View>
 
-        <View style={styles.sideBtnSlot}>
-          {step === 2 ? (
-            <TouchableOpacity
-              key="btn_finish"
-              style={[
-                styles.accentBtn,
-                (!usagePerm || !a11yPerm || !overlayPerm || !notiPerm) &&
-                  styles.dimmed,
-              ]}
+        <View style={styles.sideBtnSlotEnd}>
+          {step === TOTAL_STEPS - 1 ? (
+            <PrimaryButton
+              label={
+                !usagePerm || !a11yPerm || !overlayPerm || !notiPerm
+                  ? 'Skip'
+                  : 'Ready'
+              }
               onPress={handleFinish}
-              disabled={!usagePerm || !a11yPerm || !overlayPerm || !notiPerm}
-            >
-              <Text style={styles.accentBtnTxt}>FINISH</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              key="btn_next"
               style={styles.accentBtn}
+            />
+          ) : (
+            <PrimaryButton
+              label="Start"
+              icon="chevron-right"
               onPress={nextStep}
-            >
-              <Text style={styles.accentBtnTxt}>
-                {step === 0 ? 'START' : credsSaved ? 'NEXT' : 'SKIP FOR NOW'}
-              </Text>
-              <Icon
-                name={step === 0 ? 'arrow-right' : 'chevron-right'}
-                size={20}
-                color="#000"
-              />
-            </TouchableOpacity>
+              style={styles.accentBtn}
+            />
           )}
         </View>
       </View>
-
-      {autoSetupVisible && (
-        <AutoSetupModal
-          visible={autoSetupVisible}
-          onClose={() => setAutoSetupVisible(false)}
-          onSuccess={handleAutoSetupSuccess}
-        />
-      )}
-    </View>
+    </AppScreen>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Styles
-// ---------------------------------------------------------------------------
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
   header: {
     paddingHorizontal: 24,
     paddingTop: 12,
@@ -539,7 +402,7 @@ const styles = StyleSheet.create({
   logoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
     marginBottom: 20,
     opacity: 0.8,
   },
@@ -547,13 +410,13 @@ const styles = StyleSheet.create({
     color: COLORS.text,
     fontSize: 14,
     fontWeight: '900',
-    letterSpacing: 2.5,
+    letterSpacing: 3,
   },
   progressRow: {
     width: '100%',
   },
   progressTrack: {
-    height: 3,
+    height: 4,
     backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 2,
     overflow: 'hidden',
@@ -561,259 +424,143 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     backgroundColor: COLORS.accent,
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
   },
   scroll: {
     flexGrow: 1,
     paddingHorizontal: 32,
-    justifyContent: 'center',
-    paddingBottom: 40,
   },
-  stepWrap: { width: '100%' },
   heroCircle: {
     width: 120,
     height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(0, 209, 255, 0.03)',
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.02)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 40,
     alignSelf: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(0, 209, 255, 0.1)',
+    borderColor: COLORS.border,
+  },
+  heroGlow: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: COLORS.accent,
+    opacity: 0.1,
   },
   stepTitle: {
-    color: '#fff',
-    fontSize: 30,
+    color: COLORS.text,
+    fontSize: 34,
     fontWeight: '900',
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
     letterSpacing: -1,
   },
   stepDesc: {
-    color: 'rgba(255,255,255,0.75)',
+    color: COLORS.muted,
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 40,
-    fontWeight: '600',
-    paddingHorizontal: 16,
+    fontWeight: '500',
+    paddingHorizontal: 20,
   },
-  glassCard: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 24,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  cardHeader: {
-    color: 'rgba(255,255,255,0.4)',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1.5,
-    marginBottom: 20,
-  },
-  checkItem: {
+  cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
-    gap: 12,
+    gap: 8,
+    marginBottom: 24,
+  },
+  cardHeader: {
+    color: COLORS.muted,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 2,
   },
   checkCircle: {
-    width: 22,
-    height: 22,
+    width: 24,
+    height: 24,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.05)',
+    backgroundColor: 'rgba(255,255,255,0.03)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: COLORS.border,
   },
   checkCircleDone: {
     backgroundColor: COLORS.accent,
     borderColor: COLORS.accent,
   },
   checkLabel: {
-    color: 'rgba(255,255,255,0.6)',
-    fontSize: 14,
-    fontWeight: '700',
+    color: COLORS.muted,
+    fontSize: 15,
+    fontWeight: '600',
   },
   checkLabelDone: {
-    color: '#fff',
+    color: COLORS.text,
     fontWeight: '800',
   },
-  formCard: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 28,
-    padding: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-    gap: 20,
-  },
-  inputGroup: {
-    gap: 8,
-  },
-  fieldLabel: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    fontWeight: '800',
-    letterSpacing: 1.2,
-  },
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    borderRadius: 16,
-    padding: 16,
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '700',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  permScroll: {
-    maxHeight: 80,
-    marginTop: 8,
-  },
-  permGroup: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 4,
-  },
-  primaryBtn: {
-    backgroundColor: COLORS.accent,
-    height: 56,
+  permGrid: { gap: 12 },
+  permBtn: {
     borderRadius: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 4,
-  },
-  primaryBtnSmall: {
-    backgroundColor: COLORS.accent,
-    height: 44,
-    paddingHorizontal: 16,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  primaryBtnTxtSmall: {
-    color: '#000',
-    fontWeight: '900',
-    fontSize: 10,
-    letterSpacing: 1,
-  },
-  primaryBtnTxtSmallWhite: {
-    color: '#fff',
-  },
-  primaryBtnTxt: {
-    color: '#000',
-    fontWeight: '900',
-    fontSize: 14,
-    letterSpacing: 1.2,
-  },
-  dimmed: { opacity: 0.5 },
-  cardDivider: {
-    height: 1,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    width: '100%',
-  },
-  ghostBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 2,
-  },
-  ghostBtnTxt: {
-    color: 'rgba(255,255,255,0.65)',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  successBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: 'rgba(0,196,140,0.08)',
-    borderRadius: 20,
-    padding: 18,
     borderWidth: 1,
-    borderColor: 'rgba(0,196,140,0.2)',
-    marginTop: 4,
+    borderColor: COLORS.accent + '40',
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    height: 60,
+  },
+  permBtnTextColor: {
+    color: COLORS.accent,
   },
   successBadgeTxt: {
     color: COLORS.green,
     fontWeight: '900',
     fontSize: 14,
-    letterSpacing: 1.5,
+    letterSpacing: 2,
   },
   skipHint: {
-    color: 'rgba(255,255,255,0.5)',
+    color: COLORS.muted,
     fontSize: 12,
     textAlign: 'center',
-    marginTop: 16,
-    fontWeight: '700',
-    lineHeight: 18,
+    marginTop: 20,
+    fontWeight: '600',
+    opacity: 0.5,
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    paddingTop: 8,
+    paddingBottom: 24,
+    paddingTop: 10,
   },
-  sideBtnSlot: {
-    flex: 1,
-    minWidth: 80,
-    justifyContent: 'center',
-    alignItems: 'flex-end',
-  },
-  sideBtnSlotStart: {
-    alignItems: 'flex-start',
-  },
+  sideBtnSlotStart: { flex: 1, alignItems: 'flex-start' },
+  sideBtnSlotEnd: { flex: 1, alignItems: 'flex-end' },
   pagination: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 10,
     alignItems: 'center',
-    flex: 2,
     justifyContent: 'center',
   },
   paginationDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   paginationDotActive: {
-    width: 20,
+    width: 24,
     backgroundColor: COLORS.accent,
   },
   backBtn: {
-    width: 48,
-    height: 48,
+    width: 50,
+    height: 50,
     justifyContent: 'center',
-    alignItems: 'flex-start',
+    alignItems: 'center',
   },
   accentBtn: {
-    backgroundColor: COLORS.accent,
-    height: 48,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    minWidth: 100,
-  },
-  accentBtnTxt: {
-    color: '#000',
-    fontWeight: '900',
-    fontSize: 12,
-    letterSpacing: 0.5,
+    height: 54,
+    borderRadius: 18,
+    paddingHorizontal: 24,
   },
 });

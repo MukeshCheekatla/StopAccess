@@ -11,40 +11,32 @@ import {
   ScrollView,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   NativeModules,
-  LayoutAnimation,
-  Platform,
-  UIManager,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { COLORS, SPACING, RADIUS } from '../components/theme';
+import { COLORS } from '../components/theme';
 import {
-  refreshTodayUsage,
-  getCachedUsage,
-  hasUsagePermission,
-  requestUsagePermission,
-} from '../modules/usageStats';
+  SCREEN_WIDTH,
+  SCREEN_HEIGHT,
+  isShort,
+  HORIZONTAL_PADDING,
+  CARD_RADIUS,
+} from '../constants/layout';
+import { refreshTodayUsage, getCachedUsage } from '../modules/usageStats';
 import { DailySnapshot, AppRule, AppUsageStat } from '@focusgate/types';
 import AppIcon from '../components/AppIcon';
 import { formatDuration } from '../utils/time';
 import { formatAppName } from '../utils/text';
-import { getRules, updateRule, saveRules } from '@focusgate/state/rules';
+import { getRules, updateRule } from '@focusgate/state/rules';
 import { getSnapshots } from '@focusgate/state/insights';
 import { storageAdapter } from '../store/storageAdapter';
-import { isConfigured, unblockAll } from '../api/nextdns';
+import { isConfigured } from '../api/nextdns';
 const { RuleEngine } = NativeModules;
 import { getFocusStreak } from '@focusgate/core/insights';
 import { getLogs, LogEntry } from '../services/logger';
-
-if (
-  Platform.OS === 'android' &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
 
 // --- State Management ---
 
@@ -53,7 +45,6 @@ interface DashboardState {
   distractingApps: AppUsageStat[];
   rules: AppRule[];
   refreshing: boolean;
-  hasPerm: boolean;
   totalMins: number;
   configured: boolean;
   weeklySnapshots: DailySnapshot[];
@@ -72,8 +63,7 @@ const initialState: DashboardState = {
   controlledUsage: [],
   distractingApps: [],
   rules: [],
-  refreshing: false,
-  hasPerm: true,
+  refreshing: true,
   totalMins: 0,
   configured: false,
   weeklySnapshots: [],
@@ -121,31 +111,15 @@ function UsageProgressBar({
   }
 
   return (
-    <View style={barStyles.container}>
-      <View style={barStyles.bg} />
+    <View className="mt-2 h-1.5 w-full">
+      <View className="absolute inset-0 rounded-full bg-border" />
       <View
-        style={[
-          barStyles.fill,
-          { width: `${progress * 100}%`, backgroundColor: barColor },
-        ]}
+        className="h-1.5 rounded-full"
+        style={{ width: `${progress * 100}%`, backgroundColor: barColor }}
       />
     </View>
   );
 }
-
-const barStyles = StyleSheet.create({
-  container: { height: 6, width: '100%', marginTop: 8 },
-  bg: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: COLORS.border,
-    borderRadius: 3,
-  },
-  fill: { height: 6, borderRadius: 3 },
-});
-
-// ---------------------------------------------------------------------------
-// WeeklyInsights component
-// ---------------------------------------------------------------------------
 
 function WeeklyInsights({
   snapshots,
@@ -188,185 +162,172 @@ function WeeklyInsights({
   const { weeklyBlocks, weeklyFocusMins, maxBar, dayLabels, barValues } = stats;
 
   return (
-    <View style={insightStyles.card}>
-      <Text style={insightStyles.cardTitle}>This Week</Text>
+    <View style={styles.appCard}>
+      <Text className="mb-4 text-xs font-bold tracking-wide text-muted">
+        Activity Insights
+      </Text>
 
-      <View style={insightStyles.chart}>
+      <View className="mb-4 h-[60px] flex-row items-end gap-2">
         {barValues.map((val, i) => (
-          <View key={i} style={insightStyles.barCol}>
-            <View style={insightStyles.barTrack}>
+          <View key={i} className="h-full flex-1 items-center justify-end">
+            <View className="w-full flex-1 justify-end rounded bg-[#FFFFFF08]">
               <View
-                style={[
-                  insightStyles.bar,
-                  { height: `${Math.round((val / maxBar) * 100)}%` },
-                  i === barValues.length - 1 && insightStyles.barToday,
-                ]}
+                className={`min-h-[2px] w-full rounded ${
+                  i === barValues.length - 1 ? 'bg-accent' : 'bg-border'
+                }`}
+                style={{ height: `${Math.round((val / maxBar) * 100)}%` }}
               />
             </View>
-            <Text style={insightStyles.barLabel}>{dayLabels[i]}</Text>
+            <Text className="mt-1.5 text-[10px] text-muted">
+              {dayLabels[i]}
+            </Text>
           </View>
         ))}
       </View>
 
-      <View style={insightStyles.pills}>
-        <View style={insightStyles.pill}>
+      <View className="flex-row items-center border-t border-border pt-4">
+        <View className="flex-1 items-center">
           <Icon name="fire" size={16} color={COLORS.accent} />
-          <Text style={insightStyles.pillVal}>{streak}</Text>
-          <Text style={insightStyles.pillLabel}>day streak</Text>
+          <Text className="text-[15px] font-bold text-text">{streak}</Text>
+          <Text className="text-[10px] uppercase text-muted">streak</Text>
         </View>
-        <View style={insightStyles.pillDivider} />
-        <View style={insightStyles.pill}>
+        <View className="h-6 w-px bg-border" />
+        <View className="flex-1 items-center">
           <Icon name="shield-check" size={16} color={COLORS.green} />
-          <Text style={insightStyles.pillVal}>{weeklyBlocks}</Text>
-          <Text style={insightStyles.pillLabel}>blocks</Text>
+          <Text className="text-[15px] font-bold text-text">
+            {weeklyBlocks}
+          </Text>
+          <Text className="text-[10px] uppercase text-muted">blocks</Text>
         </View>
-        <View style={insightStyles.pillDivider} />
-        <View style={insightStyles.pill}>
-          <Icon name="brain" size={16} color="#7c6ff7" />
-          <Text style={insightStyles.pillVal}>
+        <View className="h-6 w-px bg-border" />
+        <View className="flex-1 items-center">
+          <Icon name="brain" size={16} color={COLORS.blue} />
+          <Text className="text-[15px] font-bold text-text">
             {weeklyFocusMins >= 60
               ? `${Math.floor(weeklyFocusMins / 60)}h ${weeklyFocusMins % 60}m`
               : `${weeklyFocusMins}m`}
           </Text>
-          <Text style={insightStyles.pillLabel}>focused</Text>
+          <Text className="text-[10px] uppercase text-muted">focus</Text>
         </View>
       </View>
     </View>
   );
 }
 
-const insightStyles = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.card,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    marginBottom: SPACING.xl,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-  },
-  cardTitle: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: 'bold',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginBottom: SPACING.md,
-  },
-  chart: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    height: 80,
-    marginBottom: SPACING.md,
-    gap: 4,
-  },
-  barCol: {
-    flex: 1,
-    alignItems: 'center',
-    height: '100%',
-    justifyContent: 'flex-end',
-  },
-  barTrack: {
-    flex: 1,
-    width: '100%',
-    justifyContent: 'flex-end',
-  },
-  bar: {
-    width: '100%',
-    backgroundColor: COLORS.border,
-    borderRadius: 3,
-    minHeight: 3,
-  },
-  barToday: { backgroundColor: COLORS.accent },
-  barLabel: {
-    color: COLORS.muted,
-    fontSize: 9,
-    marginTop: 4,
-    textTransform: 'uppercase',
-  },
-  pills: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingTop: SPACING.sm,
-    borderTopWidth: 1,
-    borderColor: COLORS.border,
-  },
-  pill: { flex: 1, alignItems: 'center', gap: 2 },
-  pillDivider: { width: 1, height: 32, backgroundColor: COLORS.border },
-  pillVal: { color: COLORS.text, fontSize: 16, fontWeight: 'bold' },
-  pillLabel: { color: COLORS.muted, fontSize: 10, textTransform: 'uppercase' },
-});
-
-// SetupNudge — shown when NextDNS is not configured or no rules exist
 function SetupNudge({
   configured,
   hasRules,
+  refreshing,
 }: {
   configured: boolean;
   hasRules: boolean;
+  refreshing: boolean;
 }) {
   const nav = useNavigation<any>();
-  if (configured && hasRules) {
+  if (refreshing || (configured && hasRules)) {
     return null;
   }
+
   const title = !configured
-    ? 'Connect NextDNS to start blocking'
-    : 'Add your first app to control';
+    ? 'Connect NextDNS Profile'
+    : 'Start controlling apps';
   const sub = !configured
-    ? 'Go to Settings and enter your Profile ID and API Key.'
-    : 'Head to the Apps tab and pick an app to limit or block.';
-  const btnLabel = !configured ? 'Open Settings' : 'Go to Apps';
+    ? 'Blocking requires an active NextDNS profile ID.'
+    : 'Add your first app rule to start saving time.';
+  const btnLabel = !configured ? 'Open Settings' : 'Add Apps';
   const tabName = !configured ? 'Settings' : 'Apps';
+
   return (
-    <View style={nudgeStyles.card}>
-      <View style={nudgeStyles.iconRow}>
-        <Icon
-          name={!configured ? 'dns-outline' : 'plus-circle-outline'}
-          size={28}
-          color={COLORS.accent}
-        />
+    <View
+      style={[
+        styles.appCard,
+        styles.nudgeRow,
+        {
+          backgroundColor: COLORS.accent + '15',
+          borderColor: COLORS.accent + '33',
+        },
+      ]}
+    >
+      <Icon
+        name={!configured ? 'dns' : 'plus-circle'}
+        size={24}
+        color={COLORS.accent}
+      />
+      <View className="flex-1">
+        <Text className="mb-1 text-base font-bold text-text">{title}</Text>
+        <Text className="mb-3 text-[13px] leading-[18px] text-muted">
+          {sub}
+        </Text>
+        <TouchableOpacity
+          className="self-start rounded-lg bg-accent px-4 py-2"
+          onPress={() => nav.navigate(tabName)}
+        >
+          <Text className="text-[13px] font-bold text-white">{btnLabel}</Text>
+        </TouchableOpacity>
       </View>
-      <Text style={nudgeStyles.title}>{title}</Text>
-      <Text style={nudgeStyles.sub}>{sub}</Text>
-      <TouchableOpacity
-        style={nudgeStyles.btn}
-        onPress={() => nav.navigate(tabName)}
-      >
-        <Text style={nudgeStyles.btnTxt}>{btnLabel}</Text>
-        <Icon name="arrow-right" size={16} color={COLORS.accent} />
-      </TouchableOpacity>
     </View>
   );
 }
 
-const nudgeStyles = StyleSheet.create({
-  card: {
-    backgroundColor: COLORS.card,
-    borderRadius: RADIUS.lg,
-    padding: SPACING.lg,
-    marginBottom: SPACING.xl,
-    borderWidth: 1,
-    borderColor: COLORS.accent + '33',
-  },
-  iconRow: { marginBottom: SPACING.sm },
-  title: {
-    color: COLORS.text,
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 6,
-  },
-  sub: {
-    color: COLORS.muted,
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: SPACING.md,
-  },
-  btn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  btnTxt: { color: COLORS.accent, fontWeight: 'bold', fontSize: 14 },
-});
+function FeatureShortcutGrid({ onOpen }: { onOpen: (route: string) => void }) {
+  const shortcuts = [
+    {
+      key: 'apps',
+      label: 'Block List',
+      icon: 'apps',
+      tint: COLORS.accent,
+      route: 'Apps',
+    },
+    {
+      key: 'focus',
+      label: 'Focus',
+      icon: 'target',
+      tint: COLORS.green,
+      route: 'Focus',
+    },
+    {
+      key: 'privacy',
+      label: 'Privacy',
+      icon: 'incognito',
+      tint: COLORS.yellow,
+      route: 'PrivacySettings',
+    },
+    {
+      key: 'diag',
+      label: 'Diagnostics',
+      icon: 'application-braces-outline',
+      tint: COLORS.red,
+      route: 'DiagnosticsSettings',
+    },
+  ];
+
+  return (
+    <View style={styles.section}>
+      <Text className="mb-3 text-lg font-extrabold tracking-tighter text-white">
+        Control Center
+      </Text>
+      <View style={styles.shortcutGrid}>
+        {shortcuts.map((shortcut) => (
+          <TouchableOpacity
+            key={shortcut.key}
+            style={styles.shortcutCard}
+            onPress={() => onOpen(shortcut.route)}
+          >
+            <View
+              style={[
+                styles.shortcutIconBox,
+                { backgroundColor: shortcut.tint + '14' },
+              ]}
+            >
+              <Icon name={shortcut.icon} size={18} color={shortcut.tint} />
+            </View>
+            <Text style={styles.shortcutLabel}>{shortcut.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </View>
+  );
+}
 
 // --- Main Screen ---
 
@@ -374,21 +335,30 @@ export default function DashboardScreen() {
   const [state, dispatch] = useReducer(dashboardReducer, initialState);
   const isCancelled = useRef(false);
   const insets = useSafeAreaInsets();
+  const nav = useNavigation<any>();
+
+  const heroContentStyle = useMemo(
+    () => ({
+      paddingTop: insets.top + 20,
+    }),
+    [insets.top],
+  );
+
+  const scrollStyle = useMemo(
+    () => ({
+      paddingBottom: insets.bottom + 100,
+    }),
+    [insets.bottom],
+  );
 
   const loadData = useCallback(async (isAuto = false) => {
     isCancelled.current = false;
     if (!isAuto) {
-      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       dispatch({ type: 'START_REFRESH' });
     }
 
     try {
       const isConfig = await isConfigured();
-      if (isCancelled.current) {
-        return;
-      }
-
-      const [perm] = await Promise.all([hasUsagePermission()]);
       if (isCancelled.current) {
         return;
       }
@@ -418,7 +388,6 @@ export default function DashboardScreen() {
       }
 
       const updateData: Partial<DashboardState> = {
-        hasPerm: perm,
         configured: isConfig,
         weeklySnapshots: snapshots,
         focusStreak: streak,
@@ -427,41 +396,36 @@ export default function DashboardScreen() {
         a11yEnabled: a11y,
       };
 
-      if (perm) {
-        const stats = await refreshTodayUsage().catch(
-          () => getCachedUsage() as AppUsageStat[],
-        );
-        const currentRules = await getRules(storageAdapter);
+      const stats = await refreshTodayUsage().catch(
+        () => getCachedUsage() as AppUsageStat[],
+      );
+      const currentRules = await getRules(storageAdapter);
 
-        if (isCancelled.current) {
-          return;
-        }
-
-        const total = stats.reduce((sum, a) => sum + a.totalMinutes, 0);
-        // Filter and sort
-        const controlled = stats
-          .filter((s) =>
-            currentRules.some((r: AppRule) => r.packageName === s.packageName),
-          )
-          .sort((a, b) => b.totalMinutes - a.totalMinutes);
-
-        const distracting = stats
-          .filter(
-            (s) =>
-              !currentRules.some(
-                (r: AppRule) => r.packageName === s.packageName,
-              ),
-          )
-          .sort((a, b) => b.totalMinutes - a.totalMinutes)
-          .slice(0, 5);
-
-        Object.assign(updateData, {
-          totalMins: total,
-          controlledUsage: controlled,
-          distractingApps: distracting,
-          rules: currentRules,
-        });
+      if (isCancelled.current) {
+        return;
       }
+
+      const total = stats.reduce((sum, a) => sum + a.totalMinutes, 0);
+      const controlled = stats
+        .filter((s) =>
+          currentRules.some((r: AppRule) => r.packageName === s.packageName),
+        )
+        .sort((a, b) => b.totalMinutes - a.totalMinutes);
+
+      const distracting = stats
+        .filter(
+          (s) =>
+            !currentRules.some((r: AppRule) => r.packageName === s.packageName),
+        )
+        .sort((a, b) => b.totalMinutes - a.totalMinutes)
+        .slice(0, 5);
+
+      Object.assign(updateData, {
+        totalMins: total,
+        controlledUsage: controlled,
+        distractingApps: distracting,
+        rules: currentRules,
+      });
 
       dispatch({ type: 'SET_DATA', payload: updateData });
     } catch (err) {
@@ -512,7 +476,6 @@ export default function DashboardScreen() {
     configured,
     weeklySnapshots,
     focusStreak,
-    hasPerm,
     controlledUsage,
     distractingApps,
     recentLogs,
@@ -522,157 +485,102 @@ export default function DashboardScreen() {
   const blockedCount = rules.filter((r) => r.blockedToday).length;
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Focus Dashboard</Text>
-            <Text style={styles.date}>
-              {new Date().toLocaleDateString(undefined, {
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-              })}
-            </Text>
-          </View>
-        </View>
+    <View style={styles.container}>
+      <StatusBar
+        barStyle="light-content"
+        translucent
+        backgroundColor="transparent"
+      />
 
-        {/* Global Summary Grid */}
-        <View style={styles.summaryGrid}>
-          <View style={styles.summaryItem}>
-            <Text style={styles.summaryVal}>{formatDuration(totalMins)}</Text>
-            <Text style={styles.summaryLabel}>Screen Time</Text>
-          </View>
-          <View style={styles.summaryItem}>
-            <View style={styles.summaryValueRow}>
-              <View
-                style={[
-                  styles.statusDot,
-                  {
-                    backgroundColor:
-                      protectionLevel === 'STRONG'
-                        ? COLORS.green
-                        : protectionLevel === 'STANDARD'
-                        ? COLORS.accent
-                        : COLORS.red,
-                  },
-                ]}
-              />
-              <Text style={styles.summaryVal}>{protectionLevel}</Text>
-            </View>
-            <Text style={styles.summaryLabel}>Protection Level</Text>
-          </View>
-        </View>
-
-        {/* Protection Alert Banner (Mandatory) */}
-        {!a11yEnabled && (
-          <View style={styles.protectionWarningBanner}>
-            <View style={styles.warningInfo}>
-              <Icon name="shield-off-outline" size={20} color={COLORS.red} />
-              <View style={styles.warningTextCol}>
-                <Text style={styles.warningTitle}>Protection Inactive</Text>
-                <Text style={styles.warningSub}>
-                  Accessibility service is disconnected.
-                </Text>
-              </View>
-            </View>
-            <TouchableOpacity
-              style={styles.warningBtn}
-              onPress={() => RuleEngine?.openAccessibilitySettings()}
-            >
-              <Text style={styles.warningBtnTxt}>Fix Now</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Protection Health Card (New) */}
-        {protectionLevel !== 'NONE' && (
-          <View style={styles.healthCard}>
-            <View style={styles.healthHeader}>
-              <View style={styles.healthTitleRow}>
-                <Icon
-                  name={protectionLevel === 'STRONG' ? 'shield-lock' : 'shield'}
-                  size={20}
-                  color={
-                    protectionLevel === 'STRONG' ? COLORS.green : COLORS.accent
-                  }
+      {/* Hero Header Section */}
+      <View style={styles.heroWrapper}>
+        <View style={styles.heroGradientPlaceholder}>
+          <View style={[styles.heroContent, heroContentStyle]}>
+            <View>
+              <Text style={styles.heroGreeting}>Focus State</Text>
+              <View style={styles.statusRow}>
+                <View
+                  style={[
+                    styles.statusIndicator,
+                    {
+                      backgroundColor:
+                        protectionLevel === 'NONE' ? COLORS.red : COLORS.green,
+                    },
+                  ]}
                 />
-                <Text style={styles.healthTitle}>
+                <Text style={styles.heroStatusText}>
                   {protectionLevel === 'STRONG'
-                    ? 'Strong Enforcement'
+                    ? 'Shield Active'
+                    : protectionLevel === 'NONE'
+                    ? 'Unprotected'
                     : 'Standard Protection'}
                 </Text>
               </View>
-              <TouchableOpacity
-                onPress={() => {
-                  Alert.alert(
-                    'Emergency Protocol',
-                    'INSTANT UNBLOCK: This will reset all local rules and NextDNS blocks. Continue?',
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      {
-                        text: 'Reset All',
-                        style: 'destructive',
-                        onPress: async () => {
-                          await saveRules(storageAdapter, []);
-                          if (configured) {
-                            await unblockAll().catch(() => {});
-                          }
-                          await loadData();
-                        },
-                      },
-                    ],
-                  );
-                }}
-              >
-                <Text style={styles.panicLink}>PANIC RESET</Text>
-              </TouchableOpacity>
             </View>
-            <View style={styles.healthGrid}>
-              <View style={styles.healthCol}>
-                <Text style={styles.healthVal}>{rules.length}</Text>
-                <Text style={styles.healthLbl}>Monitored</Text>
-              </View>
-              <View style={styles.healthDivider} />
-              <View style={styles.healthCol}>
-                <Text style={styles.healthVal}>{blockedCount}</Text>
-                <Text style={styles.healthLbl}>Blocked</Text>
-              </View>
-              <View style={styles.healthDivider} />
-              <View style={styles.healthCol}>
-                <Text style={styles.healthVal}>
-                  {protectionLevel === 'STRONG' ? 'Dual' : 'Single'}
+
+            <View style={styles.heroStatsRow}>
+              <View style={styles.heroStatItem}>
+                <Text style={styles.heroStatVal}>
+                  {formatDuration(totalMins)}
                 </Text>
-                <Text style={styles.healthLbl}>Layers</Text>
+                <Text style={styles.heroStatLbl}>Usage Today</Text>
+              </View>
+              <View style={styles.heroStatDivider} />
+              <View style={styles.heroStatItem}>
+                <Text style={styles.heroStatVal}>{blockedCount}</Text>
+                <Text style={styles.heroStatLbl}>Blocked</Text>
               </View>
             </View>
           </View>
-        )}
+        </View>
+      </View>
 
-        {/* Setup nudge — shown when not configured or no rules yet */}
-        <SetupNudge configured={configured} hasRules={rules.length > 0} />
-
-        {/* Weekly insights */}
-        <WeeklyInsights snapshots={weeklySnapshots} streak={focusStreak} />
-
-        {!hasPerm && (
+      <ScrollView
+        contentContainerStyle={[styles.scroll, scrollStyle]}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Protection Alert */}
+        {!a11yEnabled && (
           <TouchableOpacity
-            style={styles.banner}
-            onPress={requestUsagePermission}
+            style={styles.warningBanner}
+            onPress={() => RuleEngine?.openAccessibilitySettings()}
           >
-            <Icon name="shield-alert" size={20} color={COLORS.red} />
-            <Text style={[styles.bannerTxt, { color: COLORS.red }]}>
-              Grant Usage Access permission
-            </Text>
+            <Icon name="shield-off-outline" size={20} color={COLORS.red} />
+            <View className="flex-1">
+              <Text className="text-sm font-bold text-red">
+                Accessibility Disabled
+              </Text>
+              <Text className="text-xs text-[#CF6679CC]">
+                Enforcement layer is inactive. Tap to fix.
+              </Text>
+            </View>
           </TouchableOpacity>
         )}
 
-        {/* Controlled Section */}
+        <SetupNudge
+          configured={configured}
+          hasRules={rules.length > 0}
+          refreshing={refreshing}
+        />
+
+        <FeatureShortcutGrid onOpen={(route) => nav.navigate(route)} />
+
+        <WeeklyInsights snapshots={weeklySnapshots} streak={focusStreak} />
+
+        {/* Controlled Apps Section */}
         {controlledUsage.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionHeaderTitle}>Controlled Apps</Text>
-            {controlledUsage.map((item) => {
+            <View className="mb-3 flex-row items-center justify-between">
+              <Text className="text-lg font-extrabold tracking-tighter text-white">
+                Controlled Apps
+              </Text>
+              <TouchableOpacity onPress={() => nav.navigate('Apps')}>
+                <Text className="text-sm font-semibold text-accent">
+                  View All
+                </Text>
+              </TouchableOpacity>
+            </View>
+            {controlledUsage.map((item, idx) => {
               const rule = rules.find(
                 (r) => r.packageName === item.packageName,
               );
@@ -681,13 +589,13 @@ export default function DashboardScreen() {
 
               return (
                 <View key={item.packageName} style={styles.appCard}>
-                  <View style={styles.appTop}>
+                  <View style={styles.appRow}>
                     <AppIcon
                       packageName={item.packageName}
-                      size={40}
+                      size={42}
                       iconBase64={rule?.iconBase64}
                     />
-                    <View style={styles.infoCol}>
+                    <View style={styles.appInfo}>
                       <Text style={styles.appName} numberOfLines={1}>
                         {formatAppName(item.appName)}
                       </Text>
@@ -695,13 +603,15 @@ export default function DashboardScreen() {
                         {isBlocked
                           ? 'Blocked'
                           : limit > 0
-                          ? `${formatDuration(limit - item.totalMinutes)} left`
+                          ? `${formatDuration(
+                              Math.max(0, limit - item.totalMinutes),
+                            )} left`
                           : 'Monitoring'}
                       </Text>
                     </View>
                     <Text
                       style={[
-                        styles.usageVal,
+                        styles.usageText,
                         isBlocked && { color: COLORS.red },
                       ]}
                     >
@@ -720,47 +630,43 @@ export default function DashboardScreen() {
           </View>
         )}
 
-        {/* Distracting Section */}
+        {/* Distracting Apps (Suggestions) */}
         {distractingApps.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionHeaderTitle}>Distracting Apps</Text>
-            {distractingApps.map((item) => (
-              <TouchableOpacity
-                key={item.packageName}
-                style={[styles.appCard, styles.dashedCard]}
-                onPress={() => onQuickAdd(item)}
-              >
-                <View style={styles.appTop}>
-                  <AppIcon packageName={item.packageName} size={40} />
-                  <View style={styles.infoCol}>
-                    <Text style={styles.appName} numberOfLines={1}>
-                      {formatAppName(item.appName)}
-                    </Text>
-                    <Text style={styles.appStatus}>
-                      Tap to start controlling
-                    </Text>
-                  </View>
-                  <View style={styles.quickAddRow}>
-                    <Text style={[styles.usageVal, styles.quickAddUsage]}>
-                      {formatDuration(item.totalMinutes)}
-                    </Text>
-                    <Icon name="plus-circle" size={26} color={COLORS.accent} />
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
+            <Text className="mb-3 text-lg font-extrabold tracking-tighter text-white">
+              Suggestions
+            </Text>
+            <View style={styles.suggestionsGrid}>
+              {distractingApps.slice(0, 4).map((item) => (
+                <TouchableOpacity
+                  key={item.packageName}
+                  style={styles.suggestionItem}
+                  onPress={() => onQuickAdd(item)}
+                >
+                  <AppIcon packageName={item.packageName} size={32} />
+                  <Text style={styles.suggestionName} numberOfLines={1}>
+                    {formatAppName(item.appName)}
+                  </Text>
+                  <Text style={styles.suggestionUsage}>
+                    {formatDuration(item.totalMinutes)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         )}
 
         {/* Activity Feed */}
         {recentLogs.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionHeaderTitle}>Recent Activity</Text>
-            <View style={styles.activityCard}>
+            <Text className="mb-3 text-lg font-extrabold tracking-tighter text-white">
+              Recent Activity
+            </Text>
+            <View style={styles.logsCard}>
               {recentLogs.map((log, i) => (
                 <View
                   key={i}
-                  style={[styles.logRow, i === 0 ? styles.noBorder : null]}
+                  style={[styles.logRow, i > 0 && styles.logBorder]}
                 >
                   <Icon
                     name={
@@ -769,286 +675,249 @@ export default function DashboardScreen() {
                     size={14}
                     color={log.level === 'error' ? COLORS.red : COLORS.accent}
                   />
-                  <View style={styles.logInfo}>
-                    <Text style={styles.logMsg} numberOfLines={1}>
-                      {log.message}
-                    </Text>
-                    <Text style={styles.logTime}>
-                      {new Date(log.timestamp).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </Text>
-                  </View>
+                  <Text style={styles.logMsg} numberOfLines={1}>
+                    {log.message}
+                  </Text>
+                  <Text style={styles.logTime}>
+                    {new Date(log.timestamp).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
                 </View>
               ))}
             </View>
           </View>
         )}
-
-        {controlledUsage.length === 0 &&
-          distractingApps.length === 0 &&
-          !refreshing && (
-            <View style={styles.emptyBox}>
-              <Icon name="chart-donut" size={48} color={COLORS.border} />
-              <Text style={styles.emptyText}>No app usage detected today.</Text>
-            </View>
-          )}
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-  scroll: { padding: SPACING.md, paddingBottom: 100 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  container: {
+    flex: 1,
+    backgroundColor: '#0A0A0A',
+  },
+  heroWrapper: {
+    height: isShort ? SCREEN_HEIGHT * 0.35 : SCREEN_HEIGHT * 0.3,
+    width: '100%',
+  },
+  heroGradientPlaceholder: {
+    flex: 1,
+    backgroundColor: '#1A1A2E',
+  },
+  heroContent: {
+    paddingHorizontal: HORIZONTAL_PADDING,
+    flex: 1,
     justifyContent: 'space-between',
-    paddingVertical: 20,
-    marginBottom: SPACING.lg,
+    paddingBottom: 24,
   },
-  greeting: {
-    color: COLORS.text,
-    fontSize: 26,
+  heroGreeting: {
+    fontSize: 32,
     fontWeight: '900',
-    letterSpacing: -0.5,
+    color: '#FFF',
+    letterSpacing: -1,
   },
-  date: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 4,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-
-  protectionWarningBanner: {
+  statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 71, 87, 0.1)',
-    borderRadius: 20,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 71, 87, 0.2)',
-  },
-  warningInfo: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
-  warningTextCol: { flex: 1 },
-  warningTitle: {
-    color: COLORS.red,
-    fontSize: 13,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  warningSub: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 1,
-  },
-  warningBtn: {
-    backgroundColor: COLORS.red,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-  },
-  warningBtnTxt: {
-    color: '#fff',
-    fontSize: 11,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-
-  healthCard: {
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: SPACING.xl,
-    borderWidth: 1,
-    borderColor: 'rgba(124, 111, 247, 0.15)',
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-  },
-  healthHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  healthTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  healthTitle: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-  },
-  panicLink: {
-    color: COLORS.red,
-    fontSize: 10,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    opacity: 0.8,
-  },
-  healthGrid: { flexDirection: 'row', alignItems: 'center' },
-  healthCol: { flex: 1, alignItems: 'center' },
-  healthVal: {
-    color: COLORS.text,
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  healthLbl: {
-    color: COLORS.muted,
-    fontSize: 10,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+    gap: 8,
     marginTop: 4,
   },
-  healthDivider: {
-    width: 1,
-    height: 32,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-  },
-
-  summaryGrid: {
-    flexDirection: 'row',
-    backgroundColor: 'rgba(255,255,255,0.01)',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: SPACING.xl,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.03)',
-  },
-  summaryItem: { flex: 1, alignItems: 'center' },
-  summaryVal: { color: COLORS.text, fontSize: 24, fontWeight: '900' },
-  summaryLabel: {
-    color: COLORS.muted,
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 6,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  summaryValueRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  statusDot: {
+  statusIndicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    shadowColor: '#fff',
-    shadowOpacity: 0.5,
-    shadowRadius: 4,
   },
-
-  banner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 71, 87, 0.08)',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 71, 87, 0.2)',
-  },
-  bannerTxt: {
-    fontSize: 12,
-    marginLeft: 10,
-    color: COLORS.red,
+  heroStatusText: {
+    color: 'rgba(255,255,255,0.6)',
+    fontSize: 14,
     fontWeight: '600',
   },
-
-  section: { marginBottom: 32 },
-  sectionHeaderTitle: {
-    color: COLORS.text,
-    fontSize: 14,
-    fontWeight: '800',
-    marginBottom: 16,
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    opacity: 0.8,
+  heroStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: CARD_RADIUS,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
   },
-
+  heroStatItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  heroStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+  },
+  heroStatVal: {
+    color: '#FFF',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  heroStatLbl: {
+    color: 'rgba(255,255,255,0.4)',
+    fontSize: 11,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+  scroll: {
+    paddingHorizontal: HORIZONTAL_PADDING,
+    paddingTop: 20,
+  },
+  warningBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.red + '15',
+    padding: 16,
+    borderRadius: CARD_RADIUS,
+    borderWidth: 1,
+    borderColor: COLORS.red + '33',
+    gap: 12,
+    marginBottom: 20,
+  },
+  warningFlex: { flex: 1 },
+  warningTitle: { color: COLORS.red, fontWeight: 'bold', fontSize: 14 },
+  warningSub: { color: COLORS.red + 'CC', fontSize: 12 },
+  section: {
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: -0.5,
+  },
+  viewAllText: {
+    color: COLORS.accent,
+    fontSize: 14,
+    fontWeight: '600',
+  },
   appCard: {
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderRadius: 18,
+    backgroundColor: COLORS.card,
+    borderRadius: CARD_RADIUS,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.border,
   },
-  dashedCard: { borderStyle: 'dashed', borderColor: 'rgba(255,255,255,0.1)' },
-  appTop: { flexDirection: 'row', alignItems: 'center' },
-  infoCol: { flex: 1, marginLeft: 16 },
-  appName: { color: COLORS.text, fontSize: 16, fontWeight: '700' },
+  nudgeRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  appRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  appInfo: {
+    flex: 1,
+  },
+  appName: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '700',
+  },
   appStatus: {
     color: COLORS.muted,
-    fontSize: 12,
-    fontWeight: '500',
+    fontSize: 13,
     marginTop: 2,
   },
-  usageVal: { color: COLORS.text, fontSize: 16, fontWeight: '800' },
-  quickAddUsage: {
-    marginRight: 10,
-    fontSize: 13,
-    color: COLORS.muted,
-    fontWeight: '600',
+  usageText: {
+    color: COLORS.text,
+    fontSize: 16,
+    fontWeight: '800',
   },
-  quickAddRow: { flexDirection: 'row', alignItems: 'center' },
-
-  activityCard: {
-    backgroundColor: 'rgba(255,255,255,0.01)',
-    borderRadius: 18,
+  suggestionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  shortcutGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  shortcutCard: {
+    width: (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - 10) / 2,
+    backgroundColor: COLORS.card,
+    borderRadius: CARD_RADIUS,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.03)',
+    borderColor: COLORS.border,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  shortcutIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shortcutLabel: {
+    color: COLORS.text,
+    fontSize: 13,
+    fontWeight: '800',
+    flex: 1,
+  },
+  suggestionItem: {
+    width: (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - 30) / 4,
+    backgroundColor: COLORS.card,
+    borderRadius: 12,
+    padding: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  suggestionName: {
+    color: COLORS.text,
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  suggestionUsage: {
+    color: COLORS.muted,
+    fontSize: 9,
+    marginTop: 2,
+  },
+  logsCard: {
+    backgroundColor: COLORS.card,
+    borderRadius: CARD_RADIUS,
     paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
   logRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.03)',
+    paddingVertical: 12,
+    gap: 10,
   },
-  logMsg: { color: COLORS.text, fontSize: 13, fontWeight: '600' },
+  logBorder: {
+    borderTopWidth: 1,
+    borderColor: COLORS.border,
+  },
+  logMsg: {
+    flex: 1,
+    color: COLORS.text,
+    fontSize: 13,
+  },
   logTime: {
     color: COLORS.muted,
-    fontSize: 10,
-    fontWeight: '700',
-    marginTop: 4,
-    textTransform: 'uppercase',
-  },
-  logInfo: { flex: 1, marginLeft: 12 },
-  noBorder: { borderTopWidth: 0 },
-
-  emptyBox: { alignItems: 'center', marginTop: 80, opacity: 0.5 },
-  emptyText: {
-    color: COLORS.muted,
-    marginTop: 16,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-
-  fab: {
-    position: 'absolute',
-    bottom: 30,
-    right: 25,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: COLORS.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 10,
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
+    fontSize: 12,
   },
 });

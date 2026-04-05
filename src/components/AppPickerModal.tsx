@@ -5,10 +5,11 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
-  Dimensions,
   BackHandler,
   TouchableWithoutFeedback,
   TouchableOpacity,
+  FlatList,
+  useWindowDimensions,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -17,19 +18,16 @@ import Animated, {
   withTiming,
   runOnJS,
   interpolate,
-  Extrapolate,
+  Extrapolation,
 } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { COLORS, SPACING, RADIUS, FONT } from './theme';
+import { COLORS } from './theme';
 import { getInstalledApps, InstalledApp } from '../modules/installedApps';
 import AppIcon from './AppIcon';
 import { refreshTodayUsage, getCachedUsage } from '../modules/usageStats';
 import { AppUsageStat } from '@focusgate/types';
 import { formatDuration } from '../utils/time';
-
-const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const MAX_TRANSLATE_Y = -SCREEN_HEIGHT * 0.92;
 
 interface Props {
   visible: boolean;
@@ -44,6 +42,13 @@ export const AppPickerModal: React.FC<Props> = ({
   onSelect,
   alreadySelectedPackages,
 }) => {
+  const { height: SCREEN_HEIGHT } = useWindowDimensions();
+  // Memoized so the value only changes when screen height actually changes
+  const MAX_TRANSLATE_Y = React.useMemo(
+    () => -SCREEN_HEIGHT * 0.92,
+    [SCREEN_HEIGHT],
+  );
+
   const [loading, setLoading] = useState(false);
   const [apps, setApps] = useState<InstalledApp[]>([]);
   const [usage, setUsage] = useState<Record<string, number>>({});
@@ -59,13 +64,11 @@ export const AppPickerModal: React.FC<Props> = ({
       active.value = destination !== 0;
 
       if (destination === 0) {
-        // Snappier close with timing
         translateY.value = withTiming(0, { duration: 250 });
       } else {
-        // Better spring for opening (less bouncy, more responsive)
         translateY.value = withSpring(destination, {
           damping: 50,
-          stiffness: 250,
+          stiffness: 260,
           mass: 0.5,
           restDisplacementThreshold: 0.1,
           restSpeedThreshold: 0.1,
@@ -76,24 +79,21 @@ export const AppPickerModal: React.FC<Props> = ({
   );
 
   useEffect(() => {
-    // Load once on mount to avoid "fake loading" every time
     loadApps();
   }, []);
 
   useEffect(() => {
     if (visible) {
       scrollTo(MAX_TRANSLATE_Y);
-      // Refresh usage in background if needed, but don't show loader
       refreshTodayUsage().catch(() => {});
     } else {
       scrollTo(0);
     }
-  }, [visible, scrollTo]);
+  }, [visible, scrollTo, MAX_TRANSLATE_Y]);
 
   const backAction = useCallback(() => {
     if (visible && active.value) {
-      // Immediate Native Close
-      translateY.value = withTiming(0, { duration: 150 }, (isFinished) => {
+      translateY.value = withTiming(0, { duration: 220 }, (isFinished) => {
         if (isFinished) {
           runOnJS(onClose)();
         }
@@ -103,7 +103,6 @@ export const AppPickerModal: React.FC<Props> = ({
     return false;
   }, [active, onClose, translateY, visible]);
 
-  // Handle hardware back button
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(
       'hardwareBackPress',
@@ -154,16 +153,12 @@ export const AppPickerModal: React.FC<Props> = ({
       .sort((a, b) => {
         const nameA = (a.appName || '').toLowerCase();
         const nameB = (b.appName || '').toLowerCase();
-
-        // 1. Exact match
         if (nameA === query && nameB !== query) {
           return -1;
         }
         if (nameB === query && nameA !== query) {
           return 1;
         }
-
-        // 2. Starts with
         const startsA = nameA.startsWith(query);
         const startsB = nameB.startsWith(query);
         if (startsA && !startsB) {
@@ -172,20 +167,17 @@ export const AppPickerModal: React.FC<Props> = ({
         if (startsB && !startsA) {
           return 1;
         }
-
-        // 3. Keep original usage-based order
         return apps.indexOf(a) - apps.indexOf(b);
       });
   }, [apps, search]);
 
   const context = useSharedValue({ y: 0 });
   const gesture = Gesture.Pan()
-    .activeOffsetY([-10, 10]) // Don't steal vertical scroll immediately
+    .activeOffsetY([-10, 10])
     .onStart(() => {
       context.value = { y: translateY.value };
     })
     .onUpdate((event) => {
-      // Only allow swiping down to close
       const nextY = event.translationY + context.value.y;
       if (nextY >= MAX_TRANSLATE_Y) {
         translateY.value = nextY;
@@ -204,9 +196,7 @@ export const AppPickerModal: React.FC<Props> = ({
     });
 
   const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ translateY: translateY.value }],
-    };
+    return { transform: [{ translateY: translateY.value }] };
   });
 
   const backdropStyle = useAnimatedStyle(() => {
@@ -215,7 +205,7 @@ export const AppPickerModal: React.FC<Props> = ({
         translateY.value,
         [0, MAX_TRANSLATE_Y],
         [0, 1],
-        Extrapolate.CLAMP,
+        Extrapolation.CLAMP,
       ),
       display: translateY.value === 0 ? 'none' : 'flex',
     };
@@ -234,16 +224,21 @@ export const AppPickerModal: React.FC<Props> = ({
         <Animated.View style={[styles.backdrop, backdropStyle]} />
       </TouchableWithoutFeedback>
 
-      <Animated.View style={[styles.container, animatedStyle]}>
-        {/* ONLY this top section handles gestures to close */}
+      <Animated.View
+        style={[
+          styles.container,
+          { height: SCREEN_HEIGHT, top: SCREEN_HEIGHT },
+          animatedStyle,
+        ]}
+      >
         <GestureDetector gesture={gesture}>
           <View style={styles.handleContainer}>
             <View style={styles.line} />
             <View style={styles.header}>
-              <View>
-                <Text style={styles.title}>All Installed Apps</Text>
-                <Text style={styles.subtitle}>Swipe down header to hide</Text>
-              </View>
+              <Text style={styles.title}>Secure New App</Text>
+              <Text style={styles.subtitle}>
+                Select an application to enforce focus rules
+              </Text>
             </View>
           </View>
         </GestureDetector>
@@ -257,7 +252,7 @@ export const AppPickerModal: React.FC<Props> = ({
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search apps by name..."
+            placeholder="Search installed applications..."
             placeholderTextColor={COLORS.muted}
             value={search}
             onChangeText={setSearch}
@@ -269,13 +264,13 @@ export const AppPickerModal: React.FC<Props> = ({
           {loading ? (
             <View style={styles.loading}>
               <ActivityIndicator color={COLORS.accent} size="large" />
-              <Text style={styles.loadingText}>Loading all apps...</Text>
+              <Text style={styles.loadingText}>Indexing installed apps...</Text>
             </View>
           ) : (
-            <Animated.FlatList
+            <FlatList
               data={filtered}
               keyExtractor={(item) => `${item.packageName}-${item.appName}`}
-              renderItem={({ item }) => {
+              renderItem={({ item }: { item: InstalledApp }) => {
                 const minutes = usage[item.packageName] || 0;
                 const isAdded = alreadySelectedPackages.includes(
                   item.packageName,
@@ -285,23 +280,35 @@ export const AppPickerModal: React.FC<Props> = ({
                     style={[styles.item, isAdded && styles.itemDisabled]}
                     disabled={isAdded}
                     onPress={() => onSelect(item)}
+                    activeOpacity={0.7}
                   >
-                    <AppIcon
-                      packageName={item.packageName}
-                      appName={item.appName}
-                      size={44}
-                    />
+                    <View style={styles.iconWrapper}>
+                      <AppIcon
+                        packageName={item.packageName}
+                        appName={item.appName}
+                        size={40}
+                      />
+                    </View>
                     <View style={styles.itemInfo}>
-                      <Text style={styles.appName}>{item.appName}</Text>
+                      <Text style={styles.appName} numberOfLines={1}>
+                        {item.appName}
+                      </Text>
+                      <Text style={styles.appPkg} numberOfLines={1}>
+                        {item.packageName}
+                      </Text>
                     </View>
                     <View style={styles.usageInfo}>
-                      {minutes > 0 && (
-                        <Text style={styles.usageText}>
-                          {formatDuration(minutes)}
-                        </Text>
+                      {minutes > 0 ? (
+                        <View style={styles.usageBadge}>
+                          <Text style={styles.usageText}>
+                            {formatDuration(minutes).toUpperCase()}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={styles.usageSpacer} />
                       )}
                       <Icon
-                        name={isAdded ? 'check-circle' : 'plus-circle-outline'}
+                        name={isAdded ? 'shield-check' : 'plus-circle'}
                         size={24}
                         color={isAdded ? COLORS.green : COLORS.accent}
                       />
@@ -321,9 +328,9 @@ export const AppPickerModal: React.FC<Props> = ({
         <TouchableOpacity
           style={styles.fab}
           onPress={onClose}
-          activeOpacity={0.8}
+          activeOpacity={0.9}
         >
-          <Icon name="check" size={28} color="#000" />
+          <Icon name="check-bold" size={28} color={COLORS.bg} />
         </TouchableOpacity>
       </Animated.View>
     </View>
@@ -336,76 +343,111 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.85)',
   },
   container: {
-    height: SCREEN_HEIGHT,
     width: '100%',
-    backgroundColor: COLORS.bg,
+    backgroundColor: '#0A0C0C',
     position: 'absolute',
-    top: SCREEN_HEIGHT,
-    borderTopLeftRadius: RADIUS.lg,
-    borderTopRightRadius: RADIUS.lg,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     borderWidth: 1,
     borderColor: COLORS.border,
     zIndex: 1000,
-    elevation: 10,
-    overflow: 'hidden',
+    // height and top are set via inline style (dynamic from useWindowDimensions)
   },
-  handleContainer: {
-    paddingBottom: 8,
-    backgroundColor: COLORS.bg,
-  },
+  handleContainer: { paddingBottom: 8 },
   line: {
     width: 40,
     height: 4,
     backgroundColor: COLORS.border,
     alignSelf: 'center',
-    marginVertical: 12,
+    marginVertical: 14,
     borderRadius: 2,
   },
-  header: {
-    paddingHorizontal: SPACING.md,
-    paddingBottom: SPACING.sm,
+  header: { paddingHorizontal: 24, paddingBottom: 8 },
+  title: {
+    color: COLORS.text,
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: -0.5,
   },
-  title: { color: COLORS.text, fontSize: FONT.sizes.lg, fontWeight: 'bold' },
-  subtitle: { color: COLORS.muted, fontSize: 12, marginTop: 2 },
+  subtitle: {
+    color: COLORS.muted,
+    fontSize: 13,
+    marginTop: 4,
+    fontWeight: '600',
+  },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.card,
-    margin: SPACING.md,
-    borderRadius: RADIUS.md,
-    paddingHorizontal: SPACING.sm,
-    height: 48,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+    margin: 20,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    height: 54,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  searchIcon: { marginRight: SPACING.xs },
-  searchInput: { flex: 1, color: COLORS.text, fontSize: FONT.sizes.md },
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  loadingText: { color: COLORS.muted, marginTop: SPACING.md },
-  list: { paddingBottom: 100 },
+  searchIcon: { marginRight: 12 },
+  searchInput: { flex: 1, color: COLORS.text, fontSize: 15, fontWeight: '600' },
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.5,
+  },
+  loadingText: {
+    color: COLORS.muted,
+    marginTop: 16,
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  list: { paddingBottom: 150 },
   content: { flex: 1 },
-  item: { flexDirection: 'row', alignItems: 'center', padding: SPACING.md },
-  itemDisabled: { opacity: 0.6 },
-  itemInfo: { flex: 1, marginLeft: SPACING.md },
-  appName: { color: COLORS.text, fontSize: FONT.sizes.md, fontWeight: '600' },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    marginHorizontal: 8,
+    borderRadius: 16,
+  },
+  itemDisabled: { opacity: 0.3 },
+  iconWrapper: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itemInfo: { flex: 1, marginLeft: 16 },
+  appName: { color: COLORS.text, fontSize: 16, fontWeight: '800' },
+  appPkg: {
+    color: COLORS.muted,
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 2,
+    opacity: 0.6,
+  },
   usageInfo: { alignItems: 'center', flexDirection: 'row', gap: 12 },
-  usageText: { color: COLORS.green, fontSize: 13, fontWeight: 'bold' },
-  sep: { height: 1, backgroundColor: COLORS.border, marginLeft: 76 },
+  usageBadge: {
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  usageText: { color: COLORS.muted, fontSize: 9, fontWeight: '900' },
+  usageSpacer: { width: 1 },
+  usageGapSpacer: { width: 1 },
   fab: {
     position: 'absolute',
-    bottom: 30,
-    right: 20,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    bottom: 40,
+    right: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
   },
 });
 

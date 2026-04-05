@@ -1,37 +1,75 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Animated,
-  Easing,
-  SafeAreaView,
   Alert,
   Vibration,
-  Dimensions,
   NativeModules,
+  StatusBar,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../components/theme';
+import {
+  SCREEN_WIDTH,
+  HORIZONTAL_PADDING,
+  isTablet,
+  isShort,
+} from '../constants/layout';
 import { getRules } from '@focusgate/state/rules';
 import { storageAdapter } from '../store/storageAdapter';
 import * as nextDNS from '../api/nextdns';
 import { recordFocusSession } from '@focusgate/core/insights';
 import { orchestrator } from '../engine/nativeEngine';
 
-const { width } = Dimensions.get('window');
-const RING_SIZE = width * 0.7;
 const { RuleEngine } = NativeModules;
 
 export default function FocusScreen() {
+  const insets = useSafeAreaInsets();
+
+  const ringSize = useMemo(() => Math.min(SCREEN_WIDTH * 0.75, 320), []);
+  const presetColumns = isTablet ? 4 : 4;
+  const presetGap = 12;
+  const presetWidth = useMemo(
+    () =>
+      (SCREEN_WIDTH -
+        HORIZONTAL_PADDING * 2 -
+        presetGap * (presetColumns - 1)) /
+      presetColumns,
+    [presetColumns],
+  );
+
   const [isActive, setIsActive] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(25 * 60); // Default 25m
+  const [timeLeft, setTimeLeft] = useState(25 * 60);
   const [selectedDuration, setSelectedDuration] = useState(25);
   const [protectionLevel, setProtectionLevel] = useState('NONE');
 
-  // Animation refs
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const ringStyle = useMemo(
+    () => ({
+      width: ringSize,
+      height: ringSize,
+      borderRadius: ringSize / 2,
+    }),
+    [ringSize],
+  );
+
+  const timerFontSize = useMemo(() => Math.min(SCREEN_WIDTH * 0.22, 88), []);
+
+  const bottomStyle = useMemo(
+    () => ({
+      marginBottom: insets.bottom + (isShort ? 20 : 40),
+    }),
+    [insets.bottom],
+  );
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const selectDuration = (mins: number) => {
@@ -44,9 +82,13 @@ export default function FocusScreen() {
 
   useEffect(() => {
     const checkStatus = async () => {
-      if (RuleEngine) {
-        const level = await RuleEngine.getProtectionLevel();
-        setProtectionLevel(level);
+      if (RuleEngine && typeof RuleEngine.getProtectionLevel === 'function') {
+        try {
+          const level = await RuleEngine.getProtectionLevel();
+          setProtectionLevel(level);
+        } catch (e) {
+          console.warn('[Focus] Protection check failed');
+        }
       }
     };
     checkStatus();
@@ -57,18 +99,14 @@ export default function FocusScreen() {
   const endFocus = useCallback(
     async (completed: boolean) => {
       setIsActive(false);
-
-      // Unblock all apps
-      nextDNS
-        .unblockAll()
-        .catch((e: Error) => console.error('Focus unblock error:', e.message));
+      nextDNS.unblockAll().catch(() => {});
 
       if (completed) {
         await recordFocusSession(storageAdapter, selectedDuration);
         Vibration.vibrate([0, 500, 200, 500]);
         Alert.alert(
-          'Focus Session Complete!',
-          'Great job staying focused. You earned it! 🏆',
+          'Session Complete',
+          'Excellent work. Flow session recorded.',
         );
       }
 
@@ -80,16 +118,18 @@ export default function FocusScreen() {
   );
 
   const startFocus = async () => {
-    const a11y = await RuleEngine?.isAccessibilityServiceEnabled();
+    const a11y = RuleEngine?.isAccessibilityServiceEnabled
+      ? await RuleEngine.isAccessibilityServiceEnabled()
+      : true;
 
     if (!a11y) {
       Alert.alert(
-        'Protection Inactive',
-        'Accessibility Service must be enabled to enforce focus mode. Please go to Settings.',
+        'Accessibility Required',
+        'Direct enforcement requires Accessibility Service.',
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Open Settings',
+            text: 'Settings',
             onPress: () => RuleEngine?.openAccessibilitySettings(),
           },
         ],
@@ -99,45 +139,14 @@ export default function FocusScreen() {
 
     setIsActive(true);
     const rules = await getRules(storageAdapter);
+    nextDNS.blockApps(rules).catch(() => {});
 
-    // Block all apps in background using full rule objects
-    nextDNS
-      .blockApps(rules)
-      .catch((e: Error) => console.error('Focus block error:', e.message));
-
-    // Local layer sync
     const endTime = Date.now() + selectedDuration * 60 * 1000;
     await storageAdapter.set('focus_mode_end_time', endTime);
     await orchestrator.runCycle(true);
-
     Vibration.vibrate(50);
   };
 
-  // Breathing animation (Pulse)
-  useEffect(() => {
-    if (isActive) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.15,
-            duration: 4000,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 4000,
-            easing: Easing.inOut(Easing.sin),
-            useNativeDriver: true,
-          }),
-        ]),
-      ).start();
-    } else {
-      pulseAnim.setValue(1);
-    }
-  }, [isActive, pulseAnim]);
-
-  // Timer logic - split into separate effects for tick and completion
   useEffect(() => {
     if (!isActive) {
       if (timerRef.current) {
@@ -145,19 +154,9 @@ export default function FocusScreen() {
       }
       return;
     }
-
     timerRef.current = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          if (timerRef.current) {
-            clearInterval(timerRef.current);
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTimeLeft((prev) => (prev <= 1 ? 0 : prev - 1));
     }, 1000);
-
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
@@ -172,253 +171,148 @@ export default function FocusScreen() {
   }, [timeLeft, isActive, endFocus]);
 
   const formatTimer = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Deep Focus</Text>
-        <Text style={styles.subtitle}>
-          All controlled apps will be blocked.
+    <View className="flex-1 bg-[#0A0A0A]">
+      <StatusBar barStyle="light-content" />
+
+      <View
+        className="items-center px-5"
+        style={{ marginTop: insets.top + (isShort ? 20 : 40) }}
+      >
+        <Text className="text-[32px] font-black tracking-tightest text-white">
+          Flow Protocol
+        </Text>
+        <Text className="mt-2 text-[10px] font-black uppercase tracking-[2.5px] text-muted/60">
+          Silence distractions and activate focus
         </Text>
       </View>
 
-      <View style={styles.center}>
-        {/* Breathing Ring */}
-        <Animated.View
+      <View className="flex-1 items-center justify-center">
+        <View
           style={[
             styles.ring,
-            {
-              transform: [{ scale: pulseAnim }],
-              borderColor: isActive ? COLORS.accent : COLORS.border,
-            },
+            isActive ? styles.ringActive : styles.ringInactive,
+            ringStyle,
           ]}
         >
-          <View style={styles.timerBox}>
-            <Text style={[styles.timer, isActive && styles.timerActive]}>
+          <View className="items-center">
+            <Text
+              className={
+                isActive
+                  ? 'font-normal text-white'
+                  : 'font-extralight text-white'
+              }
+              style={[styles.timerText, { fontSize: timerFontSize }]}
+            >
               {formatTimer(timeLeft)}
             </Text>
-            <Text style={styles.timerLabel}>
-              {isActive ? 'Breathing...' : 'Ready'}
-            </Text>
 
-            <View
-              style={[
-                styles.levelBadge,
-                protectionLevel === 'STRONG'
-                  ? styles.levelBadgeStrong
-                  : styles.levelBadgeStandard,
-              ]}
-            >
-              <Icon
-                name={
-                  protectionLevel === 'STRONG' ? 'shield-lock' : 'shield-check'
-                }
-                size={12}
-                color="#fff"
+            <View className="mt-3 flex-row items-center gap-2">
+              <View
+                style={[
+                  styles.statusDot,
+                  isActive ? styles.dotActive : styles.dotInactive,
+                ]}
               />
-              <Text style={styles.levelBadgeText}>{protectionLevel}</Text>
+              <Text className="text-[11px] font-black uppercase tracking-[2px] text-muted">
+                {isActive ? 'SHIELD ACTIVE' : 'ENGINE READY'}
+              </Text>
+            </View>
+
+            <View className="mt-6 flex-row items-center gap-1.5 rounded-xl border border-border bg-white/5 px-3 py-1.5">
+              <Icon name="shield-lock" size={14} color={COLORS.accent} />
+              <Text className="text-[10px] font-black text-muted">
+                {protectionLevel} PROTECTION
+              </Text>
             </View>
           </View>
-        </Animated.View>
+        </View>
       </View>
 
-      <View style={styles.bottom}>
+      <View className="px-5" style={bottomStyle}>
         {!isActive ? (
-          <>
-            <View style={styles.presets}>
+          <View>
+            <View className="mb-6 flex-row justify-between">
               {[15, 25, 45, 60].map((m) => (
                 <TouchableOpacity
                   key={m}
                   style={[
-                    styles.preset,
+                    styles.presetItem,
+                    { width: presetWidth },
                     selectedDuration === m && styles.presetActive,
                   ]}
                   onPress={() => selectDuration(m)}
                 >
                   <Text
-                    style={[
-                      styles.presetTxt,
-                      selectedDuration === m && styles.presetTxtActive,
-                    ]}
+                    className={`text-base font-extrabold ${
+                      selectedDuration === m ? 'text-black' : 'text-muted'
+                    }`}
                   >
                     {m}m
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
-            <TouchableOpacity style={styles.startBtn} onPress={startFocus}>
-              <Icon name="rocket-launch" size={24} color="#fff" />
-              <Text style={styles.startBtnTxt}>Start Focus Session</Text>
+
+            <TouchableOpacity
+              className="h-[72px] flex-row items-center justify-center gap-3 rounded-3xl bg-accent"
+              onPress={startFocus}
+              activeOpacity={0.9}
+            >
+              <Icon name="power" size={24} color="#000" />
+              <Text className="text-base font-black uppercase tracking-[1px] text-black">
+                Initiate Focus
+              </Text>
             </TouchableOpacity>
-          </>
+          </View>
         ) : (
-          <TouchableOpacity
-            style={styles.stopBtn}
-            onPress={() => endFocus(false)}
-          >
-            <Text style={styles.stopBtnTxt}>End Session</Text>
-          </TouchableOpacity>
+          <View>
+            <TouchableOpacity
+              className="h-[72px] flex-row items-center justify-center gap-2.5 rounded-3xl border border-[#CF66794D] bg-[#CF66791A]"
+              onPress={() => endFocus(false)}
+              activeOpacity={0.8}
+            >
+              <Icon name="stop-circle" size={20} color={COLORS.red} />
+              <Text className="text-[13px] font-black uppercase tracking-[1px] text-red">
+                Abort Flow Session
+              </Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    alignItems: 'center',
-  },
-  title: {
-    color: COLORS.text,
-    fontSize: 32,
-    fontWeight: '900',
-    letterSpacing: -1,
-  },
-  subtitle: {
-    color: COLORS.muted,
-    fontSize: 13,
-    marginTop: 8,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    opacity: 0.8,
-  },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   ring: {
-    width: RING_SIZE,
-    height: RING_SIZE,
-    borderRadius: RING_SIZE / 2,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.01)',
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
+    borderWidth: 2,
+    backgroundColor: 'rgba(255,255,255,0.02)',
   },
-  timerBox: { alignItems: 'center' },
-  timer: {
-    color: COLORS.text,
-    fontSize: 72,
-    fontWeight: '200',
-    letterSpacing: -2,
+  ringActive: { borderColor: COLORS.accent },
+  ringInactive: { borderColor: COLORS.border },
+  statusDot: { width: 8, height: 8, borderRadius: 4 },
+  dotActive: { backgroundColor: COLORS.green },
+  dotInactive: { backgroundColor: COLORS.muted },
+  timerText: {
+    letterSpacing: -3,
     fontVariant: ['tabular-nums'],
   },
-  timerActive: {
-    color: COLORS.accent,
-    fontWeight: '400',
-  },
-  timerLabel: {
-    color: COLORS.muted,
-    fontSize: 12,
-    textTransform: 'uppercase',
-    letterSpacing: 3,
-    fontWeight: '800',
-    marginTop: 12,
-    opacity: 0.6,
-  },
-  levelBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginTop: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
-  },
-  levelBadgeStrong: { backgroundColor: COLORS.green },
-  levelBadgeStandard: { backgroundColor: COLORS.accent },
-  levelBadgeText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-
-  bottom: {
-    padding: 24,
-    paddingBottom: 60,
-  },
-  presets: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 40,
-  },
-  preset: {
-    width: (width - 48 - 45) / 4,
-    height: 54,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.02)',
+  presetItem: {
+    height: 56,
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.border,
   },
-  presetActive: {
-    backgroundColor: COLORS.accent,
-    borderColor: COLORS.accent,
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-  },
-  presetTxt: {
-    color: COLORS.muted,
-    fontWeight: '800',
-    fontSize: 14,
-  },
-  presetTxtActive: {
-    color: '#fff',
-  },
-  startBtn: {
-    backgroundColor: COLORS.accent,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    borderRadius: 20,
-    gap: 12,
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.4,
-    shadowRadius: 15,
-    elevation: 10,
-  },
-  startBtnTxt: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-  },
-  stopBtn: {
-    padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  stopBtnTxt: {
-    color: COLORS.red,
-    fontSize: 14,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-  },
+  presetActive: { backgroundColor: COLORS.accent, borderColor: COLORS.accent },
 });

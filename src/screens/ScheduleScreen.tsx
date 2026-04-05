@@ -7,8 +7,7 @@ import {
   StyleSheet,
   Modal,
   Switch,
-  SafeAreaView,
-  Dimensions,
+  useWindowDimensions,
   TextInput,
   Alert,
 } from 'react-native';
@@ -25,9 +24,14 @@ import { storageAdapter } from '../store/storageAdapter';
 import { ScheduleRule } from '@focusgate/types';
 import AppIcon from '../components/AppIcon';
 import { getRules } from '@focusgate/state/rules';
+import {
+  AppScreen,
+  PrimaryButton,
+  ScreenHeader,
+  SurfaceCard,
+} from '../ui/mobile';
 
-const { width } = Dimensions.get('window');
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const DAYS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 const FULL_DAYS = [
   'Sunday',
   'Monday',
@@ -39,11 +43,12 @@ const FULL_DAYS = [
 ];
 
 export default function ScheduleScreen() {
+  const { width } = useWindowDimensions();
+  const dayPillSize = Math.floor((width - 56) / 7);
   const [schedules, setSchedules] = useState<ScheduleRule[]>([]);
   const [selectedDay, setSelectedDay] = useState(new Date().getDay());
   const [modalVisible, setModalVisible] = useState(false);
 
-  // New Schedule Form State
   const [name, setName] = useState('Work Focus');
   const [startTime, setStartTime] = useState('09:00');
   const [endTime, setEndTime] = useState('17:00');
@@ -54,6 +59,7 @@ export default function ScheduleScreen() {
     const s = await getSchedules(storageAdapter);
     setSchedules(s);
   }, []);
+
   useFocusEffect(
     useCallback(() => {
       load();
@@ -65,7 +71,6 @@ export default function ScheduleScreen() {
   );
 
   const onAdd = async () => {
-    // Pick all currently controlled apps by default
     const rules = await getRules(storageAdapter);
     const currentApps = rules.map((r) => r.packageName);
     setSelectedApps(currentApps);
@@ -83,7 +88,7 @@ export default function ScheduleScreen() {
       startTime,
       endTime,
       days,
-      appNames: selectedApps, // Note: appNames actually stores packageNames in our types for robustness
+      appNames: selectedApps,
       active: true,
     };
     await addSchedule(storageAdapter, newSchedule);
@@ -92,8 +97,8 @@ export default function ScheduleScreen() {
   };
 
   const remove = (id: string) => {
-    Alert.alert('Delete Schedule', 'Are you sure?', [
-      { text: 'Cancel' },
+    Alert.alert('Delete Protocol', 'Remove this automated focus schedule?', [
+      { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
         style: 'destructive',
@@ -106,44 +111,57 @@ export default function ScheduleScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Weekly Schedule</Text>
-        <Text style={styles.subtitle}>Set recurring focus periods.</Text>
-      </View>
+    <AppScreen>
+      <ScreenHeader
+        title="Protocols"
+        subtitle="Automated focus scheduling"
+        style={styles.header}
+      />
 
-      {/* Day Selector Strip */}
-      <View style={styles.daysStrip}>
-        {DAYS.map((day, i) => {
-          const isSelected = selectedDay === i;
-          return (
-            <TouchableOpacity
-              key={day}
-              style={[styles.dayItem, isSelected && styles.dayItemActive]}
-              onPress={() => setSelectedDay(i)}
-            >
-              <Text style={[styles.dayTxt, isSelected && styles.dayTxtActive]}>
-                {day}
-              </Text>
-              {schedules.some((s) => s.days.includes(i)) && (
-                <View style={[styles.dot, isSelected && styles.dotActive]} />
-              )}
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      <SurfaceCard className="mb-6 rounded-[20px] px-4 py-3">
+        <View style={styles.daysStrip}>
+          {DAYS.map((day, i) => {
+            const isSelected = selectedDay === i;
+            return (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  styles.dayItem,
+                  { width: dayPillSize },
+                  isSelected && styles.dayItemActive,
+                ]}
+                onPress={() => setSelectedDay(i)}
+                activeOpacity={0.7}
+              >
+                <Text
+                  style={[styles.dayTxt, isSelected && styles.dayTxtActive]}
+                >
+                  {day}
+                </Text>
+                {schedules.some((s) => s.days.includes(i)) && (
+                  <View style={[styles.dot, isSelected && styles.dotActive]} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </SurfaceCard>
 
       <FlatList
         data={filteredSchedules}
         keyExtractor={(s) => s.id}
         contentContainerStyle={styles.list}
+        showsVerticalScrollIndicator={false}
         renderItem={({ item }) => (
-          <View style={styles.card}>
+          <SurfaceCard className="mb-4 px-6 py-6">
             <View style={styles.cardRow}>
               <View style={styles.timeInfo}>
-                <Text style={styles.timeRange}>
-                  {item.startTime} — {item.endTime}
-                </Text>
+                <View style={styles.timeLabelRow}>
+                  <Icon name="clock-outline" size={14} color={COLORS.accent} />
+                  <Text style={styles.timeRange}>
+                    {item.startTime} - {item.endTime}
+                  </Text>
+                </View>
                 <Text style={styles.scheduleTitle}>{item.name}</Text>
               </View>
               <Switch
@@ -153,59 +171,79 @@ export default function ScheduleScreen() {
                   load();
                 }}
                 trackColor={{ false: COLORS.border, true: COLORS.accent }}
+                thumbColor={item.active ? '#fff' : '#f4f3f4'}
               />
             </View>
 
             <View style={styles.cardFooter}>
               <View style={styles.iconsRow}>
-                {item.appNames.slice(0, 5).map((pkg) => (
+                {item.appNames.slice(0, 4).map((pkg) => (
                   <View key={pkg} style={styles.miniIcon}>
-                    <AppIcon packageName={pkg} size={24} />
+                    <AppIcon packageName={pkg} size={22} />
                   </View>
                 ))}
-                {item.appNames.length > 5 && (
-                  <Text style={styles.moreCount}>
-                    +{item.appNames.length - 5}
-                  </Text>
+                {item.appNames.length > 4 && (
+                  <View style={styles.moreCountBox}>
+                    <Text style={styles.moreCount}>
+                      +{item.appNames.length - 4}
+                    </Text>
+                  </View>
                 )}
+                <Text style={styles.appCountLabel}>
+                  PROTECTING {item.appNames.length} APPS
+                </Text>
               </View>
-              <TouchableOpacity onPress={() => remove(item.id)}>
-                <Icon name="trash-can-outline" size={20} color={COLORS.muted} />
+              <TouchableOpacity
+                onPress={() => remove(item.id)}
+                style={styles.deleteBtn}
+              >
+                <Icon name="trash-can-outline" size={18} color={COLORS.muted} />
               </TouchableOpacity>
             </View>
-          </View>
+          </SurfaceCard>
         )}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Icon name="calendar-blank" size={48} color={COLORS.border} />
+          <SurfaceCard className="items-center rounded-3xl px-8 py-16">
+            <View style={styles.emptyIconBox}>
+              <Icon name="calendar-clock" size={48} color={COLORS.border} />
+            </View>
+            <Text style={styles.emptyTitle}>Quiet Day ahead</Text>
             <Text style={styles.emptyText}>
-              No schedules for {FULL_DAYS[selectedDay]}.
+              No automated focus protocols scheduled for{' '}
+              {FULL_DAYS[selectedDay]}.
             </Text>
-            <TouchableOpacity style={styles.emptyBtn} onPress={onAdd}>
-              <Text style={styles.emptyBtnTxt}>Add Session</Text>
-            </TouchableOpacity>
-          </View>
+            <PrimaryButton
+              label="Create Protocol"
+              onPress={onAdd}
+              style={styles.emptyBtn}
+              textStyle={styles.emptyBtnTxt}
+            />
+          </SurfaceCard>
         }
       />
 
-      <TouchableOpacity style={styles.fab} onPress={onAdd}>
-        <Icon name="plus" size={30} color="#fff" />
+      <TouchableOpacity style={styles.fab} onPress={onAdd} activeOpacity={0.9}>
+        <Icon name="plus" size={32} color={COLORS.bg} />
       </TouchableOpacity>
 
-      {/* Simple Add Modal */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
+      <Modal visible={modalVisible} animationType="fade" transparent>
         <View style={styles.overlay}>
-          <View style={styles.modal}>
-            <Text style={styles.modalTitle}>New Focus Schedule</Text>
+          <SurfaceCard className="rounded-[32px] bg-[#0A0C0C] p-8">
+            <View style={styles.modalHeaderRow}>
+              <Icon name="calendar-plus" size={24} color={COLORS.accent} />
+              <Text style={styles.modalTitle}>New Protocol</Text>
+            </View>
 
-            <Text style={styles.label}>Name</Text>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="e.g. Work Morning"
-              placeholderTextColor={COLORS.muted}
-            />
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Protocol Name</Text>
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+                placeholder="e.g. Deep Work"
+                placeholderTextColor={COLORS.muted}
+              />
+            </View>
 
             <View style={styles.timeRow}>
               <View style={styles.timeFieldBase}>
@@ -232,83 +270,49 @@ export default function ScheduleScreen() {
 
             <View style={styles.modalBtns}>
               <TouchableOpacity
-                style={styles.mBtn}
+                style={styles.mBtnCancel}
                 onPress={() => setModalVisible(false)}
               >
-                <Text style={styles.mBtnTxt}>Cancel</Text>
+                <Text style={styles.mBtnCancelTxt}>DISMISS</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.mBtn, styles.primaryButton]}
+              <PrimaryButton
+                label="Save Protocol"
                 onPress={save}
-              >
-                <Text style={[styles.mBtnTxt, styles.primaryButtonText]}>
-                  Save Schedule
-                </Text>
-              </TouchableOpacity>
+                style={styles.mBtnPrimary}
+              />
             </View>
-          </View>
+          </SurfaceCard>
         </View>
       </Modal>
-    </SafeAreaView>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 16,
+    paddingTop: 60,
+    marginBottom: 0,
   },
-  title: {
-    color: COLORS.text,
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: -1,
-  },
-  subtitle: {
-    color: COLORS.muted,
-    fontSize: 13,
-    marginTop: 4,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-    opacity: 0.8,
-  },
-
   daysStrip: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    marginBottom: 24,
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    paddingVertical: 12,
-    marginHorizontal: 20,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.04)',
   },
   dayItem: {
-    width: (width - 40 - 80) / 7,
-    height: 48,
+    height: 44,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 14,
+    borderRadius: 12,
   },
   dayItemActive: {
     backgroundColor: COLORS.accent,
-    shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
   },
   dayTxt: {
     color: COLORS.muted,
     fontSize: 12,
-    fontWeight: '800',
+    fontWeight: '900',
   },
   dayTxtActive: {
-    color: '#fff',
+    color: COLORS.bg,
   },
   dot: {
     width: 4,
@@ -318,33 +322,17 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   dotActive: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.bg,
+    opacity: 0.5,
   },
-
-  list: {
-    padding: 20,
-    paddingBottom: 120,
-  },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderRadius: 24,
-    padding: 24,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.04)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-  },
+  list: { paddingBottom: 150 },
   cardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  timeInfo: {
-    flex: 1,
-  },
+  timeInfo: { flex: 1 },
+  timeLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   timeRange: {
     color: COLORS.accent,
     fontSize: 20,
@@ -353,12 +341,11 @@ const styles = StyleSheet.create({
   },
   scheduleTitle: {
     color: COLORS.text,
-    fontSize: 14,
-    marginTop: 6,
-    fontWeight: '700',
-    opacity: 0.9,
+    fontSize: 15,
+    marginTop: 8,
+    fontWeight: '800',
+    letterSpacing: -0.2,
   },
-
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -366,143 +353,142 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.03)',
+    borderTopColor: COLORS.border,
   },
-  iconsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
+  iconsRow: { flexDirection: 'row', alignItems: 'center' },
   miniIcon: {
     marginRight: -10,
     borderWidth: 2,
-    borderColor: '#0A0A0F',
-    borderRadius: 12,
+    borderColor: COLORS.card,
+    borderRadius: 10,
     overflow: 'hidden',
+    backgroundColor: 'rgba(255,255,255,0.05)',
   },
-  moreCount: {
-    color: COLORS.muted,
-    fontSize: 11,
-    marginLeft: 16,
-    fontWeight: '800',
-  },
-
-  empty: {
+  moreCountBox: {
+    width: 28,
+    height: 28,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 80,
-    padding: 40,
+    marginLeft: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  moreCount: { color: COLORS.muted, fontSize: 10, fontWeight: '900' },
+  appCountLabel: {
+    color: COLORS.muted,
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 1,
+    marginLeft: 16,
+    opacity: 0.5,
+  },
+  deleteBtn: {
+    padding: 8,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 10,
+  },
+  emptyIconBox: {
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  emptyTitle: {
+    color: COLORS.text,
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 8,
   },
   emptyText: {
     color: COLORS.muted,
     textAlign: 'center',
-    marginTop: 16,
-    lineHeight: 20,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
+    lineHeight: 22,
+    paddingHorizontal: 40,
   },
   emptyBtn: {
-    marginTop: 24,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
+    marginTop: 32,
     borderRadius: 16,
+    width: 190,
+    backgroundColor: COLORS.accent + '15',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.accent + '30',
   },
   emptyBtnTxt: {
-    color: COLORS.text,
-    fontWeight: '800',
-    fontSize: 14,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
+    color: COLORS.accent,
   },
-
   fab: {
     position: 'absolute',
     bottom: 30,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    right: 30,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
     shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 10,
   },
-
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
-    alignItems: 'center',
+    padding: 24,
   },
-  modal: {
-    backgroundColor: '#0A0A0F',
-    width: '90%',
-    borderRadius: 32,
-    padding: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
+  modalHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 24,
   },
   modalTitle: {
     color: COLORS.text,
     fontSize: 22,
     fontWeight: '900',
-    marginBottom: 24,
-    textAlign: 'center',
     letterSpacing: -0.5,
   },
+  inputGroup: { marginBottom: 20 },
   label: {
     color: COLORS.muted,
     fontSize: 10,
-    fontWeight: '800',
-    marginBottom: 8,
-    marginTop: 16,
-    textTransform: 'uppercase',
+    fontWeight: '900',
     letterSpacing: 1,
+    marginBottom: 12,
+    textTransform: 'uppercase',
   },
   input: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
+    backgroundColor: 'rgba(255,255,255,0.02)',
     color: COLORS.text,
-    padding: 16,
-    borderRadius: 16,
-    fontSize: 15,
+    padding: 18,
+    borderRadius: 18,
+    fontSize: 16,
     fontWeight: '600',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
+    borderColor: COLORS.border,
   },
+  timeRow: { flexDirection: 'row', gap: 16, marginBottom: 40 },
   timeFieldBase: { flex: 1 },
-  timeFieldSpacer: { flex: 1, marginLeft: 16 },
-  timeRow: { flexDirection: 'row', marginBottom: 20 },
-  modalBtns: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 32,
-  },
-  mBtn: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  mBtnTxt: {
-    color: COLORS.text,
+  timeFieldSpacer: { flex: 1 },
+  modalBtns: { flexDirection: 'row', gap: 12 },
+  mBtnCancel: { flex: 1, paddingVertical: 18, alignItems: 'center' },
+  mBtnCancelTxt: {
+    color: COLORS.muted,
+    fontSize: 13,
     fontWeight: '800',
-    fontSize: 14,
-    textTransform: 'uppercase',
     letterSpacing: 1,
   },
-  primaryButton: {
-    backgroundColor: COLORS.accent,
-    borderColor: COLORS.accent,
-  },
-  primaryButtonText: {
-    color: '#fff',
+  mBtnPrimary: {
+    flex: 1.5,
+    borderRadius: 18,
   },
 });

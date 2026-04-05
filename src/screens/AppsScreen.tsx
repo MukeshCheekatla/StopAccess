@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+} from 'react';
 import {
   View,
   Text,
@@ -8,14 +14,18 @@ import {
   Modal,
   TextInput,
   Alert,
-  LayoutAnimation,
-  Platform,
-  UIManager,
+  StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../components/theme';
+import {
+  SCREEN_WIDTH,
+  HORIZONTAL_PADDING,
+  CARD_RADIUS,
+  isTablet,
+} from '../constants/layout';
 import { getRules, updateRule, deleteRule } from '@focusgate/state/rules';
 import { storageAdapter } from '../store/storageAdapter';
 import { AppRule, RuleMode } from '@focusgate/types';
@@ -32,7 +42,6 @@ import { getInstalledApps, InstalledApp } from '../modules/installedApps';
 import {
   isStrictMode,
   startCooldown,
-  clearCooldown,
   STRICT_COOLDOWN_MS,
 } from '../store/strictMode';
 import { addLog } from '../services/logger';
@@ -42,13 +51,13 @@ import {
   POPULAR_DISTRACTIONS,
   UI_EXAMPLES,
 } from '@focusgate/core';
-
-if (
-  Platform.OS === 'android' &&
-  UIManager.setLayoutAnimationEnabledExperimental
-) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+import {
+  IconChip,
+  PrimaryButton,
+  ScreenHeader,
+  SectionEyebrow,
+  SurfaceCard,
+} from '../ui/mobile';
 
 export default function AppsScreen() {
   const insets = useSafeAreaInsets();
@@ -56,16 +65,13 @@ export default function AppsScreen() {
   const [pickerVisible, setPickerVisible] = useState(false);
   const [limitModalVisible, setLimitModalVisible] = useState(false);
   const [selectedRule, setSelectedRule] = useState<AppRule | null>(null);
-  const [weeklyAvg, setWeeklyAvg] = useState<number | null>(null);
 
   const [hrInput, setHrInput] = useState('1');
   const [minInput, setMinInput] = useState('0');
 
-  // PIN Logic
   const [pinGateVisible, setPinGateVisible] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
-  // Strict mode cooldown
   const [cooldownVisible, setCooldownVisible] = useState(false);
   const [cooldownSecs, setCooldownSecs] = useState(0);
   const [pendingStrictAction, setPendingStrictAction] = useState<
@@ -73,7 +79,6 @@ export default function AppsScreen() {
   >(null);
   const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Custom Domain Fallback logic
   const [domainModalVisible, setDomainModalVisible] = useState(false);
   const [domainInput, setDomainInput] = useState('');
   const [pendingDomainRule, setPendingDomainRule] = useState<AppRule | null>(
@@ -83,14 +88,37 @@ export default function AppsScreen() {
     null,
   );
 
-  // Protection warning
   const [configured, setConfigured] = useState(false);
 
   const load = useCallback(async () => {
     const r = await getRules(storageAdapter);
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setRules(r);
+    setRules(r || []);
   }, []);
+
+  // Precompute filtered rules to prevent redundant filtering on every render
+  const serviceRules = useMemo(
+    () => rules.filter((r) => r.type === 'service'),
+    [rules],
+  );
+
+  const domainRules = useMemo(
+    () => rules.filter((r) => r.type === 'domain'),
+    [rules],
+  );
+
+  const listPaddingStyle = useMemo(
+    () => ({
+      paddingTop: !configured ? 10 : insets.top + (isTablet ? 30 : 20),
+    }),
+    [configured, insets.top],
+  );
+
+  const fabStyle = useMemo(
+    () => ({
+      bottom: 30 + insets.bottom,
+    }),
+    [insets.bottom],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -99,7 +127,7 @@ export default function AppsScreen() {
     }, [load]),
   );
 
-  const checkPin = (action: () => void) => {
+  const checkPin = useCallback((action: () => void) => {
     const hasPin = !!storage.getString('guardian_pin');
     if (hasPin) {
       setPendingAction(() => action);
@@ -107,34 +135,35 @@ export default function AppsScreen() {
     } else {
       action();
     }
-  };
+  }, []);
 
-  /** Strict-mode aware downgrade: PIN → cooldown → execute */
-  const checkStrictDowngrade = (action: () => void) => {
-    const strict = isStrictMode();
-    if (!strict) {
-      checkPin(action);
-      return;
-    }
-    addLog('warn', 'Strict mode override attempted', 'Cooldown required');
-    startCooldown();
-    setPendingStrictAction(() => action);
-    const remaining = Math.ceil(STRICT_COOLDOWN_MS / 1000);
-    setCooldownSecs(remaining);
-    setCooldownVisible(true);
-    cooldownTimer.current = setInterval(() => {
-      setCooldownSecs((s) => {
-        if (s <= 1) {
-          clearInterval(cooldownTimer.current!);
-          cooldownTimer.current = null;
-          return 0;
-        }
-        return s - 1;
-      });
-    }, 1000);
-  };
+  const checkStrictDowngrade = useCallback(
+    (action: () => void) => {
+      const strict = isStrictMode();
+      if (!strict) {
+        checkPin(action);
+        return;
+      }
+      addLog('warn', 'Strict mode override attempted', 'Cooldown required');
+      startCooldown();
+      setPendingStrictAction(() => action);
+      const remaining = Math.ceil(STRICT_COOLDOWN_MS / 1000);
+      setCooldownSecs(remaining);
+      setCooldownVisible(true);
+      cooldownTimer.current = setInterval(() => {
+        setCooldownSecs((s) => {
+          if (s <= 1) {
+            clearInterval(cooldownTimer.current!);
+            cooldownTimer.current = null;
+            return 0;
+          }
+          return s - 1;
+        });
+      }, 1000);
+    },
+    [checkPin],
+  );
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (cooldownTimer.current) {
@@ -165,70 +194,73 @@ export default function AppsScreen() {
     orchestrator.runCycle();
   };
 
-  const onRemoveApp = (pkg: string) => {
-    // Always PIN-gate deletions
-    checkPin(async () => {
-      await deleteRule(storageAdapter, pkg);
-      nextDNS.unblockApp(pkg).catch(() => {});
+  const onRemoveApp = useCallback(
+    (pkg: string) => {
+      checkPin(async () => {
+        await deleteRule(storageAdapter, pkg);
+        nextDNS.unblockApp(pkg).catch(() => {});
+        load();
+        orchestrator.runCycle();
+      });
+    },
+    [checkPin, load],
+  );
+
+  const performSetMode = useCallback(
+    async (rule: AppRule, mode: RuleMode) => {
+      if (mode === 'limit') {
+        setSelectedRule(rule);
+        getWeeklyAverage(rule.packageName);
+
+        const totalMins = rule.dailyLimitMinutes || 60;
+        setHrInput(String(Math.floor(totalMins / 60)));
+        setMinInput(String(totalMins % 60));
+        setLimitModalVisible(true);
+        return;
+      }
+
+      const updated = { ...rule, mode };
+      if (mode === 'block') {
+        await nextDNS.blockApp(rule.appName).catch(() => {});
+        updated.blockedToday = true;
+      } else {
+        await nextDNS.unblockApp(rule.appName).catch(() => {});
+        updated.blockedToday = false;
+      }
+
+      await updateRule(storageAdapter, updated);
       load();
       orchestrator.runCycle();
-    });
-  };
+    },
+    [load],
+  );
 
-  const setMode = async (rule: AppRule, mode: RuleMode) => {
-    // Check if we can resolve the domain. If not, prompt.
-    if ((mode === 'block' || mode === 'limit') && !getDomainForRule(rule)) {
-      setPendingDomainRule(rule);
-      setPendingDomainMode(mode);
-      setDomainInput('');
-      setDomainModalVisible(true);
-      return;
-    }
+  const setMode = useCallback(
+    async (rule: AppRule, mode: RuleMode) => {
+      if ((mode === 'block' || mode === 'limit') && !getDomainForRule(rule)) {
+        setPendingDomainRule(rule);
+        setPendingDomainMode(mode);
+        setDomainInput('');
+        setDomainModalVisible(true);
+        return;
+      }
 
-    // Downgrading a blocked/limited app requires PIN + strict cooldown
-    const isDowngrade =
-      (rule.mode === 'block' && (mode === 'allow' || mode === 'limit')) ||
-      (rule.mode === 'limit' && mode === 'allow');
+      const isDowngrade =
+        (rule.mode === 'block' && (mode === 'allow' || mode === 'limit')) ||
+        (rule.mode === 'limit' && mode === 'allow');
 
-    if (isDowngrade) {
-      checkStrictDowngrade(() => performSetMode(rule, mode));
-      return;
-    }
+      if (isDowngrade) {
+        checkStrictDowngrade(() => performSetMode(rule, mode));
+        return;
+      }
 
-    performSetMode(rule, mode);
-  };
-
-  const performSetMode = async (rule: AppRule, mode: RuleMode) => {
-    if (mode === 'limit') {
-      setSelectedRule(rule);
-      setWeeklyAvg(null);
-      getWeeklyAverage(rule.packageName).then(setWeeklyAvg);
-
-      const totalMins = rule.dailyLimitMinutes || 60;
-      setHrInput(String(Math.floor(totalMins / 60)));
-      setMinInput(String(totalMins % 60));
-      setLimitModalVisible(true);
-      return;
-    }
-
-    const updated = { ...rule, mode };
-    if (mode === 'block') {
-      await nextDNS.blockApp(rule.appName).catch(() => {});
-      updated.blockedToday = true;
-    } else {
-      await nextDNS.unblockApp(rule.appName).catch(() => {});
-      updated.blockedToday = false;
-    }
-
-    await updateRule(storageAdapter, updated);
-    load();
-    // Force immediate engine update so native service knows about the new block
-    orchestrator.runCycle();
-  };
+      performSetMode(rule, mode);
+    },
+    [checkStrictDowngrade, performSetMode],
+  );
 
   useFocusEffect(
     useCallback(() => {
-      // Background fix for existing rules that might be missing icons or have old ones
       const fixIcons = async () => {
         const currentRules = await getRules(storageAdapter);
         let changed = false;
@@ -304,159 +336,201 @@ export default function AppsScreen() {
     setRules(final);
     setDomainModalVisible(false);
 
-    // Call setMode again so downgrade checks run if needed
     const modeToPass = pendingDomainMode;
     setPendingDomainRule(null);
     setPendingDomainMode(null);
     setMode(updatedRule, modeToPass);
   };
 
-  const renderItem = ({ item }: { item: AppRule }) => (
-    <View style={styles.card}>
-      <View style={styles.cardTop}>
-        <AppIcon
-          packageName={item.packageName}
-          iconBase64={item.iconBase64}
-          appName={item.appName}
-          size={40}
-        />
-        <View style={styles.info}>
-          <Text style={styles.appName}>{formatAppName(item.appName)}</Text>
-          <Text style={styles.pkg}>
-            {getDomainForRule(item) || item.packageName}
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={() => onRemoveApp(item.packageName)}
-          style={styles.deleteBtn}
-          activeOpacity={0.7}
-        >
-          <Icon name="trash-can-outline" size={20} color={COLORS.muted} />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.cardBottom}>
-        <View style={styles.modes}>
-          {(['allow', 'limit', 'block'] as RuleMode[]).map((m) => {
-            const isActive = item.mode === m;
-            const color =
-              m === 'block'
-                ? COLORS.red
-                : m === 'limit'
-                ? COLORS.yellow
-                : COLORS.green;
-            return (
-              <TouchableOpacity
-                key={m}
-                style={[
-                  styles.modeBtn,
-                  isActive && { backgroundColor: color, borderColor: color },
-                ]}
-                onPress={() => setMode(item, m)}
-              >
-                <Text
-                  style={[styles.modeTxt, isActive && styles.modeTxtActive]}
-                >
-                  {m.charAt(0).toUpperCase() + m.slice(1)}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        {item.mode === 'limit' && (
-          <View style={styles.limitBadge}>
-            <Icon name="clock-outline" size={14} color={COLORS.yellow} />
-            <Text style={styles.limitText}>
-              {formatDuration(item.dailyLimitMinutes)}
-            </Text>
+  // Optimization: Memoize renderItem to prevent recreate on status changes
+  const renderItem = useCallback(
+    ({ item }: { item: AppRule; index: number }) => (
+      <View>
+        <SurfaceCard className="mb-4 rounded-card p-4">
+          <View style={styles.cardTop}>
+            <AppIcon
+              packageName={item.packageName}
+              iconBase64={item.iconBase64}
+              appName={item.appName}
+              size={44}
+            />
+            <View style={styles.info}>
+              <Text style={styles.appName} numberOfLines={1}>
+                {formatAppName(item.appName)}
+              </Text>
+              <Text style={styles.pkg} numberOfLines={1}>
+                {getDomainForRule(item) || item.packageName}
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => onRemoveApp(item.packageName)}
+              style={styles.deleteBtn}
+            >
+              <Icon name="trash-can-outline" size={20} color={COLORS.muted} />
+            </TouchableOpacity>
           </View>
-        )}
+
+          <View style={styles.cardBottom}>
+            <View style={styles.modes}>
+              {(['allow', 'limit', 'block'] as RuleMode[]).map((m) => {
+                const isActive = item.mode === m;
+                const activeColor =
+                  m === 'block'
+                    ? COLORS.red
+                    : m === 'limit'
+                    ? COLORS.yellow
+                    : COLORS.green;
+                return (
+                  <TouchableOpacity
+                    key={m}
+                    style={[
+                      styles.modeBtn,
+                      isActive && {
+                        backgroundColor: activeColor + '20',
+                        borderColor: activeColor + '40',
+                      },
+                    ]}
+                    onPress={() => setMode(item, m)}
+                  >
+                    <Text
+                      style={[
+                        styles.modeTxt,
+                        { color: isActive ? activeColor : COLORS.muted },
+                      ]}
+                    >
+                      {m.charAt(0).toUpperCase() + m.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            {item.mode === 'limit' && (
+              <View style={styles.limitBadge}>
+                <Icon name="clock-outline" size={14} color={COLORS.yellow} />
+                <Text style={styles.limitText}>
+                  {formatDuration(item.dailyLimitMinutes)}
+                </Text>
+              </View>
+            )}
+          </View>
+        </SurfaceCard>
       </View>
-    </View>
+    ),
+    [onRemoveApp, setMode],
   );
 
+  const columns = isTablet ? 4 : 3;
+  const gridGap = 10;
+  const recItemWidth = useMemo(() => {
+    return (
+      (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - gridGap * (columns - 1)) /
+      columns
+    );
+  }, [columns]);
+
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Degraded protection banner */}
+    <View className="flex-1 bg-[#0A0A0A]">
+      <StatusBar barStyle="light-content" />
+
       {!configured && (
-        <View style={styles.warnBanner}>
-          <Icon name="shield-alert" size={16} color={COLORS.yellow} />
-          <Text style={styles.warnBannerTxt}>
-            NextDNS not configured — blocks are inactive
+        <View
+          className="mx-5 flex-row items-center gap-2 rounded-xl border border-[#FFB74D4D] bg-[#FFB74D26] p-3"
+          style={{ marginTop: insets.top + (isTablet ? 20 : 10) }}
+        >
+          <Icon name="shield-alert" size={18} color={COLORS.yellow} />
+          <Text className="text-xs font-bold text-yellow">
+            Config Required: DNS layer is inactive
           </Text>
         </View>
       )}
 
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Controlled Apps</Text>
-        {isStrictMode() && (
-          <View style={styles.strictBadge}>
-            <Icon name="lock" size={13} color={COLORS.red} />
-            <Text style={styles.strictBadgeTxt}>STRICT</Text>
-          </View>
-        )}
-      </View>
-
       <FlatList
-        data={rules.filter((r) => r.type === 'service')}
+        data={serviceRules}
         keyExtractor={(r) => r.packageName}
         renderItem={renderItem}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, listPaddingStyle]}
+        showsVerticalScrollIndicator={false}
         ListHeaderComponent={
           <>
-            <Text style={styles.sectionHeader}>App Controls</Text>
-            {rules.filter((r) => r.type === 'service').length === 0 && (
-              <View style={styles.empty}>
-                <Icon name="application-cog" size={48} color={COLORS.border} />
-                <Text style={styles.emptyTitle}>No Apps Added</Text>
-              </View>
+            <View style={styles.header}>
+              <ScreenHeader title="App Controls" />
+              {isStrictMode() && (
+                <IconChip
+                  icon="shield-lock"
+                  label="STRICT"
+                  color={COLORS.red}
+                />
+              )}
+            </View>
+            {serviceRules.length === 0 && (
+              <SurfaceCard className="items-center rounded-card px-6 py-14">
+                <Icon
+                  name="shield-check-outline"
+                  size={64}
+                  color={COLORS.border}
+                />
+                <Text style={styles.emptyTitle}>No apps controlled yet</Text>
+                <Text style={styles.emptySub}>
+                  Pick apps from your phone to limit or block.
+                </Text>
+              </SurfaceCard>
             )}
           </>
         }
         ListFooterComponent={
-          <>
-            <Text style={styles.sectionHeaderDomains}>Custom Domains</Text>
-            {rules.filter((r) => r.type === 'domain').length === 0 ? (
-              <View style={styles.emptyMini}>
-                <Text style={styles.emptyTextMini}>No domains added</Text>
-              </View>
-            ) : (
-              rules
-                .filter((r) => r.type === 'domain')
-                .map((r) => renderItem({ item: r }))
+          <View style={styles.footer}>
+            {domainRules.length > 0 && (
+              <>
+                <SectionEyebrow
+                  label="CUSTOM DOMAINS"
+                  style={styles.sectionHeader}
+                />
+                {domainRules.map((r, i) => renderItem({ item: r, index: i }))}
+              </>
             )}
 
-            <View style={styles.footer}>
-              <Text style={styles.footerTitle}>Quick Add Recommended</Text>
-              <View style={styles.quickAddGrid}>
-                {POPULAR_DISTRACTIONS.map((rec) => ({
-                  name: rec.name,
-                  id: rec.packageId || rec.id, // Use packageId for mobile apps
-                }))
-                  .filter((rec) => !rules.some((r) => r.packageName === rec.id))
-                  .map((rec) => (
-                    <TouchableOpacity
-                      key={rec.id}
-                      style={styles.quickAddBtn}
-                      onPress={() =>
-                        onAddApp({ appName: rec.name, packageName: rec.id })
-                      }
-                    >
-                      <Text style={styles.quickAddBtnTxt}>+ {rec.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-              </View>
+            <SectionEyebrow
+              label="SUGGESTED"
+              style={styles.sectionHeaderSuggested}
+            />
+            <View style={[styles.recursionGrid, { gap: gridGap }]}>
+              {POPULAR_DISTRACTIONS.map((rec) => ({
+                name: rec.name,
+                id: rec.packageId || rec.id,
+              }))
+                .filter((rec) => !rules.some((r) => r.packageName === rec.id))
+                .slice(0, isTablet ? 8 : 6)
+                .map((rec) => (
+                  <TouchableOpacity
+                    key={rec.id}
+                    style={[styles.recommendationItem, { width: recItemWidth }]}
+                    onPress={() =>
+                      onAddApp({ appName: rec.name, packageName: rec.id })
+                    }
+                  >
+                    <AppIcon packageName={rec.id} size={32} />
+                    <Text style={styles.recName} numberOfLines={1}>
+                      {rec.name}
+                    </Text>
+                    <Icon
+                      name="plus-circle-outline"
+                      size={18}
+                      color={COLORS.accent}
+                      style={styles.recPlusIcon}
+                    />
+                  </TouchableOpacity>
+                ))}
             </View>
-          </>
+            <View style={styles.footerSpacing} />
+          </View>
         }
       />
 
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, fabStyle]}
         onPress={() => setPickerVisible(true)}
-        activeOpacity={0.8}
       >
-        <Icon name="plus" size={32} color="#fff" />
+        <Icon name="plus" size={32} color="#FFF" />
       </TouchableOpacity>
 
       <AppPickerModal
@@ -466,175 +540,124 @@ export default function AppsScreen() {
         alreadySelectedPackages={rules.map((r) => r.packageName)}
       />
 
-      {/* Strict mode cooldown modal (emergency override) */}
       <Modal visible={cooldownVisible} transparent animationType="fade">
         <View style={styles.overlay}>
-          <View style={styles.modal}>
-            <Icon
-              name="shield-lock"
-              size={40}
-              color={COLORS.red}
-              style={styles.strictIcon}
-            />
-            <Text style={styles.modalTitle}>Strict Mode Override</Text>
-            <Text style={styles.overrideDesc}>
-              You enabled Strict Mode to prevent impulsive bypasses. Please wait
-              for the confirmation timer before proceeding.
+          <SurfaceCard className="w-[85%] items-center rounded-3xl p-6">
+            <Icon name="shield-lock" size={32} color={COLORS.red} />
+            <Text style={styles.modalTitle}>Strict Mode Warning</Text>
+            <Text style={styles.modalSub}>
+              Impulse protection is active. Wait for the timer.
             </Text>
-            <View style={styles.countdownBox}>
-              <Text style={styles.countdownNum}>{cooldownSecs}</Text>
-              <Text style={styles.countdownLabel}>seconds remaining</Text>
+            <View style={styles.timerCircle}>
+              <Text style={styles.timerText}>{cooldownSecs}</Text>
+              <Text style={styles.timerLbl}>Sec</Text>
             </View>
-            <View style={styles.modalBtns}>
+            <View style={styles.modalActions}>
               <TouchableOpacity
-                style={styles.modalBtn}
-                onPress={() => {
-                  addLog('warn', 'Strict mode override cancelled');
-                  clearCooldown();
-                  if (cooldownTimer.current) {
-                    clearInterval(cooldownTimer.current);
-                    cooldownTimer.current = null;
-                  }
-                  setCooldownVisible(false);
-                  setPendingStrictAction(null);
-                }}
+                style={styles.cancelBtn}
+                onPress={() => setCooldownVisible(false)}
               >
-                <Text style={styles.modalBtnTxt}>Cancel</Text>
+                <Text style={styles.cancelBtnText}>Dismiss</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
-                  styles.modalBtn,
-                  styles.modalBtnDanger,
-                  cooldownSecs > 0 && styles.dimmed,
+                  styles.actionBtn,
+                  cooldownSecs > 0 && styles.btnDisabled,
                 ]}
                 disabled={cooldownSecs > 0}
                 onPress={() => {
-                  addLog('warn', 'Strict mode override confirmed and executed');
-                  clearCooldown();
                   setCooldownVisible(false);
-                  // Still require PIN after cooldown
-                  checkPin(() => {
-                    if (pendingStrictAction) {
-                      pendingStrictAction();
-                      setPendingStrictAction(null);
-                    }
-                  });
+                  checkPin(() => pendingStrictAction?.());
                 }}
               >
-                <Text style={[styles.modalBtnTxt, { color: COLORS.red }]}>
-                  {cooldownSecs > 0 ? `Wait ${cooldownSecs}s…` : 'Override Now'}
-                </Text>
+                <Text style={styles.actionBtnText}>Proceed</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </SurfaceCard>
         </View>
       </Modal>
 
-      <Modal visible={limitModalVisible} transparent animationType="fade">
+      <Modal visible={limitModalVisible} transparent animationType="slide">
         <View style={styles.overlay}>
-          <View style={styles.modal}>
-            <Text style={styles.modalTitle}>
-              Daily Limit: {formatAppName(selectedRule?.appName || '')}
-            </Text>
+          <SurfaceCard className="absolute bottom-0 w-full rounded-t-[32px] rounded-b-none p-6 pb-10">
+            <View style={styles.modalHeaderContent}>
+              <Text style={styles.modalTitle}>Set Daily Limit</Text>
+              <Text style={styles.modalSubtitle}>
+                {formatAppName(selectedRule?.appName || '')}
+              </Text>
+            </View>
 
-            {weeklyAvg !== null && (
-              <View style={styles.avgBox}>
-                <Icon name="chart-bar" size={16} color={COLORS.muted} />
-                <Text style={styles.avgText}>
-                  Weekly average: {Math.floor(weeklyAvg / 60)}h {weeklyAvg % 60}
-                  m
-                </Text>
-              </View>
-            )}
-
-            <View style={styles.timeInputs}>
-              <View style={styles.timeField}>
+            <View style={styles.timePicker}>
+              <View style={styles.timeItem}>
                 <TextInput
-                  style={styles.input}
+                  style={styles.timeInput}
                   value={hrInput}
                   onChangeText={setHrInput}
-                  keyboardType="number-pad"
+                  keyboardType="numeric"
                   maxLength={2}
                 />
                 <Text style={styles.timeLabel}>Hours</Text>
               </View>
-              <Text style={styles.timeColon}>:</Text>
-              <View style={styles.timeField}>
+              <Text style={styles.timeDiv}>:</Text>
+              <View style={styles.timeItem}>
                 <TextInput
-                  style={styles.input}
+                  style={styles.timeInput}
                   value={minInput}
                   onChangeText={setMinInput}
-                  keyboardType="number-pad"
+                  keyboardType="numeric"
                   maxLength={2}
                 />
-                <Text style={styles.timeLabel}>Minutes</Text>
+                <Text style={styles.timeLabel}>Mins</Text>
               </View>
             </View>
 
-            <View style={styles.modalBtns}>
-              <TouchableOpacity
-                style={styles.modalBtn}
-                onPress={() => setLimitModalVisible(false)}
-              >
-                <Text style={styles.modalBtnTxt}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.modalBtn, styles.modalBtnPrimary]}
-                onPress={saveLimit}
-              >
-                <Text style={[styles.modalBtnTxt, styles.modalBtnTxtPrimary]}>
-                  Set Limit
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+            <PrimaryButton
+              label="Save Limit"
+              onPress={saveLimit}
+              style={styles.saveBtn}
+            />
+            <TouchableOpacity
+              style={styles.cancelLink}
+              onPress={() => setLimitModalVisible(false)}
+            >
+              <Text style={styles.cancelLinkText}>Cancel</Text>
+            </TouchableOpacity>
+          </SurfaceCard>
         </View>
       </Modal>
 
       <Modal visible={domainModalVisible} transparent animationType="fade">
         <View style={styles.overlay}>
-          <View style={styles.modal}>
-            <Text style={styles.modalTitle}>App Domain Required</Text>
-            <Text style={styles.overrideDesc}>
-              We couldn't automatically determine the network domain for{' '}
-              {pendingDomainRule
-                ? formatAppName(pendingDomainRule.appName)
-                : 'this app'}
-              . Please enter it manually to enable blocking.
+          <SurfaceCard className="w-[85%] items-center rounded-3xl p-6">
+            <Icon name="web" size={32} color={COLORS.accent} />
+            <Text style={styles.modalTitle}>Domain Required</Text>
+            <Text style={styles.modalSub}>
+              Linking a domain allows the engine to track this app reliably.
             </Text>
-
             <TextInput
-              style={styles.textInput}
+              style={styles.nuvioTextInput}
               value={domainInput}
               onChangeText={setDomainInput}
-              placeholder={`e.g. ${UI_EXAMPLES.SUBDOMAIN}`}
+              placeholder={`e.g. ${UI_EXAMPLES.DOMAIN}`}
               placeholderTextColor={COLORS.muted}
               autoCapitalize="none"
               autoCorrect={false}
-              keyboardType="url"
             />
-
-            <View style={styles.modalBtns}>
+            <View style={styles.modalActions}>
               <TouchableOpacity
-                style={styles.modalBtn}
-                onPress={() => {
-                  setDomainModalVisible(false);
-                  setPendingDomainRule(null);
-                  setPendingDomainMode(null);
-                }}
+                style={styles.cancelBtn}
+                onPress={() => setDomainModalVisible(false)}
               >
-                <Text style={styles.modalBtnTxt}>Cancel</Text>
+                <Text style={styles.cancelBtnText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalBtn, styles.modalBtnPrimary]}
+                style={[styles.actionBtn, { backgroundColor: COLORS.accent }]}
                 onPress={saveCustomDomain}
               >
-                <Text style={[styles.modalBtnTxt, styles.modalBtnTxtPrimary]}>
-                  Save & Block
-                </Text>
+                <Text style={styles.actionBtnText}>Link App</Text>
               </TouchableOpacity>
             </View>
-          </View>
+          </SurfaceCard>
         </View>
       </Modal>
 
@@ -642,413 +665,174 @@ export default function AppsScreen() {
         visible={pinGateVisible}
         onSuccess={() => {
           setPinGateVisible(false);
-          if (pendingAction) {
-            pendingAction();
-            setPendingAction(null);
-          }
+          pendingAction?.();
         }}
-        onCancel={() => {
-          setPinGateVisible(false);
-          setPendingAction(null);
-        }}
+        onCancel={() => setPinGateVisible(false)}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.bg },
+  list: { paddingHorizontal: HORIZONTAL_PADDING },
   header: {
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginBottom: 20,
   },
-  headerTitle: {
-    color: COLORS.text,
-    fontSize: 28,
-    fontWeight: '900',
-    letterSpacing: -1,
-  },
-  warnBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 184, 0, 0.08)',
-    padding: 14,
-    marginHorizontal: 20,
-    marginTop: 10,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 184, 0, 0.15)',
-    gap: 10,
-  },
-  warnBannerTxt: {
-    color: COLORS.yellow,
-    fontSize: 12,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-
-  strictBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 71, 87, 0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 71, 87, 0.2)',
-    gap: 4,
-  },
-  strictBadgeTxt: {
-    color: COLORS.red,
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1,
-  },
-
-  list: {
-    padding: 20,
-    paddingBottom: 120,
-  },
-  card: {
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    borderRadius: 24,
-    padding: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.04)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-  },
-  cardTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  info: {
-    flex: 1,
-    marginLeft: 16,
-  },
-  appName: {
-    color: COLORS.text,
-    fontWeight: '800',
-    fontSize: 16,
-    letterSpacing: -0.2,
-  },
-  pkg: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: '600',
-    marginTop: 2,
-    opacity: 0.7,
-  },
-  deleteBtn: {
-    padding: 8,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 12,
-  },
-
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  info: { flex: 1 },
+  appName: { color: '#FFF', fontSize: 17, fontWeight: '800' },
+  pkg: { color: COLORS.muted, fontSize: 11, marginTop: 2 },
+  deleteBtn: { padding: 8, opacity: 0.6 },
   cardBottom: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 20,
+    marginTop: 16,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.03)',
+    borderTopColor: COLORS.border,
   },
   modes: {
     flexDirection: 'row',
     backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 14,
+    borderRadius: 12,
     padding: 4,
     gap: 4,
   },
   modeBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  modeTxt: {
-    color: COLORS.muted,
-    fontSize: 11,
+  modeTxt: { fontSize: 11, fontWeight: '800', textTransform: 'uppercase' },
+  limitBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  limitText: { color: COLORS.yellow, fontSize: 13, fontWeight: '700' },
+  emptyTitle: { color: '#FFF', fontSize: 18, fontWeight: '800' },
+  emptySub: { color: COLORS.muted, fontSize: 14, textAlign: 'center' },
+  footer: { marginTop: 12 },
+  sectionHeader: { marginBottom: 16, marginTop: 16 },
+  sectionTitle: {
+    color: '#FFF',
+    fontSize: 16,
     fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    opacity: 0.6,
   },
-  modeTxtActive: {
-    color: '#000',
-  },
-  limitBadge: {
-    flexDirection: 'row',
+  recursionGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  recommendationItem: {
+    backgroundColor: COLORS.card,
+    borderRadius: CARD_RADIUS,
+    padding: 12,
     alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,184,0,0.1)',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
-  limitText: {
-    color: COLORS.yellow,
-    fontSize: 12,
-    fontWeight: '800',
+  recName: {
+    color: '#FFF',
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 8,
+    textAlign: 'center',
   },
-
+  recPlusIcon: { marginTop: 6 },
+  footerSpacing: { height: 120 },
   fab: {
     position: 'absolute',
-    bottom: 30,
-    right: 24,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    right: 20,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
     backgroundColor: COLORS.accent,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
     shadowColor: COLORS.accent,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
-
-  empty: {
-    alignItems: 'center',
-    marginTop: 80,
-    padding: 40,
-  },
-  emptyTitle: {
-    color: COLORS.text,
-    fontSize: 20,
-    fontWeight: '800',
-    marginTop: 20,
-    letterSpacing: -0.5,
-  },
-  emptyText: {
-    color: COLORS.muted,
-    textAlign: 'center',
-    marginTop: 12,
-    lineHeight: 20,
-    fontSize: 13,
-    fontWeight: '500',
-  },
-
-  footer: {
-    marginTop: 40,
-    paddingHorizontal: 10,
-  },
-  footerTitle: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 20,
-    opacity: 0.8,
-  },
-  quickAddGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  quickAddBtn: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderRadius: 14,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  quickAddBtnTxt: {
-    color: COLORS.text,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-
+  sectionHeaderSuggested: { marginBottom: 16, marginTop: 32 },
+  btnDisabled: { opacity: 0.5 },
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.85)',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modal: {
-    backgroundColor: '#0A0A0F',
-    borderRadius: 32,
-    padding: 32,
-    width: '90%',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  modalTitle: {
-    color: COLORS.text,
-    fontSize: 22,
-    fontWeight: '900',
-    marginBottom: 24,
-    textAlign: 'center',
-    letterSpacing: -0.5,
-  },
-  overrideDesc: {
+  modalTitle: { color: '#FFF', fontSize: 20, fontWeight: '900', marginTop: 16 },
+  modalSub: {
     color: COLORS.muted,
-    textAlign: 'center',
-    marginBottom: 24,
-    lineHeight: 20,
     fontSize: 14,
-    fontWeight: '500',
+    textAlign: 'center',
+    marginTop: 8,
   },
-  countdownBox: {
+  timerCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 4,
+    borderColor: COLORS.red,
+    justifyContent: 'center',
     alignItems: 'center',
     marginVertical: 24,
   },
-  countdownNum: {
-    color: COLORS.red,
-    fontSize: 48,
-    fontWeight: '900',
+  timerText: { color: COLORS.red, fontSize: 24, fontWeight: '900' },
+  timerLbl: { color: COLORS.red, fontSize: 10, fontWeight: '700' },
+  modalActions: { flexDirection: 'row', gap: 12, width: '100%', marginTop: 24 },
+  cancelBtn: { flex: 1, padding: 16, alignItems: 'center' },
+  cancelBtnText: { color: COLORS.muted, fontWeight: '700' },
+  actionBtn: {
+    flex: 1,
+    backgroundColor: COLORS.red,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
   },
-  countdownLabel: {
-    color: COLORS.muted,
-    fontSize: 11,
+  actionBtnText: { color: '#FFF', fontWeight: '900' },
+  modalHeaderContent: { marginBottom: 12 },
+  modalSubtitle: {
+    color: COLORS.accent,
+    fontSize: 14,
     fontWeight: '700',
-    textTransform: 'uppercase',
-    marginTop: 8,
+    marginTop: 4,
   },
-  avgBox: {
+  timePicker: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    padding: 14,
-    borderRadius: 16,
-    marginBottom: 24,
-    gap: 8,
-  },
-  avgText: {
-    color: COLORS.muted,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  timeInputs: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 32,
+    marginVertical: 32,
+    gap: 20,
   },
-  timeField: {
-    alignItems: 'center',
-  },
-  input: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    color: COLORS.text,
-    fontSize: 32,
+  timeItem: { alignItems: 'center' },
+  timeInput: {
+    color: '#FFF',
+    fontSize: 44,
     fontWeight: '900',
     textAlign: 'center',
-    width: 80,
-    height: 80,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-  },
-  textInput: {
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    color: COLORS.text,
-    fontSize: 16,
-    padding: 20,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.08)',
-    marginBottom: 32,
-    textAlign: 'center',
-    fontWeight: '600',
   },
   timeLabel: {
     color: COLORS.muted,
-    fontSize: 10,
-    fontWeight: '800',
-    marginTop: 8,
-    textTransform: 'uppercase',
-  },
-  timeColon: {
-    color: COLORS.text,
-    fontSize: 32,
-    marginHorizontal: 16,
-    marginBottom: 24,
-    fontWeight: '300',
-  },
-  modalBtns: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  modalBtn: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.03)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.05)',
-  },
-  modalBtnTxt: {
-    color: COLORS.text,
-    fontWeight: '800',
-    fontSize: 14,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  modalBtnPrimary: {
-    backgroundColor: COLORS.accent,
-    borderColor: COLORS.accent,
-  },
-  modalBtnTxtPrimary: {
-    color: '#fff',
-  },
-  modalBtnDanger: {
-    borderColor: 'rgba(255, 71, 87, 0.2)',
-  },
-  dimmed: {
-    opacity: 0.3,
-  },
-  strictIcon: {
-    alignSelf: 'center',
-    marginBottom: 16,
-  },
-  sectionHeader: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 16,
-    marginTop: 10,
-    opacity: 0.8,
-  },
-  sectionHeaderDomains: {
-    color: COLORS.muted,
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 1.5,
-    marginBottom: 16,
-    marginTop: 30, // Updated from 20 to 30 for better separation
-    opacity: 0.8,
-  },
-  emptyMini: {
-    padding: 20,
-    backgroundColor: 'rgba(255,255,255,0.01)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    borderColor: 'rgba(255,255,255,0.05)',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  emptyTextMini: {
-    color: COLORS.muted,
     fontSize: 12,
-    fontWeight: '600',
-    opacity: 0.5,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+  },
+  timeDiv: { color: 'rgba(255,255,255,0.2)', fontSize: 44, fontWeight: '300' },
+  saveBtn: { borderRadius: 16 },
+  cancelLink: { marginTop: 20, alignItems: 'center' },
+  cancelLinkText: { color: COLORS.muted, fontSize: 14, fontWeight: '700' },
+  nuvioTextInput: {
+    width: '100%',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    borderRadius: 12,
+    padding: 16,
+    color: '#FFF',
+    fontSize: 16,
+    marginTop: 24,
+    borderWidth: 1,
+    borderColor: COLORS.border,
   },
 });
