@@ -16,7 +16,7 @@ export async function renderSchedulePage(
   if (!container) {
     return;
   }
-  container.innerHTML = '<div class="loader">Synchronizing cycles...</div>';
+  container.innerHTML = '<div class="loader">Syncing schedules...</div>';
 
   try {
     const schedules = await getSchedules(storage);

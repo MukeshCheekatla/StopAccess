@@ -513,7 +513,7 @@ function _renderIdlePopup(container: HTMLElement): void {
     <div class="focus-container" style="padding: 10px 0;">
       <div style="text-align: center; margin-bottom: 24px;">
         <div class="widget-title" style="color: var(--text); font-size: 14px;">IGNITE DEEP FOCUS</div>
-        <div style="font-size: 10px; color: var(--muted); font-weight: 600; margin-top: 4px;">Network-wide synchronization lock.</div>
+        <div style="font-size: 10px; color: var(--muted); font-weight: 600; margin-top: 4px;">Blocks synced across devices.</div>
       </div>
 
       <div class="focus-presets" style="gap: 10px;">

@@ -38,7 +38,6 @@ export async function renderDashboardPage(container) {
       syncMode,
       isNew,
       cloudBlockedQueries,
-      avgFocusMins,
       focusEnd,
     } = data;
 
@@ -59,13 +58,6 @@ export async function renderDashboardPage(container) {
       timerDotColor = 'var(--accent)';
       timerTextColor = 'var(--accent)';
     }
-
-    const focusGoalMs = 120 * 60000;
-    const focusPercent = Math.min(
-      100,
-      Math.round(((allTotalMs as number) / focusGoalMs) * 100),
-    );
-    const circleOffset = 201 - (201 * focusPercent) / 100;
 
     if (!container.querySelector('#dashboardShell')) {
       container.innerHTML = `
@@ -117,26 +109,12 @@ export async function renderDashboardPage(container) {
     const engagementW = container.querySelector('#engagementWidget');
     if (engagementW) {
       engagementW.innerHTML = `
-        <div class="widget-title">Engagement Today</div>
-        <div style="display:flex; align-items:center; gap:20px;">
-          <div class="stat-circle-container">
-            <svg class="stat-circle-svg" width="64" height="64">
-              <circle class="stat-circle-bg" cx="32" cy="32" r="30"/>
-              <circle class="stat-circle-val" cx="32" cy="32" r="30" style="stroke-dasharray: 201; stroke-dashoffset: ${circleOffset}; stroke: var(--accent);"/>
-            </svg>
-            <div class="stat-circle-text" style="font-size: 14px;">${focusPercent}%</div>
-          </div>
-          <div>
-            <div style="font-size:20px; font-weight:900; letter-spacing: -0.5px;">${fmtTime(
-              allTotalMs as number,
-            )}</div>
-            <div style="display: flex; align-items: center; gap: 6px; margin-top: 2px;">
-              <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform: uppercase;">Today</div>
-              <div style="font-size:10px; color:var(--accent); font-weight:800;">(Avg: ${fmtTime(
-                avgFocusMins * 60000,
-              )})</div>
-            </div>
-          </div>
+        <div class="widget-title">Today Usage</div>
+        <div>
+          <div style="font-size:20px; font-weight:900; letter-spacing: -0.5px;">${fmtTime(
+            allTotalMs as number,
+          )}</div>
+          <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform: uppercase; margin-top: 4px;">Recorded today</div>
         </div>
       `;
     }

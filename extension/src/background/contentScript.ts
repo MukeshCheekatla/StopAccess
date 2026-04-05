@@ -121,233 +121,7 @@ async function grantTempPass(
   return true;
 }
 
-// ── Styles ────────────────────────────────────────
-
-function buildOverlayStyles() {
-  return `
-    :host {
-      all: initial;
-      position: fixed;
-      inset: 0;
-      z-index: 2147483647;
-      display: block;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    }
-
-    .fg-shell {
-      min-height: 100vh;
-      width: 100vw;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #0a0a0b;
-      padding: 24px;
-    }
-
-    .fg-panel {
-      width: min(100%, 420px);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .fg-badge {
-      font-size: 10px;
-      font-weight: 800;
-      letter-spacing: 0.25em;
-      color: rgba(255,255,255,0.25);
-      margin-bottom: 28px;
-    }
-
-    .fg-ring-wrap {
-      position: relative;
-      width: 180px;
-      height: 180px;
-      margin-bottom: 28px;
-    }
-    .fg-ring-wrap svg {
-      width: 100%;
-      height: 100%;
-      transform: rotate(-90deg);
-    }
-    .fg-ring-bg {
-      fill: none;
-      stroke: rgba(255,255,255,0.04);
-      stroke-width: 8;
-    }
-    .fg-ring-fill {
-      fill: none;
-      stroke-width: 8;
-      stroke-linecap: round;
-      transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .fg-ring-center {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-    }
-    .fg-ring-val {
-      font-size: 28px;
-      font-weight: 800;
-      letter-spacing: -0.02em;
-      line-height: 1;
-      font-variant-numeric: tabular-nums;
-    }
-    .fg-ring-unit {
-      font-size: 10px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.3);
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-    }
-
-    .fg-domain {
-      font-size: 20px;
-      font-weight: 800;
-      letter-spacing: -0.01em;
-      margin-bottom: 6px;
-      color: rgba(255,255,255,0.9);
-    }
-    .fg-status {
-      font-size: 13px;
-      color: rgba(255,255,255,0.35);
-      margin-bottom: 24px;
-      line-height: 1.5;
-    }
-
-    .fg-stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 1px;
-      width: 100%;
-      background: rgba(255,255,255,0.04);
-      border-radius: 14px;
-      overflow: hidden;
-      margin-bottom: 24px;
-    }
-    .fg-stat {
-      background: #0a0a0b;
-      padding: 14px 8px;
-      text-align: center;
-    }
-    .fg-stat-val {
-      font-size: 15px;
-      font-weight: 800;
-      margin-bottom: 2px;
-      color: rgba(255,255,255,0.8);
-    }
-    .fg-stat-lbl {
-      font-size: 9px;
-      font-weight: 700;
-      color: rgba(255,255,255,0.25);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .fg-extend {
-      width: 100%;
-      padding: 20px;
-      background: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 16px;
-      margin-bottom: 16px;
-    }
-    .fg-extend-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 14px;
-    }
-    .fg-extend-title {
-      font-size: 13px;
-      font-weight: 700;
-      color: rgba(255,255,255,0.7);
-    }
-    .fg-extend-counter {
-      font-size: 10px;
-      font-weight: 700;
-      color: rgba(255,255,255,0.4);
-      background: rgba(255,255,255,0.05);
-      padding: 3px 10px;
-      border-radius: 20px;
-    }
-    .fg-extend-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .fg-extend-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      padding: 13px;
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 12px;
-      background: rgba(255,255,255,0.03);
-      color: rgba(255,255,255,0.7);
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .fg-extend-btn:hover {
-      background: rgba(255,255,255,0.06);
-      border-color: rgba(255,255,255,0.12);
-      color: rgba(255,255,255,0.9);
-    }
-    .fg-extend-btn:active { transform: scale(0.98); }
-    .fg-extend-btn:disabled {
-      opacity: 0.25;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .fg-extend-btn svg {
-      width: 14px;
-      height: 14px;
-      opacity: 0.5;
-    }
-
-    .fg-maxed {
-      width: 100%;
-      padding: 16px;
-      background: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 14px;
-      margin-bottom: 16px;
-      text-align: center;
-      font-size: 12px;
-      color: rgba(255,255,255,0.35);
-    }
-    .fg-maxed strong {
-      color: rgba(255,255,255,0.6);
-    }
-
-    .fg-back {
-      width: 100%;
-      padding: 14px;
-      border: 1px solid rgba(255,255,255,0.06);
-      border-radius: 12px;
-      background: transparent;
-      color: rgba(255,255,255,0.25);
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .fg-back:hover {
-      background: rgba(255,255,255,0.02);
-      color: rgba(255,255,255,0.4);
-    }
-  `;
-}
-
-// ── Markup ────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────
 
 function formatTime(ms: number): string {
   const totalSec = Math.floor(ms / 1000);
@@ -363,6 +137,8 @@ function formatTime(ms: number): string {
   return `${m}m ${String(s).padStart(2, '0')}s`;
 }
 
+// ── Markup ────────────────────────────────────────
+
 function buildOverlayMarkup(domain, options: any = {}) {
   const safeDomain = escapeHtml(domain || 'this site');
   const {
@@ -371,9 +147,9 @@ function buildOverlayMarkup(domain, options: any = {}) {
     maxExtensions = MAX_DAILY_EXTENSIONS,
     ruleMode = 'block',
     usedMinutes = 0,
+    usedMs = 0,
     limitMinutes = 0,
     sessions = 0,
-    usedMs = 0,
   } = options;
 
   const isLimitMode = ruleMode === 'limit' && limitMinutes > 0;
@@ -385,12 +161,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
   const C = 2 * Math.PI * R;
   const offset = C - (C * pct) / 100;
 
-  const ringColor =
-    pct >= 100
-      ? 'rgba(255,255,255,0.15)'
-      : pct >= 75
-      ? 'rgba(255,255,255,0.25)'
-      : 'rgba(255,255,255,0.12)';
+  const ringColor = pct >= 100 ? '#ef4444' : '#6366f1'; // Red or Accent
 
   const statusText = isLimitMode
     ? 'Daily limit reached'
@@ -398,77 +169,82 @@ function buildOverlayMarkup(domain, options: any = {}) {
   const remaining = isLimitMode ? Math.max(0, limitMinutes - usedMinutes) : 0;
 
   const clockSvg =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
+    '<svg class="fg-w-4 fg-h-4 fg-opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
 
   const timeStr = formatTime(usedMs || usedMinutes * 60000);
 
   return `
-    <div class="fg-shell">
-      <div class="fg-panel">
-        <div class="fg-badge">FOCUSGATE</div>
+    <div class="fg-min-h-screen fg-w-screen fg-flex fg-items-center fg-justify-center fg-bg-zinc-950 fg-text-white fg-font-sans">
+      <div class="fg-w-full fg-max-w-[420px] fg-flex fg-flex-col fg-items-center fg-p-6">
+        <div class="fg-text-[10px] fg-font-extrabold fg-tracking-[0.25em] fg-text-zinc-600 fg-mb-8">FOCUSGATE</div>
 
-        <div class="fg-ring-wrap">
-          <svg viewBox="0 0 180 180">
-            <circle class="fg-ring-bg" cx="90" cy="90" r="${R}" />
-            <circle class="fg-ring-fill" cx="90" cy="90" r="${R}"
-              stroke="${ringColor}"
-              stroke-dasharray="${C}"
-              stroke-dashoffset="${offset}" />
+        <div class="fg-relative fg-w-[180px] fg-h-[180px] fg-mb-8">
+          <svg class="fg-w-full fg-h-full fg--rotate-90" viewBox="0 0 180 180">
+            <circle class="fg-fill-none fg-stroke-zinc-800" cx="90" cy="90" r="${R}" stroke-width="8" />
+            <circle class="fg-fill-none" cx="90" cy="90" r="${R}" 
+              stroke="${ringColor}" stroke-width="8" stroke-linecap="round"
+              style="stroke-dasharray: ${C}; stroke-dashoffset: ${offset}; transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);" />
           </svg>
-          <div class="fg-ring-center">
-            <div class="fg-ring-val" id="__fg_live_time">${timeStr}</div>
-            <div class="fg-ring-unit">${
-              isLimitMode ? 'used today' : 'screen time'
-            }</div>
+          <div class="fg-absolute fg-inset-0 fg-flex fg-flex-col fg-items-center fg-justify-center fg-gap-1">
+            <div class="fg-text-3xl fg-font-bold fg-tracking-tighter fg-tabular-nums" id="__fg_live_time">${timeStr}</div>
+            <div class="fg-text-[10px] fg-font-semibold fg-text-zinc-500 fg-uppercase fg-tracking-widest">
+              ${isLimitMode ? 'used today' : 'screen time'}
+            </div>
           </div>
         </div>
 
-        <div class="fg-domain">${safeDomain}</div>
-        <div class="fg-status">${statusText}</div>
+        <div class="fg-text-2xl fg-font-bold fg-tracking-tight fg-mb-1 fg-text-white/90">${safeDomain}</div>
+        <div class="fg-text-sm fg-text-zinc-500 fg-mb-8 fg-text-center">${statusText}</div>
 
-        <div class="fg-stats">
-          <div class="fg-stat">
-            <div class="fg-stat-val">${sessions}</div>
-            <div class="fg-stat-lbl">Sessions</div>
+        <div class="fg-grid fg-grid-cols-3 fg-gap-px fg-w-full fg-bg-zinc-800 fg-rounded-2xl fg-overflow-hidden fg-mb-8 fg-border fg-border-zinc-800">
+          <div class="fg-bg-zinc-950 fg-py-4 fg-px-2 fg-text-center">
+            <div class="fg-text-lg fg-font-bold fg-text-zinc-200">${sessions}</div>
+            <div class="fg-text-[9px] fg-font-bold fg-text-zinc-600 fg-uppercase fg-tracking-wider">Sessions</div>
           </div>
-          <div class="fg-stat">
-            <div class="fg-stat-val">
-              ${isLimitMode ? remaining + 'm' : '—'}
-            </div>
-            <div class="fg-stat-lbl">Remaining</div>
+          <div class="fg-bg-zinc-950 fg-py-4 fg-px-2 fg-text-center">
+            <div class="fg-text-lg fg-font-bold fg-text-zinc-200">${
+              isLimitMode ? remaining + 'm' : '—'
+            }</div>
+            <div class="fg-text-[9px] fg-font-bold fg-text-zinc-600 fg-uppercase fg-tracking-wider">Remaining</div>
           </div>
-          <div class="fg-stat">
-            <div class="fg-stat-val">${extensionCount}/${maxExtensions}</div>
-            <div class="fg-stat-lbl">Extensions</div>
+          <div class="fg-bg-zinc-950 fg-py-4 fg-px-2 fg-text-center">
+            <div class="fg-text-lg fg-font-bold fg-text-zinc-200">${extensionCount}/${maxExtensions}</div>
+            <div class="fg-text-[9px] fg-font-bold fg-text-zinc-600 fg-uppercase fg-tracking-wider">Passes</div>
           </div>
         </div>
 
         ${
           canExtend
             ? `
-          <div class="fg-extend">
-            <div class="fg-extend-header">
-              <div class="fg-extend-title">Take a short break</div>
-              <div class="fg-extend-counter">${
-                maxExtensions - extensionCount
-              } left today</div>
+          <div class="fg-w-full fg-p-5 fg-bg-zinc-900/50 fg-border fg-border-zinc-800 fg-rounded-[20px] fg-mb-4">
+            <div class="fg-flex fg-items-center fg-justify-between fg-mb-4">
+              <div class="fg-text-sm fg-font-bold fg-text-zinc-300">Take a short break</div>
+              <div class="fg-text-[10px] fg-font-bold fg-text-zinc-500 fg-bg-zinc-800/50 fg-px-2 fg-py-0.5 fg-rounded-full">
+                ${maxExtensions - extensionCount} left
+              </div>
             </div>
-            <div class="fg-extend-actions">
-              <button class="fg-extend-btn" data-minutes="5">${clockSvg} 5 min pass</button>
-              <button class="fg-extend-btn" data-minutes="10">${clockSvg} 10 min pass</button>
+            <div class="fg-grid fg-grid-cols-2 fg-gap-3">
+              <button class="fg-extend-btn fg-flex fg-items-center fg-justify-center fg-gap-2 fg-p-3 fg-bg-zinc-800/50 fg-border fg-border-zinc-700/50 fg-rounded-xl fg-text-sm fg-font-bold fg-text-zinc-300 fg-transition-all hover:fg-bg-zinc-700/50 active:fg-scale-[0.98] disabled:fg-opacity-30 disabled:fg-cursor-not-allowed" data-minutes="5">
+                ${clockSvg} 5 min
+              </button>
+              <button class="fg-extend-btn fg-flex fg-items-center fg-justify-center fg-gap-2 fg-p-3 fg-bg-zinc-800/50 fg-border fg-border-zinc-700/50 fg-rounded-xl fg-text-sm fg-font-bold fg-text-zinc-300 fg-transition-all hover:fg-bg-zinc-700/50 active:fg-scale-[0.98] disabled:fg-opacity-30 disabled:fg-cursor-not-allowed" data-minutes="10">
+                ${clockSvg} 10 min
+              </button>
             </div>
           </div>
         `
             : extensionCount >= maxExtensions
             ? `
-          <div class="fg-maxed">
-            <strong>No passes remaining.</strong> All ${maxExtensions} daily passes used for this site.
+          <div class="fg-w-full fg-p-4 fg-bg-zinc-900/30 fg-border fg-border-zinc-800 fg-rounded-xl fg-mb-4 fg-text-center fg-text-xs fg-text-zinc-600">
+            <strong class="fg-text-zinc-400">Daily limit reached.</strong> All passes used for today.
           </div>
         `
             : ''
         }
 
-        <button class="fg-back">\u2190 Go back</button>
+        <button class="fg-back fg-w-full fg-p-3.5 fg-border fg-border-zinc-800 fg-rounded-xl fg-bg-transparent fg-text-zinc-500 fg-text-sm fg-font-semibold fg-transition-all hover:fg-bg-zinc-900 active:fg-scale-[0.98]">
+          &larr; Go back
+        </button>
       </div>
     </div>
   `;
@@ -495,9 +271,25 @@ function injectOverlay(domain, options: any = {}) {
   overlayEl.id = OVERLAY_ID;
 
   const shadow = overlayEl.attachShadow({ mode: 'open' });
-  const style = document.createElement('style');
-  style.textContent = buildOverlayStyles();
-  shadow.appendChild(style);
+
+  // Inject Tailwind
+  const styleLink = document.createElement('link');
+  styleLink.rel = 'stylesheet';
+  styleLink.href = chrome.runtime.getURL('tailwind.css');
+  shadow.appendChild(styleLink);
+
+  // Still need some base styles for the host and scrollbar reset
+  const baseStyle = document.createElement('style');
+  baseStyle.textContent = `
+    :host {
+      all: initial;
+      position: fixed;
+      inset: 0;
+      z-index: 2147483647;
+      display: block;
+    }
+  `;
+  shadow.appendChild(baseStyle);
 
   const wrapper = document.createElement('div');
   wrapper.innerHTML = buildOverlayMarkup(domain, options);
@@ -514,7 +306,6 @@ function injectOverlay(domain, options: any = {}) {
         return;
       }
 
-      // Disable both buttons
       shadow
         .querySelectorAll('.fg-extend-btn')
         .forEach((b) => b.setAttribute('disabled', 'true'));
@@ -523,7 +314,6 @@ function injectOverlay(domain, options: any = {}) {
       if (ok) {
         await chrome.runtime.sendMessage({ action: 'manualSync' });
         removeOverlay();
-        // Page will load naturally now — checkAndBlock will see the active pass
       } else {
         shadow
           .querySelectorAll('.fg-extend-btn')

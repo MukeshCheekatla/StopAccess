@@ -82,7 +82,7 @@ export async function renderAppsPage(container: HTMLElement) {
           syncMode === 'profile'
             ? `
           <button class="nav-item-tab" data-tab="categories">CATEGORIES</button>
-          <button class="nav-item-tab" data-tab="denylist">DENYLIST</button>
+          <button class="nav-item-tab" data-tab="denylist">BLOCKLIST</button>
         `
             : ''
         }
@@ -224,16 +224,13 @@ async function refreshListOnly(passedRules?: any[]) {
   const tabContent = globalContainer.querySelector(
     '#tabContent',
   ) as HTMLElement;
-  const actionContainer = globalContainer.querySelector(
-    '#searchActionContainer',
-  ) as HTMLElement;
   const searchBadge = globalContainer.querySelector(
     '#searchBadge',
   ) as HTMLElement;
 
   if (tabContent && isLoadingNextDNS && availableServices.length === 0) {
     tabContent.innerHTML =
-      '<div class="loader">Synchronizing with NextDNS...</div>';
+      '<div class="loader">Syncing with NextDNS...</div>';
   }
 
   globalContainer.querySelectorAll('.nav-item-tab').forEach((btn) => {
@@ -242,41 +239,6 @@ async function refreshListOnly(passedRules?: any[]) {
 
   if (searchBadge) {
     searchBadge.style.opacity = searchTerm ? '0' : '1';
-  }
-
-  if (actionContainer && nextDNSApi) {
-    const normalizedSearch = searchTerm.includes('.')
-      ? searchTerm.trim().toLowerCase()
-      : '';
-    const resolvedTarget: any = normalizedSearch
-      ? await nextDNSApi.resolveTargetInput(normalizedSearch)
-      : null;
-    const existingId =
-      resolvedTarget?.kind === 'service'
-        ? resolvedTarget.normalizedId
-        : normalizedSearch;
-    const showAdd =
-      Boolean(normalizedSearch) &&
-      !rulesToUse.some(
-        (r: any) => (r.customDomain || r.packageName) === existingId,
-      );
-    actionContainer.innerHTML = showAdd
-      ? '<button class="btn-premium" id="btnAddDomainUnified" style="padding: 0 24px; border-radius: 20px; white-space: nowrap; height: 60px;">ADD RULE</button>'
-      : '<button class="btn-premium" id="btnOpenTargetDrawer" style="width: 60px; height: 60px; font-size: 24px; display: flex; align-items: center; justify-content: center; border-radius: 20px; padding: 0;">+</button>';
-
-    globalContainer
-      .querySelector('#btnAddDomainUnified')
-      ?.addEventListener('click', handleAddDomain);
-    globalContainer
-      .querySelector('#btnOpenTargetDrawer')
-      ?.addEventListener('click', () => {
-        const overlay = globalContainer?.querySelector(
-          '#targetDrawerOverlay',
-        ) as HTMLElement;
-        if (overlay) {
-          overlay.style.display = 'block';
-        }
-      });
   }
 
   if (tabContent) {
@@ -411,18 +373,12 @@ async function renderSubTab(rules: any[], lockedDomains: string[]) {
       rules.some((r: any) => r.packageName === app.id && r.type === 'service'),
     );
     const visibleApps = activeApps.filter(matchesSearch);
-    // Quick-add suggestions — top 12 not already in rules
-    const suggestions = NEXTDNS_SERVICES.filter(
-      (s) =>
-        !rules.some((r: any) => (r.customDomain || r.packageName) === s.id),
-    ).slice(0, 12);
-
     return `
       <div id="targetDrawerOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; background: rgba(5, 5, 10, 0.92); backdrop-filter: blur(24px);">
         <div style="padding: 48px; height: 100%; overflow-y: auto;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
             <div>
-              <div style="font-size: 0.6875rem; font-weight: 800; color: var(--muted); letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 6px;">Quick Setup</div>
+              <div style="font-size: 0.6875rem; font-weight: 800; color: var(--muted); letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 6px;">App Drawer</div>
               <div style="font-size: 1.75rem; font-weight: 900; letter-spacing: -0.03em;">Add Apps to Shield</div>
             </div>
             <button style="background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); color: var(--muted); padding: 10px 20px; border-radius: 12px; font-size: 12px; font-weight: 800; cursor: pointer; letter-spacing: 0.5px; transition: all 0.2s;" id="btnCloseTargetDrawer">ESC / CLOSE</button>
@@ -439,7 +395,7 @@ async function renderSubTab(rules: any[], lockedDomains: string[]) {
                 <button class="quick-add-service" data-id="${
                   s.id
                 }" data-name="${s.name}" 
-                  style="padding: 20px 12px; flex-direction: column; align-items: center; display: flex; gap: 10px; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 16px; cursor: pointer; color: var(--text); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position:relative; overflow:hidden;">
+                  style="padding: 20px 12px; flex-direction: column; align-items: center; display: flex; gap: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 14px; cursor: pointer; color: var(--text); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position:relative; overflow:hidden;">
                   ${renderAppIcon(s.id, s.name)}
                   <div style="font-size: 12px; font-weight: 800; color: #FFFFFF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; text-align: center;">${
                     s.name
@@ -472,37 +428,11 @@ async function renderSubTab(rules: any[], lockedDomains: string[]) {
               ? visibleApps
                   .map((app) => renderServiceCard(app, rules, lockedDomains))
                   .join('')
-              : '<div style="padding: 28px 20px; border: 1px dashed rgba(255,255,255,0.08); border-radius: 16px; color: var(--muted); font-size: 12px; font-weight: 700; text-align: center; background: rgba(255,255,255,0.01); width: 100%;">No apps shielded yet — use Quick Add below.</div>'
+              : '<div style="padding: 28px 20px; border: 1px dashed rgba(255,255,255,0.08); border-radius: 16px; color: var(--muted); font-size: 12px; font-weight: 700; text-align: center; background: rgba(255,255,255,0.01); width: 100%;">No apps shielded yet � use Quick Add below.</div>'
           }
         </div>
       </div>
 
-      <!-- Quick Add Suggestions -->
-      ${
-        suggestions.length > 0
-          ? `
-      <div style="margin-bottom: 36px; padding: 20px 20px 16px; border: 1px dashed rgba(255,255,255,0.08); border-radius: 20px; background: rgba(255,255,255,0.01);">
-        <div style="font-size: 10px; font-weight: 800; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 14px; text-align: center;">Quick Add</div>
-        <div style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;">
-          ${suggestions
-            .map(
-              (s) => `
-            <button class="quick-add-service" data-id="${s.id}" data-name="${
-                s.name
-              }" style="display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 100px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: var(--text); font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s ease;">
-              ${renderBrandLogo(s.id, s.name, 18)}
-              ${s.name}
-            </button>
-          `,
-            )
-            .join('')}
-        </div>
-        <div style="text-align: center; margin-top: 14px;">
-          <button id="btnOpenTargetDrawer" style="font-size: 11px; font-weight: 800; color: var(--muted); background: none; border: none; cursor: pointer; letter-spacing: 0.5px; text-decoration: underline; text-underline-offset: 3px;">Browse all apps →</button>
-        </div>
-      </div>`
-          : ''
-      }
 
       <!-- Custom Domain Blocks -->
       <div style="border-top: 1px solid var(--glass-border); padding-top: 36px; margin-top: 4px;">
@@ -528,6 +458,9 @@ async function renderSubTab(rules: any[], lockedDomains: string[]) {
               : '<div style="padding: 28px 20px; border: 1px dashed rgba(255,255,255,0.08); border-radius: 16px; color: var(--muted); font-size: 12px; font-weight: 700; text-align: center; background: rgba(255,255,255,0.01); width: 100%;">No custom domains shielded. Type a domain in the search bar above and press Enter.</div>'
           }
         </div>
+      </div>
+      <div style="display:flex; justify-content:center; margin-top: 28px;">
+        <button class="btn-premium" id="btnOpenTargetDrawer" style="width: 58px; height: 58px; font-size: 24px; display:flex; align-items:center; justify-content:center; border-radius: 18px; padding: 0;">+</button>
       </div>
     `;
   }
@@ -572,8 +505,8 @@ function renderDomainRuleCard(rule: any, lockedDomains: string[] = []) {
       display:flex; flex-direction:column; gap: 0; height: auto; padding: 0;
       ${
         active
-          ? 'border-color: rgba(185,28,28,0.35); box-shadow: inset 3px 0 0 var(--red), 0 0 20px rgba(185,28,28,0.06);'
-          : ''
+          ? 'border-color: rgba(255,255,255,0.03); box-shadow: none; background: rgba(255,255,255,0.03);'
+          : 'border-color: rgba(255,255,255,0.03); box-shadow: none; background: rgba(255,255,255,0.015);'
       }
     ">
       <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%; padding: 14px 16px;">
@@ -591,7 +524,7 @@ function renderDomainRuleCard(rule: any, lockedDomains: string[] = []) {
                <span class="stat-lbl" style="font-size: 10px;">Domain</span>
                ${
                  active
-                   ? '<span style="font-size: 9px; font-weight: 800; color: var(--red); letter-spacing: 0.5px; text-transform: uppercase;">● Blocked</span>'
+                   ? '<span style="font-size: 9px; font-weight: 800; color: var(--red); letter-spacing: 0.5px; text-transform: uppercase;">Blocked</span>'
                    : ''
                }
              </div>
@@ -611,13 +544,13 @@ function renderDomainRuleCard(rule: any, lockedDomains: string[] = []) {
           } data-pkg="${escapeHtml(rule.packageName)}">
             ${
               isLocked
-                ? '🔒'
+                ? 'LOCK'
                 : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>'
             }
           </button>
         </div>
       </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.04); background: rgba(255,255,255,0.01); border-radius: 0 0 20px 20px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.008); border-radius: 0 0 20px 20px;">
         ${renderLimitSelector(rule)}
         <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Daily Limit</div>
       </div>
@@ -642,8 +575,8 @@ function renderServiceCard(
       display:flex; flex-direction:column; gap: 0; height: auto; padding: 0;
       ${
         active
-          ? 'border-color: rgba(185,28,28,0.35); box-shadow: inset 3px 0 0 var(--red), 0 0 20px rgba(185,28,28,0.06);'
-          : ''
+          ? 'border-color: rgba(255,255,255,0.03); box-shadow: none; background: rgba(255,255,255,0.03);'
+          : 'border-color: rgba(255,255,255,0.03); box-shadow: none; background: rgba(255,255,255,0.015);'
       }
     ">
       <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%; padding: 14px 16px;">
@@ -657,7 +590,7 @@ function renderServiceCard(
                <span class="stat-lbl" style="font-size: 10px;">App</span>
                ${
                  active
-                   ? '<span style="font-size: 9px; font-weight: 800; color: var(--red); letter-spacing: 0.5px; text-transform: uppercase;">● Blocked</span>'
+                   ? '<span style="font-size: 9px; font-weight: 800; color: var(--red); letter-spacing: 0.5px; text-transform: uppercase;">Blocked</span>'
                    : ''
                }
              </div>
@@ -677,7 +610,7 @@ function renderServiceCard(
           } data-pkg="${escapeHtml(service.id)}">
             ${
               isLocked
-                ? '🔒'
+                ? 'LOCK'
                 : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>'
             }
           </button>
@@ -686,7 +619,7 @@ function renderServiceCard(
       ${
         active
           ? `
-      <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.04); background: rgba(255,255,255,0.01); border-radius: 0 0 20px 20px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.008); border-radius: 0 0 20px 20px;">
         ${localRule ? renderLimitSelector(localRule) : ''}
         <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Daily Limit</div>
       </div>`
@@ -714,13 +647,13 @@ function renderCategoryCard(
       display:flex; flex-direction:column; gap: 0; height: auto; padding: 0;
       ${
         active
-          ? 'border-color: rgba(61,61,74,0.6); box-shadow: inset 3px 0 0 var(--accent), 0 0 20px rgba(61,61,74,0.1);'
-          : ''
+          ? 'border-color: rgba(255,255,255,0.03); box-shadow: none; background: rgba(255,255,255,0.03);'
+          : 'border-color: rgba(255,255,255,0.03); box-shadow: none; background: rgba(255,255,255,0.015);'
       }
     ">
       <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%; padding: 14px 16px;">
         <div style="display:flex; align-items:center; gap: 12px; min-width: 0; flex: 1;">
-           <div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(61,61,74,0.15); display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid rgba(61,61,74,0.3); flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+           <div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; box-shadow: none;">
              ${badge}
            </div>
            <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
@@ -731,7 +664,7 @@ function renderCategoryCard(
                <span class="stat-lbl" style="font-size: 10px;">Category</span>
                ${
                  active
-                   ? '<span style="font-size: 9px; font-weight: 800; color: var(--accent); letter-spacing: 0.5px; text-transform: uppercase;">● Active</span>'
+                   ? '<span style="font-size: 9px; font-weight: 800; color: var(--accent); letter-spacing: 0.5px; text-transform: uppercase;">Active</span>'
                    : ''
                }
              </div>
@@ -747,14 +680,16 @@ function renderCategoryCard(
             <span class="off-text">OFF</span>
           </button>
           ${
-            isLocked ? '<div style="font-size:13px; opacity:0.5;">🔒</div>' : ''
+            isLocked
+              ? '<div style="font-size:10px; opacity:0.5; font-weight:800; letter-spacing:0.6px;">LOCK</div>'
+              : ''
           }
         </div>
       </div>
       ${
         active
           ? `
-      <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.04); background: rgba(255,255,255,0.01); border-radius: 0 0 20px 20px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; border-top: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.008); border-radius: 0 0 20px 20px;">
         ${localRule ? renderLimitSelector(localRule) : '<span></span>'}
         <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Daily Limit</div>
       </div>`
@@ -765,6 +700,17 @@ function renderCategoryCard(
 }
 
 async function setupHandlers(container: HTMLElement, rules: any[]) {
+  container
+    .querySelector('#btnOpenTargetDrawer')
+    ?.addEventListener('click', () => {
+      const overlay = container.querySelector(
+        '#targetDrawerOverlay',
+      ) as HTMLElement;
+      if (overlay) {
+        overlay.style.display = 'block';
+      }
+    });
+
   container
     .querySelector('#btnCloseTargetDrawer')
     ?.addEventListener('click', () => {

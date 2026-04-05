@@ -1,9 +1,5 @@
-import React, { startTransition, useEffect, useState } from 'react';
+import { startTransition, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { renderDashboardPopup as renderDashboardScreen } from '../screens/dashboard/DashboardPopup';
-import { renderAppsPopup } from '../screens/AppsPopup';
-import { renderFocusPopup as renderFocusScreen } from '../screens/focus/FocusPopup';
-
 import {
   extensionAdapter as storage,
   nextDNSApi,
@@ -14,6 +10,9 @@ import {
   type ShellStatus,
   type ShellTab,
 } from '../ui/react/ExtensionShell';
+import { FocusPopupView } from '../screens/focus/FocusPopupView';
+import { AppsPopupView } from '../screens/apps/AppsPopupView';
+import { DashboardPopupView } from '../screens/dashboard/DashboardPopupView';
 
 type TabId = 'dash' | 'apps' | 'focus';
 
@@ -56,25 +55,6 @@ function formatCountdown(expiresAt: number) {
   const mins = Math.floor(diffMs / 60000);
   const secs = Math.floor((diffMs % 60000) / 1000);
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-}
-
-async function renderTab(container: HTMLElement, tabId: TabId) {
-  switch (tabId) {
-    case 'dash': {
-      await renderDashboardScreen(container);
-      return;
-    }
-    case 'apps': {
-      await renderAppsPopup(container);
-      return;
-    }
-    case 'focus': {
-      await renderFocusScreen(container);
-      return;
-    }
-    default:
-      container.innerHTML = '';
-  }
 }
 
 function PopupApp() {
@@ -166,24 +146,26 @@ function PopupApp() {
       onTabChange={(tab) => setActiveTab(tab)}
       passHud={
         passEntries.length > 0 ? (
-          <div id="passHUD" style={{ display: 'flex' }}>
+          <div
+            id="passHUD"
+            className="fg-flex fg-gap-2 fg-px-4 fg-py-2 fg-bg-transparent fg-no-scrollbar fg-overflow-x-auto"
+          >
             {passEntries.map((entry) => (
-              <div className="pass-item" key={entry.domain}>
-                <div className="pass-domain">{entry.domain}</div>
-                <div className="pass-timer-wrap">
+              <div
+                key={entry.domain}
+                className="fg-flex fg-items-center fg-gap-2 fg-px-2 fg-py-1 fg-rounded-lg fg-shrink-0 fg-bg-white/5"
+              >
+                <div className="fg-text-[9px] fg-font-black fg-text-slate-400 fg-uppercase fg-tracking-[0.18em]">
+                  {entry.domain}
+                </div>
+                <div className="fg-flex fg-items-center fg-gap-1.5 fg-text-[10px] fg-font-black fg-text-sky-200">
                   {clockSvg}
-                  <div className="pass-timer-val">
-                    {formatCountdown(entry.expiresAt)}
-                  </div>
-                  <div className="pass-label">PASS</div>
+                  {formatCountdown(entry.expiresAt)}
                 </div>
               </div>
             ))}
           </div>
         ) : undefined
-      }
-      renderContent={({ container, activeTab: tabId }) =>
-        renderTab(container, tabId as TabId)
       }
       status={status}
       tabs={TABS}
@@ -192,23 +174,17 @@ function PopupApp() {
           onClick={() =>
             chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') })
           }
-          style={{
-            padding: '6px 12px',
-            borderRadius: '8px',
-            background: 'var(--accent)',
-            border: 'none',
-            color: '#fff',
-            fontSize: '10px',
-            fontWeight: 900,
-            cursor: 'pointer',
-            letterSpacing: '0.5px',
-          }}
+          className="fg-popup-action fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-text-[9px] fg-font-black fg-rounded-md fg-tracking-[0.16em] fg-whitespace-nowrap hover:fg-bg-[#2d2d34] focus:fg-scale-[0.98] fg-transition-all"
           type="button"
         >
           PORTAL
         </button>
       }
-    />
+    >
+      {activeTab === 'focus' && <FocusPopupView />}
+      {activeTab === 'dash' && <DashboardPopupView />}
+      {activeTab === 'apps' && <AppsPopupView />}
+    </PopupShell>
   );
 }
 

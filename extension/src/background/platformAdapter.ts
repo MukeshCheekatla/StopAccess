@@ -149,21 +149,33 @@ export const extensionAdapter: StorageAdapter = {
   },
 };
 
+function redact(input: string | undefined): string {
+  if (!input) {
+    return '';
+  }
+  return input.replace(/[a-zA-Z0-9]{10,}/g, (match) => {
+    return match.substring(0, 2) + '****';
+  });
+}
+
 export const extensionLogger = {
   add: async (level: any, message: string, details = '') => {
+    const redactedMessage = redact(message);
+    const redactedDetails = redact(details);
+
     const current = await extensionAdapter.getString(STORAGE_KEYS.LOGS);
     const logs = current ? JSON.parse(current as string) : [];
     const updated = [
       {
         timestamp: new Date().toISOString(),
         level,
-        message,
-        details,
+        message: redactedMessage,
+        details: redactedDetails,
       },
       ...logs,
     ].slice(0, 100);
     await extensionAdapter.set(STORAGE_KEYS.LOGS, JSON.stringify(updated));
-    console.log(`[FocusGate] ${message}`, details);
+    console.log(`[FocusGate] ${redactedMessage}`, redactedDetails);
   },
 };
 

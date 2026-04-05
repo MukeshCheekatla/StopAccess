@@ -169,7 +169,7 @@ function _renderLogsList(isConfigured: boolean, blockedLogs: any[]): string {
               log.domain
             }</div>
             <div style="font-size:10px; color:var(--red); font-weight:700; margin-top:2px; text-transform:uppercase; letter-spacing:0.5px;">${
-              log.reasons?.[0]?.name || 'INTERCEPTED'
+              log.reasons?.[0]?.name || 'BLOCKED'
             }</div>
           </div>
           <div style="font-size:10px; color:var(--muted); font-weight:800; font-family:monospace;">${_formatTimeAgo(
@@ -209,7 +209,7 @@ function _renderTopBlocked(isConfigured: boolean, topBlocked: any[]): string {
             }</div>
             <div style="font-size:10px; color:var(--accent); font-weight:800; margin-top:2px;">${
               item.count
-            } INTERCEPTS</div>
+            } BLOCKS</div>
           </div>
         </div>`;
     })

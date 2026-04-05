@@ -37,7 +37,7 @@ export async function renderSettingsPage(container) {
           }; margin-top: 4px;">${healthOk ? 'ONLINE' : 'OFFLINE'}</div>
         </div>
         <div class="glass-card" style="padding: var(--space-lg);">
-          <div class="field-label">Active Protocol</div>
+          <div class="field-label">Active Setting</div>
           <div style="font-size: 18px; font-weight: 800; color: var(--text); margin-top: 4px;">${syncMode.toUpperCase()}</div>
         </div>
         <div class="glass-card" style="padding: var(--space-lg);">
@@ -59,7 +59,7 @@ export async function renderSettingsPage(container) {
           
           <!-- Section 1: Protection -->
           <section>
-            <div class="section-label">Enforcement Strategy</div>
+            <div class="section-label">Blocking Level</div>
             <div style="font-size: 13px; color: var(--muted); margin-bottom: var(--space-lg);">Choose how strictly FocusGate should filter your network traffic and browser requests.</div>
             <div class="enforcement-grid" style="grid-template-columns: 1fr 1fr; margin: 0;">
               <div class="enforcement-card ${
@@ -67,14 +67,14 @@ export async function renderSettingsPage(container) {
               } ${isLocked ? 'locked' : ''}" data-mode="browser">
                 <div class="enforcement-level">STANDARD</div>
                 <div class="enforcement-tag">Browser Logic</div>
-                <div class="enforcement-desc">Fast, local intercepts using browser-native blocking. No external DNS required.</div>
+                <div class="enforcement-desc">Fast, local blocks using browser-native blocking. No external DNS required.</div>
               </div>
               <div class="enforcement-card ${
                 syncMode === 'profile' ? 'active' : ''
               } ${isLocked ? 'locked' : ''}" data-mode="profile">
                 <div class="enforcement-level">STRONG</div>
-                <div class="enforcement-tag">Cloud Hardened</div>
-                <div class="enforcement-desc">Full NextDNS integration for network-wide enforcement. Maximum friction.</div>
+                <div class="enforcement-tag">Cloud Sync</div>
+                <div class="enforcement-desc">Full NextDNS integration for syncing across all devices. Strongest blocking.</div>
               </div>
             </div>
           </section>
@@ -95,7 +95,7 @@ export async function renderSettingsPage(container) {
               </div>
 
               <div class="glass-card" style="padding: var(--space-lg);">
-                <div class="field-label" style="margin-bottom: 12px;">Node Status</div>
+                <div class="field-label" style="margin-bottom: 12px;">Device Status</div>
                 <div id="sync_stats" style="min-height: 42px; margin-bottom: 12px;"></div>
                 <div style="display: flex; gap: var(--space-sm);">
                   <button class="btn-premium" id="btn_force_sync" style="flex:1; font-size: 11px; background: var(--accent); justify-content: center;">PUSH</button>
@@ -111,7 +111,7 @@ export async function renderSettingsPage(container) {
             <div class="glass-card" style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-lg);">
               <div>
                 <div style="font-weight: 700; font-size: 14px;">Audit Trail</div>
-                <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">View all background enforcement decisions.</div>
+                <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">View all background blocking decisions.</div>
               </div>
               <div style="display: flex; gap: 8px;">
                 <button class="btn-premium" id="btn_view_logs" style="background: transparent; border: 1px solid var(--glass-border); box-shadow: none;">VIEW LOGS</button>
@@ -164,7 +164,7 @@ export async function renderSettingsPage(container) {
             </div>
 
             <div class="glass-card" style="padding: var(--space-lg);">
-              <div class="field-label">Guardian PIN</div>
+              <div class="field-label">Security PIN</div>
               <div style="font-size: 11px; color: var(--muted); margin-bottom: 16px;">Required for major configuration changes.</div>
               <div style="display: flex; gap: var(--space-sm);">
                  <input type="password" id="guardian_pin_input" placeholder="----" maxlength="4" class="input-premium" style="text-align: center; letter-spacing: 8px; font-weight: 900; font-size: 16px;">
@@ -179,13 +179,13 @@ export async function renderSettingsPage(container) {
 
       <div style="margin-top: 64px; text-align: center; padding: 32px; border-top: 1px solid var(--glass-border); opacity: 0.5;">
          <div style="font-size: 10px; font-weight: 800; letter-spacing: 2px;">FOCUSGATE v1.0.0</div>
-         <button id="btn_clear_logs" style="background:none; border:none; color:var(--red); font-size: 9px; font-weight: 800; cursor:pointer; margin-top: 8px; text-transform: uppercase;">Purge Telemetry</button>
+         <button id="btn_clear_logs" style="background:none; border:none; color:var(--red); font-size: 9px; font-weight: 800; cursor:pointer; margin-top: 8px; text-transform: uppercase;">Clear Logs</button>
       </div>
     `;
 
   // --- Logic & Event Handlers ---
 
-  // Enforcement Mode Selection
+  // Blocking Mode Selection
   container.querySelectorAll('.enforcement-card').forEach((card) => {
     card.addEventListener('click', async () => {
       const mode = card.getAttribute('data-mode');
@@ -201,7 +201,7 @@ export async function renderSettingsPage(container) {
       const currentPin = await storage.getString('guardian_pin');
       if (currentPin) {
         const challenge = prompt(
-          'Enter Guardian PIN to change enforcement level:',
+          'Enter Security PIN to change blocking level:',
         );
         if (challenge !== currentPin) {
           toast.error('UNAUTHORIZED: Shield remains active.');
@@ -211,7 +211,7 @@ export async function renderSettingsPage(container) {
 
       await setSyncModeAction(mode);
       await addActionLog(
-        `Changed enforcement mode to ${mode.toUpperCase()}`,
+        `Changed Blocking Mode to ${mode.toUpperCase()}`,
         'info',
       );
 
@@ -257,7 +257,7 @@ export async function renderSettingsPage(container) {
 
       if (currentPin) {
         const challenge = prompt(
-          'Enter Guardian PIN to authorize credential change:',
+          'Enter Security PIN to authorize credential change:',
         );
         if (challenge !== currentPin) {
           toast.error('UNAUTHORIZED: Configuration locked.');
@@ -265,7 +265,7 @@ export async function renderSettingsPage(container) {
         }
       }
 
-      btn.innerText = 'SYNCHRONIZING...';
+      btn.innerText = 'SYNCING...';
       btn.disabled = true;
       feedback.style.display = 'block';
       feedback.style.background = 'rgba(255,255,255,0.02)';
@@ -280,18 +280,18 @@ export async function renderSettingsPage(container) {
           feedback.style.borderColor = 'rgba(16, 185, 129, 0.2)';
           feedback.style.color = 'var(--green)';
           feedback.innerHTML =
-            '<strong>Connection Optimal</strong><br>Handshake verified. Nodes synced.';
+            '<strong>Connection Optimal</strong><br>Connection verified. Devices synced.';
           btn.innerText = 'CONNECTED';
           await addActionLog('Successfully linked NextDNS account', 'success');
         } else {
-          throw new Error(result.error || 'Verification signal lost.');
+          throw new Error(result.error || 'Verification connection lost.');
         }
       } catch (err) {
         await addActionLog(`Link failure: ${err.message}`, 'error');
         feedback.style.background = 'rgba(239, 68, 68, 0.1)';
         feedback.style.borderColor = 'rgba(239, 68, 68, 0.2)';
         feedback.style.color = 'var(--red)';
-        feedback.innerHTML = `<strong>Handshake Failed</strong><br>${err.message}`;
+        feedback.innerHTML = `<strong>Connection Failed</strong><br>${err.message}`;
         btn.innerText = 'RETRY CONNECTION';
         btn.disabled = false;
       }
@@ -322,7 +322,7 @@ export async function renderSettingsPage(container) {
       );
       const currentPin = await storage.getString('guardian_pin');
       if (currentPin) {
-        const challenge = prompt('Enter Guardian PIN to disable Strict Mode:');
+        const challenge = prompt('Enter Security PIN to disable Strict Mode:');
         if (challenge !== currentPin) {
           toast.error('UNAUTHORIZED: Shield remains active.');
           checkbox.checked = true;
@@ -371,7 +371,7 @@ export async function renderSettingsPage(container) {
         return;
       }
       await setGuardianPinAction(pin);
-      await addActionLog('Guardian PIN updated', 'info');
+      await addActionLog('Security PIN updated', 'info');
       toast.success('Security layer active.');
       input.value = '';
     });
@@ -390,7 +390,7 @@ export async function renderSettingsPage(container) {
       if (challenge) {
         const ok = await verifyAndRemoveGuardianPinAction(challenge);
         if (ok) {
-          await addActionLog('Guardian PIN decommissioned', 'warning');
+          await addActionLog('Security PIN decommissioned', 'warning');
           toast.info('Security layer offline.');
         } else {
           toast.error('Access Denied');
@@ -536,7 +536,7 @@ export async function renderSettingsPage(container) {
     ?.addEventListener('click', async () => {
       await clearEngineLogsAction();
       await addActionLog('Audit log history purged', 'info');
-      toast.info('Telemetry cleared.');
+      toast.info('Logs cleared.');
     });
 
   container
