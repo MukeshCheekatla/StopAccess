@@ -116,9 +116,11 @@ export function DashboardShell<T extends string>({
         }`}
       >
         <div className="fg-px-3 fg-pt-4 fg-pb-[22px] fg-flex fg-items-center fg-gap-[14px]">
-          <div className="fg-w-9 fg-h-9 fg-rounded-[10px] fg-bg-[rgba(255,255,255,0.06)] fg-border fg-border-[rgba(255,255,255,0.08)] fg-flex fg-items-center fg-justify-center fg-text-[13px] fg-font-black fg-tracking-[-0.05em] fg-text-white">
-            FG
-          </div>
+          <img
+            src="/assets/icon-48.png"
+            alt="FocusGate"
+            className="fg-w-9 fg-h-9 fg-rounded-[10px] fg-border fg-border-[rgba(255,255,255,0.08)] fg-object-contain"
+          />
           <div>
             <div className="fg-text-[1.15rem] fg-font-bold fg-tracking-[-0.03em] fg-text-white">
               FocusGate

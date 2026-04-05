@@ -50,8 +50,27 @@ export async function renderSettingsPage(container) {
   const isLocked = !sessionGuardResult.allowed;
 
   container.innerHTML = `
-      <!-- Top Metrics Row -->
-      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-md); margin-bottom: var(--space-xl);">
+      <div style="display: flex; height: 100%; min-height: calc(100vh - 40px); margin: -20px;">
+        <div style="width: 240px; border-right: 1px solid var(--glass-border); background: rgba(0,0,0,0.12); padding: 20px 12px; display: flex; flex-direction: column; gap: 4px;">
+
+          <div style="font-size: 10px; font-weight: 800; color: var(--muted); padding-left: 12px; margin-bottom: 4px; letter-spacing: 1px;">PREFERENCES</div>
+          <button class="settings-tab-btn active" data-target="sec_protection" style="text-align: left; background: rgba(255,255,255,0.04); border: none; color: var(--text); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;">🛡️ Blocking Level</button>
+          <button class="settings-tab-btn" data-target="sec_credentials" style="text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;">☁️ NextDNS Sync</button>
+          
+          <div style="margin-top: 16px; margin-bottom: 4px; font-size: 10px; font-weight: 800; color: var(--muted); padding-left: 12px; letter-spacing: 1px;">SYSTEM</div>
+          <button class="settings-tab-btn" data-target="sec_security" style="text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;">🔐 Security Layer</button>
+          <button class="settings-tab-btn" data-target="sec_diagnostics" style="text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;">🩺 Diagnostics</button>
+          <button class="settings-tab-btn" data-target="sec_audit" style="text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;">📊 Data & Audit</button>
+
+          <div style="margin-top: auto; text-align: center; padding: 16px; opacity: 0.5;">
+             <div style="font-size: 10px; font-weight: 800; letter-spacing: 2px;">FOCUSGATE v1.0.0</div>
+          </div>
+        </div>
+
+        <div style="flex: 1; padding: 40px; overflow-y: auto; max-width: 900px;">
+          <div id="sec_protection" class="settings-content-section" style="display: block; animation: fadeIn 0.2s ease;">
+            <!-- Top Metrics Row -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-md); margin-bottom: var(--space-xl);">
         <div class="glass-card" style="padding: var(--space-lg);">
           <div class="field-label">Shield Status</div>
           <div style="font-size: 18px; font-weight: 800; color: ${
@@ -76,9 +95,6 @@ export async function renderSettingsPage(container) {
         </div>
       </div>
 
-      <div style="display: grid; grid-template-columns: 3fr 2fr; gap: var(--space-xl); align-items: start;">
-        <div style="display: flex; flex-direction: column; gap: var(--space-xl);">
-          
           <!-- Section 1: Protection -->
           <section>
             <div class="section-label">Blocking Level</div>
@@ -100,7 +116,9 @@ export async function renderSettingsPage(container) {
               </div>
             </div>
           </section>
+          </div>
 
+          <div id="sec_diagnostics" class="settings-content-section" style="display: none; animation: fadeIn 0.2s ease;">
           <!-- Section 2: Diagnostics -->
           <section>
             <div class="section-label">Diagnostic Tools</div>
@@ -126,7 +144,9 @@ export async function renderSettingsPage(container) {
               </div>
             </div>
           </section>
+          </div>
 
+          <div id="sec_audit" class="settings-content-section" style="display: none; animation: fadeIn 0.2s ease;">
           <!-- Section 3: Data -->
           <section>
             <div class="section-label">Persistence & Audit</div>
@@ -143,11 +163,9 @@ export async function renderSettingsPage(container) {
               </div>
             </div>
           </section>
+          </div>
 
-        </div>
-
-        <div style="display: flex; flex-direction: column; gap: var(--space-xl);">
-          
+          <div id="sec_credentials" class="settings-content-section" style="display: none; animation: fadeIn 0.2s ease;">
           <!-- Section 4: Credentials -->
           <section>
             <div class="section-label">NextDNS Profile</div>
@@ -242,7 +260,9 @@ export async function renderSettingsPage(container) {
               <button class="btn-premium" id="btn_save_config" style="width: 100%; justify-content: center; height: 48px;">SAVE & TEST</button>
             </div>
           </section>
-
+          </div>
+          
+          <div id="sec_security" class="settings-content-section" style="display: none; animation: fadeIn 0.2s ease;">
           <!-- Section 5: Security -->
           <section>
             <div class="section-label">Security Layer</div>
@@ -271,13 +291,8 @@ export async function renderSettingsPage(container) {
               <button id="btn_clear_pin" style="background:none; border:none; color:var(--red); font-size:10px; font-weight:800; cursor:pointer; margin-top: 16px; width: 100%; text-align: right; opacity: 0.6; text-transform: uppercase;">Deactivate PIN</button>
             </div>
           </section>
-
+          </div>
         </div>
-      </div>
-
-      <div style="margin-top: 64px; text-align: center; padding: 32px; border-top: 1px solid var(--glass-border); opacity: 0.5;">
-         <div style="font-size: 10px; font-weight: 800; letter-spacing: 2px;">FOCUSGATE v1.0.0</div>
-         <button id="btn_clear_logs" style="background:none; border:none; color:var(--red); font-size: 9px; font-weight: 800; cursor:pointer; margin-top: 8px; text-transform: uppercase;">Clear Logs</button>
       </div>
     `;
 
@@ -810,6 +825,32 @@ export async function renderSettingsPage(container) {
         a.click();
       };
     });
+
+  // Sidebar JS
+  container.querySelectorAll('.settings-tab-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      container.querySelectorAll('.settings-tab-btn').forEach((b) => {
+        b.classList.remove('active');
+        (b as HTMLElement).style.background = 'transparent';
+        (b as HTMLElement).style.color = 'var(--muted)';
+      });
+      const targetBtn = e.currentTarget as HTMLElement;
+      targetBtn.classList.add('active');
+      targetBtn.style.background = 'rgba(255,255,255,0.04)';
+      targetBtn.style.color = 'var(--text)';
+
+      container.querySelectorAll('.settings-content-section').forEach((sec) => {
+        (sec as HTMLElement).style.display = 'none';
+      });
+
+      const targetPanel = container.querySelector(
+        '#' + targetBtn.getAttribute('data-target'),
+      );
+      if (targetPanel) {
+        (targetPanel as HTMLElement).style.display = 'block';
+      }
+    });
+  });
 
   // Initial load
   refreshStats();

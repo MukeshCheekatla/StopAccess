@@ -80,7 +80,12 @@ function CollectionCard({
     <View style={styles.collectionCard}>
       <View style={styles.collectionHeader}>
         <View style={styles.collectionLead}>
-          <View style={[styles.collectionIconBox, { backgroundColor: accent + '15' }]}>
+          <View
+            style={[
+              styles.collectionIconBox,
+              { backgroundColor: accent + '15' },
+            ]}
+          >
             <Icon name={icon} size={18} color={accent} />
           </View>
           <View style={styles.collectionCopy}>
@@ -151,7 +156,11 @@ export default function PrivacySettingsScreen({ navigation }: any) {
     const natives = privacySettings?.natives?.length ?? 0;
     return [
       { label: 'Blocklists', value: String(blocklists), icon: 'shield-moon' },
-      { label: 'Native Trackers', value: String(natives), icon: 'cellphone-link' },
+      {
+        label: 'Native Trackers',
+        value: String(natives),
+        icon: 'cellphone-link',
+      },
       {
         label: 'Smart Tracking',
         value: privacySettings?.disguisedTrackers ? 'On' : 'Off',
@@ -187,7 +196,10 @@ export default function PrivacySettingsScreen({ navigation }: any) {
     load();
   };
 
-  const removeCollectionItem = async (mode: 'blocklist' | 'native', id: string) => {
+  const removeCollectionItem = async (
+    mode: 'blocklist' | 'native',
+    id: string,
+  ) => {
     const result =
       mode === 'blocklist'
         ? await privacyVM.removeBlocklist(id)
@@ -234,17 +246,17 @@ export default function PrivacySettingsScreen({ navigation }: any) {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={styles.backBtn}
+        >
           <Icon name="chevron-left" size={30} color={COLORS.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Privacy</Text>
       </View>
 
       <ScrollView
-        contentContainerStyle={[
-          styles.scroll,
-          isTablet && styles.scrollTablet,
-        ]}
+        contentContainerStyle={[styles.scroll, isTablet && styles.scrollTablet]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.sectionHeader}>
@@ -303,7 +315,9 @@ export default function PrivacySettingsScreen({ navigation }: any) {
               />
             </View>
 
-            <View style={[styles.collections, isTablet && styles.collectionsTablet]}>
+            <View
+              style={[styles.collections, isTablet && styles.collectionsTablet]}
+            >
               <CollectionCard
                 title="Blocklists"
                 subtitle="Curated DNS deny catalogs"
@@ -334,7 +348,8 @@ export default function PrivacySettingsScreen({ navigation }: any) {
         <View style={styles.footer}>
           <Text style={styles.footerTitle}>FocusGate Privacy Bridge</Text>
           <Text style={styles.footerCopy}>
-            Powered by the same shared privacy view-models used by the extension.
+            Powered by the same shared privacy view-models used by the
+            extension.
           </Text>
         </View>
       </ScrollView>
@@ -354,7 +369,9 @@ export default function PrivacySettingsScreen({ navigation }: any) {
               onChangeText={setDraftId}
               autoCapitalize="none"
               autoCorrect={false}
-              placeholder={modalMode === 'blocklist' ? 'e.g. oisd' : 'e.g. apple'}
+              placeholder={
+                modalMode === 'blocklist' ? 'e.g. oisd' : 'e.g. apple'
+              }
               placeholderTextColor={COLORS.muted}
             />
             <View style={styles.modalActions}>
@@ -364,7 +381,10 @@ export default function PrivacySettingsScreen({ navigation }: any) {
               >
                 <Text style={styles.modalCancelText}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalPrimary} onPress={saveCollectionItem}>
+              <TouchableOpacity
+                style={styles.modalPrimary}
+                onPress={saveCollectionItem}
+              >
                 <Text style={styles.modalPrimaryText}>Save</Text>
               </TouchableOpacity>
             </View>

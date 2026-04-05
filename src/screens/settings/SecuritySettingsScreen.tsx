@@ -245,17 +245,23 @@ export default function SecuritySettingsScreen({ navigation }: any) {
         </View>
 
         <View style={[styles.metricGrid, isTablet && styles.metricGridTablet]}>
-          <View style={[styles.metricCard, isTablet && styles.metricCardTablet]}>
+          <View
+            style={[styles.metricCard, isTablet && styles.metricCardTablet]}
+          >
             <Text style={styles.metricValue}>{strictMode ? 'ON' : 'OFF'}</Text>
             <Text style={styles.metricLabel}>Strict Mode</Text>
           </View>
-          <View style={[styles.metricCard, isTablet && styles.metricCardTablet]}>
+          <View
+            style={[styles.metricCard, isTablet && styles.metricCardTablet]}
+          >
             <Text style={styles.metricValue}>
               {securitySettings?.tlds?.length ?? 0}
             </Text>
             <Text style={styles.metricLabel}>Blocked TLDs</Text>
           </View>
-          <View style={[styles.metricCard, isTablet && styles.metricCardTablet]}>
+          <View
+            style={[styles.metricCard, isTablet && styles.metricCardTablet]}
+          >
             <Text style={styles.metricValue}>{pin ? 'SET' : 'NONE'}</Text>
             <Text style={styles.metricLabel}>Protection PIN</Text>
           </View>
@@ -389,7 +395,8 @@ export default function SecuritySettingsScreen({ navigation }: any) {
             <View style={[styles.sectionHeader, styles.marginTop32]}>
               <Text style={styles.sectionLabel}>TLD BLOCKING</Text>
               <Text style={styles.sectionDesc}>
-                Restrict risky top-level domains the same way the extension does.
+                Restrict risky top-level domains the same way the extension
+                does.
               </Text>
             </View>
 
@@ -403,7 +410,11 @@ export default function SecuritySettingsScreen({ navigation }: any) {
               >
                 <View style={styles.inlineActionLead}>
                   <View style={styles.iconBox}>
-                    <Icon name="plus-circle-outline" size={20} color={COLORS.accent} />
+                    <Icon
+                      name="plus-circle-outline"
+                      size={20}
+                      color={COLORS.accent}
+                    />
                   </View>
                   <View>
                     <Text style={styles.settingLabel}>Add Blocked TLD</Text>
@@ -420,7 +431,9 @@ export default function SecuritySettingsScreen({ navigation }: any) {
                   securitySettings.tlds.map((tld) => (
                     <View key={tld.id} style={styles.token}>
                       <Text style={styles.tokenText}>.{tld.id}</Text>
-                      <TouchableOpacity onPress={() => removeBlockedTld(tld.id)}>
+                      <TouchableOpacity
+                        onPress={() => removeBlockedTld(tld.id)}
+                      >
                         <Icon name="close" size={14} color={COLORS.muted} />
                       </TouchableOpacity>
                     </View>
@@ -589,7 +602,12 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   scroll: { paddingHorizontal: 20, paddingBottom: 40 },
-  metricGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 18 },
+  metricGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 18,
+  },
   metricGridTablet: { flexWrap: 'nowrap' },
   metricCard: {
     width: '48%',

@@ -580,7 +580,7 @@ export default function DashboardScreen() {
                 </Text>
               </TouchableOpacity>
             </View>
-            {controlledUsage.map((item, idx) => {
+            {controlledUsage.map((item, _idx) => {
               const rule = rules.find(
                 (r) => r.packageName === item.packageName,
               );

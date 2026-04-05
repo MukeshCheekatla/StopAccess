@@ -61,7 +61,9 @@ function TabNavigator() {
       borderTopColor: COLORS.border,
       elevation: 0,
       shadowOpacity: 0,
-      height: isTablet ? 74 + insets.bottom : (compactDevice ? 60 : 68) + insets.bottom,
+      height: isTablet
+        ? 74 + insets.bottom
+        : (compactDevice ? 60 : 68) + insets.bottom,
       paddingBottom: Math.max(insets.bottom, isTablet ? 14 : 10),
       paddingTop: isTablet ? 8 : 4,
     }),

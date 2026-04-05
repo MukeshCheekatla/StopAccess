@@ -313,7 +313,9 @@ export default function SettingsScreen({ navigation }: any) {
               tint={item.tint}
               badge={item.badge}
               onPress={item.onPress}
-              style={featureColumns === 2 ? styles.featureTileTablet : undefined}
+              style={
+                featureColumns === 2 ? styles.featureTileTablet : undefined
+              }
             />
           ))}
         </View>
