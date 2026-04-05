@@ -91,10 +91,6 @@ async function build() {
       rawManifest.content_scripts[0].js = ['contentScript.js'];
     }
 
-    if (rawManifest.web_accessible_resources) {
-      delete rawManifest.web_accessible_resources;
-    }
-
     // Save the re-mapped manifest into dist/
     writeFileSync(
       resolve(DIST_DIR, 'manifest.json'),

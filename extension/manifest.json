@@ -41,6 +41,12 @@
     "48": "assets/icon.png",
     "128": "assets/icon.png"
   },
+  "web_accessible_resources": [
+    {
+      "resources": ["tailwind.css"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "browser_specific_settings": {
     "gecko": {
       "id": "focusgate@focusgate.io",

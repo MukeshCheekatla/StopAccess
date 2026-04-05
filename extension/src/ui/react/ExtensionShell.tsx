@@ -1,11 +1,4 @@
-import React, {
-  type CSSProperties,
-  type ReactNode,
-  useEffect,
-  useState,
-  useMemo,
-  useRef,
-} from 'react';
+import React, { type ReactNode, useMemo } from 'react';
 
 export type ShellTab<T extends string> = {
   id: T;
@@ -20,16 +13,11 @@ export type ShellStatus = {
   tone: ShellStatusTone;
 };
 
-type RenderArgs<T extends string> = {
-  container: HTMLElement;
-  activeTab: T;
-};
-
 type PopupShellProps<T extends string> = {
   activeTab: T;
   onTabChange: (tab: T) => void;
   passHud?: ReactNode;
-  renderContent: (args: RenderArgs<T>) => Promise<void>;
+  children: ReactNode;
   status: ShellStatus;
   tabs: Array<ShellTab<T>>;
   topbarRight?: ReactNode;
@@ -41,83 +29,66 @@ type DashboardShellProps<T extends string> = {
   hiddenSidebar?: boolean;
   onTabChange: (tab: T) => void;
   pageTitle: string;
-  renderContent: (args: RenderArgs<T>) => Promise<void>;
+  children: ReactNode;
   status: ShellStatus;
   tabs: Array<ShellTab<T>>;
 };
-
-export function useMountedRenderer<T extends string>(
-  activeTab: T,
-  renderContent: (args: RenderArgs<T>) => Promise<void>,
-) {
-  const contentRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const mountContent = async () => {
-      const container = contentRef.current;
-      if (!container) {
-        return;
-      }
-
-      try {
-        await renderContent({ container, activeTab });
-      } catch (error) {
-        if (cancelled) {
-          return;
-        }
-        renderNavigationError(container, error);
-      }
-    };
-
-    mountContent();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, renderContent]);
-
-  return contentRef;
-}
 
 export function PopupShell<T extends string>({
   activeTab,
   onTabChange,
   passHud,
-  renderContent,
+  children,
   status,
   tabs,
   topbarRight,
 }: PopupShellProps<T>) {
-  const contentRef = useMountedRenderer(activeTab, renderContent);
   const statusClassName = useMemo(
-    () => `status-badge ${resolveStatusClass(status.tone)}`,
+    () => `fg-status-badge ${resolveStatusClass(status.tone)}`,
     [status.tone],
   );
 
   return (
-    <div className="main">
+    <div className="fg-main fg-shell-bg fg-flex fg-flex-col fg-h-screen fg-w-screen fg-overflow-hidden fg-text-[var(--text)]">
       {passHud}
-      <div style={popupTopbarStyle}>
+      <div className="fg-flex fg-items-center fg-gap-2 fg-px-4 fg-py-3 fg-bg-[rgba(0,0,0,0.1)] fg-overflow-x-auto fg-no-scrollbar fg-z-50">
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            className={`nav-item${activeTab === tab.id ? ' active' : ''}`}
+            className={`fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-lg fg-text-[10px] fg-font-extrabold fg-tracking-[0.08em] fg-whitespace-nowrap fg-transition-all fg-duration-150 active:fg-scale-95 ${
+              activeTab === tab.id
+                ? 'fg-bg-[var(--accent)] fg-text-white'
+                : 'fg-bg-[rgba(255,255,255,0.03)] fg-text-[var(--muted)] hover:fg-text-white hover:fg-bg-[rgba(255,255,255,0.05)]'
+            }`}
             data-tab={tab.id}
             onClick={() => onTabChange(tab.id)}
-            style={popupNavButtonStyle}
             type="button"
           >
             {tab.label}
           </button>
         ))}
-        <span className={statusClassName} style={popupStatusStyle}>
-          {status.label}
-        </span>
-        {topbarRight}
+
+        <div className="fg-ml-auto fg-flex fg-items-center fg-gap-3">
+          <span
+            className={`fg-inline-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-full fg-text-[10px] fg-font-bold fg-whitespace-nowrap ${statusClassName}`}
+          >
+            <span
+              className={`fg-w-1.5 fg-h-1.5 fg-rounded-full ${
+                status.tone === 'active'
+                  ? 'fg-bg-white fg-animate-pulse'
+                  : status.tone === 'error'
+                  ? 'fg-bg-[var(--red)]'
+                  : 'fg-bg-[var(--muted)]'
+              }`}
+            />
+            {status.label}
+          </span>
+          {topbarRight}
+        </div>
       </div>
-      <div id="mainContent" ref={contentRef} />
+      <div className="fg-flex-1 fg-min-h-0 fg-overflow-y-auto fg-no-scrollbar">
+        {children}
+      </div>
     </div>
   );
 }
@@ -128,193 +99,96 @@ export function DashboardShell<T extends string>({
   hiddenSidebar = false,
   onTabChange,
   pageTitle,
-  renderContent,
+  children,
   status,
   tabs,
 }: DashboardShellProps<T>) {
-  const contentRef = useMountedRenderer(activeTab, renderContent);
   const statusClassName = useMemo(
-    () => `status-pill ${resolveStatusClass(status.tone)}`,
+    () => `fg-status-pill ${resolveStatusClass(status.tone)}`,
     [status.tone],
   );
 
-  const navListRef = useRef<HTMLElement>(null);
-  const [indicatorData, setIndicatorData] = useState({
-    top: 0,
-    height: 0,
-    opacity: 0,
-  });
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (navListRef.current) {
-        const activeEl = navListRef.current.querySelector(
-          '.nav-item.active',
-        ) as HTMLElement;
-        if (activeEl) {
-          setIndicatorData({
-            top: activeEl.offsetTop,
-            height: activeEl.offsetHeight,
-            opacity: 1,
-          });
-        }
-      }
-    }, 10);
-    return () => clearTimeout(timer);
-  }, [activeTab]);
-
   return (
-    <>
+    <div className="fg-flex fg-h-screen fg-w-screen fg-overflow-hidden fg-shell-bg fg-text-[var(--text)]">
       <div
-        className="sidebar"
-        style={hiddenSidebar ? { display: 'none' } : undefined}
+        className={`fg-sidebar fg-w-[272px] fg-bg-[rgba(24,24,27,0.95)] fg-border-r fg-border-[var(--glass-border)] fg-flex fg-flex-col fg-shrink-0 fg-p-[14px] ${
+          hiddenSidebar ? 'fg-hidden' : ''
+        }`}
       >
-        <div className="sidebar-brand" style={{ paddingBottom: '18px' }}>
-          <div className="brand-mark">
-            <div
-              className="brand-logo"
-              style={{
-                fontWeight: 900,
-                fontSize: '13px',
-                letterSpacing: '-0.8px',
-                width: '34px',
-                height: '34px',
-              }}
-            >
-              FG
+        <div className="fg-px-3 fg-pt-4 fg-pb-[22px] fg-flex fg-items-center fg-gap-[14px]">
+          <div className="fg-w-9 fg-h-9 fg-rounded-[10px] fg-bg-[rgba(255,255,255,0.06)] fg-border fg-border-[rgba(255,255,255,0.08)] fg-flex fg-items-center fg-justify-center fg-text-[13px] fg-font-black fg-tracking-[-0.05em] fg-text-white">
+            FG
+          </div>
+          <div>
+            <div className="fg-text-[1.15rem] fg-font-bold fg-tracking-[-0.03em] fg-text-white">
+              FocusGate
             </div>
-            <div>
-              <div className="brand-name">FocusGate</div>
+            <div className="fg-mt-0.5 fg-text-[12px] fg-text-[var(--muted)]">
+              Extension workspace
             </div>
           </div>
         </div>
-        <div className="sidebar-status-row">
-          <div className="sidebar-status-label">{pageTitle}</div>
-          <div id="statusBadge" className={statusClassName}>
+
+        <div className="fg-flex fg-items-center fg-justify-between fg-gap-[10px] fg-px-3 fg-pb-4">
+          <div className="fg-text-xs fg-font-bold fg-text-[var(--muted)] fg-tracking-[-0.01em]">
+            {pageTitle}
+          </div>
+          <div
+            id="statusBadge"
+            className={`fg-inline-flex fg-items-center fg-gap-1.5 fg-px-[10px] fg-py-[4px] fg-rounded-full fg-text-[10px] fg-font-extrabold ${statusClassName}`}
+          >
             {status.label}
           </div>
         </div>
-        <nav
-          className="nav-list"
-          ref={navListRef}
-          style={{ position: 'relative' }}
-        >
-          <div
-            className="nav-snake-bg"
-            style={{
-              position: 'absolute',
-              left: '8px',
-              right: '8px',
-              top: `${indicatorData.top}px`,
-              height: `${indicatorData.height}px`,
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '14px',
-              opacity: indicatorData.opacity,
-              transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              pointerEvents: 'none',
-              zIndex: 0,
-            }}
-          />
-          <div
-            className="nav-snake-bar"
-            style={{
-              position: 'absolute',
-              left: '8px',
-              top: `${indicatorData.top + indicatorData.height * 0.225}px`,
-              height: `${indicatorData.height * 0.55}px`,
-              width: '4px',
-              background: '#fff',
-              borderRadius: '0 4px 4px 0',
-              opacity: indicatorData.opacity,
-              transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              pointerEvents: 'none',
-              zIndex: 1,
-            }}
-          />
+
+        <nav className="fg-flex-1 fg-flex fg-flex-col fg-gap-1 fg-px-2">
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              className={`nav-item${activeTab === tab.id ? ' active' : ''}`}
+              className={`nav-item fg-w-full fg-appearance-none fg-shadow-none fg-text-left fg-px-[0.95rem] fg-py-[0.875rem] fg-flex fg-items-center fg-gap-[0.875rem] fg-rounded-[12px] fg-border fg-text-[1rem] fg-font-semibold ${
+                activeTab === tab.id
+                  ? 'nav-item-active active fg-text-white fg-bg-[rgba(255,255,255,0.08)] fg-border-[rgba(255,255,255,0.08)]'
+                  : 'fg-bg-transparent fg-border-transparent fg-text-[var(--muted)] hover:fg-text-white hover:fg-bg-[rgba(255,255,255,0.04)] hover:fg-border-[rgba(255,255,255,0.04)]'
+              }`}
               data-tab={tab.id}
               onClick={() => onTabChange(tab.id)}
-              style={{
-                ...dashboardNavButtonStyle,
-                zIndex: 2,
-                position: 'relative',
-              }}
               type="button"
             >
-              {tab.icon}
-              <span>{tab.label}</span>
+              <span className="fg-w-5 fg-h-5 fg-flex-shrink-0 fg-flex fg-items-center fg-justify-center fg-opacity-[0.86]">
+                {tab.icon}
+              </span>
+              <span className="fg-flex-1">{tab.label}</span>
             </button>
           ))}
         </nav>
-        <div className="shell-footer">
-          <div className="shell-footer-label">Workspace</div>
-          <div className="shell-footer-value">{footer}</div>
+
+        <div className="fg-mt-auto fg-mx-2 fg-my-2 fg-px-4 fg-py-[14px] fg-rounded-[14px] fg-bg-[rgba(255,255,255,0.03)] fg-border fg-border-[rgba(255,255,255,0.05)]">
+          <div className="fg-text-[11px] fg-text-[var(--muted)] fg-uppercase fg-tracking-[0.12em] fg-font-bold fg-mb-1">
+            Workspace
+          </div>
+          <div className="fg-text-[13px] fg-font-bold fg-text-white">
+            {footer}
+          </div>
         </div>
       </div>
-      <div className="main">
-        <div id="mainContent" ref={contentRef}>
-          <div className="loader-spinner" />
+      <div className="fg-flex-1 fg-flex fg-flex-col fg-overflow-hidden">
+        <div className="fg-flex-1 fg-overflow-y-auto">
+          <div className="fg-shell-content">{children}</div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
 function resolveStatusClass(tone: ShellStatusTone) {
   if (tone === 'default') {
-    return '';
+    return 'fg-bg-[rgba(255,255,255,0.05)] fg-text-[var(--muted)]';
   }
-  return tone;
+  if (tone === 'active') {
+    return 'fg-bg-[var(--green)] fg-text-white';
+  }
+  if (tone === 'error') {
+    return 'fg-bg-[var(--red)] fg-text-white';
+  }
+  return 'fg-bg-[rgba(255,255,255,0.02)] fg-text-[var(--muted)]';
 }
-
-function renderNavigationError(container: HTMLElement, error: unknown) {
-  const message =
-    error instanceof Error ? error.message : 'Unknown navigation error';
-
-  container.innerHTML = `
-    <div class="empty-state">
-      <div style="font-size:14px; font-weight:900; color:var(--red);">SYNC FAIL</div>
-      <div style="font-weight:800;">Navigation Error</div>
-      <div style="font-size:11px; color:var(--muted);">${message}</div>
-    </div>`;
-}
-
-const popupTopbarStyle: CSSProperties = {
-  display: 'flex',
-  gap: '8px',
-  padding: '12px 16px',
-  background: 'rgba(0,0,0,0.1)',
-  borderBottom: '1px solid var(--glass-border)',
-  overflowX: 'auto',
-  whiteSpace: 'nowrap',
-  scrollbarWidth: 'none',
-};
-
-const popupNavButtonStyle: CSSProperties = {
-  padding: '6px 12px',
-  borderRadius: '8px',
-  background: 'rgba(255,255,255,0.03)',
-  border: '1px solid var(--glass-border)',
-  color: 'var(--muted)',
-  fontSize: '10px',
-  fontWeight: 800,
-  cursor: 'pointer',
-  whiteSpace: 'nowrap',
-};
-
-const popupStatusStyle: CSSProperties = {
-  marginLeft: 'auto',
-  fontSize: '10px',
-  padding: '6px 10px',
-};
-
-const dashboardNavButtonStyle: CSSProperties = {
-  width: '100%',
-  border: 'none',
-  background: 'transparent',
-  textAlign: 'left',
-};

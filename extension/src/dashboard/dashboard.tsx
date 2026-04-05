@@ -1,13 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import React from 'react';
-import { renderDashboardPage as renderDashboard } from '../screens/dashboard/DashboardPage';
-import { renderAppsPage } from '../screens/AppsPage';
-import { renderFocusPage as renderFocusScreen } from '../screens/focus/FocusPage';
-import { renderSchedulePage as renderScheduleScreen } from '../screens/schedule/SchedulePage';
-import { renderInsightsPage as renderInsightsScreen } from '../screens/insights/InsightsPage';
-import { renderSettingsPage as renderSettingsScreen } from '../screens/settings/SettingsPage';
-import { renderOnboarding } from '../screens/OnboardingScreen';
+import { OnboardingReact } from '../screens/Onboarding';
 import {
   extensionAdapter as storage,
   nextDNSApi,
@@ -17,6 +11,15 @@ import {
   type ShellStatus,
   type ShellTab,
 } from '../ui/react/ExtensionShell';
+import { LegacyBridge } from '../ui/react/LegacyBridge';
+import { renderDashboardPage } from '../screens/dashboard/DashboardPage';
+import { renderFocusPage } from '../screens/focus/FocusPage';
+import { renderSchedulePage } from '../screens/schedule/SchedulePage';
+import { renderInsightsPage } from '../screens/insights/InsightsPage';
+import { renderSettingsPage } from '../screens/settings/SettingsPage';
+import { renderSecurityPage } from '../screens/security/SecurityPage';
+import { renderPrivacyPage } from '../screens/privacy/PrivacyPage';
+import { renderAppsPage } from '../screens/apps/AppsPage';
 
 type TabId =
   | 'dash'
@@ -174,46 +177,6 @@ function resolveInitialTab(): TabId {
   return TAB_SET.has(candidate) ? (candidate as TabId) : 'dash';
 }
 
-async function renderTab(container: HTMLElement, tabId: TabId) {
-  switch (tabId) {
-    case 'dash':
-      await renderDashboard(container);
-      return;
-    case 'apps': {
-      await renderAppsPage(container);
-      return;
-    }
-    case 'focus':
-      await renderFocusScreen(container);
-      return;
-    case 'schedule':
-      await renderScheduleScreen(container);
-      return;
-    case 'insights':
-      await renderInsightsScreen(container);
-      return;
-    case 'security': {
-      const { renderSecurityPage } = await import(
-        '../screens/security/SecurityPage'
-      );
-      await renderSecurityPage(container);
-      return;
-    }
-    case 'privacy': {
-      const { renderPrivacyPage } = await import(
-        '../screens/privacy/PrivacyPage'
-      );
-      await renderPrivacyPage(container);
-      return;
-    }
-    case 'settings':
-      await renderSettingsScreen(container);
-      return;
-    default:
-      container.innerHTML = '<div class="loader">Coming Soon</div>';
-  }
-}
-
 function DashboardApp() {
   const [activeTab, setActiveTab] = useState<TabId>(() => resolveInitialTab());
   const [status, setStatus] = useState<ShellStatus>({
@@ -304,34 +267,58 @@ function DashboardApp() {
     };
   }, []);
 
-  const renderContent = useCallback(
-    async ({
-      container,
-      activeTab: tabId,
-    }: {
-      container: HTMLElement;
-      activeTab: TabId;
-    }) => {
-      if (showOnboarding) {
-        renderOnboarding(container, (targetTab?: string) => {
-          storage.set('fg_onboarding_done', 'true');
-          setShowOnboarding(false);
-          setActiveTab(
-            TAB_SET.has(targetTab || '') ? (targetTab as TabId) : 'dash',
-          );
-        });
-        return;
-      }
+  const renderCurrentContent = () => {
+    if (showOnboarding) {
+      return (
+        <OnboardingReact
+          onComplete={(targetTab?: string) => {
+            storage.set('fg_onboarding_done', 'true');
+            setShowOnboarding(false);
+            setActiveTab(
+              TAB_SET.has(targetTab || '') ? (targetTab as TabId) : 'dash',
+            );
+          }}
+        />
+      );
+    }
 
-      if (!ready) {
-        container.innerHTML = '<div class="loader">Loading...</div>';
-        return;
-      }
+    if (!ready) {
+      return (
+        <div className="fg-flex fg-items-center fg-justify-center fg-h-full">
+          <div className="fg-animate-spin fg-w-10 fg-h-10 fg-border-4 fg-border-white/5 fg-border-t-sky-300 fg-rounded-full" />
+        </div>
+      );
+    }
 
-      await renderTab(container, tabId);
-    },
-    [ready, showOnboarding],
-  );
+    switch (activeTab) {
+      case 'focus':
+        return (
+          <LegacyBridge
+            renderFn={(container) => renderFocusPage(container, 'page')}
+          />
+        );
+      case 'apps':
+        return <LegacyBridge renderFn={renderAppsPage} />;
+      case 'dash':
+        return <LegacyBridge renderFn={renderDashboardPage} />;
+      case 'schedule':
+        return <LegacyBridge renderFn={renderSchedulePage} />;
+      case 'insights':
+        return (
+          <LegacyBridge
+            renderFn={(container) => renderInsightsPage(container, 'page')}
+          />
+        );
+      case 'settings':
+        return <LegacyBridge renderFn={renderSettingsPage} />;
+      case 'security':
+        return <LegacyBridge renderFn={renderSecurityPage} />;
+      case 'privacy':
+        return <LegacyBridge renderFn={renderPrivacyPage} />;
+      default:
+        return <div className="fg-p-12 fg-text-slate-400">Coming soon</div>;
+    }
+  };
 
   return (
     <DashboardShell
@@ -340,10 +327,11 @@ function DashboardApp() {
       hiddenSidebar={showOnboarding}
       onTabChange={(tab) => setActiveTab(tab)}
       pageTitle={showOnboarding ? 'Welcome' : pageTitle}
-      renderContent={renderContent}
       status={status}
       tabs={TABS}
-    />
+    >
+      {renderCurrentContent()}
+    </DashboardShell>
   );
 }
 

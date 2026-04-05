@@ -4,15 +4,20 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "npm run typecheck && node build.js",
-    "watch": "node build.js --watch",
+    "tw:build": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --config ./tailwind.config.js --minify",
+    "tw:watch": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --config ./tailwind.config.js --watch",
+    "build": "npm run typecheck && npm run tw:build && node build.js",
+    "watch": "npm run tw:watch & node build.js --watch",
     "check": "node ../scripts/check-extension.mjs",
     "lint": "eslint . --fix",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.38",
-    "esbuild": "^0.25.2"
+    "autoprefixer": "^10.4.27",
+    "esbuild": "^0.25.2",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.19"
   },
   "dependencies": {
     "@types/react": "^19.2.14",
