@@ -7,11 +7,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!--
-        PACKAGE_USAGE_STATS is a "privileged" permission that must be granted
-        manually by the user via Settings > Apps > Special App Access > Usage Access.
-        tools:ignore suppresses the lint warning: this is intentional.
-    -->
+    <!-- Usage stats for app detection -->
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions" />
@@ -19,15 +15,14 @@
     <!-- Overlay for blocked app screen -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
-    <!-- Required for BootReceiver to auto-start the rule engine on device boot -->
+    <!-- Required for auto-start after reboot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- Unlocks visibility to all other installed apps (Instagram, Brave, etc) on Android 11+ -->
+    <!-- Visibility to all other apps (Brave, Instagram, etc) on Android 11+ -->
     <uses-permission 
         android:name="android.permission.QUERY_ALL_PACKAGES" 
         tools:ignore="QueryAllPackagesPermission" />
 
-    <!-- Fallback query for common launcher apps -->
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
@@ -41,7 +36,7 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher"
         android:allowBackup="false"
-        android:theme="@style/AppTheme"
+        android:theme="@style/BootTheme"
         android:usesCleartextTraffic="true">
 
         <activity
@@ -57,26 +52,16 @@
             </intent-filter>
         </activity>
 
-        <!--
-            BootReceiver: restarts the rule engine after device reboot.
-            Requires RECEIVE_BOOT_COMPLETED permission above.
-        -->
         <receiver
             android:name=".BootReceiver"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <!-- Xiaomi / OnePlus fast-boot -->
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
 
-        <!--
-            BlockerAccessibilityService — mandatory enforcement layer.
-            Monitors foreground app changes and shows block overlay.
-            User must enable via Settings > Accessibility > Gate.
-        -->
         <service
             android:name=".BlockerAccessibilityService"
             android:exported="true"

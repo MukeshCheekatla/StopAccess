@@ -1,0 +1,22 @@
+{
+  "name": "@focusgate/viewmodels",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./useSecurityVM": "./src/useSecurityVM.ts",
+    "./usePrivacyVM": "./src/usePrivacyVM.ts",
+    "./useDashboardVM": "./src/useDashboardVM.ts",
+    "./useAppsVM": "./src/useAppsVM.ts",
+    "./useFocusVM": "./src/useFocusVM.ts",
+    "./useInsightsVM": "./src/useInsightsVM.ts",
+    "./useSettingsVM": "./src/useSettingsVM.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/** --fix",
+    "typecheck": "tsc --noEmit"
+  }
+}

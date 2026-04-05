@@ -1,4 +1,5 @@
 const { getDefaultConfig, mergeConfig } = require('@react-native/metro-config');
+const { withNativeWind } = require('nativewind/metro');
 const path = require('path');
 
 /**
@@ -15,6 +16,7 @@ const config = {
       '@focusgate/state': path.resolve(__dirname, 'packages/state'),
       '@focusgate/sync': path.resolve(__dirname, 'packages/sync'),
       '@focusgate/types': path.resolve(__dirname, 'packages/types'),
+      '@focusgate/viewmodels': path.resolve(__dirname, 'packages/viewmodels'),
     },
     unstable_enablePackageExports: true,
   },
@@ -24,7 +26,13 @@ const config = {
     path.resolve(__dirname, 'packages/state'),
     path.resolve(__dirname, 'packages/sync'),
     path.resolve(__dirname, 'packages/types'),
+    path.resolve(__dirname, 'packages/viewmodels'),
   ],
 };
 
-module.exports = mergeConfig(getDefaultConfig(__dirname), config);
+module.exports = withNativeWind(
+  mergeConfig(getDefaultConfig(__dirname), config),
+  {
+    input: './global.css',
+  },
+);

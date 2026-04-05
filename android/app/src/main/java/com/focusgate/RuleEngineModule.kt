@@ -16,17 +16,6 @@ import com.facebook.react.bridge.ReadableArray
  * RuleEngineModule — React Native bridge for the protection system.
  *
  * Exposed as NativeModules.RuleEngine on the JS side.
- *
- * API:
- *   setBlockedPackages(packages: string[])   → void   Write rules
- *   getBlockedPackages()                     → Promise<string[]>
- *   getProtectionLevel()                     → Promise<string>  "STRONG"|"STANDARD"|"WEAK"|"NONE"
- *   getProtectionWarning()                   → Promise<string|null>
- *   setDnsEnabled(enabled: boolean)          → void
- *   isDnsEnabled()                           → Promise<boolean>
- *   isAccessibilityEnabled()                 → Promise<boolean>
- *   openAccessibilitySettings()              → void
- *   recomputeProtectionLevel()               → Promise<string>
  */
 class RuleEngineModule(private val ctx: ReactApplicationContext) :
     ReactContextBaseJavaModule(ctx) {
@@ -114,7 +103,6 @@ class RuleEngineModule(private val ctx: ReactApplicationContext) :
                 }
                 ctx.startActivity(intent)
             } catch (e: Exception) {
-                // Fallback to general overlay settings if package-specific fails
                 val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 }
@@ -150,6 +138,28 @@ class RuleEngineModule(private val ctx: ReactApplicationContext) :
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         ctx.startActivity(intent)
+    }
+
+    @ReactMethod
+    fun openPrivateDnsSettings(promise: Promise) {
+        try {
+            val action = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                "android.settings.DNS_SETTINGS"
+            } else {
+                Settings.ACTION_WIRELESS_SETTINGS
+            }
+            val intent = Intent(action).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            ctx.startActivity(intent)
+            promise.resolve(null)
+        } catch (e: Exception) {
+            val intent = Intent(Settings.ACTION_WIRELESS_SETTINGS).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            ctx.startActivity(intent)
+            promise.resolve(null)
+        }
     }
 
     @ReactMethod

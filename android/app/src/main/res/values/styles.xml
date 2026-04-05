@@ -1,6 +1,40 @@
 <resources>
-    <!-- Base application theme -->
-    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-        <!-- Customize your theme here. -->
+    <!-- SplashScreen API Theme for Android 12+ (API 31+) -->
+    <style name="BootTheme" parent="Theme.SplashScreen">
+        <!-- Background of the splash screen -->
+        <item name="windowSplashScreenBackground">@color/primary_dark</item>
+        
+        <!-- Post-splash theme (what the app transitions into) -->
+        <item name="postSplashScreenTheme">@style/AppTheme</item>
+        
+        <!-- Center the FocusGate Shield Icon over the Deep Midnight background -->
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/primary_dark</item>
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+        
+        <!-- Ensure native layers are dark throughout transition -->
+        <item name="android:windowBackground">@color/primary_dark</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowTranslucentStatus">true</item>
+    </style>
+
+    <!-- Base application theme (Post-Launch) -->
+    <style name="AppTheme" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <!-- Main colors -->
+        <item name="colorPrimary">@color/primary_dark</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorAccent">@color/accent_color</item>
+
+        <!-- Window background after splash -->
+        <item name="android:windowBackground">@color/primary_dark</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowFullscreen">false</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        
+        <item name="android:navigationBarColor">@color/primary_dark</item>
+        <item name="android:statusBarColor">@color/primary_dark</item>
+        
+        <item name="android:editTextColor">#FFFFFF</item>
     </style>
 </resources>
