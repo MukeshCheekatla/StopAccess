@@ -480,6 +480,11 @@ export const nextDNSApi = {
     const cfg = await nextDNSApi.getConfig();
     return ndnsCore.getBlocklistsForProfile(cfg, extensionLogger.add);
   },
+  getAvailableBlocklists: async () => {
+    const cfg = await nextDNSApi.getConfig();
+    const client = ndnsCore.createClient(cfg, extensionLogger.add);
+    return ndnsCore.getAvailableBlocklists(client);
+  },
   addBlocklist: async (id: string) => {
     const check = await requireUnlocked('modify_blocklist');
     if (check.locked) {

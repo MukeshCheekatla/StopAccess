@@ -10,83 +10,96 @@ interface ThreatToggle {
   key: keyof Omit<NextDNSSecuritySettings, 'tlds'>;
   label: string;
   description: string;
-  icon: string;
+  icon: string; // inline SVG string
 }
+
+// Inline SVG icons — no emojis
+const svgShield =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+const svgCpu =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="15" x2="4" y2="15"/><line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="15" x2="22" y2="15"/></svg>';
+const svgSearch =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+const svgZap =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+const svgTarget =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>';
 
 const THREAT_TOGGLES: ThreatToggle[] = [
   {
     key: 'threatIntelligenceFeeds',
     label: 'Threat Intelligence Feeds',
     description: 'Block domains from known threat intelligence databases.',
-    icon: '🛡️',
+    icon: svgShield,
   },
   {
     key: 'aiThreatDetection',
     label: 'AI Threat Detection',
     description: 'Machine learning powered detection of malicious domains.',
-    icon: '🤖',
+    icon: svgCpu,
   },
   {
     key: 'googleSafeBrowsing',
     label: 'Google Safe Browsing',
     description: 'Protect against phishing and malware sites via Google.',
-    icon: '🔍',
+    icon: svgSearch,
   },
   {
     key: 'cryptojacking',
     label: 'Cryptojacking Protection',
     description: 'Block sites that mine cryptocurrency using your device.',
-    icon: '⛏️',
+    icon: svgZap,
   },
 ];
 
 export function renderThreatSection(settings: NextDNSSecuritySettings): string {
+  const activeCount = THREAT_TOGGLES.filter(
+    (t) => settings[t.key] as boolean,
+  ).length;
+  const total = THREAT_TOGGLES.length;
+
   return `
-    <div class="app-card" style="margin-bottom: 16px;">
-      <div class="section-title" style="margin-top: 0; display: flex; align-items: center; gap: 8px;">
-        <span>🎯</span> Threat Protection
+    <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
+      <div class="fg-flex fg-items-center fg-justify-between fg-mb-5">
+        <div class="section-title fg-flex fg-items-center fg-gap-2" style="margin: 0;">
+          <span class="fg-text-[#818cf8]">${svgTarget}</span> Threat Protection
+        </div>
+        <span class="fg-text-[9px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid rgba(255,255,255,0.07);">${activeCount}/${total} ACTIVE</span>
       </div>
-      <div style="display: flex; flex-direction: column; gap: 0;">
-        ${THREAT_TOGGLES.map((t, i) =>
-          renderToggleRow(
-            t,
-            settings[t.key] as boolean,
-            i < THREAT_TOGGLES.length - 1,
-          ),
+      <div class="fg-grid fg-grid-cols-3 fg-gap-2">
+        ${THREAT_TOGGLES.map((t) =>
+          renderToggleRow(t, settings[t.key] as boolean),
         ).join('')}
       </div>
     </div>
   `;
 }
 
-function renderToggleRow(
-  toggle: ThreatToggle,
-  active: boolean,
-  showDivider: boolean,
-): string {
+function renderToggleRow(toggle: ThreatToggle, active: boolean): string {
   return `
-    <div class="security-toggle-row" data-key="${toggle.key}"
-      style="display: flex; align-items: center; justify-content: space-between;
-             padding: 14px 0; ${
-               showDivider
-                 ? 'border-bottom: 1px solid rgba(255,255,255,0.04);'
-                 : ''
-             }
-             cursor: pointer; transition: opacity 0.15s ease;">
-      <div style="display: flex; align-items: flex-start; gap: 12px; flex: 1; min-width: 0;">
-        <span style="font-size: 18px; margin-top: 1px; flex-shrink: 0;">${
-          toggle.icon
-        }</span>
-        <div style="min-width: 0;">
-          <div style="font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 2px;">
-            ${escapeHtml(toggle.label)}
-          </div>
-          <div style="font-size: 11px; color: var(--muted); line-height: 1.4;">
-            ${escapeHtml(toggle.description)}
-          </div>
+    <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150"
+      data-key="${toggle.key}"
+      style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);"
+      onmouseenter="this.style.transform='translateY(-2px)';this.style.background='rgba(255,255,255,0.05)'"
+      onmouseleave="this.style.transform='';this.style.background='rgba(255,255,255,0.03)'"
+    >
+      <!-- Icon and Indicator (Left) -->
+      <div class="fg-relative fg-shrink-0">
+        <span class="fg-text-[#818cf8]">${toggle.icon}</span>
+      </div>
+
+      <!-- Content (Middle) -->
+      <div class="fg-flex-1 fg-min-w-0">
+        <div class="fg-text-[13px] fg-font-bold fg-mb-[2px] fg-leading-[1.3] fg-text-[var(--text)] fg-truncate">
+          ${escapeHtml(toggle.label)}
+        </div>
+        <div class="fg-text-[10px] fg-text-[var(--muted)] fg-leading-[1.4]">
+          ${escapeHtml(toggle.description)}
         </div>
       </div>
-      <div style="margin-left: 16px; flex-shrink: 0;">
+
+      <!-- Toggle (Right) -->
+      <div class="fg-shrink-0">
         ${renderToggleSwitch(toggle.key, active)}
       </div>
     </div>
@@ -96,24 +109,22 @@ function renderToggleRow(
 function renderToggleSwitch(key: string, active: boolean): string {
   return `
     <button
-      class="security-toggle-btn ${active ? 'active' : ''}"
+      class="security-toggle-btn fg-relative fg-shrink-0 fg-cursor-pointer ${
+        active ? 'active' : ''
+      }"
       data-key="${key}"
       aria-checked="${active}"
       role="switch"
-      style="
-        width: 44px; height: 24px; border-radius: 12px; border: none; cursor: pointer;
-        background: ${active ? 'var(--accent)' : 'rgba(255,255,255,0.1)'};
-        position: relative; transition: background 0.2s ease; flex-shrink: 0;
-        outline: none;
-      "
+      style="width: 32px; height: 18px; border-radius: 9px; border: none;
+        background: ${active ? 'var(--green)' : 'rgba(255,255,255,0.1)'};
+        transition: background 0.2s ease; outline: none;"
     >
-      <span style="
-        position: absolute; top: 3px;
-        left: ${active ? '23px' : '3px'};
-        width: 18px; height: 18px; border-radius: 50%;
+      <span style="position: absolute; top: 2px; left: ${
+        active ? '16px' : '2px'
+      };
+        width: 14px; height: 14px; border-radius: 50%;
         background: white; transition: left 0.2s ease;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-      "></span>
+        box-shadow: 0 1px 2px rgba(0,0,0,0.3);"></span>
     </button>
   `;
 }

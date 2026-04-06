@@ -73,11 +73,22 @@ class ToastManager {
     document.head.appendChild(style);
   }
 
+  private lastMessage: string = '';
+  private lastTimestamp: number = 0;
+
   show(
     message: string,
     type: 'info' | 'success' | 'error' = 'info',
     duration: number = 3000,
   ) {
+    // Prevent toast burst (duplicate same message within 500ms)
+    const now = Date.now();
+    if (message === this.lastMessage && now - this.lastTimestamp < 500) {
+      return;
+    }
+    this.lastMessage = message;
+    this.lastTimestamp = now;
+
     this._ensureContainer();
     if (!this.container) {
       return;

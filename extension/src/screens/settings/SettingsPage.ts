@@ -54,23 +54,23 @@ export async function renderSettingsPage(container) {
         <div style="width: 240px; border-right: 1px solid var(--glass-border); background: rgba(0,0,0,0.12); padding: 20px 12px; display: flex; flex-direction: column; gap: 4px;">
 
           <div style="font-size: 10px; font-weight: 800; color: var(--muted); padding-left: 12px; margin-bottom: 4px; letter-spacing: 1px;">PREFERENCES</div>
-          <button class="settings-tab-btn active" data-target="sec_protection" style="text-align: left; background: rgba(255,255,255,0.04); border: none; color: var(--text); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;">🛡️ Blocking Level</button>
-          <button class="settings-tab-btn" data-target="sec_credentials" style="text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;">☁️ NextDNS Sync</button>
+          <button class="settings-tab-btn active" data-target="sec_protection" style="display: flex; align-items: center; gap: 10px; text-align: left; background: rgba(255,255,255,0.04); border: none; color: var(--text); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> <span>Blocking Level</span></button>
+          <button class="settings-tab-btn" data-target="sec_credentials" style="display: flex; align-items: center; gap: 10px; text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19c2.5 0 4.5-2 4.5-4.5 0-2.3-1.7-4.2-3.9-4.5-1.1-3.6-4.4-6-8.1-6-4.5 0-8.2 3.5-8.5 8C1.5 12.3 0 14 0 16c0 2.2 1.8 4 4 4h13.5z"/></svg> <span>NextDNS Sync</span></button>
           
           <div style="margin-top: 16px; margin-bottom: 4px; font-size: 10px; font-weight: 800; color: var(--muted); padding-left: 12px; letter-spacing: 1px;">SYSTEM</div>
-          <button class="settings-tab-btn" data-target="sec_security" style="text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;">🔐 Security Layer</button>
-          <button class="settings-tab-btn" data-target="sec_diagnostics" style="text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;">🩺 Diagnostics</button>
-          <button class="settings-tab-btn" data-target="sec_audit" style="text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;">📊 Data & Audit</button>
+          <button class="settings-tab-btn" data-target="sec_security" style="display: flex; align-items: center; gap: 10px; text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> <span>Security Layer</span></button>
+          <button class="settings-tab-btn" data-target="sec_diagnostics" style="display: flex; align-items: center; gap: 10px; text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> <span>Diagnostics</span></button>
+          <button class="settings-tab-btn" data-target="sec_audit" style="display: flex; align-items: center; gap: 10px; text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> <span>Data & Audit</span></button>
 
           <div style="margin-top: auto; text-align: center; padding: 16px; opacity: 0.5;">
              <div style="font-size: 10px; font-weight: 800; letter-spacing: 2px;">FOCUSGATE v1.0.0</div>
           </div>
         </div>
 
-        <div style="flex: 1; padding: 40px; overflow-y: auto; max-width: 900px;">
+        <div class="fg-flex-1 fg-overflow-y-auto fg-p-10" style="max-width: 900px;">
           <div id="sec_protection" class="settings-content-section" style="display: block; animation: fadeIn 0.2s ease;">
             <!-- Top Metrics Row -->
-            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-md); margin-bottom: var(--space-xl);">
+            <div class="fg-grid fg-grid-cols-4 fg-gap-4 fg-mb-8">
         <div class="glass-card" style="padding: var(--space-lg);">
           <div class="field-label">Shield Status</div>
           <div style="font-size: 18px; font-weight: 800; color: ${
@@ -155,9 +155,9 @@ export async function renderSettingsPage(container) {
                 <div style="font-weight: 700; font-size: 14px;">Audit Trail</div>
                 <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">View all background blocking decisions.</div>
               </div>
-              <div style="display: flex; gap: 8px;">
+              <div class="fg-flex fg-gap-2">
                 <button class="btn-premium" id="btn_view_logs" style="background: transparent; border: 1px solid var(--glass-border); box-shadow: none;">VIEW LOGS</button>
-                <div style="width: 1px; height: 32px; background: var(--glass-border); margin: 0 8px;"></div>
+                <div class="fg-w-px fg-h-8 fg-mx-2" style="background: var(--glass-border);"></div>
                 <button class="btn-premium" id="btn_export_rules" style="background: transparent; border: 1px solid var(--glass-border); box-shadow: none;">BACKUP</button>
                 <button class="btn-premium" id="btn_import_rules" style="background: transparent; border: 1px solid var(--glass-border); box-shadow: none;">RESTORE</button>
               </div>
@@ -170,7 +170,7 @@ export async function renderSettingsPage(container) {
           <section>
             <div class="section-label">NextDNS Profile</div>
             <div class="glass-card" style="padding: var(--space-lg); margin-bottom: var(--space-md);">
-              <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:14px;">
+              <div class="fg-flex fg-items-start fg-justify-between fg-gap-4 fg-mb-[14px]">
                 <div>
                   <div style="font-weight: 800; font-size: 15px; margin-bottom: 6px;">Quick setup for extension sync</div>
                   <div style="font-size: 12px; color: var(--muted); line-height: 1.55;">
@@ -189,7 +189,7 @@ export async function renderSettingsPage(container) {
                   ${healthOk ? 'LINKED' : 'SETUP'}
                 </div>
               </div>
-              <div style="display:grid; gap:10px;">
+              <div class="fg-grid fg-gap-[10px]">
                 <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:14px; background:rgba(255,255,255,0.02);">
                   <div style="min-width:20px; color: var(--accent); font-size:11px; font-weight:900;">1</div>
                   <div>
@@ -204,7 +204,7 @@ export async function renderSettingsPage(container) {
                     <div style="font-size:11px; color:var(--muted); line-height:1.5;">FocusGate verifies the profile before sync is enabled.</div>
                   </div>
                 </div>
-                <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:14px; background:rgba(255,255,255,0.02);">
+                <div class="fg-flex fg-gap-3 fg-items-start fg-px-[14px] fg-py-3 fg-rounded-[14px]" style="background: rgba(255,255,255,0.02);">
                   <div style="min-width:20px; color: var(--accent); font-size:11px; font-weight:900;">3</div>
                   <div>
                     <div style="font-size:12px; font-weight:800; color:var(--text); margin-bottom:4px;">Finish browser DNS</div>
@@ -227,12 +227,12 @@ export async function renderSettingsPage(container) {
                 <button class="btn-premium" id="btn_copy_doh_url" style="background: rgba(255,255,255,0.04); box-shadow: none; border: none;">COPY DNS URL</button>
               </div>
               <div style="padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.03); font-family: monospace; font-size: 11px; color: var(--text); margin-bottom: 16px; word-break: break-all;" id="setup_doh_url">${dnsEndpoint}</div>
-              <div style="display: grid; gap: 8px;">
+              <div class="fg-grid fg-gap-2">
                 ${browserGuide.steps
                   .map(
                     (step, index) => `
-                  <div style="display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.02);">
-                    <div style="font-size: 11px; font-weight: 900; color: var(--accent); min-width: 18px;">${
+                  <div class="fg-flex fg-gap-[10px] fg-items-start fg-px-3 fg-py-[10px] fg-rounded-[10px]" style="background: rgba(255,255,255,0.02);">
+                    <div class="fg-text-[11px] fg-font-black fg-text-[var(--accent)] fg-min-w-[18px]">${
                       index + 1
                     }</div>
                     <div style="font-size: 12px; color: var(--text); line-height: 1.45;">${step}</div>
@@ -594,11 +594,11 @@ export async function renderSettingsPage(container) {
     const { syncState: newSyncState } = await loadSettingsData();
 
     statsDiv.innerHTML = `
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-family: monospace; font-size: 10px;">
-        <div style="color: var(--muted);">STATE:</div>
-        <div style="color: var(--text); text-align: right; font-weight: 700;">${newSyncState.status.toUpperCase()}</div>
-        <div style="color: var(--muted);">LAST:</div>
-        <div style="color: var(--text); text-align: right; font-weight: 700;">${
+      <div class="fg-grid fg-grid-cols-2 fg-gap-1 fg-text-[10px]" style="font-family: monospace;">
+        <div class="fg-text-[var(--muted)]">STATE:</div>
+        <div class="fg-text-[var(--text)] fg-text-right fg-font-bold">${newSyncState.status.toUpperCase()}</div>
+        <div class="fg-text-[var(--muted)]">LAST:</div>
+        <div class="fg-text-[var(--text)] fg-text-right fg-font-bold">${
           newSyncState.lastSyncAt
             ? new Date(newSyncState.lastSyncAt).toLocaleTimeString([], {
                 hour: '2-digit',
@@ -606,8 +606,8 @@ export async function renderSettingsPage(container) {
               })
             : 'N/A'
         }</div>
-        <div style="color: var(--muted);">OPS:</div>
-        <div style="color: var(--accent); text-align: right; font-weight: 700;">${
+        <div class="fg-text-[var(--muted)]">OPS:</div>
+        <div class="fg-text-[var(--accent)] fg-text-right fg-font-bold">${
           newSyncState.pendingOps || 0
         } QUEUED</div>
       </div>
@@ -666,12 +666,13 @@ export async function renderSettingsPage(container) {
         resultDiv.style.color = 'var(--green)';
         resultDiv.style.borderColor = 'rgba(16, 185, 129, 0.2)';
         resultDiv.innerHTML = localMatch
-          ? '✓ ACTIVE RULE MATCH'
-          : '✓ ENGINE AUTO-BLOCK';
+          ? '<span style="display:flex; align-items:center; gap:6px; justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ACTIVE RULE MATCH</span>'
+          : '<span style="display:flex; align-items:center; gap:6px; justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ENGINE AUTO-BLOCK</span>';
       } else {
         resultDiv.style.color = 'var(--yellow)';
         resultDiv.style.borderColor = 'rgba(245, 158, 11, 0.2)';
-        resultDiv.innerHTML = '✗ NO LOCAL MATCH';
+        resultDiv.innerHTML =
+          '<span style="display:flex; align-items:center; gap:6px; justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> NO LOCAL MATCH</span>';
       }
     });
 
@@ -743,7 +744,7 @@ export async function renderSettingsPage(container) {
           <button id="btn_close_logs" style="background:none; border:none; color:var(--muted); font-size: 20px; cursor:pointer;">✕</button>
         </div>
         <div class="modal-content">
-          <div style="display: flex; gap: 8px; margin-bottom: 24px;">
+          <div class="fg-flex fg-gap-2 fg-mb-6">
             <button class="btn-tab active" data-filter="all">ALL ENTRIES</button>
             <button class="btn-tab" data-filter="error">ERRORS</button>
             <button class="btn-tab" data-filter="success">SYNC SUCCESS</button>

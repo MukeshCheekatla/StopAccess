@@ -75,7 +75,7 @@ function renderTodayRecords(): string {
 
   if (records.length === 0) {
     return `
-      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:220px; text-align:center; color:var(--muted);">
+      <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-text-center fg-text-[var(--muted)]" style="min-height:220px;">
         <div style="font-size:16px; color:rgba(255,255,255,0.72);">No records yet</div>
       </div>
     `;
@@ -98,10 +98,10 @@ function renderTodayRecords(): string {
           : 'var(--muted)';
 
       return `
-        <div style="display:grid; grid-template-columns:56px 1fr auto; gap:14px; align-items:center; padding:14px 0; border-top:1px solid rgba(255,255,255,0.06);">
-          <div style="font-size:12px; color:var(--muted);">${start}</div>
+        <div class="fg-grid fg-items-center fg-gap-[14px] fg-py-[14px]" style="grid-template-columns:56px 1fr auto; border-top:1px solid rgba(255,255,255,0.06);">
+          <div class="fg-text-xs fg-text-[var(--muted)]">${start}</div>
           <div style="height:1px; background:rgba(255,255,255,0.08);"></div>
-          <div style="font-size:12px; color:${tone}; font-weight:700;">${duration}</div>
+          <div class="fg-text-xs fg-font-bold" style="color:${tone};">${duration}</div>
         </div>
       `;
     })
@@ -113,17 +113,15 @@ function renderAmbientShell(
   sideContent: string,
 ): string {
   return `
-    <div style="position:relative; min-height:600px; border-radius:24px; overflow:hidden; background:
-      radial-gradient(circle at 48% 46%, rgba(0,180,160,0.12), transparent 30%),
+    <div style="position:relative; min-height:540px; border-radius:24px; overflow:hidden; background:
       linear-gradient(180deg, #09090b, #0c0d12);
       border:1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column;">
-      <div style="position:absolute; inset:0; background:
-        radial-gradient(circle at 50% 50%, transparent 20%, rgba(0,0,0,0.4) 100%);"></div>
-      <div style="position:relative; z-index:1; display:grid; grid-template-columns:minmax(0,1fr) 300px; gap:24px; flex: 1; padding:32px;">
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px;">
+      <div style="position:absolute; inset:0; background: rgba(0,0,0,0.2);"></div>
+      <div style="position:relative; z-index:1; display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:20px; flex: 1; padding:28px;">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px;">
           ${centerContent}
         </div>
-        <div style="display:flex; flex-direction:column; gap:16px;">
+        <div style="display:flex; flex-direction:column; gap:12px;">
           ${sideContent}
         </div>
       </div>
@@ -137,36 +135,36 @@ function renderRingMarkup(
   label: string,
   sublabel: string,
 ): string {
-  const radius = 170;
+  const radius = 150;
   const tickCount = 120;
   const activeTicks = Math.round(progress * tickCount);
   const lines = Array.from({ length: tickCount }, (_, index) => {
     const angle = (index / tickCount) * Math.PI * 2 - Math.PI / 2;
-    const inner = radius - (index % 5 === 0 ? 20 : 12);
+    const inner = radius - (index % 5 === 0 ? 16 : 10);
     const outer = radius;
-    const x1 = 230 + inner * Math.cos(angle);
-    const y1 = 230 + inner * Math.sin(angle);
-    const x2 = 230 + outer * Math.cos(angle);
-    const y2 = 230 + outer * Math.sin(angle);
+    const x1 = 190 + inner * Math.cos(angle);
+    const y1 = 190 + inner * Math.sin(angle);
+    const x2 = 190 + outer * Math.cos(angle);
+    const y2 = 190 + outer * Math.sin(angle);
     const stroke =
       index < activeTicks ? 'rgba(132,255,228,0.92)' : 'rgba(255,255,255,0.25)';
-    const strokeWidth = index % 5 === 0 ? 4 : 3;
+    const strokeWidth = index % 5 === 0 ? 3.5 : 2.5;
     return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
   }).join('');
 
   return `
-    <div style="position:relative; width:460px; height:460px; max-width:100%;">
-      <svg viewBox="0 0 460 460" style="position:absolute; inset:0; width:100%; height:100%;">
-        <circle cx="230" cy="230" r="130" fill="rgba(82, 82, 91, 0.03)" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
+    <div style="position:relative; width:380px; height:380px; max-width:100%;">
+      <svg viewBox="0 0 380 380" style="position:absolute; inset:0; width:100%; height:100%;">
+        <circle cx="190" cy="190" r="110" fill="rgba(82, 82, 91, 0.03)" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
         ${lines}
       </svg>
       <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <div id="liveTimerDisplay" style="font-size:72px; font-weight:300; line-height:0.95; letter-spacing:-0.06em; color:rgba(255,255,255,0.96); font-variant-numeric:tabular-nums;">${timeDisplay}</div>
-        <div style="margin-top:12px; display:inline-flex; align-items:center; gap:8px; color:rgba(255,255,255,0.58); font-size:11px; letter-spacing:0.1em; text-transform:uppercase;">
+        <div id="liveTimerDisplay" style="font-size:60px; font-weight:300; line-height:0.95; letter-spacing:-0.05em; color:rgba(255,255,255,0.96); font-variant-numeric:tabular-nums;">${timeDisplay}</div>
+        <div style="margin-top:10px; display:inline-flex; align-items:center; gap:8px; color:rgba(255,255,255,0.58); font-size:10px; letter-spacing:0.1em; text-transform:uppercase;">
           <span style="width:6px; height:6px; border-radius:50%; background:rgba(132,255,228,0.95); box-shadow:0 0 8px rgba(132,255,228,0.45);"></span>
           ${label}
         </div>
-        <div style="margin-top:8px; max-width:240px; text-align:center; font-size:13px; line-height:1.5; color:rgba(255,255,255,0.45);">${sublabel}</div>
+        <div style="margin-top:6px; max-width:200px; text-align:center; font-size:12px; line-height:1.5; color:rgba(255,255,255,0.45);">${sublabel}</div>
       </div>
     </div>
   `;
@@ -178,11 +176,11 @@ function renderSessionNotes(items: string[]): string {
   }
 
   return `
-    <div style="display:flex; gap:10px; margin-top:34px; flex-wrap:wrap; justify-content:center; max-width:620px;">
+    <div class="fg-flex fg-gap-[10px] fg-flex-wrap fg-justify-center fg-max-w-[620px] fg-mt-[24px]">
       ${items
         .map(
           (item) => `
-        <div style="padding:10px 14px; border-radius:14px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); font-size:12px; font-weight:700; color:rgba(255,255,255,0.72);">
+        <div class="fg-py-[10px] fg-px-[14px] fg-rounded-[14px] fg-text-xs fg-font-bold" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); color:rgba(255,255,255,0.72);">
           ${escapeHtml(item)}
         </div>
       `,
@@ -194,7 +192,7 @@ function renderSessionNotes(items: string[]): string {
 
 function renderPresetButtons(): string {
   return `
-    <div style="display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; width:100%; max-width:400px; margin-top:20px;">
+    <div class="fg-grid fg-grid-cols-2 fg-gap-3 fg-w-full fg-max-w-[400px] fg-mt-5">
       ${[
         { m: 15, tag: 'Quick Sprint' },
         { m: 25, tag: 'Pomodoro' },
@@ -203,9 +201,9 @@ function renderPresetButtons(): string {
       ]
         .map(
           (preset) => `
-        <button class="btn-premium start-focus" data-mins="${preset.m}" style="display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:16px 18px; min-height:80px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); box-shadow:none; border-radius:18px; text-align:left;">
+        <button class="btn-premium start-focus fg-flex fg-flex-col fg-items-start fg-gap-1 fg-text-left fg-rounded-[18px]" data-mins="${preset.m}" style="padding:16px 18px; min-height:80px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); box-shadow:none;">
           <span style="font-size:22px; font-weight:900; color:var(--text); line-height:1;">${preset.m}m</span>
-          <span style="font-size:10px; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:0.1em;">${preset.tag}</span>
+          <span class="fg-text-[10px] fg-text-[var(--muted)] fg-font-bold fg-uppercase fg-tracking-[0.1em]">${preset.tag}</span>
         </button>
       `,
         )
@@ -216,18 +214,18 @@ function renderPresetButtons(): string {
 
 function renderIdleStateSummary(): string {
   return `
-    <div style="width:min(420px, 100%); margin-bottom:26px; padding:18px 22px; border-radius:22px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); text-align:left; backdrop-filter:blur(12px);">
-      <div style="font-size:12px; font-weight:800; color:rgba(255,255,255,0.44); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:8px;">Ready</div>
-      <div style="font-size:16px; color:rgba(255,255,255,0.86); line-height:1.6;">Pick a session length and Focus will start a real countdown. Nothing shown here is simulated.</div>
+    <div style="width:min(420px, 100%); margin-bottom:16px; padding:18px 22px; border-radius:22px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); text-align:left; backdrop-filter:blur(12px);">
+      <div style="font-size:12px; font-weight:800; color:rgba(255,255,255,0.44); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:6px;">Ready</div>
+      <div style="font-size:15px; color:rgba(255,255,255,0.86); line-height:1.6;">Pick a session length and Focus will start a real countdown. Nothing shown here is simulated.</div>
     </div>
   `;
 }
 
 function renderActiveStateSummary(currentFocus: string): string {
   return `
-    <div style="width:min(440px, 100%); margin-bottom:26px; padding:18px 22px; border-radius:22px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); text-align:left; backdrop-filter:blur(12px);">
-      <div style="font-size:12px; font-weight:800; color:rgba(255,255,255,0.44); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:8px;">Current Focus</div>
-      <div style="font-size:16px; color:rgba(255,255,255,0.9); line-height:1.6;">${escapeHtml(
+    <div style="width:min(440px, 100%); margin-bottom:16px; padding:18px 22px; border-radius:22px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); text-align:left; backdrop-filter:blur(12px);">
+      <div style="font-size:12px; font-weight:800; color:rgba(255,255,255,0.44); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:6px;">Current Focus</div>
+      <div style="font-size:15px; color:rgba(255,255,255,0.9); line-height:1.6;">${escapeHtml(
         currentFocus,
       )}</div>
     </div>
@@ -258,22 +256,22 @@ function renderFocusDetails(
 
 function renderSidePanels(title: string, body: string): string {
   return `
-    <div style="padding:22px 24px; border-radius:22px; background:rgba(255,255,255,0.045); border:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px);">
-      <div style="font-size:12px; font-weight:800; color:rgba(255,255,255,0.44); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:14px;">Today</div>
-      <div style="font-size:14px; font-weight:700; color:rgba(255,255,255,0.88); margin-bottom:10px;">Focus Time</div>
+    <div class="fg-p-6 fg-rounded-[22px]" style="background:rgba(255,255,255,0.045); border:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px);">
+      <div class="fg-text-xs fg-font-extrabold fg-tracking-[0.12em] fg-uppercase fg-mb-[14px]" style="color:rgba(255,255,255,0.44);">Today</div>
+      <div class="fg-text-sm fg-font-bold fg-mb-[10px]" style="color:rgba(255,255,255,0.88);">Focus Time</div>
       <div style="font-size:42px; font-weight:300; line-height:1; color:rgba(255,255,255,0.96);">${formatMinutes(
         getTodayFocusMinutes(),
       )}</div>
     </div>
-    <div style="padding:22px 24px; border-radius:22px; background:rgba(255,255,255,0.045); border:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px);">
-      <div style="font-size:12px; font-weight:800; color:rgba(255,255,255,0.44); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:14px;">Current State</div>
-      <div style="font-size:14px; font-weight:700; color:rgba(255,255,255,0.88); margin-bottom:10px;">${title}</div>
+    <div class="fg-p-6 fg-rounded-[22px]" style="background:rgba(255,255,255,0.045); border:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px);">
+      <div class="fg-text-xs fg-font-extrabold fg-tracking-[0.12em] fg-uppercase fg-mb-[14px]" style="color:rgba(255,255,255,0.44);">Current State</div>
+      <div class="fg-text-sm fg-font-bold fg-mb-[10px]" style="color:rgba(255,255,255,0.88);">${title}</div>
       <div style="font-size:15px; line-height:1.7; color:rgba(255,255,255,0.7);">${body}</div>
     </div>
-    <div style="padding:22px 24px; border-radius:22px; background:rgba(255,255,255,0.045); border:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px); flex:1;">
-      <div style="font-size:12px; font-weight:800; color:rgba(255,255,255,0.44); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:14px;">Today Records</div>
-      <div style="font-size:14px; font-weight:700; color:rgba(255,255,255,0.88); margin-bottom:4px;">Session History</div>
-      <div style="font-size:13px; color:rgba(255,255,255,0.5); margin-bottom:14px;">Completed and interrupted sessions from today.</div>
+    <div class="fg-p-6 fg-rounded-[22px] fg-flex-1" style="background:rgba(255,255,255,0.045); border:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px);">
+      <div class="fg-text-xs fg-font-extrabold fg-tracking-[0.12em] fg-uppercase fg-mb-[14px]" style="color:rgba(255,255,255,0.44);">Today Records</div>
+      <div class="fg-text-sm fg-font-bold fg-mb-1" style="color:rgba(255,255,255,0.88);">Session History</div>
+      <div class="fg-text-[13px] fg-mb-[14px]" style="color:rgba(255,255,255,0.5);">Completed and interrupted sessions from today.</div>
       ${renderTodayRecords()}
     </div>
   `;
@@ -374,7 +372,7 @@ function _renderActivePage(
   const centerContent = `
     ${renderActiveStateSummary(currentFocus)}
     ${renderRingMarkup(timeDisplay, progress, 'Session Running', sublabel)}
-    <button class="btn-premium" id="stopFocus" style="margin-top:14px; min-width:126px; justify-content:center; background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.65); border-radius:999px; box-shadow:none; font-size:16px; font-weight:600; padding:14px 30px;">
+    <button class="btn-premium" id="stopFocus" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.65); border-radius:999px; box-shadow:none; font-size:14px; font-weight:600; padding:10px 24px;">
       Pause
     </button>
     ${renderFocusDetails(

@@ -26,14 +26,12 @@ function renderBrandLogo(identifier: string, name?: string, size = 44) {
   const safeIconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
     targetDomain,
   )}&sz=128`;
-  const iconSize = Math.floor(size * 0.65);
+  const iconSize = Math.floor(size * 0.9); // Increased to fill naturally
 
   return `
-    <div class="brand-logo-container" style="position: relative; width: ${size}px; height: ${size}px; border-radius: ${Math.round(
-    size * 0.27,
-  )}px; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+    <div class="brand-logo-container" style="position: relative; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
        <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: ${Math.floor(
-         size * 0.38,
+         size * 0.45,
        )}px; font-weight: 900; color: var(--muted); z-index: 1; opacity: 0; letter-spacing: -1px;">${(
     name || identifier
   )
@@ -41,7 +39,7 @@ function renderBrandLogo(identifier: string, name?: string, size = 44) {
     .toUpperCase()}</div>
        <img src="${safeIconUrl}" 
             class="brand-logo-image"
-            style="position: relative; width: ${iconSize}px; height: ${iconSize}px; object-fit: contain; z-index: 2;" 
+            style="position: relative; width: ${iconSize}px; height: ${iconSize}px; object-fit: contain; z-index: 2; border-radius: 20%;" 
             alt="">
     </div>
   `;
@@ -251,11 +249,11 @@ async function refreshListOnly(passedRules?: any[]) {
       const html = await renderSubTab(rulesToUse, lockedDomains);
       if (ruleList.innerHTML !== html) {
         ruleList.innerHTML = html;
+        await setupHandlers(globalContainer, rulesToUse);
       }
     }
 
     wireBrandLogoFallbacks(globalContainer);
-    await setupHandlers(globalContainer, rulesToUse);
   }
 }
 
@@ -373,16 +371,25 @@ async function renderSubTab(rules: any[], lockedDomains: string[]) {
     );
     const visibleApps = activeApps.filter(matchesSearch);
     return `
-      <div id="targetDrawerOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; background: rgba(5, 5, 10, 0.92); backdrop-filter: blur(24px);">
-        <div style="padding: 48px; height: 100%; overflow-y: auto;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+      <!-- Centered App Discovery Drawer -->
+      <div id="targetDrawerOverlay" class="fg-fixed fg-inset-0 fg-z-[1000] fg-transition-all fg-duration-300 fg-flex fg-items-center fg-justify-center" 
+        style="display: none; background: rgba(5,5,10,0.85); backdrop-filter: blur(12px);">
+        
+        <div id="targetDrawer" class="fg-relative fg-w-[720px] fg-max-h-[85vh] fg-bg-[#0f0f16] fg-border fg-border-white/[0.1] fg-rounded-[32px] fg-shadow-[0_32px_64px_rgba(0,0,0,0.5)] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
+          
+          <!-- Header -->
+          <div class="fg-p-8 fg-border-b fg-border-white/[0.05] fg-flex fg-items-center fg-justify-between">
             <div>
-              <div style="font-size: 0.6875rem; font-weight: 800; color: var(--muted); letter-spacing: 2.5px; text-transform: uppercase; margin-bottom: 6px;">App Drawer</div>
-              <div style="font-size: 1.75rem; font-weight: 900; letter-spacing: -0.03em;">Add Apps to Shield</div>
+              <div class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-[3px] fg-text-[#3b82f6] fg-mb-1">App Drawer</div>
+              <div class="fg-text-2xl fg-font-black fg-text-white">Add Apps to Shield</div>
             </div>
-            <button style="background: rgba(255,255,255,0.04); border: 1px solid var(--glass-border); color: var(--muted); padding: 10px 20px; border-radius: 12px; font-size: 12px; font-weight: 800; cursor: pointer; letter-spacing: 0.5px; transition: all 0.2s;" id="btnCloseTargetDrawer">ESC / CLOSE</button>
+            <button id="btnCloseTargetDrawer" class="fg-p-3 fg-rounded-2xl hover:fg-bg-white/[0.05] fg-text-[var(--muted)] fg-transition-all">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
           </div>
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; padding-bottom: 60px;">
+
+          <!-- Scrollable Grid -->
+          <div class="fg-flex-1 fg-overflow-y-auto fg-p-8 fg-grid fg-grid-cols-4 fg-gap-3">
             ${NEXTDNS_SERVICES.filter(
               (s) =>
                 !rules.some(
@@ -391,17 +398,31 @@ async function renderSubTab(rules: any[], lockedDomains: string[]) {
             )
               .map(
                 (s) => `
-                <button class="quick-add-service" data-id="${
+                <button class="quick-add-service fg-p-5 fg-flex-col fg-items-center fg-flex fg-gap-3 fg-bg-white/[0.02] fg-border fg-border-white/[0.05] fg-rounded-[24px] fg-cursor-pointer fg-text-white fg-transition-all hover:fg-bg-white/[0.05] hover:fg-scale-[1.02] hover:fg-border-white/[0.1] fg-group" data-id="${
                   s.id
-                }" data-name="${s.name}" 
-                  style="padding: 20px 12px; flex-direction: column; align-items: center; display: flex; gap: 10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 14px; cursor: pointer; color: var(--text); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); position:relative; overflow:hidden;">
-                  ${renderAppIcon(s.id, s.name)}
-                  <div style="font-size: 12px; font-weight: 800; color: #FFFFFF; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%; text-align: center;">${
+                }" data-name="${s.name}">
+                  <div class="fg-transition-transform group-hover:fg-scale-110">${renderAppIcon(
+                    s.id,
+                    s.name,
+                  )}</div>
+                  <div class="fg-text-[11px] fg-font-black fg-text-white fg-truncate fg-w-full fg-text-center">${
                     s.name
                   }</div>
                 </button>`,
               )
               .join('')}
+          </div>
+
+          <!-- Footer -->
+          <div class="fg-px-8 fg-py-5 fg-bg-white/[0.02] fg-border-t fg-border-white/[0.05] fg-flex fg-justify-between fg-items-center">
+            <div class="fg-text-[10px] fg-font-bold fg-text-[var(--muted)] fg-uppercase fg-tracking-widest">
+              Total Catalog: <span class="fg-text-white">${
+                NEXTDNS_SERVICES.length
+              } Services</span>
+            </div>
+            <div class="fg-text-[10px] fg-font-bold fg-text-[var(--muted)] fg-uppercase fg-tracking-widest">
+              Press ESC to Close
+            </div>
           </div>
         </div>
       </div>
@@ -652,7 +673,7 @@ function renderCategoryCard(
     ">
       <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%; padding: 14px 16px;">
         <div style="display:flex; align-items:center; gap: 12px; min-width: 0; flex: 1;">
-           <div style="width: 40px; height: 40px; border-radius: 11px; background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center; font-size: 18px; border: 1px solid rgba(255,255,255,0.05); flex-shrink: 0; box-shadow: none;">
+           <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0;">
              ${badge}
            </div>
            <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
@@ -699,27 +720,43 @@ function renderCategoryCard(
 }
 
 async function setupHandlers(container: HTMLElement, rules: any[]) {
-  container
-    .querySelector('#btnOpenTargetDrawer')
-    ?.addEventListener('click', () => {
-      const overlay = container.querySelector(
-        '#targetDrawerOverlay',
-      ) as HTMLElement;
-      if (overlay) {
-        overlay.style.display = 'block';
-      }
-    });
+  const overlay = container.querySelector(
+    '#targetDrawerOverlay',
+  ) as HTMLElement;
+  const drawer = container.querySelector('#targetDrawer') as HTMLElement;
+  const openBtn = container.querySelector('#btnOpenTargetDrawer');
+  const closeBtn = container.querySelector('#btnCloseTargetDrawer');
 
-  container
-    .querySelector('#btnCloseTargetDrawer')
-    ?.addEventListener('click', () => {
-      const overlay = container.querySelector(
-        '#targetDrawerOverlay',
-      ) as HTMLElement;
-      if (overlay) {
-        overlay.style.display = 'none';
-      }
-    });
+  const openDrawer = () => {
+    if (!overlay || !drawer) {
+      return;
+    }
+    overlay.style.display = 'flex';
+    setTimeout(() => {
+      drawer.style.opacity = '1';
+      drawer.style.transform = 'scale(1)';
+    }, 10);
+  };
+
+  const closeDrawer = () => {
+    if (!overlay || !drawer) {
+      return;
+    }
+    drawer.style.opacity = '0';
+    drawer.style.transform = 'scale(0.95)';
+    setTimeout(() => {
+      overlay.style.display = 'none';
+    }, 300);
+  };
+
+  openBtn?.addEventListener('click', openDrawer);
+  closeBtn?.addEventListener('click', closeDrawer);
+
+  overlay?.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      closeDrawer();
+    }
+  });
 
   container.querySelectorAll('.quick-add-service').forEach((btn) => {
     btn.addEventListener('click', async () => {

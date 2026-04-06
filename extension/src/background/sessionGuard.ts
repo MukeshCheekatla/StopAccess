@@ -50,7 +50,7 @@ export async function checkGuard(
     allowed: false,
     reason:
       messages[action] ||
-      `🔒 Locked during focus session. ${remaining}m remaining.`,
+      `Locked during focus session. ${remaining}m remaining.`,
     endsAt,
   };
 }

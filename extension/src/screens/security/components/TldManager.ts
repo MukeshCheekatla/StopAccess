@@ -20,62 +20,70 @@ const COMMON_RISKY_TLDS = [
   { id: 'accountants', label: '.accountants' },
 ];
 
+const iconGlobe =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+
 export function renderTldManager(tlds: NextDNSTld[]): string {
   const activeIds = new Set(tlds.map((t) => t.id.toLowerCase()));
   const suggestions = COMMON_RISKY_TLDS.filter((t) => !activeIds.has(t.id));
 
   return `
-    <div class="app-card" style="margin-bottom: 16px;">
-      <div class="section-title" style="margin-top: 0; display: flex; align-items: center; gap: 8px;">
-        <span>🌍</span> Blocked TLDs
-        <span style="margin-left: auto; font-size: 11px; font-weight: 700;
-          color: var(--muted); background: rgba(255,255,255,0.05);
-          padding: 2px 8px; border-radius: 10px; letter-spacing: 0.5px;">
-          ${tlds.length} BLOCKED
-        </span>
+    <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
+      <div class="fg-flex fg-items-center fg-justify-between fg-mb-5">
+        <div class="section-title fg-flex fg-items-center fg-gap-2" style="margin: 0;">
+          <span class="fg-text-[#fbbf24]">${iconGlobe}</span> Blocked TLDs
+        </div>
+        <span class="fg-text-[9px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid rgba(255,255,255,0.07);">${
+          tlds.length
+        } BLOCKED</span>
       </div>
 
-      <div style="font-size: 12px; color: var(--muted); margin-bottom: 16px; line-height: 1.4;">
-        Block all domains under specific top-level domains.
-        Use with caution — this affects ALL sites under that TLD.
+      <div class="fg-text-[11px] fg-text-[var(--muted)] fg-mb-5 fg-leading-[1.5]">
+        Block all domains under specific top-level domains. 
+        <span class="fg-text-[var(--yellow)] fg-opacity-80">Useful for blocking high-risk regions or generic extension abuse.</span>
       </div>
 
-      <!-- Add TLD input -->
-      <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+      <!-- TLD Input Area -->
+      <div class="fg-flex fg-gap-2 fg-mb-6 fg-p-3 fg-rounded-2xl" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
         <input
           type="text"
           id="tld_input"
-          placeholder="e.g. ru, cn, xyz"
-          class="input"
-          style="flex: 1; text-transform: lowercase;"
+          placeholder="Enter TLD (e.g. ru, cn)"
+          class="input fg-flex-1"
+          style="text-transform: lowercase; font-weight: 700; height: 38px; background: transparent; border: none; padding-left: 12px; outline: none; font-size: 13px; color: var(--text);"
           maxlength="20"
         >
-        <button class="btn" id="btn_add_tld" style="padding: 0 16px; white-space: nowrap;">
+        <button class="btn fg-px-5 fg-font-black fg-text-[11px] fg-uppercase fg-tracking-wider" id="btn_add_tld" style="height: 38px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; color: white;">
           Block TLD
         </button>
       </div>
 
-      <!-- Quick-add suggestions -->
+      <!-- Quick Sugestions Grid -->
       ${
         suggestions.length > 0
           ? `
-        <div style="margin-bottom: 16px;">
-          <div style="font-size: 10px; font-weight: 800; color: var(--muted);
-            text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
-            Common Risky TLDs
+        <div class="fg-mb-6">
+          <div class="fg-text-[9px] fg-font-black fg-text-[var(--muted)] fg-uppercase fg-tracking-[1.2px] fg-mb-3 fg-opacity-60">
+            Quick Block Suggestions
           </div>
-          <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+          <div class="fg-grid fg-grid-cols-4 fg-gap-2">
             ${suggestions
               .slice(0, 8)
               .map(
                 (t) => `
               <button
-                class="btn btn-outline tld-quick-add"
+                class="tld-quick-add fg-text-[11px] fg-rounded-xl fg-px-3 fg-py-2 fg-transition-all fg-cursor-pointer fg-font-bold fg-text-left"
                 data-id="${t.id}"
-                style="padding: 4px 10px; font-size: 11px; border-radius: 20px;
-                  border-color: rgba(255,255,255,0.08); color: var(--text);"
+                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); color: var(--text);"
+                onmouseenter="this.style.background='rgba(255,255,255,0.08)'; this.style.transform='translateY(-1px)'"
+                onmouseleave="this.style.background='rgba(255,255,255,0.03)'; this.style.transform=''"
               >
-                + ${t.label}
+                <div class="fg-opacity-60 fg-text-[9px] fg-uppercase fg-mb-[2px]">.${
+                  t.id
+                }</div>
+                <div class="fg-truncate fg-text-[10px]">${
+                  t.label.split('—')[1]?.trim() || t.id
+                }</div>
               </button>
             `,
               )
@@ -86,34 +94,32 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
           : ''
       }
 
-      <!-- Active TLD list -->
+      <!-- Active Block List Grid -->
       ${
         tlds.length > 0
           ? `
-        <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div class="fg-grid fg-grid-cols-3 fg-gap-2">
           ${tlds
             .map(
               (tld) => `
-            <div style="display: flex; align-items: center; justify-content: space-between;
-              padding: 10px 12px; background: rgba(255,71,87,0.05);
-              border: 1px solid rgba(255,71,87,0.15); border-radius: 8px;">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span style="font-size: 14px;">🌍</span>
-                <span style="font-size: 13px; font-weight: 700; color: var(--text);">
-                  .${tld.id}
-                </span>
-                <span style="font-size: 9px; padding: 2px 6px; border-radius: 4px;
-                  background: rgba(255,71,87,0.1); color: var(--red); font-weight: 800;">
-                  BLOCKED
-                </span>
+            <div class="active-tld-card fg-flex fg-flex-col fg-gap-3 fg-p-4 fg-rounded-2xl fg-transition-all" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
+              <div class="fg-flex fg-items-center fg-justify-between">
+                <div class="fg-flex fg-items-center fg-gap-2">
+                  <span style="color: var(--muted); opacity: 0.6; transform: scale(0.8);">${iconGlobe}</span>
+                  <span class="fg-text-[14px] fg-font-black fg-text-[var(--text)]">
+                    .${tld.id}
+                  </span>
+                </div>
+                <div class="fg-w-[5px] fg-h-[5px] fg-rounded-full" style="background: var(--red); box-shadow: 0 0 5px var(--red);"></div>
               </div>
               <button
-                class="btn-outline tld-remove"
+                class="tld-remove fg-text-[9px] fg-w-full fg-py-[6px] fg-rounded-xl fg-transition-all fg-cursor-pointer fg-font-black fg-uppercase fg-tracking-wider"
                 data-id="${tld.id}"
-                style="padding: 4px 10px; font-size: 11px;
-                  border-color: rgba(255,71,87,0.2); color: var(--red);"
+                style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); color: var(--muted);"
+                onmouseenter="this.style.background='rgba(255,71,87,0.08)'; this.style.color='var(--red)'; this.style.borderColor='rgba(255,71,87,0.15)';"
+                onmouseleave="this.style.background='rgba(255,255,255,0.02)'; this.style.color='var(--muted)'; this.style.borderColor='rgba(255,255,255,0.06)';"
               >
-                Remove
+                UNBLOCK
               </button>
             </div>
           `,
@@ -122,10 +128,9 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
         </div>
       `
           : `
-        <div style="text-align: center; padding: 24px; color: var(--muted); font-size: 12px;
-          border: 1px dashed rgba(255,255,255,0.08); border-radius: 12px;">
-          <div style="font-size: 24px; margin-bottom: 8px;">🌍</div>
-          No TLDs blocked. Use the quick-add suggestions above.
+        <div class="fg-text-center fg-p-8 fg-text-[var(--muted)] fg-text-xs fg-rounded-3xl" style="background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.08);">
+          <div style="color: var(--muted); opacity: 0.3;" class="fg-mb-3 fg-flex fg-justify-center">${iconGlobe}</div>
+          No top-level domains are blocked.
         </div>
       `
       }

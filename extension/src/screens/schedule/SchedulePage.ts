@@ -35,17 +35,17 @@ export async function renderSchedulePage(
 
 function _renderPage(container: HTMLElement, schedules: any[]): void {
   container.innerHTML = `
-    <div style="display: grid; grid-template-columns: 2fr 3fr; gap: var(--space-xl); align-items: start;">
+    <div class="fg-grid fg-gap-8 fg-items-start" style="grid-template-columns: 2fr 3fr;">
       <!-- Creation Card -->
       <section>
         <div class="section-label">Deploy New Cycle</div>
-        <div class="glass-card" style="padding: var(--space-lg); border: 2px dashed var(--glass-border); background: transparent;">
-          <div style="display: flex; flex-direction: column; gap: 20px;">
+        <div class="glass-card fg-p-6" style="border: 2px dashed var(--glass-border); background: transparent;">
+          <div class="fg-flex fg-flex-col fg-gap-5">
             <div>
               <label class="field-label">Cycle Name</label>
               <input type="text" id="schName" placeholder="e.g. Deep Work Morning" class="input-premium" style="font-size: 14px;">
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div class="fg-grid fg-grid-cols-2 fg-gap-4">
               <div>
                 <label class="field-label">Start Time</label>
                 <input type="time" id="schStart" value="09:00" class="input-premium" style="height: 44px;">
@@ -56,8 +56,8 @@ function _renderPage(container: HTMLElement, schedules: any[]): void {
               </div>
             </div>
             <div>
-              <label class="field-label" style="margin-bottom: 12px;">Active Days</label>
-              <div id="day_picker" style="display: flex; gap: 6px;">
+              <label class="field-label fg-mb-3">Active Days</label>
+              <div id="day_picker" class="fg-flex fg-gap-[6px]">
                 ${['S', 'M', 'T', 'W', 'T', 'F', 'S']
                   .map(
                     (d, i) =>
@@ -68,7 +68,7 @@ function _renderPage(container: HTMLElement, schedules: any[]): void {
                   .join('')}
               </div>
             </div>
-            <button class="btn-premium" id="btnCreateSchedule" style="height: 52px; justify-content: center; font-size: 13px; margin-top: 8px;">ACTIVATE CYCLE</button>
+            <button class="btn-premium fg-justify-center fg-mt-2" id="btnCreateSchedule" style="height: 52px; font-size: 13px;">ACTIVATE CYCLE</button>
           </div>
         </div>
       </section>
@@ -76,41 +76,41 @@ function _renderPage(container: HTMLElement, schedules: any[]): void {
       <!-- Active Schedules -->
       <section>
         <div class="section-label">Active Focus Directives</div>
-        <div class="schedule-list" style="display: flex; flex-direction: column; gap: var(--space-md); margin-top: 2px;">
+        <div class="schedule-list fg-flex fg-flex-col fg-gap-4 fg-mt-[2px]">
           ${
             schedules.length === 0
-              ? `<div class="glass-card" style="padding: 60px 40px; text-align:center; opacity: 0.5;">
-                  <div style="font-size: 24px; margin-bottom: 16px; color: var(--muted);">⏰</div>
-                  <div style="font-size: 11px; font-weight: 800; color: var(--muted); text-transform:uppercase;">No automated block cycles found.</div>
+              ? `<div class="glass-card fg-p-10 fg-text-center fg-opacity-50">
+                  <div class="fg-mb-4 fg-text-[var(--muted)]" style="font-size: 24px;">⏰</div>
+                  <div class="fg-text-[11px] fg-font-extrabold fg-text-[var(--muted)] fg-uppercase">No automated block cycles found.</div>
                 </div>`
               : schedules
                   .map(
                     (s) => `
-                <div class="glass-card" style="padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; position: relative;">
-                  <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div class="glass-card fg-p-5 fg-px-6 fg-flex fg-flex-col fg-gap-4 fg-relative">
+                  <div class="fg-flex fg-justify-between fg-items-start">
                     <div>
-                      <div style="font-size: 16px; font-weight: 800; color: var(--text);">${escapeHtml(
+                      <div class="fg-text-base fg-font-extrabold fg-text-[var(--text)]">${escapeHtml(
                         s.name,
                       )}</div>
-                      <div style="font-size: 11px; color: var(--accent); font-weight: 800; margin-top: 4px; text-transform: uppercase;">${
+                      <div class="fg-text-[11px] fg-font-extrabold fg-mt-1 fg-uppercase fg-text-[var(--accent)]">${
                         s.startTime
                       } — ${s.endTime}</div>
                     </div>
-                    <button class="delete-sch" data-id="${
+                    <button class="delete-sch fg-p-1 fg-cursor-pointer" data-id="${
                       s.id
-                    }" style="background:none; border:none; color:var(--red); cursor:pointer; opacity:0.4; padding: 4px;">
+                    }" style="background: none; border: none; color: var(--red); opacity: 0.4;">
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                   </div>
-                  <div style="display: flex; gap: 4px; padding-top: 12px; border-top: 1px solid var(--glass-border);">
+                  <div class="fg-flex fg-gap-1 fg-pt-3" style="border-top: 1px solid var(--glass-border);">
                     ${['S', 'M', 'T', 'W', 'T', 'F', 'S']
                       .map(
                         (d, i) =>
-                          `<span style="width:26px; height:26px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:9px; font-weight:900; font-family: monospace; background:${
+                          `<span class="fg-inline-flex fg-items-center fg-justify-center fg-text-[9px] fg-font-black fg-rounded-[6px]" style="width: 26px; height: 26px; font-family: monospace; background: ${
                             s.days?.includes(i)
                               ? 'var(--accent)'
                               : 'rgba(255,255,255,0.02)'
-                          }; color:${
+                          }; color: ${
                             s.days?.includes(i)
                               ? '#fff'
                               : 'rgba(255,255,255,0.1)'
@@ -195,12 +195,12 @@ function _attachPageHandlers(container: HTMLElement): void {
       modalOverlay.className = 'modal-overlay';
       modalOverlay.innerHTML = `
         <div class="modal" style="max-width: 320px;">
-          <div style="font-size:28px; margin-bottom:16px;">🗑️</div>
-          <div style="font-size:16px; font-weight:900; margin-bottom:8px;">Decommission Cycle?</div>
-          <div style="font-size:12px; color:var(--muted); line-height:1.5; margin-bottom:24px;">This automated block period will be removed from the focus engine.</div>
-          <div style="display:flex; gap:12px; width: 100%;">
-            <button class="btn-premium btn-cancel" style="flex:1; background:transparent; border-color:var(--glass-border); box-shadow:none;">CANCEL</button>
-            <button class="btn-premium btn-confirm" style="flex:1; background:var(--red); border-color:var(--red);">DELETE</button>
+          <div style="font-size:28px;" class="fg-mb-4">🗑️</div>
+          <div class="fg-text-base fg-font-black fg-mb-2">Decommission Cycle?</div>
+          <div class="fg-text-xs fg-text-[var(--muted)] fg-leading-normal fg-mb-6">This automated block period will be removed from the focus engine.</div>
+          <div class="fg-flex fg-gap-3 fg-w-full">
+            <button class="btn-premium btn-cancel fg-flex-1" style="background:transparent; border-color:var(--glass-border); box-shadow:none;">CANCEL</button>
+            <button class="btn-premium btn-confirm fg-flex-1" style="background:var(--red); border-color:var(--red);">DELETE</button>
           </div>
         </div>
       `;
@@ -223,37 +223,37 @@ function _attachPageHandlers(container: HTMLElement): void {
 
 function _renderPopup(container: HTMLElement, schedules: any[]): void {
   container.innerHTML = `
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding: 0 4px;">
-      <div style="font-size: 10px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 1.5px;">ACTIVE AUTOMATIONS</div>
-      <div style="font-size: 10px; font-weight: 800; color: var(--accent); opacity: 0.8;">${
+    <div class="fg-flex fg-justify-between fg-items-center fg-mb-3 fg-px-1">
+      <div class="fg-text-[10px] fg-font-extrabold fg-text-[var(--muted)] fg-uppercase fg-tracking-[1.5px]">ACTIVE AUTOMATIONS</div>
+      <div class="fg-text-[10px] fg-font-extrabold fg-text-[var(--accent)]" style="opacity: 0.8;">${
         schedules.length
       }</div>
     </div>
 
-    <div style="display: flex; flex-direction: column; gap: 8px;">
+    <div class="fg-flex fg-flex-col fg-gap-2">
       ${
         schedules.length === 0
-          ? '<div class="glass-card" style="padding:24px; text-align:center; font-size:11px; font-weight:700; color:var(--muted); border-style:dashed;">Zero automated cycles</div>'
+          ? '<div class="glass-card fg-p-6 fg-text-center fg-text-[11px] fg-font-bold fg-text-[var(--muted)]" style="border-style: dashed;">Zero automated cycles</div>'
           : schedules
               .map(
                 (s) => `
-            <div class="glass-card" style="padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; background: rgba(255,255,255,0.01);">
-              <div style="flex:1;">
-                <div style="font-size: 13px; font-weight: 700; color: var(--text);">${escapeHtml(
+            <div class="glass-card fg-p-3 fg-px-4 fg-flex fg-items-center fg-justify-between" style="background: rgba(255,255,255,0.01);">
+              <div class="fg-flex-1">
+                <div class="fg-text-[13px] fg-font-bold fg-text-[var(--text)]">${escapeHtml(
                   s.name,
                 )}</div>
-                <div style="font-size: 10px; color: var(--accent); font-weight: 900; margin-top: 4px; letter-spacing: 0.5px; opacity: 0.9;">${
+                <div class="fg-text-[10px] fg-font-black fg-mt-1 fg-tracking-[0.5px] fg-text-[var(--accent)]" style="opacity: 0.9;">${
                   s.startTime
                 } — ${s.endTime}</div>
               </div>
-              <div style="font-size: 9px; color: var(--muted); font-weight: 900; background: rgba(255,255,255,0.03); padding: 4px 8px; border-radius: 6px;">AUTO</div>
+              <div class="fg-text-[9px] fg-text-[var(--muted)] fg-font-black fg-px-2 fg-py-1 fg-rounded-[6px]" style="background: rgba(255,255,255,0.03);">AUTO</div>
             </div>
           `,
               )
               .join('')
       }
     </div>
-    <button class="btn-premium" id="btn_full_schedule" style="width:100%; margin-top:20px; font-size:11px; height: 44px; justify-content: center; background:rgba(255,255,255,0.02); color:var(--text); box-shadow:none; border-color: var(--glass-border); border-radius: 14px;">MANAGE ENFORCEMENT CYCLES</button>
+    <button class="btn-premium fg-w-full fg-mt-5 fg-text-[11px] fg-justify-center fg-text-[var(--text)]" id="btn_full_schedule" style="height: 44px; background: rgba(255,255,255,0.02); box-shadow: none; border-color: var(--glass-border); border-radius: 14px;">MANAGE ENFORCEMENT CYCLES</button>
   `;
 
   container
