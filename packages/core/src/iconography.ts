@@ -21,6 +21,17 @@ for (const [key, def] of Object.entries(BRAND_DATA)) {
   }
 }
 
+// Research-backed high-resolution overrides for privacy providers and common blocklists
+const GLOBAL_ASSET_OVERRIDES: Record<string, string> = {
+  'oisd.nl': 'https://oisd.nl/favicon.ico',
+  'easylist.to': 'https://avatars.githubusercontent.com/u/1018861?s=64&v=4',
+  'adguard.com': 'https://cdn.adguard.com/public/Adguard/logos/favicon.ico',
+  'abpvn.com': 'https://abpvn.com/icon.png',
+  'hblock.molinero.dev': 'https://icon.horse/icon/hblock.molinero.dev',
+  'github.com': 'https://unavatar.io/github',
+  'gitlab.com': 'https://unavatar.io/gitlab',
+};
+
 const COMMON_TLDS = new Set([
   'com',
   'net',
@@ -81,8 +92,6 @@ function getBrandAssetUrls(match: BrandDefinition) {
 
 /**
  * Resolves a NextDNS service/app ID to a high-fidelity vibrant icon asset.
- * @deprecated Use resolveIconUrl for a simpler identifier-to-URL mapping.
- * This is maintained for legacy NextDNS entity mapping that requires full 'ServiceIconResult'.
  */
 export function resolveServiceIcon(service: {
   id?: string;
@@ -115,13 +124,13 @@ export function resolveServiceIcon(service: {
         url: (primaryUrl || fallbackUrl) as string,
         fallbackUrl,
         domain: match.domain || null,
-        accent: match.color,
+        accent: match.color || '#3b82f6',
         label: String(service?.name || service?.id || '?')[0].toUpperCase(),
       };
     }
   }
 
-  // 2. Google Favicon (More reliable than Clearbit)
+  // 2. Resolve via domain chain
   const domainCandidate =
     service?.id?.includes('.') && service.id.length > 4
       ? service.id
@@ -131,22 +140,19 @@ export function resolveServiceIcon(service: {
 
   if (domainCandidate) {
     const rootDomain = getRootDomain(domainCandidate);
-    const rootUrl = getFaviconUrl(rootDomain);
-    const subUrl = getFaviconUrl(domainCandidate);
+    const resolvedUrl = resolveFaviconUrl(domainCandidate);
 
-    if (rootUrl) {
-      return {
-        kind: 'remote',
-        url: rootUrl, // Lead with the brand (root) icon
-        fallbackUrl: subUrl, // Fallback to subdomain if needed
-        domain: rootDomain,
-        accent: '#3b82f6',
-        label: domainCandidate[0].toUpperCase(),
-      };
-    }
+    return {
+      kind: 'remote',
+      url: resolvedUrl,
+      fallbackUrl: getFaviconUrl(rootDomain),
+      domain: rootDomain,
+      accent: '#3b82f6',
+      label: domainCandidate[0].toUpperCase(),
+    };
   }
 
-  // 3. Fallback to Simple Icons Slug (Reverse scan to prefer brand segments)
+  // 3. Fallback to Simple Icons Slug
   for (const k of [...keys].reverse()) {
     const norm = normalizeKey(k);
     if (norm.length > 3 && !COMMON_TLDS.has(norm) && !SKIP_WORDS.has(norm)) {
@@ -173,7 +179,7 @@ export function resolveServiceIcon(service: {
 }
 
 /**
- * Favicon implementation using Google API.
+ * Standard Google Favicon implementation.
  */
 export function getFaviconUrl(domain: string): string | null {
   const clean = String(domain || '')
@@ -187,8 +193,6 @@ export function getFaviconUrl(domain: string): string | null {
     return null;
   }
 
-  // Use Google's newer Favicon V2 API which handles subdomains (like Gmail) much better
-  // providing product-specific icons instead of just the root brand logo.
   const fullUrl = `https://${clean}/`;
   return `${
     SERVICE_URLS.GOOGLE_FAVICON_V2_API
@@ -198,7 +202,7 @@ export function getFaviconUrl(domain: string): string | null {
 }
 
 /**
- * Extracts the base domain (e.g. example.com) from a full domain string.
+ * Extracts the base domain from a full domain string.
  */
 export function getRootDomain(domain: string): string {
   const clean = domain
@@ -212,7 +216,6 @@ export function getRootDomain(domain: string): string {
     return clean;
   }
 
-  // Handle common multi-part TLDs (e.g. .co.uk, .com.br)
   const isMultiPartTld =
     parts.length > 2 &&
     (parts[parts.length - 2] === 'co' ||
@@ -228,23 +231,26 @@ export function getRootDomain(domain: string): string {
   return parts.slice(-2).join('.');
 }
 
-const CATEGORY_EMOJI_MAP: Record<string, string> = {
-  games: '🎮',
-  gambling: '🎰',
-  porn: '🔞',
-  'social-networks': '🌐',
-  'video-streaming': '🎬',
-  shopping: '🛍️',
-  dating: '❤️',
+const CATEGORY_ICON_MAP: Record<string, string> = {
+  games:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/></svg>',
+  gambling:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="2" ry="2"/><circle cx="7" cy="12" r="2"/><circle cx="17" cy="12" r="2"/><path d="M12 7v10"/></svg>',
+  porn: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+  'social-networks':
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
+  'video-streaming':
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
+  shopping:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+  dating:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l8.82-8.82 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
 };
 
-/**
- * Restores vibrant category badges with emojis.
- */
 export function getCategoryBadge(category: { id?: string; name?: string }) {
   const key = String(category?.id || '').toLowerCase();
   return (
-    CATEGORY_EMOJI_MAP[key] ||
+    CATEGORY_ICON_MAP[key] ||
     String(category?.name || key)
       .slice(0, 2)
       .toUpperCase()
@@ -252,15 +258,15 @@ export function getCategoryBadge(category: { id?: string; name?: string }) {
 }
 
 /**
- * High-level resolver: Simple Icons -> Google Favicon (Clearbit unreliable)
+ * High-level resolver for all screens.
  */
 export function getAppIconUrl(identifier: string): string | null {
   return resolveIconUrl(identifier) || null;
 }
 
 /**
- * Resolves to a high-quality Google Favicon by first resolving the domain to its brand root.
- * This matches the high-quality resolution logic used in the Apps/Blocklist popup.
+ * THE shared source of truth for all domain-based icons (Dashboard, Reports, Activity).
+ * Uses a research-backed failover chain: Overrides -> IconHorse -> Google.
  */
 export function resolveFaviconUrl(identifier: string): string {
   const cleanId = String(identifier || '')
@@ -270,18 +276,22 @@ export function resolveFaviconUrl(identifier: string): string {
     .replace(/^www\./, '')
     .split('/')[0];
 
-  // We prioritize the specific domain because the Google Favicon API
-  // is capable of returning product-specific icons (like Gmail) or
-  // falling back to the root domain automatically if needed.
-  return getFaviconUrl(cleanId)!;
+  const root = getRootDomain(cleanId);
+
+  // 1. Research-backed Overrides (Highest Priority)
+  if (GLOBAL_ASSET_OVERRIDES[cleanId]) {
+    return GLOBAL_ASSET_OVERRIDES[cleanId];
+  }
+  if (GLOBAL_ASSET_OVERRIDES[root]) {
+    return GLOBAL_ASSET_OVERRIDES[root];
+  }
+
+  // 2. IconHorse (Excellent for non-standard TLDs like .nl, .to)
+  return `https://icon.horse/icon/${cleanId}`;
 }
 
 /**
- * THE single source of truth for icon resolution across all screens.
- * Priority order:
- *   1. BRAND_DATA slug → Simple Icons CDN (full-color SVG, most vibrant)
- *   2. BRAND_DATA favicon → Google Favicon on brand domain
- *   3. Root domain → Google Favicon on stripped root
+ * Single source of truth for named brand resolution.
  */
 export function resolveIconUrl(identifier: string): string | null {
   if (!identifier) {
@@ -295,10 +305,18 @@ export function resolveIconUrl(identifier: string): string | null {
     .replace(/^www\./, '')
     .split('/')[0];
 
-  // 1. BRAND_DATA Lookup (Domain & Segment)
   const root = getRootDomain(cleanId);
 
-  // A. Precise Domain Lookup (Highest Priority - e.g. steampowered.com, chat.google.com)
+  // 1. Direct Brand Key Lookup (Highest Precision)
+  const directMatch = BRAND_DATA[cleanId];
+  if (directMatch) {
+    const { primaryUrl, fallbackUrl } = getBrandAssetUrls(directMatch);
+    if (primaryUrl || fallbackUrl) {
+      return (primaryUrl || fallbackUrl) as string;
+    }
+  }
+
+  // 2. Precise Domain Lookup
   const domainKey = DOMAIN_TO_BRAND[cleanId] || DOMAIN_TO_BRAND[root];
   if (domainKey && BRAND_DATA[domainKey]) {
     const { primaryUrl, fallbackUrl } = getBrandAssetUrls(
@@ -309,18 +327,6 @@ export function resolveIconUrl(identifier: string): string | null {
     }
   }
 
-  // B. Segment Match (Fallback logic)
-  const segments = cleanId.split('.');
-  for (const seg of segments) {
-    const norm = normalizeKey(seg);
-    if (norm.length > 2 && BRAND_DATA[norm]) {
-      const { primaryUrl, fallbackUrl } = getBrandAssetUrls(BRAND_DATA[norm]);
-      if (primaryUrl || fallbackUrl) {
-        return (primaryUrl || fallbackUrl) as string;
-      }
-    }
-  }
-
-  // 3. Google Favicon Root
-  return getFaviconUrl(root);
+  // 3. Global Overrides & Chain
+  return resolveFaviconUrl(cleanId);
 }

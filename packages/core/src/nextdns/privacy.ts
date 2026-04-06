@@ -8,6 +8,13 @@ import {
 import { wrapResponse } from './base';
 import { NextDNSClient } from './client';
 
+export async function getAvailableBlocklists(
+  client: NextDNSClient,
+): Promise<NextDNSResponse<NextDNSBlocklist[]>> {
+  const res = await (client as any).fetch('/privacy/blocklists');
+  return wrapResponse(res);
+}
+
 export async function getPrivacy(
   client: NextDNSClient,
 ): Promise<NextDNSResponse<NextDNSPrivacySettings>> {

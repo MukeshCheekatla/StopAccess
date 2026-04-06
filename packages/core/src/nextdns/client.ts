@@ -175,6 +175,9 @@ export class NextDNSClient implements NextDNSApiClient {
   }
 
   // --- Privacy ---
+  async getAvailableBlocklists() {
+    return privacy.getAvailableBlocklists(this);
+  }
   async getPrivacy() {
     return privacy.getPrivacy(this);
   }
