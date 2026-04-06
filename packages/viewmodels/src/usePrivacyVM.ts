@@ -11,12 +11,14 @@ import type { NextDNSPrivacySettings, StorageAdapter } from '@focusgate/types';
 
 export interface PrivacyVMData {
   settings: NextDNSPrivacySettings | null;
+  availableBlocklists: any[] | null;
   isConfigured: boolean;
   error: string | null;
 }
 
 export interface PrivacyVM {
   load(): Promise<PrivacyVMData>;
+  getAvailableBlocklists(): Promise<any[]>;
   toggleDisguisedTrackers(
     value: boolean,
   ): Promise<{ ok: boolean; error?: string }>;
@@ -46,13 +48,23 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
     async load(): Promise<PrivacyVMData> {
       const isConfigured = await api.isConfigured();
       if (!isConfigured) {
-        return { settings: null, isConfigured: false, error: null };
+        return {
+          settings: null,
+          availableBlocklists: null,
+          isConfigured: false,
+          error: null,
+        };
       }
 
       const cached = await getLocalPrivacy(storage);
       if (cached) {
-        refreshLocal(); // background refresh
-        return { settings: cached, isConfigured: true, error: null };
+        refreshLocal();
+        return {
+          settings: cached,
+          availableBlocklists: null,
+          isConfigured: true,
+          error: null,
+        };
       }
 
       try {
@@ -61,16 +73,39 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
           const data = res.data ?? res;
           if (data) {
             await saveLocalPrivacy(storage, data);
-            return { settings: data, isConfigured: true, error: null };
+            return {
+              settings: data,
+              availableBlocklists: null,
+              isConfigured: true,
+              error: null,
+            };
           }
         }
         return {
           settings: null,
+          availableBlocklists: null,
           isConfigured: true,
           error: res?.error?.message ?? 'Failed to load privacy settings',
         };
       } catch (e: any) {
-        return { settings: null, isConfigured: true, error: e.message };
+        return {
+          settings: null,
+          availableBlocklists: null,
+          isConfigured: true,
+          error: e.message,
+        };
+      }
+    },
+
+    async getAvailableBlocklists() {
+      try {
+        const res = await api.getAvailableBlocklists();
+        if (res && !res.error) {
+          return res.data ?? res;
+        }
+        return [];
+      } catch {
+        return [];
       }
     },
 
