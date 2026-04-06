@@ -267,6 +267,30 @@ function DashboardApp() {
     };
   }, []);
 
+  const renderLegacyPage = useMemo(() => {
+    switch (activeTab) {
+      case 'focus':
+        return (container: HTMLElement) => renderFocusPage(container, 'page');
+      case 'apps':
+        return renderAppsPage;
+      case 'dash':
+        return renderDashboardPage;
+      case 'schedule':
+        return renderSchedulePage;
+      case 'insights':
+        return (container: HTMLElement) =>
+          renderInsightsPage(container, 'page');
+      case 'settings':
+        return renderSettingsPage;
+      case 'security':
+        return renderSecurityPage;
+      case 'privacy':
+        return renderPrivacyPage;
+      default:
+        return null;
+    }
+  }, [activeTab]);
+
   const renderCurrentContent = () => {
     if (showOnboarding) {
       return (
@@ -290,34 +314,11 @@ function DashboardApp() {
       );
     }
 
-    switch (activeTab) {
-      case 'focus':
-        return (
-          <LegacyBridge
-            renderFn={(container) => renderFocusPage(container, 'page')}
-          />
-        );
-      case 'apps':
-        return <LegacyBridge renderFn={renderAppsPage} />;
-      case 'dash':
-        return <LegacyBridge renderFn={renderDashboardPage} />;
-      case 'schedule':
-        return <LegacyBridge renderFn={renderSchedulePage} />;
-      case 'insights':
-        return (
-          <LegacyBridge
-            renderFn={(container) => renderInsightsPage(container, 'page')}
-          />
-        );
-      case 'settings':
-        return <LegacyBridge renderFn={renderSettingsPage} />;
-      case 'security':
-        return <LegacyBridge renderFn={renderSecurityPage} />;
-      case 'privacy':
-        return <LegacyBridge renderFn={renderPrivacyPage} />;
-      default:
-        return <div className="fg-p-12 fg-text-slate-400">Coming soon</div>;
+    if (renderLegacyPage) {
+      return <LegacyBridge renderFn={renderLegacyPage} />;
     }
+
+    return <div className="fg-p-12 fg-text-slate-400">Coming soon</div>;
   };
 
   return (

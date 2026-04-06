@@ -14,7 +14,12 @@ export async function renderInsightsPage(
   if (!container) {
     return;
   }
-  container.innerHTML = '<div class="loader">Analyzing engine logs...</div>';
+
+  // Prevent blinking by only showing loader if container is empty
+  const isInternalUpdate = container.querySelector('.insights-shell');
+  if (!isInternalUpdate) {
+    container.innerHTML = '<div class="loader">Analyzing engine logs...</div>';
+  }
 
   try {
     if (context === 'popup') {
@@ -52,86 +57,88 @@ async function _renderPage(container: HTMLElement): Promise<void> {
   ).length;
 
   container.innerHTML = `
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-md); margin-bottom: var(--space-xl);">
-      <div class="glass-card" style="padding: var(--space-lg);">
-        <div class="field-label">Tracked Days</div>
-        <div style="font-size: 18px; font-weight: 800; color: var(--text); margin-top: 4px;">${
-          snapshots.length
-        }</div>
+    <div class="insights-shell">
+      <div class="fg-grid fg-grid-cols-3 fg-gap-4 fg-mb-8">
+        <div class="glass-card fg-p-6">
+          <div class="field-label">Tracked Days</div>
+          <div class="fg-text-lg fg-font-extrabold fg-text-[var(--text)] fg-mt-1">${
+            snapshots.length
+          }</div>
+        </div>
+        <div class="glass-card fg-p-6">
+          <div class="field-label">Average Focus Time</div>
+          <div class="fg-text-lg fg-font-extrabold fg-text-[var(--text)] fg-mt-1">${avgFocusTime}m / day</div>
+        </div>
+        <div class="glass-card fg-p-6">
+          <div class="field-label">Days With Focus</div>
+          <div class="fg-text-lg fg-font-extrabold fg-text-[var(--text)] fg-mt-1">${focusConsistency}% consistency</div>
+        </div>
       </div>
-      <div class="glass-card" style="padding: var(--space-lg);">
-        <div class="field-label">Average Focus Time</div>
-        <div style="font-size: 18px; font-weight: 800; color: var(--text); margin-top: 4px;">${avgFocusTime}m / day</div>
-      </div>
-      <div class="glass-card" style="padding: var(--space-lg);">
-        <div class="field-label">Days With Focus</div>
-        <div style="font-size: 18px; font-weight: 800; color: var(--text); margin-top: 4px;">${focusConsistency}% consistency</div>
-      </div>
-    </div>
 
-    <div class="glass-card" style="margin-bottom: var(--space-xl); padding: var(--space-xl);">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:32px;">
-        <div>
-          <div class="section-label" style="margin:0;">Last 7 Days Focus Minutes</div>
-          <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">${activeDays} of ${Math.max(
+      <div class="glass-card fg-mb-8 fg-p-8">
+        <div class="fg-flex fg-justify-between fg-items-center fg-mb-8">
+          <div>
+            <div class="section-label" style="margin: 0;">Last 7 Days Focus Minutes</div>
+            <div class="fg-text-[11px] fg-text-[var(--muted)] fg-mt-1">${activeDays} of ${Math.max(
     weeklySnapshots.length,
     1,
   )} tracked days had focus activity.</div>
+          </div>
+          <div class="fg-text-xs fg-text-[var(--text)] fg-font-extrabold">${avgFocusTime}m avg</div>
         </div>
-        <div style="font-size:12px; color:var(--text); font-weight:800;">${avgFocusTime}m avg</div>
+        ${
+          weeklySnapshots.length === 0
+            ? `<div class="fg-flex fg-items-center fg-justify-center fg-rounded-2xl fg-text-[var(--muted)] fg-text-xs" style="height: 160px; border: 1px dashed var(--glass-border);">
+                No focus history yet. Start a session to build the weekly report.
+              </div>`
+            : `<div class="bar-chart fg-flex fg-items-end fg-gap-4 fg-mt-4" style="height: 140px;">
+                ${weeklySnapshots
+                  .map((s: any, i: number) => {
+                    const height = Math.max(
+                      8,
+                      ((s.screenTimeMinutes || 0) / weeklyMaxMins) * 100,
+                    );
+                    const isLatest = i === weeklySnapshots.length - 1;
+                    return `
+                      <div class="bar-col fg-flex-1 fg-flex fg-flex-col fg-justify-end fg-items-center fg-gap-3" style="height: 100%;">
+                        <div class="bar-track fg-w-full fg-flex-1 fg-rounded-[6px] fg-relative fg-overflow-hidden" style="background: rgba(255,255,255,0.02);">
+                          <div class="bar-fill fg-w-full fg-absolute" style="height: ${height}%; bottom: 0; background: ${
+                      isLatest ? 'var(--accent)' : 'rgba(161,161,170,0.18)'
+                    }; border-radius: 6px; transition: height 0.6s cubic-bezier(0.4,0,0.2,1);"></div>
+                        </div>
+                        <div class="fg-flex fg-flex-col fg-items-center fg-gap-1">
+                          <span class="fg-text-[11px] fg-font-extrabold" style="color: ${
+                            isLatest ? 'var(--text)' : 'var(--muted)'
+                          };">${s.screenTimeMinutes || 0}m</span>
+                          <span class="fg-text-[10px] fg-font-extrabold" style="font-family: monospace; color: ${
+                            isLatest ? 'var(--text)' : 'var(--muted)'
+                          };">${new Date(s.date).toLocaleDateString([], {
+                      weekday: 'short',
+                    })}</span>
+                        </div>
+                      </div>`;
+                  })
+                  .join('')}
+              </div>`
+        }
       </div>
-      ${
-        weeklySnapshots.length === 0
-          ? `<div style="height: 160px; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 12px; border: 1px dashed var(--glass-border); border-radius: 16px;">
-              No focus history yet. Start a session to build the weekly report.
-            </div>`
-          : `<div class="bar-chart" style="height: 140px; display: flex; align-items: flex-end; gap: 16px; margin-top: 16px;">
-              ${weeklySnapshots
-                .map((s: any, i: number) => {
-                  const height = Math.max(
-                    8,
-                    ((s.screenTimeMinutes || 0) / weeklyMaxMins) * 100,
-                  );
-                  const isLatest = i === weeklySnapshots.length - 1;
-                  return `
-                    <div class="bar-col" style="flex:1; height:100%; display:flex; flex-direction:column; justify-content:flex-end; align-items:center; gap:12px;">
-                      <div class="bar-track" style="width:100%; flex:1; background:rgba(255,255,255,0.02); border-radius:6px; position:relative; overflow:hidden;">
-                        <div class="bar-fill" style="height: ${height}%; width:100%; position:absolute; bottom:0; background:${
-                    isLatest ? 'var(--accent)' : 'rgba(161,161,170,0.18)'
-                  }; border-radius:6px; transition: height 0.6s cubic-bezier(0.4,0,0.2,1);"></div>
-                      </div>
-                      <div style="display:flex; flex-direction:column; align-items:center; gap:4px;">
-                        <span style="font-size:11px; font-weight:800; color:${
-                          isLatest ? 'var(--text)' : 'var(--muted)'
-                        };">${s.screenTimeMinutes || 0}m</span>
-                        <span style="font-size:10px; font-weight:800; font-family: monospace; color: ${
-                          isLatest ? 'var(--text)' : 'var(--muted)'
-                        };">${new Date(s.date).toLocaleDateString([], {
-                    weekday: 'short',
-                  })}</span>
-                      </div>
-                    </div>`;
-                })
-                .join('')}
-            </div>`
-      }
-    </div>
 
-    <div style="display: grid; grid-template-columns: 3fr 2fr; gap: var(--space-xl);">
-      <!-- Activity Logs -->
-      <section>
-        <div class="section-label">Recent Network Blocks</div>
-        <div style="display:flex; flex-direction:column; gap: var(--space-sm); margin-top: 16px;">
-          ${_renderLogsList(isConfigured, blockedLogs as any[])}
-        </div>
-      </section>
+      <div class="fg-grid fg-gap-8" style="grid-template-columns: 3fr 2fr;">
+        <!-- Activity Logs -->
+        <section>
+          <div class="section-label">Recent Network Blocks</div>
+          <div class="fg-flex fg-flex-col fg-gap-2 fg-mt-4">
+            ${_renderLogsList(isConfigured, blockedLogs as any[])}
+          </div>
+        </section>
 
-      <section>
-        <div class="section-label">Most Blocked Targets</div>
-        <div style="display:flex; flex-direction:column; gap: var(--space-sm); margin-top: 16px;">
-          ${_renderTopBlocked(isConfigured, topBlocked as any[])}
-        </div>
-      </section>
+        <section>
+          <div class="section-label">Most Blocked Targets</div>
+          <div class="fg-flex fg-flex-col fg-gap-2 fg-mt-4">
+            ${_renderTopBlocked(isConfigured, topBlocked as any[])}
+          </div>
+        </section>
+      </div>
     </div>
   `;
 }
@@ -139,17 +146,17 @@ async function _renderPage(container: HTMLElement): Promise<void> {
 function _renderLogsList(isConfigured: boolean, blockedLogs: any[]): string {
   if (!isConfigured) {
     return `
-      <div class="glass-card" style="padding: var(--space-xl); text-align:center; border-style: dashed; opacity: 0.8;">
-        <div style="font-size:24px; margin-bottom:16px;">🔒</div>
-        <div style="font-size:12px; font-weight:800; color:var(--text); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;">Advanced Inspection Locked</div>
-        <div style="font-size:11px; color:var(--muted); line-height:1.6; max-width:280px; margin:0 auto;">Link your <strong>NextDNS Profile</strong> in Settings to enable deep-packet analysis and cloud-level threat detection.</div>
-        <button class="btn-premium" style="margin-top: 20px; background: transparent; border: 1px solid var(--glass-border); box-shadow: none;" onclick="window.location.hash='#settings'">OPEN SETTINGS</button>
+      <div class="glass-card fg-p-8 fg-text-center fg-opacity-80" style="border-style: dashed;">
+        <div class="fg-mb-4" style="color:var(--muted); display:flex; justify-content:center;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+        <div class="fg-text-xs fg-font-extrabold fg-text-[var(--text)] fg-uppercase fg-tracking-wide fg-mb-2">Advanced Inspection Locked</div>
+        <div class="fg-text-[11px] fg-text-[var(--muted)] fg-leading-relaxed fg-max-w-[280px]" style="margin: 0 auto;">Link your <strong>NextDNS Profile</strong> in Settings to enable deep-packet analysis and cloud-level threat detection.</div>
+        <button class="btn-premium fg-mt-5" style="background: transparent; border: 1px solid var(--glass-border); box-shadow: none;" onclick="window.location.hash='#settings'">OPEN SETTINGS</button>
       </div>`;
   }
   if (blockedLogs.length === 0) {
-    return `<div class="glass-card" style="padding: var(--space-xl); text-align:center; color:var(--muted);">
-      <div style="font-size:20px; margin-bottom:12px; opacity:0.4;">🛡️</div>
-      <div style="font-size:11px; font-weight:800; text-transform:uppercase;">No network threats detected recently</div>
+    return `<div class="glass-card fg-p-8 fg-text-center fg-text-[var(--muted)]">
+      <div class="fg-mb-3" style="opacity: 0.4; display:flex; justify-content:center;"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+      <div class="fg-text-[11px] fg-font-extrabold fg-uppercase">No network threats detected recently</div>
     </div>`;
   }
   return blockedLogs
@@ -160,19 +167,19 @@ function _renderLogsList(isConfigured: boolean, blockedLogs: any[]): string {
           log.domain,
         )}&sz=64`;
       return `
-        <div class="glass-card" style="display:flex; align-items:center; gap:16px; padding:16px; border-radius:16px;">
-          <div style="width:40px; height:40px; border-radius:10px; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; border:1px solid var(--glass-border); flex-shrink:0;">
-            <img src="${iconUrl}" style="width:20px; height:20px; object-fit:contain;">
+        <div class="glass-card fg-flex fg-items-center fg-gap-4 fg-p-4 fg-rounded-2xl">
+          <div class="fg-shrink-0 fg-flex fg-items-center fg-justify-center fg-rounded-[10px]" style="width: 40px; height: 40px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);">
+            <img src="${iconUrl}" style="width: 20px; height: 20px; object-fit: contain;">
           </div>
-          <div style="flex:1; min-width:0;">
-            <div style="font-weight:800; font-size:13px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${
+          <div class="fg-flex-1 fg-min-w-0">
+            <div class="fg-font-extrabold fg-text-[13px] fg-text-[var(--text)] fg-truncate">${
               log.domain
             }</div>
-            <div style="font-size:10px; color:var(--red); font-weight:700; margin-top:2px; text-transform:uppercase; letter-spacing:0.5px;">${
+            <div class="fg-text-[10px] fg-text-[var(--red)] fg-font-bold fg-mt-[2px] fg-uppercase fg-tracking-[0.5px]">${
               log.reasons?.[0]?.name || 'BLOCKED'
             }</div>
           </div>
-          <div style="font-size:10px; color:var(--muted); font-weight:800; font-family:monospace;">${_formatTimeAgo(
+          <div class="fg-text-[10px] fg-text-[var(--muted)] fg-font-extrabold" style="font-family: monospace;">${_formatTimeAgo(
             log.timestamp,
           )}</div>
         </div>`;
@@ -182,13 +189,13 @@ function _renderLogsList(isConfigured: boolean, blockedLogs: any[]): string {
 
 function _renderTopBlocked(isConfigured: boolean, topBlocked: any[]): string {
   if (!isConfigured) {
-    return `<div class="glass-card" style="padding: var(--space-xl); text-align:center; border-style:dashed; opacity:0.8;">
-      <div style="font-size:11px; font-weight:800; color:var(--muted); text-transform:uppercase;">Analytics Suspended</div>
+    return `<div class="glass-card fg-p-8 fg-text-center fg-opacity-80" style="border-style: dashed;">
+      <div class="fg-text-[11px] fg-font-extrabold fg-text-[var(--muted)] fg-uppercase">Analytics Suspended</div>
     </div>`;
   }
   if (topBlocked.length === 0) {
-    return `<div class="glass-card" style="padding: var(--space-xl); text-align:center; color:var(--muted);">
-      <div style="font-size:11px; font-weight:800; text-transform:uppercase;">Compiling stats...</div>
+    return `<div class="glass-card fg-p-8 fg-text-center fg-text-[var(--muted)]">
+      <div class="fg-text-[11px] fg-font-extrabold fg-uppercase">Compiling stats...</div>
     </div>`;
   }
   return topBlocked
@@ -199,15 +206,15 @@ function _renderTopBlocked(isConfigured: boolean, topBlocked: any[]): string {
           item.name,
         )}&sz=64`;
       return `
-        <div class="glass-card" style="display:flex; align-items:center; gap:16px; padding:16px;">
-          <div style="width:36px; height:36px; border-radius:8px; background:rgba(255,255,255,0.03); display:flex; align-items:center; justify-content:center; border:1px solid var(--glass-border);">
-            <img src="${iconUrl}" style="width:18px; height:18px; object-fit:contain;">
+        <div class="glass-card fg-flex fg-items-center fg-gap-4 fg-p-4">
+          <div class="fg-shrink-0 fg-flex fg-items-center fg-justify-center fg-rounded-lg" style="width: 36px; height: 36px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);">
+            <img src="${iconUrl}" style="width: 18px; height: 18px; object-fit: contain;">
           </div>
-          <div style="flex:1;">
-            <div style="font-weight:800; font-size:13px;">${
+          <div class="fg-flex-1">
+            <div class="fg-font-extrabold fg-text-[13px]">${
               item.name || 'Unknown'
             }</div>
-            <div style="font-size:10px; color:var(--accent); font-weight:800; margin-top:2px;">${
+            <div class="fg-text-[10px] fg-font-extrabold fg-mt-[2px] fg-text-[var(--accent)]">${
               item.count
             } BLOCKS</div>
           </div>
@@ -242,45 +249,47 @@ async function _renderPopup(container: HTMLElement): Promise<void> {
   }
 
   container.innerHTML = `
-    <div class="widget-grid" style="grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
-      <div class="glass-card widget-card" style="padding: 12px; text-align:center;">
-        <div class="widget-title" style="font-size: 10px;">AVERAGE</div>
-        <div style="font-size:16px; font-weight:800; margin-top:8px;">${fmtTime(
-          allTotalMs as number,
-        )}</div>
+    <div class="insights-shell">
+      <div class="widget-grid fg-mb-5" style="grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div class="glass-card widget-card fg-p-3 fg-text-center">
+          <div class="widget-title" style="font-size: 10px;">AVERAGE</div>
+          <div class="fg-text-base fg-font-extrabold fg-mt-2">${fmtTime(
+            allTotalMs as number,
+          )}</div>
+        </div>
+        <div class="glass-card widget-card fg-p-3 fg-text-center">
+          <div class="widget-title" style="font-size: 10px;">GOAL</div>
+          <div class="fg-text-base fg-font-extrabold fg-text-[var(--accent)] fg-mt-2">${focusPercent}%</div>
+        </div>
       </div>
-      <div class="glass-card widget-card" style="padding: 12px; text-align:center;">
-        <div class="widget-title" style="font-size: 10px;">GOAL</div>
-        <div style="font-size:16px; font-weight:800; color:var(--accent); margin-top:8px;">${focusPercent}%</div>
-      </div>
-    </div>
 
-    <div class="section-label" style="font-size: 10px; margin-bottom: 12px;">TOP BLOCKS</div>
-    <div style="display: flex; flex-direction: column; gap: 8px;">
-      ${
-        topBlocked.length === 0
-          ? '<div class="empty-state" style="padding:20px; font-size:11px;">No network threats today</div>'
-          : topBlocked
-              .map(
-                (d) => `
-              <div class="rule-item" style="padding: 10px 14px; border-radius: 12px;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                  <img src="${getSmartIcon(
-                    d.domain,
-                  )}" class="app-icon" style="width:20px; height:20px;">
-                  <div style="font-size:11px; font-weight:800;">${
-                    d.domain
+      <div class="section-label" style="font-size: 10px; margin-bottom: 12px;">TOP BLOCKS</div>
+      <div class="fg-flex fg-flex-col fg-gap-2">
+        ${
+          topBlocked.length === 0
+            ? '<div class="empty-state fg-p-5 fg-text-[11px]">No network threats today</div>'
+            : topBlocked
+                .map(
+                  (d) => `
+                <div class="rule-item fg-py-[10px] fg-px-[14px] fg-rounded-xl">
+                  <div class="fg-flex fg-items-center fg-gap-[10px]">
+                    <img src="${getSmartIcon(
+                      d.domain,
+                    )}" class="app-icon" style="width: 20px; height: 20px;">
+                    <div class="fg-text-[11px] fg-font-extrabold">${
+                      d.domain
+                    }</div>
+                  </div>
+                  <div class="fg-text-[10px] fg-font-black fg-text-[var(--red)]">${
+                    d.queries
                   }</div>
-                </div>
-                <div style="font-size:10px; font-weight:900; color:var(--red);">${
-                  d.queries
-                }</div>
-              </div>`,
-              )
-              .join('')
-      }
+                </div>`,
+                )
+                .join('')
+        }
+      </div>
+      <button class="btn-premium fg-w-full fg-mt-4 fg-text-[11px] fg-text-[var(--text)]" id="btn_full_insights" style="padding: 10px; background: rgba(255,255,255,0.02); box-shadow: none;">VIEW FULL ANALYTICS</button>
     </div>
-    <button class="btn-premium" id="btn_full_insights" style="width:100%; margin-top:16px; font-size:11px; padding:10px; background:rgba(255,255,255,0.02); color:var(--text); box-shadow:none;">VIEW FULL ANALYTICS</button>
   `;
 
   container
