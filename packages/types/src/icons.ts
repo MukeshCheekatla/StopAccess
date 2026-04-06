@@ -7,7 +7,7 @@ export type BrandSource = 'simpleicon' | 'favicon';
  * Definition of a service brand for UI display
  */
 export interface BrandDefinition {
-  color: string;
+  color?: string;
   slug?: string;
   domain?: string;
   source?: BrandSource;
