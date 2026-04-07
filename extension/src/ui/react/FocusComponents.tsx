@@ -45,17 +45,18 @@ export function Button({
   );
 }
 
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: ReactNode;
+  hover?: boolean;
+}
+
 export function Card({
   children,
   className = '',
   hover = false,
   onClick,
-}: {
-  children: ReactNode;
-  className?: string;
-  hover?: boolean;
-  onClick?: () => void;
-}) {
+  ...props
+}: CardProps) {
   return (
     <div
       onClick={onClick}
@@ -68,6 +69,7 @@ export function Card({
       }
       ${className}
     `}
+      {...props}
     >
       {children}
     </div>

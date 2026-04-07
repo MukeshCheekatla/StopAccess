@@ -99,7 +99,7 @@ function renderTodayRecords(): string {
 
       return `
         <div class="fg-grid fg-items-center fg-gap-[14px] fg-py-[14px]" style="grid-template-columns:56px 1fr auto; border-top:1px solid rgba(255,255,255,0.06);">
-          <div class="fg-text-xs fg-text-[var(--muted)]">${start}</div>
+          <div class="fg-text-xs" style="color: rgba(255,255,255,0.4);">${start}</div>
           <div style="height:1px; background:rgba(255,255,255,0.08);"></div>
           <div class="fg-text-xs fg-font-bold" style="color:${tone};">${duration}</div>
         </div>
@@ -110,20 +110,29 @@ function renderTodayRecords(): string {
 
 function renderAmbientShell(
   centerContent: string,
-  sideContent: string,
+  sideContent: string | null,
+  context: 'page' | 'popup' = 'page',
 ): string {
+  const isPopup = context === 'popup';
+  const gridTemplate = isPopup ? '1fr' : 'minmax(0,1fr) 280px';
+  const padding = isPopup ? '12px' : '28px';
+  const minHeight = isPopup ? '380px' : '540px';
+
   return `
-    <div style="position:relative; min-height:540px; border-radius:24px; overflow:hidden; background:
+    <div style="position:relative; min-height:${minHeight}; border-radius:24px; overflow:hidden; background:
       linear-gradient(180deg, #09090b, #0c0d12);
-      border:1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column;">
+      border:1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.4);">
       <div style="position:absolute; inset:0; background: rgba(0,0,0,0.2);"></div>
-      <div style="position:relative; z-index:1; display:grid; grid-template-columns:minmax(0,1fr) 280px; gap:20px; flex: 1; padding:28px;">
+      <div style="position:relative; z-index:1; display:grid; grid-template-columns:${gridTemplate}; gap:20px; flex: 1; padding:${padding};">
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px;">
           ${centerContent}
         </div>
-        <div style="display:flex; flex-direction:column; gap:12px;">
-          ${sideContent}
-        </div>
+        ${
+          !isPopup && sideContent
+            ? `<div style="display:flex; flex-direction:column; gap:12px;">${sideContent}</div>`
+            : ''
+        }
       </div>
     </div>
   `;
@@ -149,7 +158,7 @@ function renderRingMarkup(
     const stroke =
       index < activeTicks ? 'rgba(132,255,228,0.92)' : 'rgba(255,255,255,0.25)';
     const strokeWidth = index % 5 === 0 ? 3.5 : 2.5;
-    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
+    return `<line data-tick-index="${index}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
   }).join('');
 
   return `
@@ -164,7 +173,7 @@ function renderRingMarkup(
           <span style="width:6px; height:6px; border-radius:50%; background:rgba(132,255,228,0.95); box-shadow:0 0 8px rgba(132,255,228,0.45);"></span>
           ${label}
         </div>
-        <div style="margin-top:6px; max-width:200px; text-align:center; font-size:12px; line-height:1.5; color:rgba(255,255,255,0.45);">${sublabel}</div>
+        <div id="liveSublabelDisplay" style="margin-top:6px; max-width:200px; text-align:center; font-size:12px; line-height:1.5; color:rgba(255,255,255,0.45);">${sublabel}</div>
       </div>
     </div>
   `;
@@ -202,8 +211,8 @@ function renderPresetButtons(): string {
         .map(
           (preset) => `
         <button class="btn-premium start-focus fg-flex fg-flex-col fg-items-start fg-gap-1 fg-text-left fg-rounded-[18px]" data-mins="${preset.m}" style="padding:16px 18px; min-height:80px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); box-shadow:none;">
-          <span style="font-size:22px; font-weight:900; color:var(--text); line-height:1;">${preset.m}m</span>
-          <span class="fg-text-[10px] fg-text-[var(--muted)] fg-font-bold fg-uppercase fg-tracking-[0.1em]">${preset.tag}</span>
+          <span style="font-size:22px; font-weight:900; color:rgba(255,255,255,0.95); line-height:1;">${preset.m}m</span>
+          <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-[0.1em]" style="color:rgba(255,255,255,0.45);">${preset.tag}</span>
         </button>
       `,
         )
@@ -221,13 +230,35 @@ function renderIdleStateSummary(): string {
   `;
 }
 
-function renderActiveStateSummary(currentFocus: string): string {
+function renderDomainIcon(domain: string, size = 32): string {
+  const root = domain.includes('.')
+    ? domain.split('.').slice(-2).join('.')
+    : domain;
+  const iconUrl = `https://www.google.com/s2/favicons?domain=${root}&sz=128`;
+  return `
+    <div style="width:${size}px; height:${size}px; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; overflow:hidden;">
+      <img src="${iconUrl}" style="width:${Math.round(
+    size * 0.6,
+  )}px; height:${Math.round(
+    size * 0.6,
+  )}px; opacity:0.95;" onerror="this.style.display='none';" alt="">
+    </div>
+  `;
+}
+
+function renderActiveStateSummary(
+  currentFocusHtml: string,
+  count: number,
+): string {
   return `
     <div style="width:min(440px, 100%); margin-bottom:16px; padding:18px 22px; border-radius:22px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); text-align:left; backdrop-filter:blur(12px);">
-      <div style="font-size:12px; font-weight:800; color:rgba(255,255,255,0.44); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:6px;">Current Focus</div>
-      <div style="font-size:15px; color:rgba(255,255,255,0.9); line-height:1.6;">${escapeHtml(
-        currentFocus,
-      )}</div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <div style="font-size:12px; font-weight:800; color:rgba(255,255,255,0.44); letter-spacing:0.12em; text-transform:uppercase;">Shielding Services</div>
+        <div style="font-size:10px; font-weight:900; background:rgba(132,255,228,0.1); color:rgba(132,255,228,1); padding:2px 8px; border-radius:6px; border:1px solid rgba(132,255,228,0.2);">${count} ACTIVE</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:10px; min-height:30px;">
+        ${currentFocusHtml}
+      </div>
     </div>
   `;
 }
@@ -320,57 +351,76 @@ export async function renderFocusPage(
   }
 }
 
-function _renderActive(
+async function _renderActive(
   container: HTMLElement,
   context: 'page' | 'popup',
   focusEnd: number,
   focusStart: number,
   activeSession: FocusSessionRecord | null,
-): void {
+): Promise<void> {
   const now = Date.now();
   const totalDuration = focusEnd - focusStart;
   const remaining = Math.max(0, focusEnd - now);
   const timeDisplay = formatTime(remaining);
+  const progress = Math.max(0, Math.min(1, 1 - remaining / totalDuration));
 
   if (context === 'page') {
-    _renderActivePage(
+    await _renderActivePage(
       container,
       timeDisplay,
+      progress,
       focusEnd,
       focusStart,
       totalDuration,
       activeSession,
     );
   } else {
-    _renderActivePopup(
+    await _renderActivePopup(
       container,
       timeDisplay,
+      progress,
       focusEnd,
+      focusStart,
       totalDuration,
-      remaining,
+      activeSession,
     );
   }
 }
 
-function _renderActivePage(
+async function _renderActivePage(
   container: HTMLElement,
   timeDisplay: string,
+  progress: number,
   focusEnd: number,
   focusStart: number,
   totalDuration: number,
   activeSession: FocusSessionRecord | null,
-): void {
-  const progress = Math.max(
-    0,
-    Math.min(1, 1 - Math.max(0, focusEnd - Date.now()) / totalDuration),
-  );
+): Promise<void> {
   const currentFocus = activeSession?.blockedDomains?.length
     ? activeSession.blockedDomains.slice(0, 2).join(' / ')
     : 'Focus session active';
+  const allBlocked = [
+    ...(activeSession?.blockedDomains || []),
+    ...(activeSession?.blockedAtStart?.services || []),
+    ...(activeSession?.blockedAtStart?.denylist || []),
+  ];
+
+  // Deduplicate by root domain to keep icons clean
+  const uniqueBlocked = Array.from(
+    new Set(allBlocked.map((d) => d.toLowerCase().trim())),
+  ).filter((d) => d && !d.includes('nextdns.io')); // Filter out internal noise
+
+  const currentFocusHtml = uniqueBlocked.length
+    ? uniqueBlocked
+        .slice(0, 5)
+        .map((d) => renderDomainIcon(d, 36))
+        .join('')
+    : '<div style="font-size:15px; color:rgba(255,255,255,0.9); line-height:1.6;">Focus session active</div>';
+
   const sublabel = `${Math.round(progress * 100)}% complete`;
 
   const centerContent = `
-    ${renderActiveStateSummary(currentFocus)}
+    ${renderActiveStateSummary(currentFocusHtml, uniqueBlocked.length)}
     ${renderRingMarkup(timeDisplay, progress, 'Session Running', sublabel)}
     <button class="btn-premium" id="stopFocus" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.65); border-radius:999px; box-shadow:none; font-size:14px; font-weight:600; padding:10px 24px;">
       Pause
@@ -408,43 +458,54 @@ function _renderActivePage(
     if (timerEl) {
       timerEl.textContent = formatTime(remaining);
     }
+    const currentProgress = Math.max(
+      0,
+      Math.min(1, 1 - remaining / totalDuration),
+    );
+    const subLabelEl = container.querySelector('#liveSublabelDisplay');
+    if (subLabelEl) {
+      subLabelEl.textContent = `${Math.round(currentProgress * 100)}% complete`;
+    }
+    _updateActiveTicks(container, currentProgress);
   }, 1000);
 }
 
-function _renderActivePopup(
+function _updateActiveTicks(container: HTMLElement, progress: number): void {
+  const tickCount = 120;
+  const activeTicks = Math.round(progress * tickCount);
+  const lines = container.querySelectorAll('line[data-tick-index]');
+  lines.forEach((el) => {
+    const tick = el as SVGLineElement;
+    const index = parseInt(tick.getAttribute('data-tick-index') || '0', 10);
+    const stroke =
+      index < activeTicks ? 'rgba(132,255,228,0.92)' : 'rgba(255,255,255,0.25)';
+    if (tick.getAttribute('stroke') !== stroke) {
+      tick.setAttribute('stroke', stroke);
+    }
+  });
+}
+
+async function _renderActivePopup(
   container: HTMLElement,
   timeDisplay: string,
+  progress: number,
   focusEnd: number,
+  focusStart: number,
   totalDuration: number,
-  remaining: number,
-): void {
-  const radius = 90;
-  const circum = 2 * Math.PI * radius;
-  const progress = Math.max(0, Math.min(1, remaining / totalDuration));
-  const offset = circum * (1 - progress);
+  activeSession: FocusSessionRecord | null, // eslint-disable-line @typescript-eslint/no-unused-vars
+): Promise<void> {
+  const sublabel = `${Math.round(progress * 100)}% complete`;
 
-  container.innerHTML = `
-    <div class="focus-container" style="padding: 20px 0;">
-      <div class="focus-timer-v2" style="width: 200px; height: 200px; margin-bottom: 24px;">
-        <div class="focus-active-glow"></div>
-        <svg class="focus-timer-svg" viewBox="0 0 200 200">
-          <circle class="focus-timer-track" cx="100" cy="100" r="90" style="stroke-width: 6;" />
-          <circle class="focus-timer-progress" cx="100" cy="100" r="90"
-                  style="stroke-width: 6;"
-                  stroke-dasharray="${circum}"
-                  stroke-dashoffset="${offset}" />
-        </svg>
-        <div class="focus-timer-text">
-          <div class="focus-timer-val" id="preciseTimerPopup" style="font-size: 2.5rem;">${timeDisplay}</div>
-          <div class="focus-timer-label" style="font-size: 8px;">Shield Active</div>
-        </div>
-      </div>
-
-      <button class="btn-premium" id="stopFocusPopup" style="background: rgba(255,255,255,0.02); color: var(--muted); border: 1px solid var(--glass-border); box-shadow: none; font-size: 10px; padding: 8px 16px;">
-        ABORT SESSION
-      </button>
+  const centerContent = `
+    <div style="transform: scale(0.8); margin: -20px 0;">
+      ${renderRingMarkup(timeDisplay, progress, 'Active Focus', sublabel)}
     </div>
+    <button class="btn-premium" id="stopFocusPopup" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.65); border-radius:999px; box-shadow:none; font-size:12px; font-weight:600; padding:8px 20px;">
+      ABORT SESSION
+    </button>
   `;
+
+  container.innerHTML = renderAmbientShell(centerContent, null, 'popup');
 
   container.querySelector('#stopFocusPopup')?.addEventListener('click', () => {
     _showAbortModal(container, 'popup', () =>
@@ -459,11 +520,16 @@ function _renderActivePopup(
       renderFocusPage(container, 'popup');
       return;
     }
-    const timerEl = document.getElementById('preciseTimerPopup');
+    const timerEl = container.querySelector('#liveTimerDisplay');
     if (timerEl) {
-      timerEl.innerText = formatTime(rem);
+      timerEl.textContent = formatTime(rem);
     }
-    _updateProgressRing(container, rem, totalDuration);
+    const liveProgress = Math.max(0, Math.min(1, 1 - rem / totalDuration));
+    const subLabelEl = container.querySelector('#liveSublabelDisplay');
+    if (subLabelEl) {
+      subLabelEl.textContent = `${Math.round(liveProgress * 100)}% complete`;
+    }
+    _updateActiveTicks(container, liveProgress);
   }, 1000);
 }
 
@@ -510,8 +576,8 @@ function _renderIdlePopup(container: HTMLElement): void {
   container.innerHTML = `
     <div class="focus-container" style="padding: 10px 0;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <div class="widget-title" style="color: var(--text); font-size: 14px;">IGNITE DEEP FOCUS</div>
-        <div style="font-size: 10px; color: var(--muted); font-weight: 600; margin-top: 4px;">Blocks synced across devices.</div>
+        <div class="widget-title" style="color: rgba(255,255,255,0.9); font-size: 14px;">IGNITE DEEP FOCUS</div>
+        <div style="font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 600; margin-top: 4px;">Blocks synced across devices.</div>
       </div>
 
       <div class="focus-presets" style="gap: 10px;">
@@ -565,10 +631,10 @@ function _showAbortModal(
     <div style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:${width}; z-index:10000; padding:${padding}; text-align:center; background:rgba(20,20,20,0.98); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.1); border-radius: ${
     isPopup ? '20px' : '24px'
   }; box-shadow: 0 20px 50px rgba(0,0,0,0.5); color: white;">
-      <div style="font-size:${titleSize}; font-weight:900; color:var(--text); margin-bottom:${
+      <div style="font-size:${titleSize}; font-weight:900; color:rgba(255,255,255,0.98); margin-bottom:${
     isPopup ? '8px' : '12px'
   }; letter-spacing:1px;">ABORT SESSION?</div>
-      <div style="font-size:${bodySize}; color:var(--muted); line-height:1.6; margin-bottom:${
+      <div style="font-size:${bodySize}; color:rgba(255,255,255,0.6); line-height:1.6; margin-bottom:${
     isPopup ? '20px' : '24px'
   };">${
     isPopup
@@ -578,7 +644,7 @@ function _showAbortModal(
       <div style="display:flex; gap:${
         isPopup ? '10px' : '12px'
       }; justify-content:center;">
-        <button class="btn-cancel-abort" style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:var(--text); padding:${
+        <button class="btn-cancel-abort" style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); padding:${
           isPopup ? '8px' : '10px'
         }; border-radius:${
     isPopup ? '10px' : '12px'
@@ -623,19 +689,4 @@ function _showAbortModal(
         }, 1000);
       }
     });
-}
-
-function _updateProgressRing(
-  container: HTMLElement,
-  remaining: number,
-  totalDuration: number,
-): void {
-  const circle = container.querySelector('.focus-timer-progress');
-  if (!circle) {
-    return;
-  }
-  const r = parseFloat(circle.getAttribute('r') || '90');
-  const circum = 2 * Math.PI * r;
-  const progress = Math.max(0, Math.min(1, remaining / totalDuration));
-  circle.setAttribute('stroke-dashoffset', String(circum * (1 - progress)));
 }

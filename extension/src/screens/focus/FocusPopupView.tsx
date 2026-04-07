@@ -5,25 +5,23 @@ import {
 } from '../../background/platformAdapter';
 
 const PRESETS = [
-  { minutes: 15, tag: 'Quick' },
-  { minutes: 25, tag: 'Pomo' },
-  { minutes: 45, tag: 'Deep' },
-  { minutes: 90, tag: 'Flow' },
+  { m: 15, t: 'Quick' },
+  { m: 25, t: 'Pomo' },
+  { m: 45, t: 'Deep' },
+  { m: 90, t: 'Flow' },
 ];
 
 export function FocusPopupView() {
-  const [remaining, setRemaining] = useState(0);
-  const [totalDuration, setTotalDuration] = useState(0);
-  const [isAbortModalOpen, setAbortModalOpen] = useState(false);
-  const [abortCountdown, setAbortCountdown] = useState<number | null>(null);
+  const [rem, setRem] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [abortModal, setAbortModal] = useState(false);
+  const [wait, setWait] = useState<number | null>(null);
 
   const fetchState = async () => {
     const res = await chrome.storage.local.get(['fg_active_session']);
-    const session = res.fg_active_session as any | null;
-
-    let end = 0;
-    let start = 0;
-
+    const session = res.fg_active_session as any;
+    let end = 0,
+      start = 0;
     if (session?.status === 'focusing') {
       end = session.startedAt + session.duration * 60000;
       start = session.startedAt;
@@ -32,16 +30,14 @@ export function FocusPopupView() {
       start =
         (await storage.getNumber('fg_focus_session_start', 0)) || end - 1500000;
     }
-
-    const now = Date.now();
-    setRemaining(Math.max(0, end - now));
-    setTotalDuration(end - start || 1);
+    setRem(Math.max(0, end - Date.now()));
+    setTotal(end - start || 1);
   };
 
   useEffect(() => {
     fetchState();
-    const intervalId = setInterval(fetchState, 1000);
-    return () => clearInterval(intervalId);
+    const id = setInterval(fetchState, 1000);
+    return () => clearInterval(id);
   }, []);
 
   const startFocus = (minutes: number) => {
@@ -51,16 +47,16 @@ export function FocusPopupView() {
   };
 
   const stopFocus = () => {
-    setAbortModalOpen(false);
-    setAbortCountdown(5);
-    const intervalId = setInterval(() => {
-      setAbortCountdown((prev) => {
-        if (prev && prev > 1) {
-          return prev - 1;
+    setAbortModal(false);
+    setWait(5);
+    const id = setInterval(() => {
+      setWait((p) => {
+        if (p && p > 1) {
+          return p - 1;
         }
-        clearInterval(intervalId);
+        clearInterval(id);
         chrome.runtime.sendMessage({ action: 'stopFocus' }, () => {
-          setAbortCountdown(null);
+          setWait(null);
           fetchState();
         });
         return 0;
@@ -68,131 +64,169 @@ export function FocusPopupView() {
     }, 1000);
   };
 
-  const formatTime = (ms: number) => {
-    const totalSec = Math.max(0, Math.floor(ms / 1000));
-    const m = Math.floor(totalSec / 60);
-    const s = totalSec % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  const prog = Math.max(0, Math.min(1, 1 - rem / total));
+  const fmt = (ms: number) => {
+    const s = Math.max(0, Math.floor(ms / 1000));
+    return `${Math.floor(s / 60)
+      .toString()
+      .padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
   };
 
-  if (remaining > 0) {
-    const progress = Math.max(0, Math.min(1, remaining / totalDuration));
-    const circumference = 2 * Math.PI * 90;
+  const ringStyles = {
+    bg: 'linear-gradient(180deg, #09090b, #0c0d12)',
+    text: { color: '#ffffff', opacity: 1 },
+    dim: { color: 'rgba(255,255,255,0.7)', opacity: 1 },
+  };
 
+  if (rem > 0) {
     return (
-      <div className="fg-flex fg-h-full fg-flex-col fg-items-center fg-justify-center fg-py-5">
-        <div className="fg-relative fg-mb-6 fg-flex fg-h-[200px] fg-w-[200px] fg-items-center fg-justify-center">
+      <div
+        className="fg-flex fg-h-full fg-flex-col fg-items-center fg-justify-center fg-p-6"
+        style={{ background: ringStyles.bg }}
+      >
+        <div className="fg-relative fg-flex fg-h-60 fg-w-60 fg-items-center fg-justify-center">
           <svg
-            className="fg-absolute fg-inset-0 fg-h-full fg-w-full -fg-rotate-90"
-            viewBox="0 0 200 200"
+            className="fg-absolute fg-inset-0 fg-h-full fg-w-full"
+            viewBox="0 0 320 320"
           >
-            <circle
-              cx="100"
-              cy="100"
-              r="90"
-              fill="none"
-              className="fg-stroke-white/[0.03]"
-              strokeWidth="6"
-            />
-            <circle
-              cx="100"
-              cy="100"
-              r="90"
-              fill="none"
-              stroke="var(--accent)"
-              strokeWidth="6"
-              strokeLinecap="round"
-              strokeDasharray={circumference}
-              strokeDashoffset={circumference * (1 - progress)}
-              className="fg-transition-all fg-duration-1000"
-            />
+            {Array.from({ length: 60 }).map((_, i) => {
+              const a = (i * 6 - 90) * (Math.PI / 180);
+              const x1 = 160 + 135 * Math.cos(a),
+                y1 = 160 + 135 * Math.sin(a);
+              const x2 = 160 + 148 * Math.cos(a),
+                y2 = 160 + 148 * Math.sin(a);
+              const active = i / 60 <= prog;
+              return (
+                <line
+                  key={i}
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke={active ? '#84ffe4' : 'rgba(255,255,255,0.08)'}
+                  strokeWidth={active ? 2.5 : 1.5}
+                />
+              );
+            })}
           </svg>
-          <div className="fg-z-10 fg-flex fg-flex-col fg-items-center">
-            <div className="fg-text-[2.5rem] fg-font-black fg-tabular-nums fg-tracking-[-0.04em] fg-text-white">
-              {formatTime(remaining)}
+          <div className="fg-text-center fg-z-10">
+            <div
+              className="fg-text-5xl fg-font-black fg-tracking-tighter"
+              style={ringStyles.text}
+            >
+              {fmt(rem)}
             </div>
-            <div className="fg-mt-1 fg-text-[8px] fg-font-black fg-uppercase fg-tracking-[0.25em] fg-text-[var(--muted)]">
-              Shield Active
+            <div
+              className="fg-mt-3 fg-text-[10px] fg-font-black fg-uppercase fg-tracking-[0.2em]"
+              style={ringStyles.dim}
+            >
+              {Math.round(prog * 100)}% COMPLETE
             </div>
           </div>
         </div>
-
         <button
-          className="fg-inline-flex fg-appearance-none fg-items-center fg-rounded-[8px] fg-border-0 fg-bg-white/[0.05] fg-px-4 fg-py-2 fg-text-[10px] fg-font-semibold fg-text-[var(--muted)] fg-outline-none fg-shadow-none hover:fg-bg-white/[0.08]"
-          onClick={() => setAbortModalOpen(true)}
-          disabled={abortCountdown !== null}
-          type="button"
+          onClick={() => setAbortModal(true)}
+          disabled={wait !== null}
+          className="fg-mt-6 fg-rounded-full fg-border fg-border-white/40 fg-bg-transparent fg-px-6 fg-py-2.5 fg-text-xs fg-font-bold disabled:fg-opacity-50"
+          style={ringStyles.text}
         >
-          {abortCountdown !== null
-            ? `WAIT ${abortCountdown}S`
-            : 'ABORT SESSION'}
+          {wait !== null ? `WAIT ${wait}S` : 'ABORT SESSION'}
         </button>
-
-        {isAbortModalOpen ? (
-          <div className="fg-fixed fg-inset-0 fg-z-[10000]">
-            <button
-              aria-label="Close abort modal"
-              className="fg-absolute fg-inset-0 fg-appearance-none fg-border-0 fg-bg-black/80 fg-outline-none"
-              onClick={() => setAbortModalOpen(false)}
-              type="button"
+        {abortModal && (
+          <div className="fg-fixed fg-inset-0 fg-z-[1000] fg-flex fg-items-center fg-justify-center fg-backdrop-blur-sm">
+            <div
+              onClick={() => setAbortModal(false)}
+              className="fg-absolute fg-inset-0 fg-bg-black/80"
             />
-            <div className="fg-absolute fg-left-1/2 fg-top-1/2 fg-z-[10001] fg-w-[260px] -fg-translate-x-1/2 -fg-translate-y-1/2 fg-rounded-[20px] fg-bg-[rgba(20,20,20,0.98)] fg-p-6 fg-text-center fg-shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
-              <div className="fg-mb-2 fg-text-[14px] fg-font-black fg-text-[var(--text)]">
-                ABORT SESSION?
+            <div className="fg-relative fg-w-72 fg-rounded-3xl fg-border fg-border-white/10 fg-bg-[#0c0d12] fg-p-7 fg-text-center fg-shadow-2xl">
+              <div
+                className="fg-mb-3 fg-text-lg fg-font-black"
+                style={ringStyles.text}
+              >
+                ABORT?
               </div>
-              <div className="fg-mb-5 fg-text-[11px] fg-leading-[1.5] fg-text-[var(--muted)]">
+              <div className="fg-mb-6 fg-text-sm" style={ringStyles.dim}>
                 Quitting early will end your current shield.
               </div>
-              <div className="fg-flex fg-gap-[10px]">
+              <div className="fg-flex fg-gap-3">
                 <button
-                  className="fg-flex-1 fg-appearance-none fg-rounded-[10px] fg-border-0 fg-bg-white/[0.08] fg-py-2 fg-text-[10px] fg-font-extrabold fg-text-[var(--text)] fg-outline-none fg-shadow-none"
-                  onClick={() => setAbortModalOpen(false)}
-                  type="button"
+                  onClick={() => setAbortModal(false)}
+                  className="fg-flex-1 fg-rounded-xl fg-bg-white/5 fg-py-2.5 fg-text-[11px] fg-font-bold fg-border fg-border-white/10"
+                  style={ringStyles.text}
                 >
                   CANCEL
                 </button>
                 <button
-                  className="fg-flex-1 fg-appearance-none fg-rounded-[10px] fg-border-0 fg-bg-[var(--red)] fg-py-2 fg-text-[10px] fg-font-extrabold fg-text-white fg-outline-none fg-shadow-none"
                   onClick={stopFocus}
-                  type="button"
+                  className="fg-flex-1 fg-rounded-xl fg-bg-red-500 fg-py-2.5 fg-text-[11px] fg-font-bold"
+                  style={{ color: 'white' }}
                 >
                   ABORT
                 </button>
               </div>
             </div>
           </div>
-        ) : null}
+        )}
       </div>
     );
   }
 
   return (
-    <div className="fg-flex fg-h-full fg-flex-col fg-items-center fg-justify-center fg-px-4">
-      <div className="fg-mb-6 fg-text-center">
-        <div className="fg-mb-2 fg-text-[18px] fg-font-black fg-uppercase fg-tracking-[0.16em] fg-text-[var(--muted)]">
-          Focus
-        </div>
-        <div className="fg-text-[14px] fg-font-extrabold fg-uppercase fg-text-white">
+    <div
+      className="fg-flex fg-h-full fg-flex-col fg-items-center fg-justify-center fg-p-6"
+      style={{ background: ringStyles.bg }}
+    >
+      <div className="fg-mb-7 fg-text-center">
+        <div
+          className="fg-mb-2 fg-text-xs fg-font-black fg-tracking-[0.2em]"
+          style={{ color: '#84ffe4', opacity: 1 }}
+        >
           IGNITE DEEP FOCUS
         </div>
-        <div className="fg-mt-1 fg-text-[10px] fg-font-semibold fg-text-[var(--muted)]">
-          Blocks synced across devices.
+        <div className="fg-text-sm fg-font-black" style={ringStyles.text}>
+          READY TO START
         </div>
       </div>
-
-      <div className="fg-grid fg-w-full fg-grid-cols-2 fg-gap-[10px]">
-        {PRESETS.map((preset) => (
+      <div className="fg-relative fg-mb-6 fg-flex fg-h-48 fg-w-48 fg-items-center fg-justify-center fg-opacity-30">
+        <svg
+          className="fg-absolute fg-inset-0 fg-h-full fg-w-full"
+          viewBox="0 0 320 320"
+        >
+          {Array.from({ length: 60 }).map((_, i) => (
+            <line
+              key={i}
+              x1="160"
+              y1="20"
+              x2="160"
+              y2="35"
+              stroke="rgba(255,255,255,0.15)"
+              strokeWidth="1.5"
+              transform={`rotate(${i * 6} 160 160)`}
+            />
+          ))}
+        </svg>
+        <div
+          className="fg-text-4xl fg-font-black"
+          style={{ color: 'rgba(255,255,255,0.2)' }}
+        >
+          --:--
+        </div>
+      </div>
+      <div className="fg-grid fg-w-full fg-grid-cols-2 fg-gap-2.5">
+        {PRESETS.map((p) => (
           <button
-            key={preset.minutes}
-            className="fg-flex fg-appearance-none fg-flex-col fg-items-center fg-gap-2 fg-rounded-[24px] fg-border-0 fg-bg-white/[0.035] fg-px-[10px] fg-py-[14px] fg-outline-none fg-shadow-none hover:fg-bg-white/[0.05]"
-            onClick={() => startFocus(preset.minutes)}
-            type="button"
+            key={p.m}
+            onClick={() => startFocus(p.m)}
+            className="fg-rounded-[20px] fg-border fg-border-white/10 fg-bg-white/[0.08] fg-p-4 fg-transition-all hover:fg-bg-white/15"
           >
-            <div className="fg-text-[1.1rem] fg-font-black fg-text-white">
-              {preset.minutes}M
+            <div className="fg-text-lg fg-font-black" style={ringStyles.text}>
+              {p.m}M
             </div>
-            <div className="fg-text-[8px] fg-font-black fg-uppercase fg-tracking-[0.15em] fg-text-[var(--muted)]">
-              {preset.tag}
+            <div
+              className="fg-text-[9px] fg-font-black fg-tracking-widest"
+              style={ringStyles.dim}
+            >
+              {p.t.toUpperCase()}
             </div>
           </button>
         ))}
