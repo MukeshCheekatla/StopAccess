@@ -43,6 +43,7 @@ export interface NextDNSEntity {
   id: string;
   name?: string;
   active?: boolean;
+  recreationTime?: boolean;
 }
 
 export interface NextDNSService extends NextDNSEntity {}
@@ -91,16 +92,26 @@ export interface NextDNSSecuritySettings {
   tlds: NextDNSTld[];
 }
 
+// --- Parental Control Settings ---
+
+export interface NextDNSParentalControlSettings {
+  safeSearch: boolean;
+  youtubeRestrictedMode: boolean;
+  blockBypass: boolean;
+}
+
 // --- Privacy Settings ---
 
 export interface NextDNSBlocklist {
   id: string; // e.g. "nextdns-recommended", "oisd"
   name?: string;
+  recreationTime?: boolean;
 }
 
 export interface NextDNSNativeTracking {
   id: string; // e.g. "apple", "samsung", "huawei"
   name?: string;
+  recreationTime?: boolean;
 }
 
 export interface NextDNSPrivacySettings {
@@ -108,6 +119,25 @@ export interface NextDNSPrivacySettings {
   natives: NextDNSNativeTracking[];
   disguisedTrackers: boolean;
   allowAffiliate: boolean;
+}
+
+/**
+ * NextDNS Recreation Time (day-specific periods where blocking is disabled)
+ */
+export interface NextDNSDayRecreation {
+  enabled: boolean;
+  start: string; // "HH:mm"
+  end: string; // "HH:mm"
+}
+
+export interface NextDNSRecreationTime {
+  mon?: NextDNSDayRecreation;
+  tue?: NextDNSDayRecreation;
+  wed?: NextDNSDayRecreation;
+  thu?: NextDNSDayRecreation;
+  fri?: NextDNSDayRecreation;
+  sat?: NextDNSDayRecreation;
+  sun?: NextDNSDayRecreation;
 }
 
 /**
@@ -119,6 +149,7 @@ export interface NextDNSFullSnapshot {
   denylist: NextDNSEntity[];
   security: NextDNSSecuritySettings;
   privacy: NextDNSPrivacySettings;
+  parentalControl: NextDNSParentalControlSettings;
 }
 
 // --- Error Handling ---
@@ -171,6 +202,14 @@ export interface NextDNSApiClient {
     patch: Partial<NextDNSPrivacySettings>,
   ): Promise<NextDNSResponse<NextDNSPrivacySettings>>;
 
+  // Parental Control
+  getParentalControl(): Promise<
+    NextDNSResponse<NextDNSParentalControlSettings>
+  >;
+  patchParentalControl(
+    patch: Partial<NextDNSParentalControlSettings>,
+  ): Promise<NextDNSResponse<NextDNSParentalControlSettings>>;
+
   // TLDs, Blocklists, Natives
   getBlockedTlds(): Promise<NextDNSResponse<NextDNSTld[]>>;
   getBlocklists(): Promise<NextDNSResponse<NextDNSBlocklist[]>>;
@@ -201,4 +240,10 @@ export interface NextDNSApiClient {
     }>
   >;
   getFullSnapshot(): Promise<NextDNSResponse<NextDNSFullSnapshot>>;
+
+  // Parental Control / Recreation Time
+  getRecreationTime(): Promise<NextDNSResponse<NextDNSRecreationTime>>;
+  syncRecreationTime(
+    recreationTime: NextDNSRecreationTime,
+  ): Promise<NextDNSResponse<boolean>>;
 }

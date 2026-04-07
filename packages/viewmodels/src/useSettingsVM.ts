@@ -9,6 +9,10 @@ export async function loadSettingsData() {
   const apiKey = (await storage.getString(STORAGE_KEYS.API_KEY)) || '';
   const strict = await storage.getBoolean('strict_mode_enabled');
   const syncMode = (await storage.getString('fg_sync_mode')) || 'browser';
+  const theme = ((await storage.getString(STORAGE_KEYS.THEME)) || 'system') as
+    | 'dark'
+    | 'light'
+    | 'system';
 
   const dnrRules = (await new Promise((resolve) => {
     if (chrome?.declarativeNetRequest?.getDynamicRules) {
@@ -26,6 +30,7 @@ export async function loadSettingsData() {
     apiKey,
     strict,
     syncMode,
+    theme,
     dnrRules,
     healthOk,
     syncState,
@@ -61,6 +66,11 @@ export async function setStrictModeAction(val: boolean) {
 export async function setSyncModeAction(mode: string) {
   await storage.set('fg_sync_mode', mode);
   chrome.runtime.sendMessage({ action: 'manualSync' });
+}
+
+export async function setThemeAction(theme: string) {
+  await storage.set(STORAGE_KEYS.THEME, theme);
+  chrome.runtime.sendMessage({ action: 'themeChanged', theme });
 }
 
 export async function testDomainCoverageAction(

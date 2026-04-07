@@ -54,6 +54,7 @@ export interface GlobalState {
   rules: AppRule[];
   schedules: ScheduleRule[];
   focusEndTime: number;
+  theme?: 'dark' | 'light' | 'system';
   updatedAt?: number;
   deviceId?: string;
   version?: number;

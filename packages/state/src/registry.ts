@@ -21,4 +21,5 @@ export const STORAGE_KEYS = {
   CACHED_METADATA: 'cached_ndns_metadata',
   SYNC_STATE: 'sync_state',
   STRICT_MODE: 'strict_mode_enabled',
+  THEME: 'fg_appearance_theme',
 };

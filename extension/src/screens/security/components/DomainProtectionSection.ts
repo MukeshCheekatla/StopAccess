@@ -9,6 +9,7 @@ import type { NextDNSSecuritySettings } from '@focusgate/types';
 interface DomainToggle {
   key: keyof Omit<NextDNSSecuritySettings, 'tlds'>;
   label: string;
+  tooltip: string; // Glossary text
   description: string;
   icon: string; // inline SVG string
 }
@@ -35,6 +36,8 @@ const DOMAIN_TOGGLES: DomainToggle[] = [
   {
     key: 'dnsRebinding',
     label: 'DNS Rebinding Protection',
+    tooltip:
+      'Prevents malicious websites from using your browser to attack local network devices, IoT gadgets, and home routers.',
     description:
       'Prevents attackers from controlling your local network via DNS.',
     icon: svgRefresh,
@@ -42,24 +45,32 @@ const DOMAIN_TOGGLES: DomainToggle[] = [
   {
     key: 'idnHomographs',
     label: 'IDN Homograph Attacks',
+    tooltip:
+      "Blocks 'look-alike' domains that use similar characters from different alphabets to impersonate legitimate sites (phishing).",
     description: 'Block look-alike domains using foreign characters.',
     icon: svgType,
   },
   {
     key: 'typosquatting',
     label: 'Typosquatting Protection',
+    tooltip:
+      'Detects and blocks common misspellings of popular websites designed to trick you into visiting malicious clones.',
     description: 'Block domains designed to catch common URL typos.',
     icon: svgKeyboard,
   },
   {
     key: 'dga',
     label: 'Domain Generation Algorithms',
+    tooltip:
+      'Blocks algorithmically generated domains used by malware to communicate with command-and-control servers.',
     description: 'Block algorithmically generated domains used by malware.',
     icon: svgSliders,
   },
   {
     key: 'nrd',
     label: 'Newly Registered Domains',
+    tooltip:
+      'Protects against newly registered domains (less than 30 days old), which are frequently used for short-lived malicious campaigns.',
     description:
       'Block domains registered in the last 30 days (often malicious).',
     icon: svgClock,
@@ -67,12 +78,16 @@ const DOMAIN_TOGGLES: DomainToggle[] = [
   {
     key: 'ddns',
     label: 'Dynamic DNS',
+    tooltip:
+      'Blocks hostnames from dynamic DNS providers, which are often utilized to host malicious content or malware payloads.',
     description: 'Block dynamic DNS hostnames used in attacks.',
     icon: svgWifi,
   },
   {
     key: 'parking',
     label: 'Parked Domains',
+    tooltip:
+      'Blocks domains that are inactive or show ads, preventing potential tracking and reducing general network clutter.',
     description: 'Block inactive parked domains used for ads or tracking.',
     icon: svgPause,
   },
@@ -92,7 +107,7 @@ export function renderDomainProtectionSection(
         <div class="section-title fg-flex fg-items-center fg-gap-2" style="margin: 0;">
           <span class="fg-text-[var(--accent)]">${svgGlobe}</span> Domain Protection
         </div>
-        <span class="fg-text-[9px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid rgba(255,255,255,0.07);">${activeCount}/${total} ACTIVE</span>
+        <span class="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: var(--fg-glass-bg); color: var(--fg-text); opacity: 0.8; border: 1px solid var(--fg-glass-border);">${activeCount}/${total} ACTIVE</span>
       </div>
       <div class="fg-grid fg-grid-cols-3 fg-gap-2">
         ${DOMAIN_TOGGLES.map((t) =>
@@ -107,9 +122,9 @@ function renderToggleRow(toggle: DomainToggle, active: boolean): string {
   return `
     <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150"
       data-key="${toggle.key}"
-      style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);"
-      onmouseenter="this.style.transform='translateY(-2px)';this.style.background='rgba(255,255,255,0.05)'"
-      onmouseleave="this.style.transform='';this.style.background='rgba(255,255,255,0.03)'"
+      style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
+      onmouseenter="this.style.transform='translateY(-2px)';this.style.opacity='0.8'"
+      onmouseleave="this.style.transform='';this.style.opacity='1'"
     >
       <!-- Icon (Left) -->
       <div class="fg-relative fg-shrink-0">
@@ -118,10 +133,18 @@ function renderToggleRow(toggle: DomainToggle, active: boolean): string {
 
       <!-- Content (Middle) -->
       <div class="fg-flex-1 fg-min-w-0">
-        <div class="fg-text-[13px] fg-font-bold fg-mb-[2px] fg-leading-[1.3] fg-text-[var(--text)] fg-truncate">
-          ${escapeHtml(toggle.label)}
+        <div class="fg-flex fg-items-center fg-gap-2 fg-mb-[2px]">
+          <div class="fg-text-sm fg-font-bold fg-leading-[1.3] fg-text-[var(--text)] fg-truncate">
+            ${escapeHtml(toggle.label)}
+          </div>
+          <div
+            class="fg-tooltip fg-info-icon"
+            data-tooltip="${toggle.tooltip || ''}"
+          >
+            i
+          </div>
         </div>
-        <div class="fg-text-[10px] fg-text-[var(--muted)] fg-leading-[1.4] fg-line-clamp-2">
+        <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-[1.4] fg-line-clamp-2">
           ${escapeHtml(toggle.description)}
         </div>
       </div>
@@ -136,7 +159,10 @@ function renderToggleRow(toggle: DomainToggle, active: boolean): string {
           aria-checked="${active}"
           role="switch"
           style="width: 32px; height: 18px; border-radius: 9px; border: none;
-            background: ${active ? 'var(--green)' : 'rgba(255,255,255,0.1)'};
+            background: ${active ? 'var(--green)' : 'var(--fg-glass-bg)'};
+            border: 1px solid ${
+              active ? 'var(--green)' : 'var(--fg-glass-border)'
+            };
             transition: background 0.2s ease; outline: none;"
         >
           <span style="position: absolute; top: 2px; left: ${

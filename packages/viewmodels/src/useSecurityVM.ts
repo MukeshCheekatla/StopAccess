@@ -7,11 +7,18 @@
 import {
   getSecuritySettings as getLocalSecurity,
   saveLocalSecurity,
+  getLocalParental,
+  saveLocalParental,
 } from '@focusgate/state/security';
-import type { NextDNSSecuritySettings, StorageAdapter } from '@focusgate/types';
+import type {
+  NextDNSSecuritySettings,
+  NextDNSParentalControlSettings,
+  StorageAdapter,
+} from '@focusgate/types';
 
 export interface SecurityVMData {
   settings: NextDNSSecuritySettings | null;
+  parental: NextDNSParentalControlSettings | null;
   isConfigured: boolean;
   isLoading: boolean;
   error: string | null;
@@ -20,7 +27,9 @@ export interface SecurityVMData {
 export interface SecurityVM {
   load(): Promise<SecurityVMData>;
   toggleSetting(
-    key: keyof Omit<NextDNSSecuritySettings, 'tlds'>,
+    key:
+      | keyof Omit<NextDNSSecuritySettings, 'tlds'>
+      | keyof NextDNSParentalControlSettings,
     value: boolean,
   ): Promise<{ ok: boolean; error?: string }>;
   addTld(id: string): Promise<{ ok: boolean; error?: string }>;
@@ -38,6 +47,7 @@ export function createSecurityVM(
       if (!isConfigured) {
         return {
           settings: null,
+          parental: null,
           isConfigured: false,
           isLoading: false,
           error: null,
@@ -45,19 +55,30 @@ export function createSecurityVM(
       }
 
       // Try local cache first
-      const cached = await getLocalSecurity(storage);
-      if (cached) {
+      const cachedSec = await getLocalSecurity(storage);
+      const cachedPar = await getLocalParental(storage);
+
+      if (cachedSec || cachedPar) {
         // Refresh from remote in background
-        api.getSecurity().then(async (res: any) => {
-          if (res && !res.error) {
-            const data = res.data ?? res;
-            if (data) {
-              await saveLocalSecurity(storage, data);
+        Promise.all([api.getSecurity(), api.getParentalControl()]).then(
+          async ([resSec, resPar]: any) => {
+            if (resSec && !resSec.error) {
+              const data = resSec.data ?? resSec;
+              if (data) {
+                await saveLocalSecurity(storage, data);
+              }
             }
-          }
-        });
+            if (resPar && !resPar.error) {
+              const data = resPar.data ?? resPar;
+              if (data) {
+                await saveLocalParental(storage, data);
+              }
+            }
+          },
+        );
         return {
-          settings: cached,
+          settings: cachedSec,
+          parental: cachedPar,
           isConfigured: true,
           isLoading: false,
           error: null,
@@ -66,28 +87,43 @@ export function createSecurityVM(
 
       // No cache — fetch remote
       try {
-        const res = await api.getSecurity();
-        if (res && !res.error) {
-          const data = res.data ?? res;
-          if (data) {
-            await saveLocalSecurity(storage, data);
-            return {
-              settings: data,
-              isConfigured: true,
-              isLoading: false,
-              error: null,
-            };
+        const [resSec, resPar] = await Promise.all([
+          api.getSecurity(),
+          api.getParentalControl(),
+        ]);
+
+        if (resSec && !resSec.error && resPar && !resPar.error) {
+          const dataSec = resSec.data ?? resSec;
+          const dataPar = resPar.data ?? resPar;
+          if (dataSec) {
+            await saveLocalSecurity(storage, dataSec);
           }
+          if (dataPar) {
+            await saveLocalParental(storage, dataPar);
+          }
+
+          return {
+            settings: dataSec,
+            parental: dataPar,
+            isConfigured: true,
+            isLoading: false,
+            error: null,
+          };
         }
         return {
           settings: null,
+          parental: null,
           isConfigured: true,
           isLoading: false,
-          error: res?.error?.message ?? 'Failed to load security settings',
+          error:
+            resSec?.error?.message ??
+            resPar?.error?.message ??
+            'Failed to load settings',
         };
       } catch (e: any) {
         return {
           settings: null,
+          parental: null,
           isConfigured: true,
           isLoading: false,
           error: e.message,
@@ -96,23 +132,40 @@ export function createSecurityVM(
     },
 
     async toggleSetting(
-      key: keyof Omit<NextDNSSecuritySettings, 'tlds'>,
+      key: any,
       value: boolean,
     ): Promise<{ ok: boolean; error?: string }> {
+      const isParentalKey = [
+        'safeSearch',
+        'youtubeRestrictedMode',
+        'blockBypass',
+      ].includes(key);
+
       try {
-        // Optimistic local update
-        const current = await getLocalSecurity(storage);
-        if (current) {
-          await saveLocalSecurity(storage, { ...current, [key]: value });
-        }
-        // Remote update
-        const res = await api.patchSecurity({ [key]: value });
-        if (res && res.error) {
-          // Revert on failure
+        if (isParentalKey) {
+          const current = await getLocalParental(storage);
           if (current) {
-            await saveLocalSecurity(storage, current);
+            await saveLocalParental(storage, { ...current, [key]: value });
           }
-          return { ok: false, error: res.error.message };
+          const res = await api.patchParentalControl({ [key]: value });
+          if (res && res.error) {
+            if (current) {
+              await saveLocalParental(storage, current);
+            }
+            return { ok: false, error: res.error.message };
+          }
+        } else {
+          const current = await getLocalSecurity(storage);
+          if (current) {
+            await saveLocalSecurity(storage, { ...current, [key]: value });
+          }
+          const res = await api.patchSecurity({ [key]: value });
+          if (res && res.error) {
+            if (current) {
+              await saveLocalSecurity(storage, current);
+            }
+            return { ok: false, error: res.error.message };
+          }
         }
         return { ok: true };
       } catch (e: any) {

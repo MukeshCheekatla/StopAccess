@@ -21,7 +21,7 @@ export function renderContentProtectionSection(
         <div class="section-title fg-flex fg-items-center fg-gap-2" style="margin: 0;">
           <span class="fg-text-[#ef4444]">${iconLock}</span> Content Protection
         </div>
-        <span class="fg-text-[9px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid rgba(255,255,255,0.07);">${
+        <span class="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: var(--fg-glass-bg); color: var(--fg-text); opacity: 0.8; border: 1px solid var(--fg-glass-border);">${
           active ? '1 ACTIVE' : '0 ACTIVE'
         }</span>
       </div>
@@ -29,9 +29,9 @@ export function renderContentProtectionSection(
       <div class="fg-grid fg-grid-cols-3 fg-gap-2">
         <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150"
           data-key="csam"
-          style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);"
-          onmouseenter="this.style.transform='translateY(-2px)';this.style.background='rgba(255,255,255,0.05)'"
-          onmouseleave="this.style.transform='';this.style.background='rgba(255,255,255,0.03)'"
+          style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
+          onmouseenter="this.style.transform='translateY(-2px)';this.style.opacity='0.8'"
+          onmouseleave="this.style.transform='';this.style.opacity='1'"
         >
           <!-- Icon (Left) -->
           <div class="fg-relative fg-shrink-0">
@@ -40,13 +40,21 @@ export function renderContentProtectionSection(
 
           <!-- Content (Middle) -->
           <div class="fg-flex-1 fg-min-w-0">
-            <div class="fg-text-[13px] fg-font-bold fg-mb-[2px] fg-leading-[1.3] fg-text-[var(--text)]">
-              Block CSAM
+            <div class="fg-flex fg-items-center fg-gap-2 fg-mb-[2px]">
+              <div class="fg-text-sm fg-font-bold fg-leading-[1.3] fg-text-[var(--text)]">
+                Block CSAM
+              </div>
+              <div
+                class="fg-tooltip fg-info-icon"
+                data-tooltip="Blocks access to known Child Sexual Abuse Material (CSAM) domains using industry-standard safety lists from organizations like the NCMEC."
+              >
+                i
+              </div>
             </div>
-            <div class="fg-text-[10px] fg-text-[var(--muted)] fg-leading-snug">
+            <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-snug">
               Block child sexual abuse material.
             </div>
-            <div class="fg-inline-block fg-text-[8px] fg-font-black fg-tracking-[1px] fg-uppercase fg-mt-[5px] fg-px-2 fg-py-[2px] fg-rounded-[10px]" style="background: rgba(0,196,140,0.1); color: var(--green); border: 1px solid rgba(0,196,140,0.2);">
+            <div class="fg-inline-block fg-text-[10px] fg-font-black fg-tracking-[1px] fg-uppercase fg-mt-[5px] fg-px-2 fg-py-[2px] fg-rounded-[10px]" style="background: rgba(0,196,140,0.1); color: var(--green); border: 1px solid rgba(0,196,140,0.2);">
               RECOMMENDED
             </div>
           </div>
@@ -61,8 +69,9 @@ export function renderContentProtectionSection(
               aria-checked="${active}"
               role="switch"
               style="width: 32px; height: 18px; border-radius: 9px; border: none;
-                background: ${
-                  active ? 'var(--green)' : 'rgba(255,255,255,0.1)'
+                background: ${active ? 'var(--green)' : 'var(--fg-glass-bg)'};
+                border: 1px solid ${
+                  active ? 'var(--green)' : 'var(--fg-glass-border)'
                 };
                 transition: background 0.2s ease; outline: none;"
             >

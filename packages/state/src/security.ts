@@ -1,4 +1,8 @@
-import { StorageAdapter, NextDNSSecuritySettings } from '@focusgate/types';
+import {
+  StorageAdapter,
+  NextDNSSecuritySettings,
+  NextDNSParentalControlSettings,
+} from '@focusgate/types';
 
 export const SECURITY_KEY = 'fg_security_settings';
 
@@ -27,6 +31,35 @@ export async function saveLocalSecurity(
   settings: NextDNSSecuritySettings,
 ): Promise<void> {
   await storage.set(SECURITY_KEY, JSON.stringify(settings));
+}
+
+export const PARENTAL_KEY = 'fg_parental_settings';
+
+/**
+ * Fetch parental settings from local storage
+ */
+export async function getLocalParental(
+  storage: StorageAdapter,
+): Promise<NextDNSParentalControlSettings | null> {
+  const raw = await storage.getString(PARENTAL_KEY);
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persist parental settings to local storage
+ */
+export async function saveLocalParental(
+  storage: StorageAdapter,
+  settings: NextDNSParentalControlSettings,
+): Promise<void> {
+  await storage.set(PARENTAL_KEY, JSON.stringify(settings));
 }
 
 /**

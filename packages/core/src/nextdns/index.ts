@@ -7,6 +7,7 @@ import {
   NextDNSService,
   NextDNSCategory,
   AppRule,
+  NextDNSRecreationTime,
 } from '@focusgate/types';
 
 import { NEXTDNS_SERVICES, NEXTDNS_CATEGORIES } from './constants';
@@ -25,6 +26,8 @@ import {
   getAnalyticsCounters as fetchAnalyticsCounters,
 } from './analytics';
 import { getRemoteSnapshot as fetchRemoteSnapshot } from './snapshot';
+import { getRecreationTime, syncRecreationTime } from './recreationTime';
+import { getParentalControl, patchParentalControl } from './parentalControl';
 
 export * from './client';
 export * from './security';
@@ -35,6 +38,8 @@ export * from './categories';
 export * from './analytics';
 export * from './snapshot';
 export * from './constants';
+export * from './recreationTime';
+export * from './parentalControl';
 
 type LogLevel = 'info' | 'warn' | 'error';
 type Logger = (level: LogLevel, message: string, detail?: string) => void;
@@ -254,4 +259,31 @@ export async function resolveNextDNSTarget(input: string): Promise<any> {
 
   // Fallback to domain
   return { kind: 'domain', normalizedId: norm, label: norm };
+}
+
+export function getQuietHoursSync(cfg: NextDNSConfig, logger?: Logger) {
+  return getRecreationTime(createClient(cfg, logger));
+}
+
+export function updateQuietHoursSync(
+  recreationTime: NextDNSRecreationTime,
+  cfg: NextDNSConfig,
+  logger?: Logger,
+) {
+  return syncRecreationTime(createClient(cfg, logger), recreationTime);
+}
+
+export function getParentalControlSettings(
+  cfg: NextDNSConfig,
+  logger?: Logger,
+) {
+  return getParentalControl(createClient(cfg, logger));
+}
+
+export function patchParentalControlSettings(
+  patch: any,
+  cfg: NextDNSConfig,
+  logger?: Logger,
+) {
+  return patchParentalControl(createClient(cfg, logger), patch);
 }
