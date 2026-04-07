@@ -53,7 +53,7 @@ export function renderBlocklistsSection(
           <span class="fg-text-[#818cf8]">${iconList}</span> Ad &amp; Tracker Blocklists
         </div>
         <div class="fg-flex fg-items-center fg-gap-3">
-           <span class="fg-text-[9px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid rgba(255,255,255,0.07);">
+           <span class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: var(--fg-glass-bg); color: var(--fg-text); opacity: 0.8; border: 1px solid var(--fg-glass-border);">
             ${activeIds.size} ACTIVE
           </span>
         </div>
@@ -68,12 +68,12 @@ export function renderBlocklistsSection(
             type="text" 
             id="blocklist-search-main"
             placeholder="Search filtered lists..."
-            class="fg-w-full fg-bg-white/[0.03] fg-border fg-border-white/[0.08] fg-rounded-2xl fg-py-3 fg-pl-11 fg-pr-4 fg-text-[13px] fg-outline-none focus:fg-border-white/[0.15] fg-transition-all"
-            style="color: var(--text);"
+            class="fg-w-full fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-2xl fg-py-3 fg-pl-11 fg-pr-4 fg-text-sm fg-outline-none focus:fg-border-[var(--accent)] fg-transition-all"
+            style="color: var(--fg-text);"
           >
         </div>
-        <button id="open-blocklist-drawer" class="fg-px-5 fg-py-3 fg-rounded-2xl fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest fg-transition-all hover:fg-bg-white/[0.08]"
-          style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: var(--text);">
+        <button id="open-blocklist-drawer" class="fg-px-5 fg-py-3 fg-rounded-2xl fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest fg-transition-all hover:fg-opacity-80"
+          style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text);">
           + Add Filter
         </button>
       </div>
@@ -87,9 +87,9 @@ export function renderBlocklistsSection(
 
     <!-- Centered Library Modal -->
     <div id="blocklist-drawer-overlay" class="fg-fixed fg-inset-0 fg-z-[1000] fg-transition-all fg-duration-300 fg-flex fg-items-center fg-justify-center" 
-      style="display: none; background: rgba(5,5,10,0.8); backdrop-filter: blur(12px);">
+      style="display: none; background: rgba(0,0,0,0.4); backdrop-filter: blur(12px);">
       
-      <div id="blocklist-drawer" class="fg-relative fg-w-[720px] fg-max-h-[85vh] fg-bg-[#0f0f16] fg-border fg-border-white/[0.1] fg-rounded-[32px] fg-shadow-[0_32px_64px_rgba(0,0,0,0.5)] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
+      <div id="blocklist-drawer" class="fg-relative fg-w-[720px] fg-max-h-[85vh] fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[32px] fg-shadow-[0_32px_64px_rgba(0,0,0,0.5)] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
         
         <!-- Header -->
         <div class="fg-p-8 fg-border-b fg-border-white/[0.05] fg-flex fg-items-center fg-justify-between">
@@ -114,8 +114,8 @@ export function renderBlocklistsSection(
               placeholder="Search ${
                 available.length
               } blocklists by name, developer or domains..."
-              class="fg-w-full fg-bg-white/[0.03] fg-border fg-border-white/[0.08] fg-rounded-[20px] fg-py-4 fg-pl-14 fg-pr-6 fg-text-[15px] fg-outline-none focus:fg-border-[#818cf8]/[0.3] fg-transition-all"
-              style="color: var(--text);"
+              class="fg-w-full fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[20px] fg-py-4 fg-pl-14 fg-pr-6 fg-text-[15px] fg-outline-none focus:fg-border-[var(--accent)] fg-transition-all"
+              style="color: var(--fg-text);"
             >
           </div>
         </div>
@@ -129,13 +129,13 @@ export function renderBlocklistsSection(
         </div>
 
         <!-- Footer -->
-        <div class="fg-px-8 fg-py-5 fg-bg-white/[0.02] fg-border-t fg-border-white/[0.05] fg-flex fg-justify-between fg-items-center">
-          <div class="fg-text-[10px] fg-font-bold fg-text-[var(--muted)] fg-uppercase fg-tracking-widest">
+        <div class="fg-px-8 fg-py-5 fg-bg-[var(--fg-glass-bg)] fg-border-t fg-border-[var(--fg-glass-border)] fg-flex fg-justify-between fg-items-center">
+          <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-tracking-widest">
             Total Library Score: <span class="fg-text-white">${
               available.length
             } Lists</span>
           </div>
-          <div class="fg-text-[10px] fg-font-bold fg-text-[var(--muted)] fg-uppercase fg-tracking-widest">
+          <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-tracking-widest">
             Sorted by Popularity
           </div>
         </div>
@@ -248,7 +248,7 @@ function getIconHtml(
 
   return `
     <div class="fg-relative fg-flex fg-items-center fg-justify-center" style="width: ${sizePx}px; height: ${sizePx}px;">
-      <div class="placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--muted)]" style="z-index: 1;">
+      <div class="placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-text)]" style="opacity: 0.5; z-index: 1;">
         ${iconDatabase}
       </div>
       <img src="${iconUrl}" data-domain="${
@@ -278,7 +278,7 @@ function renderBlocklistCard(list: any, active: boolean): string {
       class="blocklist-card fg-flex fg-flex-col fg-p-4 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-200"
       data-id="${list.id}"
       data-active="${active}"
-      style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); min-height: 110px;"
+      style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); min-height: 110px;"
     >
       <div class="fg-flex fg-items-start fg-gap-3 fg-mb-3">
         <div class="fg-shrink-0 fg-mt-1">${iconHtml}</div>
@@ -288,7 +288,7 @@ function renderBlocklistCard(list: any, active: boolean): string {
               list.name,
             )}</div>
           </div>
-          <div class="fg-text-[10px] fg-text-[var(--muted)] fg-line-clamp-2">${escapeHtml(
+          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-70 fg-line-clamp-2">${escapeHtml(
             list.description || 'Verified Filter',
           )}</div>
         </div>
@@ -296,10 +296,10 @@ function renderBlocklistCard(list: any, active: boolean): string {
           active ? 'active' : ''
         }" data-id="${list.id}" data-active="${active}" 
           style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: ${
-            active ? 'rgba(0,196,140,0.15)' : 'rgba(255,255,255,0.05)'
+            active ? 'rgba(0,196,140,0.15)' : 'var(--fg-glass-bg)'
           }; border: 1px solid ${
-    active ? 'rgba(0,196,140,0.4)' : 'rgba(255,255,255,0.1)'
-  }; color: ${active ? 'var(--green)' : 'var(--muted)'};">
+    active ? 'rgba(0,196,140,0.4)' : 'var(--fg-glass-border)'
+  }; color: ${active ? 'var(--green)' : 'var(--fg-muted)'};">
           ${
             active
               ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
@@ -307,14 +307,14 @@ function renderBlocklistCard(list: any, active: boolean): string {
           }
         </button>
       </div>
-      <div class="fg-mt-auto fg-flex fg-items-center fg-gap-3 fg-pt-2 fg-border-t fg-border-white/[0.03]">
+      <div class="fg-mt-auto fg-flex fg-items-center fg-gap-3 fg-pt-2 fg-border-t fg-border-[var(--fg-glass-border)]">
         <div class="fg-flex fg-items-center fg-gap-1">
-          <span class="fg-text-[var(--muted)]">${iconDatabase}</span>
-          <span class="fg-text-[9px] fg-font-black fg-text-[var(--text)]">${entriesStr}</span>
+          <span class="fg-text-[var(--fg-text)] fg-opacity-40">${iconDatabase}</span>
+          <span class="fg-text-[11px] fg-font-black fg-text-white/90">${entriesStr}</span>
         </div>
         <div class="fg-flex fg-items-center fg-gap-1">
-          <span class="fg-text-[var(--muted)]">${iconRefresh}</span>
-          <span class="fg-text-[8px] fg-font-bold fg-text-white/40">${updatedStr}</span>
+          <span class="fg-text-[var(--fg-text)] fg-opacity-40">${iconRefresh}</span>
+          <span class="fg-text-[10px] fg-font-bold fg-text-white/70">${updatedStr}</span>
         </div>
       </div>
     </div>
@@ -334,7 +334,7 @@ function renderBlocklistRow(list: any, active: boolean): string {
     : '';
 
   return `
-    <div class="blocklist-row fg-flex fg-items-center fg-gap-5 fg-p-6 fg-rounded-2xl hover:fg-bg-white/[0.02] fg-transition-all fg-border fg-border-transparent hover:fg-border-white/[0.05]" 
+    <div class="blocklist-row fg-flex fg-items-center fg-gap-5 fg-p-6 fg-rounded-2xl hover:fg-bg-[var(--fg-glass-bg)] fg-transition-all fg-border fg-border-transparent hover:fg-border-[var(--fg-glass-border)]" 
       data-id="${list.id}" data-active="${active}" data-name="${escapeHtml(
     (list.name || '').toLowerCase(),
   )}" data-desc="${escapeHtml((list.description || '').toLowerCase())}">
@@ -366,16 +366,16 @@ function renderBlocklistRow(list: any, active: boolean): string {
           </button>
         </div>
 
-        <div class="fg-text-[13.5px] fg-text-[var(--muted)] fg-mb-2.5 fg-line-clamp-2 fg-leading-relaxed">${escapeHtml(
+        <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-mb-2.5 fg-line-clamp-2 fg-leading-relaxed">${escapeHtml(
           list.description || '',
         )}</div>
         
-        <div class="fg-flex fg-items-center fg-text-[11px] fg-text-[var(--muted)] fg-font-medium">
+        <div class="fg-flex fg-items-center fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-70 fg-font-medium">
           ${websiteHtml}
-          ${domain ? '<span class="fg-opacity-30 fg-mx-1.5">•</span>' : ''}
-          <span class="fg-text-white/60">${entriesRaw.toLocaleString()} entries</span>
-          <span class="fg-opacity-30 fg-mx-1.5">•</span>
-          <span class="fg-text-white/60">Updated ${updatedStr}</span>
+          ${domain ? '<span class="fg-opacity-40 fg-mx-1.5">•</span>' : ''}
+          <span class="fg-text-white/80">${entriesRaw.toLocaleString()} entries</span>
+          <span class="fg-opacity-40 fg-mx-1.5">•</span>
+          <span class="fg-text-white/80">Updated ${updatedStr}</span>
         </div>
       </div>
     </div>

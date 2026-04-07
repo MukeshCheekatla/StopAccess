@@ -4,22 +4,67 @@
 
 @layer base {
   :root {
-    --bg-dark: #101012;
-    --bg-card: #18181b;
-    --accent: #2f2f35;
-    --accent-soft: rgba(255, 255, 255, 0.06);
-    --glass-border: #2b2b31;
-    --text: #f5f5f5;
-    --muted: #9b9ba1;
-    --green: #15803d;
-    --red: #b91c1c;
-    --yellow: #a16207;
-    --accent-rgb: 47 47 53;
-    --surface-rgb: 16 16 18;
-    --panel-rgb: 24 24 27;
-    --panel-strong-rgb: 28 28 32;
-    --border-rgb: 43 43 49;
-    --glow-rgb: 255 255 255;
+    --fg-accent: #5a5a5a;
+    --fg-green: #10b981;
+    --fg-red: #ef4444;
+    --fg-yellow: #f59e0b;
+    --fg-accent-soft: rgba(59, 130, 246, 0.1);
+  }
+
+  .dark-theme, :root:not(.light-theme) {
+    --fg-bg: #212121;
+    --fg-surface: #2f2f2f;
+    --fg-surface-hover: #3a3a3a;
+    --fg-text: #ececec;
+    --fg-muted: #8e8ea0;
+    --fg-border: #3a3a3a;
+    --fg-glass-border: rgba(255, 255, 255, 0.08);
+    --fg-glass-bg: #2f2f2f;
+    --fg-chart-bar: #ececec;
+    --fg-sidebar-bg: #171717;
+    --fg-nav-active: #2f2f2f;
+    --fg-nav-border: rgba(255, 255, 255, 0.08);
+    
+    /* System Compat Legacy */
+    --bg-dark: var(--fg-bg);
+    --bg-card: var(--fg-surface);
+    --text: var(--fg-text);
+    --muted: var(--fg-muted);
+    --glass-border: var(--fg-border);
+    --accent: var(--fg-accent);
+    --green: var(--fg-green);
+    --red: var(--fg-red);
+    --yellow: var(--fg-yellow);
+    --accent-soft: var(--fg-accent-soft);
+    --fg-toggle-bg: #4b5563;
+  }
+
+  .light-theme {
+    --fg-bg: #ffffff;
+    --fg-surface: #f4f4f5;
+    --fg-surface-hover: #ececec;
+    --fg-text: #0d0d0d;
+    --fg-muted: #6e6e80;
+    --fg-border: #e5e5e5;
+    --fg-glass-border: #e5e5e5;
+    --fg-glass-bg: #f4f4f5;
+    --fg-chart-bar: #0d0d0d;
+    --fg-sidebar-bg: #f9f9fb;
+    --fg-nav-active: #ececed;
+    --fg-nav-border: #e2e2e5;
+
+    /* System Compat Legacy */
+    --bg-dark: var(--fg-bg);
+    --bg-card: var(--fg-surface);
+    --text: var(--fg-text);
+    --muted: var(--fg-muted);
+    --glass-border: var(--fg-border);
+    --accent: #1a1a1a;
+    --green: var(--fg-green);
+    --red: var(--fg-red);
+    --yellow: var(--fg-yellow);
+    --accent-soft: rgba(0, 0, 0, 0.06);
+    --fg-toggle-bg: #d1d5db;
   }
 
   html,
@@ -29,17 +74,26 @@
   }
 
   body {
-    @apply fg-text-slate-100;
-    background:
-      radial-gradient(circle at top left, rgba(255, 255, 255, 0.03), transparent 22%),
-      linear-gradient(180deg, #111113, #0d0d0f);
-    color: var(--text);
+    background-color: var(--fg-bg);
+    color: var(--fg-text);
+    transition: background-color 0.3s ease, color 0.3s ease;
     letter-spacing: -0.01em;
   }
 
   * {
     scrollbar-width: thin;
     scrollbar-color: rgba(148, 163, 184, 0.3) transparent;
+  }
+
+  button {
+    appearance: none;
+    -webkit-appearance: none;
+    border: none;
+    background: none;
+    box-shadow: none;
+    cursor: pointer;
+    font-family: inherit;
+    outline: none;
   }
 
   *::-webkit-scrollbar {
@@ -59,24 +113,24 @@
 
 @layer components {
   .fg-shell-bg {
-    background:
-      radial-gradient(circle at top left, rgba(255, 255, 255, 0.03), transparent 22%),
-      linear-gradient(180deg, #111113, #0d0d0f);
+    background-color: var(--fg-bg);
   }
 
   .fg-panel {
     @apply fg-border-0 fg-shadow-none;
-    background: rgba(24, 24, 27, 0.96);
+    background: var(--fg-surface);
+    transition: background-color 0.3s ease;
   }
 
   .fg-panel-muted {
     @apply fg-border-0 fg-shadow-none;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--fg-glass-bg);
+    border: 1px solid var(--fg-glass-border);
   }
 
   .fg-kicker {
     @apply fg-text-[10px] fg-font-black fg-uppercase fg-tracking-[0.18em];
-    color: var(--muted);
+    color: var(--fg-muted);
   }
 
   .fg-shell-content {
@@ -94,4 +148,146 @@
     outline: none;
     appearance: none;
   }
+}
+
+/* ── Light Theme: Fix hardcoded white text ── */
+.light-theme .fg-text-white {
+  color: var(--fg-text) !important;
+}
+
+/* Opacity variants — map to muted */
+.light-theme .fg-text-white\/40,
+.light-theme .fg-text-white\/50,
+.light-theme .fg-text-white\/60,
+.light-theme .fg-text-white\/70,
+.light-theme .fg-text-white\/80 {
+  color: var(--fg-muted) !important;
+}
+
+/* White glass backgrounds become surface in light */
+.light-theme .fg-bg-white\/\[0\.03\],
+.light-theme .fg-bg-white\/\[0\.04\],
+.light-theme .fg-bg-white\/\[0\.05\],
+.light-theme .fg-bg-white\/\[0\.06\],
+.light-theme .fg-bg-white\/\[0\.08\] {
+  background-color: var(--fg-glass-bg) !important;
+}
+
+/* White border opacity variants */
+.light-theme .fg-border-white\/\[0\.05\],
+.light-theme .fg-border-white\/\[0\.08\],
+.light-theme .fg-border-white\/\[0\.1\] {
+  border-color: var(--fg-glass-border) !important;
+}
+
+/* Section titles and labels that hardcode white */
+.light-theme .section-title,
+.light-theme .section-label,
+.light-theme .app-card {
+  color: var(--fg-text);
+}
+
+/* Ensure glass-card content text is always readable */
+.light-theme .glass-card,
+.light-theme .app-card {
+  color: var(--fg-text);
+}
+
+/* Arbitrary hex white values used in Tailwind JIT */
+.light-theme .fg-text-\[\#fff\],
+.light-theme .fg-text-\[\#ffffff\],
+.light-theme .fg-text-\[white\],
+.light-theme .fg-text-\[\#f5f5f5\],
+.light-theme .fg-text-\[\#e2e8f0\],
+.light-theme .fg-text-\[\#d1d5db\] {
+  color: var(--fg-text) !important;
+}
+
+/* Muted/dim text patterns in light mode */
+.light-theme .fg-text-slate-400,
+.light-theme .fg-text-slate-500,
+.light-theme .fg-text-zinc-400,
+.light-theme .fg-text-zinc-500,
+.light-theme .fg-text-neutral-400 {
+  color: var(--fg-muted) !important;
+}
+
+/* Hard override: any element that inherits from a dark parent keeps readable text */
+.light-theme {
+  color: var(--fg-text);
+}
+
+/* ── Tooltip System ── */
+.fg-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.fg-tooltip:before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 140%;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  padding: 10px 14px;
+  background: #111111;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
+  border-radius: 12px;
+  white-space: pre-wrap;
+  width: 200px;
+  text-align: left;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1);
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 9999;
+}
+.fg-tooltip:after {
+  content: '';
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%) translateY(10px);
+  border-width: 6px;
+  border-style: solid;
+  border-color: #111111 transparent transparent transparent;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+  z-index: 9998;
+}
+.fg-tooltip:hover:before, .fg-tooltip:hover:after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
+.light-theme .fg-tooltip:before {
+  background: #ffffff;
+  color: #0d1117;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.08);
+}
+.light-theme .fg-tooltip:after {
+  border-color: #ffffff transparent transparent transparent;
+}
+
+.fg-info-icon {
+  @apply fg-flex fg-items-center fg-justify-center fg-rounded-full fg-transition-colors;
+  width: 14px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--fg-muted);
+  font-size: 9px;
+  font-weight: 800;
+  cursor: help;
+}
+.fg-info-icon:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--fg-text);
 }

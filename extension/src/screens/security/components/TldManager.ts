@@ -28,62 +28,79 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
   const suggestions = COMMON_RISKY_TLDS.filter((t) => !activeIds.has(t.id));
 
   return `
-    <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
-      <div class="fg-flex fg-items-center fg-justify-between fg-mb-5">
-        <div class="section-title fg-flex fg-items-center fg-gap-2" style="margin: 0;">
-          <span class="fg-text-[#fbbf24]">${iconGlobe}</span> Blocked TLDs
+    <div class="glass-card fg-mb-6 fg-p-8 fg-rounded-[32px] fg-relative fg-overflow-hidden">
+      <!-- Decorative background glow -->
+      <div class="fg-absolute fg-top-[-20px] fg-right-[-20px] fg-w-32 fg-h-32 fg-rounded-full fg-bg-[var(--yellow)] fg-opacity-5 fg-blur-3xl"></div>
+
+      <div class="fg-flex fg-items-center fg-justify-between fg-mb-6">
+        <div class="fg-flex fg-items-center fg-gap-3">
+          <div class="fg-w-10 fg-h-10 fg-rounded-2xl fg-bg-[var(--yellow)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--yellow)]">
+            ${iconGlobe}
+          </div>
+          <div>
+            <div class="fg-flex fg-items-center fg-gap-2">
+              <div class="fg-text-sm fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight">Global Shield</div>
+              <div
+                class="fg-tooltip fg-info-icon"
+                data-tooltip="Enhance security by blocking entire top-level domains (TLDs) like .ru, .cn, or .top to prevent access to high-risk regions and malicious extensions."
+              >
+                i
+              </div>
+            </div>
+            <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-tracking-widest">TLD Blocker</div>
+          </div>
         </div>
-        <span class="fg-text-[9px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid rgba(255,255,255,0.07);">${
-          tlds.length
-        } BLOCKED</span>
+        <div class="fg-flex fg-items-center fg-gap-2">
+           <span class="fg-text-[11px] fg-font-black fg-text-[var(--yellow)] fg-bg-[var(--yellow)]/10 fg-px-3 fg-py-1 fg-rounded-full" style="border: 1px solid rgba(251,191,36,0.15);">
+            ${tlds.length} BLOCKED
+           </span>
+        </div>
       </div>
 
-      <div class="fg-text-[11px] fg-text-[var(--muted)] fg-mb-5 fg-leading-[1.5]">
-        Block all domains under specific top-level domains. 
-        <span class="fg-text-[var(--yellow)] fg-opacity-80">Useful for blocking high-risk regions or generic extension abuse.</span>
+      <div class="fg-text-[11px] fg-text-[var(--muted)] fg-mb-8 fg-leading-relaxed fg-max-w-[420px]">
+        Enhance your network security by blocking entire top-level domains. 
+        <span class="fg-text-[var(--fg-text)] fg-font-bold">Prevents access to high-risk regions and malicious generic extensions.</span>
       </div>
 
-      <!-- TLD Input Area -->
-      <div class="fg-flex fg-gap-2 fg-mb-6 fg-p-3 fg-rounded-2xl" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
-        <input
-          type="text"
-          id="tld_input"
-          placeholder="Enter TLD (e.g. ru, cn)"
-          class="input fg-flex-1"
-          style="text-transform: lowercase; font-weight: 700; height: 38px; background: transparent; border: none; padding-left: 12px; outline: none; font-size: 13px; color: var(--text);"
-          maxlength="20"
-        >
-        <button class="btn fg-px-5 fg-font-black fg-text-[11px] fg-uppercase fg-tracking-wider" id="btn_add_tld" style="height: 38px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; color: white;">
-          Block TLD
-        </button>
+      <!-- TLD Creative Input -->
+      <div class="fg-relative fg-mb-8">
+        <div class="fg-flex fg-items-center fg-gap-3 fg-p-2 fg-rounded-[20px] fg-transition-all fg-duration-300 focus-within:fg-ring-2 focus-within:fg-ring-[var(--yellow)]/20" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
+          <div class="fg-pl-4 fg-text-[var(--fg-muted)] fg-font-black fg-text-sm">.</div>
+          <input
+            type="text"
+            id="tld_input"
+            placeholder="enter extension (e.g. ru, cn, top)"
+            class="fg-flex-1 fg-bg-transparent fg-border-none fg-outline-none fg-text-sm fg-font-bold fg-p-2 fg-text-[var(--fg-text)]"
+            style="text-transform: lowercase;"
+            maxlength="20"
+          >
+          <button id="btn_add_tld" class="fg-bg-[var(--yellow)]/10 fg-text-[var(--yellow)] fg-text-[11px] fg-font-black fg-px-6 fg-py-3 fg-rounded-xl fg-transition-all hover:fg-bg-[var(--yellow)]/20 fg-uppercase fg-tracking-wider" style="border: 1px solid rgba(251,191,36,0.2);">
+            Block
+          </button>
+        </div>
       </div>
 
-      <!-- Quick Sugestions Grid -->
+      <!-- Quick Suggestions Section -->
       ${
         suggestions.length > 0
           ? `
-        <div class="fg-mb-6">
-          <div class="fg-text-[9px] fg-font-black fg-text-[var(--muted)] fg-uppercase fg-tracking-[1.2px] fg-mb-3 fg-opacity-60">
-            Quick Block Suggestions
+        <div class="fg-mb-8">
+          <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40 fg-uppercase fg-tracking-[1.5px] fg-mb-4">
+            Suggested Blockpoints
           </div>
-          <div class="fg-grid fg-grid-cols-4 fg-gap-2">
+          <div class="fg-flex fg-flex-wrap fg-gap-2">
             ${suggestions
-              .slice(0, 8)
+              .slice(0, 10)
               .map(
                 (t) => `
               <button
-                class="tld-quick-add fg-text-[11px] fg-rounded-xl fg-px-3 fg-py-2 fg-transition-all fg-cursor-pointer fg-font-bold fg-text-left"
+                class="tld-quick-add fg-flex fg-items-center fg-gap-2 fg-px-4 fg-py-2 fg-rounded-xl fg-transition-all fg-cursor-pointer fg-font-bold hover:fg-translate-y-[-1px] hover:fg-opacity-80"
                 data-id="${t.id}"
-                style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); color: var(--text);"
-                onmouseenter="this.style.background='rgba(255,255,255,0.08)'; this.style.transform='translateY(-1px)'"
-                onmouseleave="this.style.background='rgba(255,255,255,0.03)'; this.style.transform=''"
+                style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text);"
               >
-                <div class="fg-opacity-60 fg-text-[9px] fg-uppercase fg-mb-[2px]">.${
-                  t.id
-                }</div>
-                <div class="fg-truncate fg-text-[10px]">${
-                  t.label.split('—')[1]?.trim() || t.id
-                }</div>
+                <span class="fg-text-[var(--yellow)] fg-text-xs">.</span>
+                <span class="fg-text-[11px]">${t.id}</span>
+                <span class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-40 fg-font-black">Add</span>
               </button>
             `,
               )
@@ -94,46 +111,44 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
           : ''
       }
 
-      <!-- Active Block List Grid -->
-      ${
-        tlds.length > 0
-          ? `
-        <div class="fg-grid fg-grid-cols-3 fg-gap-2">
-          ${tlds
-            .map(
-              (tld) => `
-            <div class="active-tld-card fg-flex fg-flex-col fg-gap-3 fg-p-4 fg-rounded-2xl fg-transition-all" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);">
-              <div class="fg-flex fg-items-center fg-justify-between">
-                <div class="fg-flex fg-items-center fg-gap-2">
-                  <span style="color: var(--muted); opacity: 0.6; transform: scale(0.8);">${iconGlobe}</span>
-                  <span class="fg-text-[14px] fg-font-black fg-text-[var(--text)]">
-                    .${tld.id}
-                  </span>
-                </div>
-                <div class="fg-w-[5px] fg-h-[5px] fg-rounded-full" style="background: var(--red); box-shadow: 0 0 5px var(--red);"></div>
+      <!-- Active Shield List -->
+      <div class="fg-mt-4">
+        <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40 fg-uppercase fg-tracking-[1.5px] fg-mb-4">
+          Currently Shadowed
+        </div>
+        ${
+          tlds.length > 0
+            ? `
+          <div class="fg-flex fg-flex-wrap fg-gap-3">
+            ${tlds
+              .map(
+                (tld) => `
+              <div class="fg-group fg-flex fg-items-center fg-gap-3 fg-pl-4 fg-pr-2 fg-py-2 fg-rounded-xl fg-transition-all fg-relative" 
+                style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.15);">
+                <div class="fg-w-1.5 fg-h-1.5 fg-rounded-full fg-bg-[var(--red)] fg-animate-pulse"></div>
+                <div class="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)]">.${tld.id}</div>
+                <button
+                  class="tld-remove fg-w-7 fg-h-7 fg-rounded-lg fg-flex fg-items-center fg-justify-center fg-transition-all hover:fg-bg-[var(--red)]/10"
+                  data-id="${tld.id}"
+                  title="Unblock ${tld.id}"
+                  style="border: none; background: transparent; color: var(--fg-muted);"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
               </div>
-              <button
-                class="tld-remove fg-text-[9px] fg-w-full fg-py-[6px] fg-rounded-xl fg-transition-all fg-cursor-pointer fg-font-black fg-uppercase fg-tracking-wider"
-                data-id="${tld.id}"
-                style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); color: var(--muted);"
-                onmouseenter="this.style.background='rgba(255,71,87,0.08)'; this.style.color='var(--red)'; this.style.borderColor='rgba(255,71,87,0.15)';"
-                onmouseleave="this.style.background='rgba(255,255,255,0.02)'; this.style.color='var(--muted)'; this.style.borderColor='rgba(255,255,255,0.06)';"
-              >
-                UNBLOCK
-              </button>
-            </div>
-          `,
-            )
-            .join('')}
-        </div>
-      `
-          : `
-        <div class="fg-text-center fg-p-8 fg-text-[var(--muted)] fg-text-xs fg-rounded-3xl" style="background: rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.08);">
-          <div style="color: var(--muted); opacity: 0.3;" class="fg-mb-3 fg-flex fg-justify-center">${iconGlobe}</div>
-          No top-level domains are blocked.
-        </div>
-      `
-      }
+            `,
+              )
+              .join('')}
+          </div>
+        `
+            : `
+          <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-py-10 fg-rounded-3xl fg-opacity-40" style="border: 1px dashed var(--fg-glass-border);">
+             <div class="fg-mb-2">${iconGlobe}</div>
+             <div class="fg-text-[11px] fg-font-bold fg-uppercase fg-tracking-wider">No Regions Restricted</div>
+          </div>
+        `
+        }
+      </div>
     </div>
   `;
 }
