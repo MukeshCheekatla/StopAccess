@@ -25,13 +25,13 @@ type PopupShellProps<T extends string> = {
 
 type DashboardShellProps<T extends string> = {
   activeTab: T;
-  footer?: ReactNode;
   hiddenSidebar?: boolean;
   onTabChange: (tab: T) => void;
-  pageTitle: string;
   children: ReactNode;
   status: ShellStatus;
   tabs: Array<ShellTab<T>>;
+  theme?: 'dark' | 'light' | 'system';
+  onThemeChange?: (theme: 'dark' | 'light' | 'system') => void;
 };
 
 export function PopupShell<T extends string>({
@@ -95,13 +95,13 @@ export function PopupShell<T extends string>({
 
 export function DashboardShell<T extends string>({
   activeTab,
-  footer,
   hiddenSidebar = false,
   onTabChange,
-  pageTitle,
   children,
   status,
   tabs,
+  theme = 'system',
+  onThemeChange,
 }: DashboardShellProps<T>) {
   const statusClassName = useMemo(
     () => `fg-status-pill ${resolveStatusClass(status.tone)}`,
@@ -109,9 +109,9 @@ export function DashboardShell<T extends string>({
   );
 
   return (
-    <div className="fg-flex fg-h-screen fg-w-screen fg-overflow-hidden fg-shell-bg fg-text-[var(--text)]">
+    <div className="fg-flex fg-h-screen fg-w-screen fg-overflow-hidden fg-shell-bg fg-text-[var(--fg-text)]">
       <div
-        className={`fg-sidebar fg-w-[272px] fg-bg-[rgba(24,24,27,0.95)] fg-border-r fg-border-[var(--glass-border)] fg-flex fg-flex-col fg-shrink-0 fg-p-[14px] ${
+        className={`fg-sidebar fg-w-[272px] fg-bg-[var(--fg-sidebar-bg)] fg-border-r fg-border-[var(--fg-glass-border)] fg-flex fg-flex-col fg-shrink-0 fg-p-[14px] ${
           hiddenSidebar ? 'fg-hidden' : ''
         }`}
       >
@@ -119,27 +119,18 @@ export function DashboardShell<T extends string>({
           <img
             src="/assets/icon-48.png"
             alt="FocusGate"
-            className="fg-w-9 fg-h-9 fg-rounded-[10px] fg-border fg-border-[rgba(255,255,255,0.08)] fg-object-contain"
+            className="fg-w-9 fg-h-9 fg-rounded-[10px] fg-border fg-border-[var(--fg-glass-border)] fg-object-contain"
           />
-          <div>
-            <div className="fg-text-[1.15rem] fg-font-bold fg-tracking-[-0.03em] fg-text-white">
+          <div className="fg-flex fg-items-baseline fg-gap-3">
+            <div className="fg-text-[1.15rem] fg-font-black fg-tracking-[-0.03em] fg-text-[var(--fg-text)]">
               FocusGate
             </div>
-            <div className="fg-mt-0.5 fg-text-[12px] fg-text-[var(--muted)]">
-              Extension workspace
+            <div
+              id="statusBadge"
+              className={`fg-inline-flex fg-items-center fg-gap-1.5 fg-px-[10px] fg-py-[3px] fg-rounded-full fg-text-[9px] fg-font-black ${statusClassName}`}
+            >
+              {status.label}
             </div>
-          </div>
-        </div>
-
-        <div className="fg-flex fg-items-center fg-justify-between fg-gap-[10px] fg-px-3 fg-pb-4">
-          <div className="fg-text-xs fg-font-bold fg-text-[var(--muted)] fg-tracking-[-0.01em]">
-            {pageTitle}
-          </div>
-          <div
-            id="statusBadge"
-            className={`fg-inline-flex fg-items-center fg-gap-1.5 fg-px-[10px] fg-py-[4px] fg-rounded-full fg-text-[10px] fg-font-extrabold ${statusClassName}`}
-          >
-            {status.label}
           </div>
         </div>
 
@@ -147,10 +138,10 @@ export function DashboardShell<T extends string>({
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              className={`nav-item fg-w-full fg-appearance-none fg-shadow-none fg-text-left fg-px-[0.95rem] fg-py-[0.875rem] fg-flex fg-items-center fg-gap-[0.875rem] fg-rounded-[12px] fg-border fg-text-[1rem] fg-font-semibold ${
+              className={`nav-item fg-w-full fg-appearance-none fg-text-left fg-px-[0.95rem] fg-py-[0.875rem] fg-flex fg-items-center fg-gap-[0.875rem] fg-rounded-[12px] fg-border fg-text-[1rem] fg-font-semibold fg-transition-all ${
                 activeTab === tab.id
-                  ? 'nav-item-active active fg-text-white fg-bg-[rgba(255,255,255,0.08)] fg-border-[rgba(255,255,255,0.08)]'
-                  : 'fg-bg-transparent fg-border-transparent fg-text-[var(--muted)] hover:fg-text-white hover:fg-bg-[rgba(255,255,255,0.04)] hover:fg-border-[rgba(255,255,255,0.04)]'
+                  ? 'nav-item-active active fg-text-[var(--fg-text)] fg-bg-[var(--fg-nav-active)] fg-border-[var(--fg-nav-border)] fg-shadow-sm'
+                  : 'fg-shadow-none fg-bg-transparent fg-border-transparent fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-nav-active)] hover:fg-border-[var(--fg-nav-border)]'
               }`}
               data-tab={tab.id}
               onClick={() => onTabChange(tab.id)}
@@ -164,12 +155,71 @@ export function DashboardShell<T extends string>({
           ))}
         </nav>
 
-        <div className="fg-mt-auto fg-mx-2 fg-my-2 fg-px-4 fg-py-[14px] fg-rounded-[14px] fg-bg-[rgba(255,255,255,0.03)] fg-border fg-border-[rgba(255,255,255,0.05)]">
-          <div className="fg-text-[11px] fg-text-[var(--muted)] fg-uppercase fg-tracking-[0.12em] fg-font-bold fg-mb-1">
-            Workspace
-          </div>
-          <div className="fg-text-[13px] fg-font-bold fg-text-white">
-            {footer}
+        <div className="fg-px-2 fg-mb-4">
+          <div
+            className="fg-flex fg-items-center fg-rounded-[14px] fg-p-1"
+            style={{
+              background:
+                theme === 'light'
+                  ? 'rgba(0,0,0,0.06)'
+                  : 'rgba(255,255,255,0.04)',
+              border: 'none',
+            }}
+          >
+            <button
+              onClick={() => onThemeChange?.('light')}
+              className={`fg-flex-1 fg-flex fg-items-center fg-justify-center fg-py-2 fg-rounded-[10px] fg-transition-all ${
+                theme === 'light'
+                  ? 'fg-bg-white fg-shadow-sm'
+                  : 'fg-text-[var(--fg-muted)]'
+              }`}
+              style={{ color: theme === 'light' ? '#000000' : '#ffffff' }}
+              title="Light Mode"
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                <line x1="1" y1="12" x2="3" y2="12" />
+                <line x1="21" y1="12" x2="23" y2="12" />
+                <line x1="4.22" y1="19.07" x2="5.64" y2="17.66" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+            </button>
+            <button
+              onClick={() => onThemeChange?.('dark')}
+              className={`fg-flex-1 fg-flex fg-items-center fg-justify-center fg-py-2 fg-rounded-[10px] fg-transition-all ${
+                theme === 'dark'
+                  ? 'fg-bg-[#27272a] fg-shadow-sm'
+                  : 'fg-text-[var(--fg-muted)]'
+              }`}
+              style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
+              title="Dark Mode"
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -184,13 +234,13 @@ export function DashboardShell<T extends string>({
 
 function resolveStatusClass(tone: ShellStatusTone) {
   if (tone === 'default') {
-    return 'fg-bg-[rgba(255,255,255,0.05)] fg-text-[var(--muted)]';
+    return 'fg-bg-[var(--fg-glass-bg)] fg-text-[var(--fg-muted)]';
   }
   if (tone === 'active') {
-    return 'fg-bg-[var(--green)] fg-text-white';
+    return 'fg-bg-[var(--fg-green)] fg-text-white';
   }
   if (tone === 'error') {
-    return 'fg-bg-[var(--red)] fg-text-white';
+    return 'fg-bg-[var(--fg-red)] fg-text-white';
   }
-  return 'fg-bg-[rgba(255,255,255,0.02)] fg-text-[var(--muted)]';
+  return 'fg-bg-[var(--fg-glass-bg)] fg-text-[var(--fg-muted)]';
 }

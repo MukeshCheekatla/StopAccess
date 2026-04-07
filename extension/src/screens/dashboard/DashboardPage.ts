@@ -45,8 +45,8 @@ export async function renderDashboardPage(container) {
     const isFocusing = focusEnd > Date.now();
     let timerDisplay = '25:00';
     let timerStatusText = 'READY';
-    let timerDotColor = 'var(--muted)';
-    let timerTextColor = 'var(--text)';
+    let timerDotColor = 'var(--fg-muted)';
+    let timerTextColor = 'var(--fg-text)';
 
     if (isFocusing) {
       const remainingMs = Math.max(0, focusEnd - Date.now());
@@ -56,8 +56,57 @@ export async function renderDashboardPage(container) {
         .toString()
         .padStart(2, '0')}`;
       timerStatusText = 'ACTIVE';
-      timerDotColor = 'var(--accent)';
-      timerTextColor = 'var(--accent)';
+      timerDotColor = 'var(--fg-green)'; // Use a more distinct local color for active state
+      timerTextColor = 'var(--fg-text)';
+    }
+
+    // Live update helper
+    const updateTimer = () => {
+      const displayEl = container.querySelector('#timerDisplay');
+      const statusEl = container.querySelector('#timerStatus');
+      const dotEl = container.querySelector('#timerDot');
+      if (!displayEl || !statusEl || !dotEl) {
+        return;
+      }
+
+      const now = Date.now();
+      const isActive = focusEnd > now;
+      if (!isActive) {
+        displayEl.textContent = '25:00';
+        statusEl.textContent = 'READY';
+        displayEl.style.color = 'var(--fg-text)';
+        statusEl.style.color = 'var(--fg-text)';
+        statusEl.style.fontWeight = '900';
+        dotEl.style.background = 'var(--fg-muted)';
+        if ((window as any).__dashTimerInterval) {
+          clearInterval((window as any).__dashTimerInterval);
+          (window as any).__dashTimerInterval = null;
+        }
+        return;
+      }
+
+      const rem = Math.max(0, focusEnd - now);
+      const mm = Math.floor(rem / 60000);
+      const ss = Math.floor((rem % 60000) / 1000);
+      displayEl.textContent = `${mm.toString().padStart(2, '0')}:${ss
+        .toString()
+        .padStart(2, '0')}`;
+      displayEl.style.color = 'var(--fg-text)';
+      displayEl.style.fontWeight = '950';
+      statusEl.textContent = 'ACTIVE';
+      statusEl.style.color = 'var(--fg-text)';
+      statusEl.style.fontWeight = '950';
+      dotEl.style.background = 'var(--fg-green)';
+    };
+
+    if (isFocusing && !(window as any).__dashTimerInterval) {
+      (window as any).__dashTimerInterval = window.setInterval(
+        updateTimer,
+        1000,
+      );
+    } else if (!isFocusing && (window as any).__dashTimerInterval) {
+      clearInterval((window as any).__dashTimerInterval);
+      (window as any).__dashTimerInterval = null;
     }
 
     if (!container.querySelector('#dashboardShell')) {
@@ -74,15 +123,15 @@ export async function renderDashboardPage(container) {
 
           <div class="fg-grid fg-gap-8" style="grid-template-columns: 3fr 2fr;">
             <div>
-              <div class="section-label fg-text-[13px] fg-font-extrabold fg-tracking-[1px] fg-mb-5">CURRENT ACTIVITY</div>
+              <div class="section-label fg-text-[11px] fg-font-black fg-tracking-[1.5px] fg-mb-5">CURRENT ACTIVITY</div>
               <div class="service-grid fg-gap-3" id="activityGrid" style="grid-template-columns: 1fr;"></div>
             </div>
             <div>
-               <div class="section-label fg-text-[13px] fg-font-extrabold fg-tracking-[1px] fg-mb-5">USAGE BREAKDOWN</div>
-               <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center" id="chartSlot" style="border-radius: 20px; background: rgba(0,0,0,0.1); height: 260px;">
+               <div class="section-label fg-text-[11px] fg-font-black fg-tracking-[1.5px] fg-mb-5">USAGE BREAKDOWN</div>
+               <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center" id="chartSlot" style="border-radius: 20px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); height: 260px;">
                   <canvas id="liveUsageChart" style="width: 100% !important; height: 210px !important;"></canvas>
                </div>
-               <div class="fg-mt-5 fg-text-xs fg-text-[var(--muted)] fg-leading-normal fg-font-semibold">
+               <div class="fg-mt-5 fg-text-xs fg-text-[var(--fg-text)] fg-opacity-80 fg-leading-normal fg-font-semibold">
                  Real-time monitoring enabled. Data represents actual time recorded by the browser gate.
                </div>
             </div>
@@ -122,13 +171,13 @@ export async function renderDashboardPage(container) {
     if (setupSlot) {
       const newSetupHtml = isNew
         ? `
-        <div class="glass-card fg-p-10 fg-text-center fg-mb-8" style="background: rgba(0,0,0,0.1); border-color: var(--glass-border);">
-          <div class="fg-font-black fg-text-[24px] fg-text-[var(--muted)] fg-mb-3" style="opacity: 0.1; letter-spacing: -2px;">FG</div>
-          <div class="fg-text-[20px] fg-font-extrabold fg-text-[var(--text)] fg-mb-3">Setup Required</div>
-          <div class="fg-text-[13px] fg-text-[var(--muted)] fg-max-w-[400px] fg-leading-relaxed fg-mb-8" style="margin-left: auto; margin-right: auto;">No block rules detected. Add a domain or link a profile to begin.</div>
+        <div class="glass-card fg-p-10 fg-text-center fg-mb-8" style="background: var(--fg-glass-bg); border-color: var(--fg-glass-border);">
+          <div class="fg-font-black fg-text-[24px] fg-text-[var(--fg-text)] fg-mb-3" style="opacity: 0.4; letter-spacing: -2px;">FG</div>
+          <div class="fg-text-[20px] fg-font-extrabold fg-text-[var(--fg-text)] fg-mb-3">Setup Required</div>
+          <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-max-w-[400px] fg-leading-relaxed fg-mb-8" style="margin-left: auto; margin-right: auto;">No block rules detected. Add a domain or link a profile to begin.</div>
           <div class="fg-flex fg-gap-4 fg-justify-center">
             <button class="btn-premium fg-justify-center" id="wb_settings" style="min-width: 180px;">Link Profile</button>
-            <button class="btn-premium fg-justify-center" id="wb_apps" style="background:rgba(255,255,255,0.02); color:var(--text); border-color: var(--glass-border); box-shadow:none; min-width: 180px;">Add Rules</button>
+            <button class="btn-premium fg-justify-center" id="wb_apps" style="background:var(--fg-glass-bg); color:var(--fg-text); border-color: var(--fg-glass-border); box-shadow:none; min-width: 180px;">Add Rules</button>
           </div>
         </div>`
         : '';
@@ -148,12 +197,12 @@ export async function renderDashboardPage(container) {
     const engagementW = container.querySelector('#engagementWidget');
     if (engagementW) {
       engagementW.innerHTML = `
-        <div class="widget-title">Today Usage</div>
+        <div class="widget-title" style="color: var(--fg-text); font-weight: 950; font-size: 11px; letter-spacing: 0.1em; opacity: 1;">TODAY USAGE</div>
         <div>
-          <div style="font-size:20px; font-weight:900; letter-spacing: -0.5px;">${fmtTime(
+          <div style="font-size:24px; font-weight:900; letter-spacing: -0.5px; color: var(--fg-text);">${fmtTime(
             allTotalMs as number,
           )}</div>
-          <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform: uppercase; margin-top: 4px;">Recorded today</div>
+          <div style="font-size:11px; color:var(--fg-text); opacity: 0.6; font-weight:700; text-transform: uppercase; margin-top: 4px;">Recorded today</div>
         </div>
       `;
     }
@@ -161,11 +210,11 @@ export async function renderDashboardPage(container) {
     const timerW = container.querySelector('#timerWidget');
     if (timerW) {
       timerW.innerHTML = `
-        <div class="widget-title">Timer Status</div>
-        <div class="timer-display" style="font-size: 36px; letter-spacing: -2px; color: ${timerTextColor}; font-variant-numeric: tabular-nums;">${timerDisplay}</div>
+        <div class="widget-title" style="color: var(--fg-text); font-weight: 950; font-size: 11px; letter-spacing: 0.1em; opacity: 1;">TIMER STATUS</div>
+        <div class="timer-display" id="timerDisplay" style="font-size: 48px; font-weight: 950; letter-spacing: -3px; color: ${timerTextColor}; font-variant-numeric: tabular-nums;">${timerDisplay}</div>
         <div class="fg-flex fg-items-center fg-gap-2">
-          <div style="width:8px; height:8px; border-radius:50%; background:${timerDotColor};"></div>
-          <span class="fg-text-[10px] fg-font-extrabold fg-text-[var(--muted)] fg-uppercase fg-tracking-[1px]">${timerStatusText}</span>
+          <div id="timerDot" style="width:10px; height:10px; border-radius:50%; background:${timerDotColor};"></div>
+          <span id="timerStatus" style="font-size: 12px; font-weight: 950; color: var(--fg-text); text-transform: uppercase; letter-spacing: 1.5px;">${timerStatusText}</span>
         </div>
       `;
     }
@@ -173,14 +222,14 @@ export async function renderDashboardPage(container) {
     const connectionW = container.querySelector('#connectionWidget');
     if (connectionW) {
       connectionW.innerHTML = `
-        <div class="widget-title">Connection</div>
-        <div style="font-size:24px; font-weight:900; color:${
-          syncStatus === 'connected' ? '#FFFFFF' : 'var(--muted)'
-        }; opacity: 0.9;">
+        <div class="widget-title" style="color: var(--fg-text); font-weight: 950; font-size: 11px; letter-spacing: 0.1em; opacity: 1;">CONNECTION</div>
+        <div style="font-size:24px; font-weight:950; color:${
+          syncStatus === 'connected' ? 'var(--fg-text)' : 'var(--fg-muted)'
+        };">
           ${syncStatus === 'connected' ? 'READY' : 'OFFLINE'}
         </div>
-        <div class="fg-text-[10px] fg-text-[var(--muted)] fg-font-bold fg-uppercase fg-mt-1">
-          Mode: ${(syncMode as string).toUpperCase()}
+        <div class="fg-text-[10px] fg-text-[var(--fg-text)] fg-font-black fg-uppercase fg-mt-1">
+          MODE: ${(syncMode as string).toUpperCase()}
         </div>
       `;
     }
@@ -188,9 +237,9 @@ export async function renderDashboardPage(container) {
     const blockedW = container.querySelector('#blockedWidget');
     if (blockedW) {
       blockedW.innerHTML = `
-        <div class="widget-title">Blocked Attempts</div>
-        <div style="font-size:32px; font-weight:900; color:var(--text); opacity: 0.8;">${cloudBlockedQueries.toLocaleString()}</div>
-        <div style="font-size:10px; color:var(--muted); font-weight:700; text-transform: uppercase;">Verifiable Blocks Today</div>
+        <div class="widget-title" style="color: var(--fg-text); font-weight: 950; font-size: 11px; letter-spacing: 0.1em; opacity: 1;">BLOCKED ATTEMPTS</div>
+        <div style="font-size:32px; font-weight:950; color:var(--fg-text);">${cloudBlockedQueries.toLocaleString()}</div>
+        <div style="font-size:11px; color:var(--fg-text); opacity: 0.6; font-weight:700; text-transform: uppercase; margin-top: 4px;">Filtered Blocks Today</div>
       `;
     }
 
@@ -228,17 +277,17 @@ export async function renderDashboardPage(container) {
             `.rule-item[data-domain="${d.domain}"]`,
           ) as HTMLElement;
           const badgeHtml = isBlocked
-            ? '<div style="font-size:9px; font-weight:900; color:var(--red); background:rgba(255,71,87,0.1); border:1px solid rgba(255,71,87,0.2); border-radius:6px; padding:3px 7px; text-transform:uppercase; letter-spacing:0.5px;">BLOCKED</div>'
-            : `<button class="quick-block-btn" data-domain="${d.domain}" title="Block ${d.domain}" style="width:26px; height:26px; border-radius:8px; background:rgba(108,71,255,0.1); border:1px solid rgba(108,71,255,0.3); color:var(--accent); font-size:16px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0;">+</button>`;
+            ? '<div style="font-size:9px; font-weight:900; color:var(--red); background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); border-radius:6px; padding:3px 7px; text-transform:uppercase; letter-spacing:0.5px;">BLOCKED</div>'
+            : `<button class="quick-block-btn" data-domain="${d.domain}" title="Block ${d.domain}" style="width:26px; height:26px; border-radius:8px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); color:var(--accent); font-size:16px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0;">+</button>`;
           const statusLabelHtml = isBlocked
             ? '<span style="display:inline-flex; align-items:center; gap:4px;"><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" style="color:var(--red);"><circle cx="12" cy="12" r="12"/></svg> BLOCKED</span>'
-            : 'Monitoring';
-          const timeColor = isBlocked ? 'rgba(255,255,255,0.3)' : 'var(--text)';
+            : '<span style="color: var(--fg-text); opacity: 0.7;">Monitoring</span>';
+          const timeColor = isBlocked ? 'var(--fg-muted)' : 'var(--fg-text)';
 
           const cardInner = `
                  <div class="fg-flex fg-items-center fg-gap-4 fg-min-w-0">
                     <div class="fg-shrink-0 fg-relative fg-flex fg-items-center fg-justify-center" style="width: 44px; height: 44px;">
-                       <div class="placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--muted)]" style="opacity: 0.3;">
+                       <div class="placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-text)]" style="opacity: 0.5;">
                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                        </div>
                        <img src="${iconUrl}" data-domain="${
@@ -249,9 +298,9 @@ export async function renderDashboardPage(container) {
                      <div class="fg-text-sm fg-font-extrabold fg-truncate">${
                        d.domain
                      }</div>
-                     <div class="row-status fg-text-[10px] fg-font-bold fg-uppercase fg-mt-[2px]" style="color: ${
-                       isBlocked ? 'var(--red)' : 'var(--muted)'
-                     }">
+                     <div class="row-status fg-text-[11px] fg-font-bold fg-uppercase fg-mt-[2px]" style="color: ${
+                       isBlocked ? 'var(--red)' : 'var(--fg-text)'
+                     }; opacity: ${isBlocked ? '1' : '0.6'};">
                        ${statusLabelHtml}
                      </div>
                    </div>
@@ -290,7 +339,7 @@ export async function renderDashboardPage(container) {
             div.setAttribute('data-domain', d.domain);
             div.setAttribute(
               'style',
-              `padding: 14px 20px; background: rgba(255,255,255,0.01); border-left: 3px solid ${
+              `padding: 14px 20px; background: var(--fg-glass-bg); border-radius: 12px; margin-bottom: 8px; border-left: 3px solid ${
                 isBlocked ? 'var(--red)' : 'transparent'
               }; transition: border-color 0.2s;`,
             );
@@ -305,7 +354,7 @@ export async function renderDashboardPage(container) {
     if (chartSlot && domainList.length === 0) {
       if (!chartSlot.querySelector('.chart-empty')) {
         chartSlot.innerHTML +=
-          '<div class="chart-empty fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--muted)] fg-text-[13px] fg-font-bold">No activity found.</div>';
+          '<div class="chart-empty fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-text)] fg-opacity-60 fg-text-[13px] fg-font-bold">No activity found.</div>';
       }
     } else if (chartSlot) {
       chartSlot.querySelector('.chart-empty')?.remove();
@@ -369,7 +418,10 @@ export async function renderDashboardPage(container) {
           datasets: [
             {
               data: domainList.map((d) => Math.floor(d.timeMs / 60000)),
-              backgroundColor: '#3F3F46',
+              backgroundColor:
+                getComputedStyle(document.documentElement)
+                  .getPropertyValue('--fg-chart-bar')
+                  .trim() || '#E2E8F0',
               borderRadius: 6,
               barThickness: 20,
             },
@@ -385,12 +437,12 @@ export async function renderDashboardPage(container) {
             x: {
               beginAtZero: true,
               grid: { display: false },
-              ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 10 } },
+              ticks: { color: 'var(--fg-muted)', font: { size: 10 } },
             },
             y: {
               grid: { display: false },
               ticks: {
-                color: '#FFFFFF',
+                color: 'var(--fg-text)',
                 font: { size: 12, weight: '800' as any },
               },
             },

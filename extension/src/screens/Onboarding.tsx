@@ -185,45 +185,75 @@ export const OnboardingReact: React.FC<{
       <div className="fg-flex fg-min-h-[520px] fg-flex-col fg-p-8 md:fg-p-10">
         <div className="fg-kicker fg-mb-3">Setup mode</div>
         <h1 className="fg-text-[28px] fg-font-black fg-tracking-tight fg-text-white">
-          Choose how you want to set up FocusGate
+          Choose your workspace type
         </h1>
         <p className="fg-mt-3 fg-max-w-[680px] fg-text-sm fg-font-medium fg-leading-relaxed fg-text-slate-400">
-          Browser mode works locally right away. NextDNS mode adds synced
-          blocking, analytics, and network-level protection across devices.
+          Start immediately with local protection or connect to NextDNS for
+          enterprise-grade security and cross-device synchronization.
         </p>
 
-        <div className="fg-mt-8 fg-grid fg-w-full fg-gap-4 md:fg-grid-cols-2">
+        <div className="fg-mt-8 fg-grid fg-w-full fg-gap-6 md:fg-grid-cols-2">
           <Card
-            className="fg-cursor-pointer fg-p-6"
+            className="fg-cursor-pointer fg-p-8 fg-relative fg-overflow-hidden"
             hover
             onClick={saveBrowserMode}
           >
-            <div className="fg-kicker fg-mb-3">Local only</div>
-            <div className="fg-text-xl fg-font-black fg-text-white">
-              Standard browser mode
+            <div className="fg-kicker fg-mb-3 fg-text-emerald-400">
+              Instant Access
             </div>
-            <div className="fg-mt-2 fg-text-sm fg-font-medium fg-leading-relaxed fg-text-slate-400">
-              Quick setup with no credentials. Rules apply inside this browser.
+            <div className="fg-text-2xl fg-font-black fg-text-white">
+              Local Mode
+            </div>
+            <div className="fg-mt-4 fg-space-y-2">
+              <div className="fg-flex fg-items-center fg-gap-2 fg-text-xs fg-font-bold fg-text-white/60">
+                <span className="fg-text-emerald-400">✓</span> No account
+                required
+              </div>
+              <div className="fg-flex fg-items-center fg-gap-2 fg-text-xs fg-font-bold fg-text-white/60">
+                <span className="fg-text-emerald-400">✓</span> Zero latency
+                blocking
+              </div>
+              <div className="fg-flex fg-items-center fg-gap-2 fg-text-xs fg-font-bold fg-text-white/60">
+                <span className="fg-text-emerald-400">✓</span> Private local
+                storage
+              </div>
+            </div>
+            <div className="fg-mt-6 fg-text-xs fg-font-black fg-uppercase fg-tracking-widest fg-text-emerald-400/80">
+              Start Now →
             </div>
           </Card>
 
           <Card
-            className="fg-cursor-pointer fg-border-sky-200/20 fg-p-6"
+            className="fg-cursor-pointer fg-border-sky-500/30 fg-p-8 fg-relative fg-overflow-hidden"
             hover
             onClick={() => setStep('credentials')}
+            style={{ background: 'rgba(14, 165, 233, 0.03)' }}
           >
-            <div className="fg-kicker fg-mb-3">Cross-device</div>
-            <div className="fg-text-xl fg-font-black fg-text-white">
-              Strong sync mode
+            <div className="fg-kicker fg-mb-3 fg-text-sky-400">
+              Advanced Security
             </div>
-            <div className="fg-mt-2 fg-text-sm fg-font-medium fg-leading-relaxed fg-text-slate-400">
-              Connect NextDNS for network-level protection and shared policy.
+            <div className="fg-text-2xl fg-font-black fg-text-white">
+              Cloud Sync
+            </div>
+            <div className="fg-mt-4 fg-space-y-2">
+              <div className="fg-flex fg-items-center fg-gap-2 fg-text-xs fg-font-bold fg-text-white/60">
+                <span className="fg-text-sky-400">✓</span> Cross-device policies
+              </div>
+              <div className="fg-flex fg-items-center fg-gap-2 fg-text-xs fg-font-bold fg-text-white/60">
+                <span className="fg-text-sky-400">✓</span> Deep analytics & logs
+              </div>
+              <div className="fg-flex fg-items-center fg-gap-2 fg-text-xs fg-font-bold fg-text-white/60">
+                <span className="fg-text-sky-400">✓</span> AI Threat Protection
+              </div>
+            </div>
+            <div className="fg-mt-6 fg-text-xs fg-font-black fg-uppercase fg-tracking-widest fg-text-sky-400/80">
+              Connect NextDNS →
             </div>
           </Card>
         </div>
 
         <button
-          className="fg-mt-6 fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.18em] fg-text-slate-500 fg-transition-colors hover:fg-text-slate-200"
+          className="fg-mt-8 fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.18em] fg-text-slate-500 fg-transition-colors hover:fg-text-slate-200"
           onClick={() => setStep('welcome')}
         >
           Back

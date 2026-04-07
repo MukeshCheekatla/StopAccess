@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import React from 'react';
 import { OnboardingReact } from '../screens/Onboarding';
@@ -20,6 +20,11 @@ import { renderSettingsPage } from '../screens/settings/SettingsPage';
 import { renderSecurityPage } from '../screens/security/SecurityPage';
 import { renderPrivacyPage } from '../screens/privacy/PrivacyPage';
 import { renderAppsPage } from '../screens/apps/AppsPage';
+import { applyTheme, setupThemeListener } from '../lib/theme';
+import {
+  setThemeAction,
+  loadSettingsData,
+} from '../../../packages/viewmodels/src/useSettingsVM';
 
 type TabId =
   | 'dash'
@@ -30,17 +35,6 @@ type TabId =
   | 'security'
   | 'privacy'
   | 'settings';
-
-const PAGE_TITLES: Record<TabId, string> = {
-  dash: 'Overview',
-  apps: 'Block List',
-  focus: 'Focus',
-  schedule: 'Schedules',
-  insights: 'Reports',
-  security: 'Security',
-  privacy: 'Privacy',
-  settings: 'Settings',
-};
 
 const TABS: Array<ShellTab<TabId>> = [
   {
@@ -185,14 +179,15 @@ function DashboardApp() {
   });
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [ready, setReady] = useState(false);
-
-  const pageTitle = useMemo(
-    () => PAGE_TITLES[activeTab] || 'FocusGate',
-    [activeTab],
+  const [currentTheme, setCurrentTheme] = useState<'dark' | 'light' | 'system'>(
+    'system',
   );
 
   useEffect(() => {
     document.body.classList.add('is-full-page');
+    applyTheme();
+    const cleanup = setupThemeListener();
+    return cleanup;
   }, []);
 
   useEffect(() => {
@@ -208,12 +203,14 @@ function DashboardApp() {
       const isSet = await nextDNSApi.isConfigured();
       const isOnboardingDone =
         (await storage.getString('fg_onboarding_done')) === 'true';
+      const settings = await loadSettingsData();
 
       if (cancelled) {
         return;
       }
 
       setShowOnboarding(!isSet && !isOnboardingDone);
+      setCurrentTheme(settings.theme || 'system');
       setReady(true);
     };
 
@@ -267,8 +264,23 @@ function DashboardApp() {
     };
   }, []);
 
-  const renderLegacyPage = useMemo(() => {
-    switch (activeTab) {
+  const [visitedTabs, setVisitedTabs] = useState<Set<TabId>>(
+    new Set([activeTab]),
+  );
+
+  useEffect(() => {
+    setVisitedTabs((prev) => {
+      if (prev.has(activeTab)) {
+        return prev;
+      }
+      const next = new Set(prev);
+      next.add(activeTab);
+      return next;
+    });
+  }, [activeTab]);
+
+  const getRenderFnForTab = (tabId: TabId) => {
+    switch (tabId) {
       case 'focus':
         return (container: HTMLElement) => renderFocusPage(container, 'page');
       case 'apps':
@@ -289,7 +301,7 @@ function DashboardApp() {
       default:
         return null;
     }
-  }, [activeTab]);
+  };
 
   const renderCurrentContent = () => {
     if (showOnboarding) {
@@ -314,22 +326,45 @@ function DashboardApp() {
       );
     }
 
-    if (renderLegacyPage) {
-      return <LegacyBridge renderFn={renderLegacyPage} />;
-    }
+    return (
+      <div className="fg-relative fg-h-full fg-w-full">
+        {TABS.map((tab) => {
+          if (!visitedTabs.has(tab.id)) {
+            return null;
+          }
+          const renderFn = getRenderFnForTab(tab.id);
+          if (!renderFn) {
+            return null;
+          }
 
-    return <div className="fg-p-12 fg-text-slate-400">Coming soon</div>;
+          return (
+            <div
+              key={tab.id}
+              className={`fg-absolute fg-inset-0 ${
+                activeTab === tab.id ? 'fg-block' : 'fg-hidden'
+              }`}
+            >
+              <LegacyBridge renderFn={renderFn} />
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
     <DashboardShell
       activeTab={activeTab}
-      footer="FocusGate v1.0.0"
       hiddenSidebar={showOnboarding}
       onTabChange={(tab) => setActiveTab(tab)}
-      pageTitle={showOnboarding ? 'Welcome' : pageTitle}
       status={status}
       tabs={TABS}
+      theme={currentTheme}
+      onThemeChange={async (theme) => {
+        setCurrentTheme(theme);
+        await setThemeAction(theme);
+        applyTheme(theme);
+      }}
     >
       {renderCurrentContent()}
     </DashboardShell>

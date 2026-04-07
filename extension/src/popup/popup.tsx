@@ -13,6 +13,7 @@ import {
 import { FocusPopupView } from '../screens/focus/FocusPopupView';
 import { AppsPopupView } from '../screens/apps/AppsPopupView';
 import { DashboardPopupView } from '../screens/dashboard/DashboardPopupView';
+import { applyTheme, setupThemeListener } from '../lib/theme';
 
 type TabId = 'dash' | 'apps' | 'focus';
 
@@ -64,6 +65,12 @@ function PopupApp() {
     tone: 'muted',
   });
   const [passEntries, setPassEntries] = useState<PassEntry[]>([]);
+
+  useEffect(() => {
+    applyTheme();
+    const cleanup = setupThemeListener();
+    return cleanup;
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('fg_tab', activeTab);

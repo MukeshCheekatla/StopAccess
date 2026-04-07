@@ -23,19 +23,24 @@ export function renderPrivacyOptionsSection(
         </div>
       </div>
 
-      <div class="fg-grid fg-grid-cols-3 fg-gap-3">
+      <div class="fg-grid fg-grid-cols-2 fg-gap-5">
         <!-- Disguised Trackers -->
         <div 
-          class="privacy-option-card fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-transition-all fg-cursor-pointer"
+          class="privacy-option-card fg-flex fg-items-center fg-gap-4 fg-p-6 fg-rounded-3xl fg-transition-all fg-cursor-pointer"
           data-key="disguisedTrackers"
-          style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);"
-          onmouseenter="this.style.background='rgba(255,255,255,0.05)'; this.style.transform='translateY(-2px)'"
-          onmouseleave="this.style.background='rgba(255,255,255,0.03)'; this.style.transform=''"
+          style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
         >
-          <div class="fg-shrink-0 fg-text-[#818cf8]">${iconEyeOff}</div>
+          <div class="fg-shrink-0 fg-w-10 fg-h-10 fg-rounded-2xl fg-bg-[#818cf8]/10 fg-flex fg-items-center fg-justify-center fg-text-[#818cf8]">
+            ${iconEyeOff}
+          </div>
           <div class="fg-flex-1 fg-min-w-0">
-            <div class="fg-text-[13px] fg-font-bold fg-text-[var(--text)] fg-mb-[1px] fg-truncate">Block Disguised Third-Party Trackers</div>
-            <div class="fg-text-[10px] fg-text-[var(--muted)] fg-leading-tight fg-line-clamp-2">Automatically detect and block third-party trackers disguising themselves as first-party.</div>
+            <div class="fg-flex fg-items-center fg-gap-2 fg-mb-1">
+              <span class="fg-text-[14px] fg-font-black fg-text-white fg-truncate">Cloaking Protection</span>
+              <span class="fg-tooltip" data-tooltip="Blocks third-party trackers that disguise themselves as first-party to bypass standard filters.">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="fg-text-[var(--fg-text)] fg-opacity-40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </span>
+            </div>
+            <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-relaxed">Block third-party trackers disguising themselves as first-party via CNAME.</div>
           </div>
           <button
             class="privacy-option-toggle ${
@@ -44,7 +49,7 @@ export function renderPrivacyOptionsSection(
             data-key="disguisedTrackers"
             aria-checked="${settings.disguisedTrackers}"
             role="switch"
-            style="width: 32px; height: 18px; border-radius: 9px; border: none;
+            style="width: 36px; height: 20px; border-radius: 10px; border: none;
               background: ${
                 settings.disguisedTrackers
                   ? 'var(--green)'
@@ -53,26 +58,31 @@ export function renderPrivacyOptionsSection(
               transition: background 0.2s; outline: none;"
           >
             <span style="position: absolute; top: 2px; left: ${
-              settings.disguisedTrackers ? '16px' : '2px'
+              settings.disguisedTrackers ? '18px' : '2px'
             };
-              width: 14px; height: 14px; border-radius: 50%;
+              width: 16px; height: 16px; border-radius: 50%;
               background: white; transition: left 0.2s;
-              box-shadow: 0 1px 2px rgba(0,0,0,0.3);"></span>
+              box-shadow: 0 1px 3px rgba(0,0,0,0.4);"></span>
           </button>
         </div>
 
         <!-- Allow Affiliate -->
         <div 
-          class="privacy-option-card fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-transition-all fg-cursor-pointer"
+          class="privacy-option-card fg-flex fg-items-center fg-gap-4 fg-p-6 fg-rounded-3xl fg-transition-all fg-cursor-pointer"
           data-key="allowAffiliate"
-          style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);"
-          onmouseenter="this.style.background='rgba(255,255,255,0.05)'; this.style.transform='translateY(-2px)'"
-          onmouseleave="this.style.background='rgba(255,255,255,0.03)'; this.style.transform=''"
+          style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
         >
-          <div class="fg-shrink-0 fg-text-[#818cf8]">${iconLink}</div>
+          <div class="fg-shrink-0 fg-w-10 fg-h-10 fg-rounded-2xl fg-bg-sky-400/10 fg-flex fg-items-center fg-justify-center fg-text-sky-400">
+            ${iconLink}
+          </div>
           <div class="fg-flex-1 fg-min-w-0">
-            <div class="fg-text-[13px] fg-font-bold fg-text-[var(--text)] fg-mb-[1px] fg-truncate">Allow Affiliate & Tracking Links</div>
-            <div class="fg-text-[10px] fg-text-[var(--muted)] fg-leading-tight fg-line-clamp-2">Allow affiliate & tracking domains common on deals websites, in emails or in search results.</div>
+             <div class="fg-flex fg-items-center fg-gap-2 fg-mb-1">
+              <span class="fg-text-[14px] fg-font-black fg-text-white fg-truncate">Affiliate Transparency</span>
+               <span class="fg-tooltip" data-tooltip="Allows affiliate & tracking domains common on deals websites and search results. Disable to block all referral tracking.">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="fg-text-[var(--fg-text)] fg-opacity-40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </span>
+            </div>
+            <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-relaxed">Allow referral links and deal tracking common in search results.</div>
           </div>
           <button
             class="privacy-option-toggle ${
@@ -81,7 +91,7 @@ export function renderPrivacyOptionsSection(
             data-key="allowAffiliate"
             aria-checked="${settings.allowAffiliate}"
             role="switch"
-            style="width: 32px; height: 18px; border-radius: 9px; border: none;
+            style="width: 36px; height: 20px; border-radius: 10px; border: none;
               background: ${
                 settings.allowAffiliate
                   ? 'var(--green)'
@@ -90,11 +100,11 @@ export function renderPrivacyOptionsSection(
               transition: background 0.2s; outline: none;"
           >
             <span style="position: absolute; top: 2px; left: ${
-              settings.allowAffiliate ? '16px' : '2px'
+              settings.allowAffiliate ? '18px' : '2px'
             };
-              width: 14px; height: 14px; border-radius: 50%;
+              width: 16px; height: 16px; border-radius: 50%;
               background: white; transition: left 0.2s;
-              box-shadow: 0 1px 2px rgba(0,0,0,0.3);"></span>
+              box-shadow: 0 1px 3px rgba(0,0,0,0.4);"></span>
           </button>
         </div>
       </div>
