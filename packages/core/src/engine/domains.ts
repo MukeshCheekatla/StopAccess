@@ -156,7 +156,19 @@ export function getDomainForRule(rule: Partial<AppRule>): string | null {
 
 export function resolveTargetInput(input: string): ResolvedTarget {
   const normalized = sanitizeDomain(input) || String(input || '').trim();
-  // Simplified for restructure demonstration
+
+  const serviceId = findServiceIdByDomain(normalized);
+  if (serviceId) {
+    const displayName = serviceId.charAt(0).toUpperCase() + serviceId.slice(1);
+    return {
+      kind: 'service',
+      normalizedId: serviceId,
+      displayName: displayName,
+      input,
+      matchedDomain: normalized,
+    };
+  }
+
   return {
     kind: 'domain',
     normalizedId: normalized,
