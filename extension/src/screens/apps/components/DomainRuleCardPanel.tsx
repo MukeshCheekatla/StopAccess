@@ -50,14 +50,14 @@ export const DomainRuleCard: React.FC<DomainRuleCardProps> = ({
       }`}
     >
       <div className="fg-flex fg-min-w-0 fg-flex-1 fg-items-center fg-gap-3">
-        <div className="fg-relative fg-flex fg-h-7 fg-w-7 fg-shrink-0 fg-items-center fg-justify-center fg-overflow-hidden fg-rounded-[8px] fg-bg-white/[0.03]">
+        <div className="fg-relative fg-flex fg-h-7 fg-w-7 fg-shrink-0 fg-items-center fg-justify-center">
           <div className="fg-absolute fg-inset-0 fg-hidden fg-items-center fg-justify-center fg-text-[11px] fg-font-black fg-text-[var(--muted)]">
             {(rule.appName || domain).slice(0, 2).toUpperCase()}
           </div>
           <img
             src={faviconUrl}
             alt=""
-            className="fg-h-[18px] fg-w-[18px] fg-object-contain"
+            className="fg-relative fg-z-[1] fg-h-6 fg-w-6 fg-object-contain fg-rounded-[20%]"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
               const fallback = e.currentTarget

@@ -196,7 +196,7 @@ function ActivityCard({ row }: { row: ActivityRow }) {
 
   return (
     <div className="fg-flex fg-items-center fg-gap-4 fg-rounded-[12px] fg-bg-white/[0.03] fg-p-3">
-      <div className="fg-relative fg-flex fg-h-9 fg-w-9 fg-shrink-0 fg-items-center fg-justify-center fg-overflow-hidden fg-rounded-[10px] fg-bg-white/[0.03]">
+      <div className="fg-relative fg-flex fg-h-9 fg-w-9 fg-shrink-0 fg-items-center fg-justify-center">
         {row.isBlocked ? (
           <div className="fg-absolute -fg-bottom-0.5 -fg-right-0.5 fg-z-10 fg-flex fg-h-3.5 fg-w-3.5 fg-items-center fg-justify-center fg-rounded-full fg-border-2 fg-border-[var(--bg-dark)] fg-bg-[var(--red)] fg-text-[8px] fg-font-black fg-text-white">
             x
@@ -208,7 +208,7 @@ function ActivityCard({ row }: { row: ActivityRow }) {
         <img
           src={faviconUrl}
           alt=""
-          className="fg-relative fg-z-[1] fg-h-5 fg-w-5 fg-object-contain"
+          className="fg-relative fg-z-[1] fg-h-7 fg-w-7 fg-object-contain fg-rounded-[20%]"
           onError={(event) => {
             event.currentTarget.style.display = 'none';
             const fallback = event.currentTarget
