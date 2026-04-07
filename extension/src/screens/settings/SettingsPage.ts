@@ -1,5 +1,3 @@
-import { UI_EXAMPLES } from '@focusgate/core';
-import { addActionLog } from '../../lib/logger';
 import { toast } from '../../lib/toast';
 import { checkGuard } from '../../background/sessionGuard';
 
@@ -17,260 +15,126 @@ export async function renderSettingsPage(container) {
     importRulesAction,
     setGuardianPinAction,
     verifyAndRemoveGuardianPinAction,
-    clearEngineLogsAction,
     testDomainCoverageAction,
   } = await import('../../../../packages/viewmodels/src/useSettingsVM');
 
-  const { profileId, apiKey, strict, syncMode, dnrRules, healthOk } =
+  const { profileId, apiKey, strict, syncMode, dnrRules, healthOk, syncState } =
     await loadSettingsData();
-  const browserGuide = /firefox/i.test(navigator.userAgent)
-    ? {
-        name: 'Firefox',
-        steps: [
-          'Open Settings > Privacy & Security.',
-          'Go to DNS over HTTPS.',
-          'Choose Max Protection.',
-          'Select Custom and paste your NextDNS endpoint.',
-        ],
-      }
-    : {
-        name: 'Chrome / Brave / Edge',
-        steps: [
-          'Open Settings > Privacy and security > Security.',
-          'Find Use secure DNS.',
-          'Choose Custom.',
-          'Paste your NextDNS endpoint and save the browser setting.',
-        ],
-      };
-  const dnsEndpoint = profileId
-    ? `https://dns.nextdns.io/${profileId}`
-    : 'https://dns.nextdns.io/YOUR_PROFILE_ID';
 
   const sessionGuardResult = await checkGuard('change_settings');
   const isLocked = !sessionGuardResult.allowed;
 
   container.innerHTML = `
-      <div style="display: flex; height: 100%; min-height: calc(100vh - 40px); margin: -20px;">
-        <div style="width: 240px; border-right: 1px solid var(--glass-border); background: rgba(0,0,0,0.12); padding: 20px 12px; display: flex; flex-direction: column; gap: 4px;">
+    <div class="fg-flex fg-h-full" style="min-height: calc(100vh - 40px); margin: -20px;">
+      <!-- Floating Navigation (Sidebar Bar Removed) -->
+      <aside class="fg-w-56 fg-p-6 fg-flex fg-flex-col fg-justify-center fg-gap-3">
+        <div class="fg-kicker fg-mb-4 fg-px-3 fg-opacity-90 fg-text-white">Controls</div>
+        
+        <button class="settings-tab-btn active" data-target="tab_engine">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span class="fg-font-bold">Engine</span>
+        </button>
+        
+        <button class="settings-tab-btn" data-target="tab_security">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span class="fg-font-bold">Security</span>
+        </button>
+        
+        <button class="settings-tab-btn" data-target="tab_advanced">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span class="fg-font-bold">Advanced</span>
+        </button>
 
-          <div style="font-size: 10px; font-weight: 800; color: var(--muted); padding-left: 12px; margin-bottom: 4px; letter-spacing: 1px;">PREFERENCES</div>
-          <button class="settings-tab-btn active" data-target="sec_protection" style="display: flex; align-items: center; gap: 10px; text-align: left; background: rgba(255,255,255,0.04); border: none; color: var(--text); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> <span>Blocking Level</span></button>
-          <button class="settings-tab-btn" data-target="sec_credentials" style="display: flex; align-items: center; gap: 10px; text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19c2.5 0 4.5-2 4.5-4.5 0-2.3-1.7-4.2-3.9-4.5-1.1-3.6-4.4-6-8.1-6-4.5 0-8.2 3.5-8.5 8C1.5 12.3 0 14 0 16c0 2.2 1.8 4 4 4h13.5z"/></svg> <span>NextDNS Sync</span></button>
-          
-          <div style="margin-top: 16px; margin-bottom: 4px; font-size: 10px; font-weight: 800; color: var(--muted); padding-left: 12px; letter-spacing: 1px;">SYSTEM</div>
-          <button class="settings-tab-btn" data-target="sec_security" style="display: flex; align-items: center; gap: 10px; text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> <span>Security Layer</span></button>
-          <button class="settings-tab-btn" data-target="sec_diagnostics" style="display: flex; align-items: center; gap: 10px; text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg> <span>Diagnostics</span></button>
-          <button class="settings-tab-btn" data-target="sec_audit" style="display: flex; align-items: center; gap: 10px; text-align: left; background: transparent; border: none; color: var(--muted); padding: 10px 16px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> <span>Data & Audit</span></button>
+        <div class="fg-absolute fg-bottom-10 fg-left-0 fg-w-full fg-opacity-40 fg-text-[11px] fg-font-black fg-tracking-widest fg-text-center fg-text-white">
+          FOCUS GATE v1.1
+        </div>
+      </aside>
 
-          <div style="margin-top: auto; text-align: center; padding: 16px; opacity: 0.5;">
-             <div style="font-size: 10px; font-weight: 800; letter-spacing: 2px;">FOCUSGATE v1.0.0</div>
-          </div>
-        </div>
+      <!-- Main Content Area -->
+      <main class="fg-flex-1 fg-overflow-y-auto fg-p-12 fg-max-w-4xl fg-mx-auto">
+        
+        <!-- Tab: Engine -->
+        <div id="tab_engine" class="tab-content" style="display: block;">
+          <header class="fg-mb-10">
+            <h1 class="fg-text-4xl fg-font-black fg-mb-3 fg-tracking-tight fg-text-white">Filtering Engine</h1>
+            <p class="fg-text-[var(--fg-muted)] fg-text-sm fg-opacity-100">Orchestrate your network protection layers and synchronization settings.</p>
+          </header>
 
-        <div class="fg-flex-1 fg-overflow-y-auto fg-p-10" style="max-width: 900px;">
-          <div id="sec_protection" class="settings-content-section" style="display: block; animation: fadeIn 0.2s ease;">
-            <!-- Top Metrics Row -->
-            <div class="fg-grid fg-grid-cols-4 fg-gap-4 fg-mb-8">
-        <div class="glass-card" style="padding: var(--space-lg);">
-          <div class="field-label">Shield Status</div>
-          <div style="font-size: 18px; font-weight: 800; color: ${
-            healthOk ? 'var(--green)' : 'var(--red)'
-          }; margin-top: 4px;">${healthOk ? 'ONLINE' : 'OFFLINE'}</div>
-        </div>
-        <div class="glass-card" style="padding: var(--space-lg);">
-          <div class="field-label">Active Setting</div>
-          <div style="font-size: 18px; font-weight: 800; color: var(--text); margin-top: 4px;">${syncMode.toUpperCase()}</div>
-        </div>
-        <div class="glass-card" style="padding: var(--space-lg);">
-          <div class="field-label">Strict Mode</div>
-          <div style="font-size: 18px; font-weight: 800; color: ${
-            strict ? 'var(--accent)' : 'var(--muted)'
-          }; margin-top: 4px;">${strict ? 'ENABLED' : 'DISABLED'}</div>
-        </div>
-        <div class="glass-card" style="padding: var(--space-lg);">
-          <div class="field-label">Local Rules</div>
-          <div style="font-size: 18px; font-weight: 800; color: var(--text); margin-top: 4px;">${
-            (dnrRules as any[]).length
-          } Active</div>
-        </div>
-      </div>
-
-          <!-- Section 1: Protection -->
-          <section>
-            <div class="section-label">Blocking Level</div>
-            <div style="font-size: 13px; color: var(--muted); margin-bottom: var(--space-lg);">Choose how strictly FocusGate should filter your network traffic and browser requests.</div>
-            <div class="enforcement-grid" style="grid-template-columns: 1fr 1fr; margin: 0;">
-              <div class="enforcement-card ${
-                syncMode === 'browser' ? 'active' : ''
-              } ${isLocked ? 'locked' : ''}" data-mode="browser">
-                <div class="enforcement-level">STANDARD</div>
-                <div class="enforcement-tag">Browser Logic</div>
-                <div class="enforcement-desc">Fast, local blocks using browser-native blocking. No external DNS required.</div>
+          <div class="fg-grid fg-gap-10">
+            <!-- Sync Mode Selection -->
+            <section class="fg-panel-premium fg-p-8 fg-rounded-[34px]">
+              <div class="fg-flex fg-items-center fg-justify-between fg-mb-8">
+                <h2 class="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest fg-opacity-70 fg-text-white">Blocking Core</h2>
+                <span class="badge-premium ${healthOk ? 'active' : 'local'}">
+                  ${healthOk ? 'SYNC ACTIVE' : 'LOCAL ENGINE'}
+                </span>
               </div>
-              <div class="enforcement-card ${
-                syncMode === 'profile' ? 'active' : ''
-              } ${isLocked ? 'locked' : ''}" data-mode="profile">
-                <div class="enforcement-level">STRONG</div>
-                <div class="enforcement-tag">Cloud Sync</div>
-                <div class="enforcement-desc">Full NextDNS integration for syncing across all devices. Strongest blocking.</div>
-              </div>
-            </div>
-          </section>
-          </div>
-
-          <div id="sec_diagnostics" class="settings-content-section" style="display: none; animation: fadeIn 0.2s ease;">
-          <!-- Section 2: Diagnostics -->
-          <section>
-            <div class="section-label">Diagnostic Tools</div>
-            <div class="action-grid" style="grid-template-columns: 1fr 1fr; margin: 0;">
-               <div class="glass-card" style="padding: var(--space-lg);">
-                <div class="field-label" style="margin-bottom: 12px;">Rule Compliance</div>
-                <div style="display: flex; gap: var(--space-sm);">
-                   <input type="text" id="test_domain" placeholder="${
-                     UI_EXAMPLES.GENERIC_DOMAIN
-                   }" class="input-premium" style="font-size: 13px;">
-                   <button class="btn-premium" id="btn_test_domain" style="padding: 0 16px;">TEST</button>
+              
+              <div class="fg-grid fg-grid-cols-2 fg-gap-6">
+                <div class="mode-card-v2 ${
+                  syncMode === 'browser' ? 'active' : ''
+                } ${isLocked ? 'locked' : ''} group" data-mode="browser">
+                  <div class="fg-font-black fg-text-[15px] fg-mb-1 fg-text-white">Standard</div>
+                  <p class="fg-text-xs fg-opacity-80 fg-leading-relaxed">Native filtering logic. Low latency, browser-level security.</p>
                 </div>
-                <div id="test_result" style="display: none; padding: 10px; border-radius: 8px; font-size: 11px; font-weight: 700; margin-top: 12px; text-align: center; border: 1px solid var(--glass-border);"></div>
-              </div>
-
-              <div class="glass-card" style="padding: var(--space-lg);">
-                <div class="field-label" style="margin-bottom: 12px;">Device Status</div>
-                <div id="sync_stats" style="min-height: 42px; margin-bottom: 12px;"></div>
-                <div style="display: flex; gap: var(--space-sm);">
-                  <button class="btn-premium" id="btn_force_sync" style="flex:1; font-size: 11px; background: var(--accent); justify-content: center;">PUSH</button>
-                  <button class="btn-premium" id="btn_refresh_sync" style="flex:1; font-size: 11px; background: rgba(255,255,255,0.03); box-shadow: none; border: 1px solid var(--glass-border); justify-content: center;">POLL</button>
+                <div class="mode-card-v2 ${
+                  syncMode === 'profile' ? 'active' : ''
+                } ${isLocked ? 'locked' : ''} group" data-mode="profile">
+                  <div class="fg-font-black fg-text-[15px] fg-mb-1 fg-text-white">Cloud Boost</div>
+                  <p class="fg-text-xs fg-opacity-80 fg-leading-relaxed">Sync with NextDNS for multi-platform DNS-level filtering.</p>
                 </div>
               </div>
-            </div>
-          </section>
-          </div>
+            </section>
 
-          <div id="sec_audit" class="settings-content-section" style="display: none; animation: fadeIn 0.2s ease;">
-          <!-- Section 3: Data -->
-          <section>
-            <div class="section-label">Persistence & Audit</div>
-            <div class="glass-card" style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-lg);">
-              <div>
-                <div style="font-weight: 700; font-size: 14px;">Audit Trail</div>
-                <div style="font-size: 12px; color: var(--muted); margin-top: 2px;">View all background blocking decisions.</div>
+            <!-- NextDNS Credentials -->
+            <section class="fg-panel-premium fg-p-8 fg-rounded-[34px]">
+              <div class="fg-flex fg-justify-between fg-items-center fg-mb-6">
+                <h2 class="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest fg-opacity-70 fg-text-white">Cloud Identity</h2>
+                <button id="btn_edit_credentials" class="fg-text-[11px] fg-font-black fg-text-[var(--fg-accent)] hover:fg-underline fg-uppercase fg-tracking-wider">Edit Setup</button>
               </div>
-              <div class="fg-flex fg-gap-2">
-                <button class="btn-premium" id="btn_view_logs" style="background: transparent; border: 1px solid var(--glass-border); box-shadow: none;">VIEW LOGS</button>
-                <div class="fg-w-px fg-h-8 fg-mx-2" style="background: var(--glass-border);"></div>
-                <button class="btn-premium" id="btn_export_rules" style="background: transparent; border: 1px solid var(--glass-border); box-shadow: none;">BACKUP</button>
-                <button class="btn-premium" id="btn_import_rules" style="background: transparent; border: 1px solid var(--glass-border); box-shadow: none;">RESTORE</button>
-              </div>
-            </div>
-          </section>
-          </div>
-
-          <div id="sec_credentials" class="settings-content-section" style="display: none; animation: fadeIn 0.2s ease;">
-          <!-- Section 4: Credentials -->
-          <section>
-            <div class="section-label">NextDNS Profile</div>
-            <div class="glass-card" style="padding: var(--space-lg); margin-bottom: var(--space-md);">
-              <div class="fg-flex fg-items-start fg-justify-between fg-gap-4 fg-mb-[14px]">
-                <div>
-                  <div style="font-weight: 800; font-size: 15px; margin-bottom: 6px;">Quick setup for extension sync</div>
-                  <div style="font-size: 12px; color: var(--muted); line-height: 1.55;">
-                    This is the permanent setup hub, just like mobile. Link your NextDNS profile here, then add the same endpoint to ${
-                      browserGuide.name
-                    }.
+              
+              <div class="fg-grid fg-gap-6">
+                <div class="fg-grid fg-grid-cols-2 fg-gap-6">
+                  <div class="fg-space-y-3">
+                    <label class="fg-text-[11px] fg-font-black fg-opacity-80 fg-uppercase fg-tracking-wider fg-text-white">Profile ID</label>
+                    <input type="text" id="cfg_profile" value="${profileId}" placeholder="abc123" class="input-premium readonly-input" readonly>
+                  </div>
+                  <div class="fg-space-y-3">
+                    <label class="fg-text-[11px] fg-font-black fg-opacity-80 fg-uppercase fg-tracking-wider fg-text-white">API Secret Key</label>
+                    <input type="password" id="cfg_apiKey" value="" placeholder="${
+                      apiKey ? '••••••••••••••••' : 'Enter Secret'
+                    }" class="input-premium readonly-input" readonly>
                   </div>
                 </div>
-                <div style="padding: 8px 12px; border-radius: 999px; background: ${
-                  healthOk
-                    ? 'rgba(16, 185, 129, 0.12)'
-                    : 'rgba(245, 158, 11, 0.12)'
-                }; color: ${
-    healthOk ? 'var(--green)' : 'var(--yellow)'
-  }; font-size: 10px; font-weight: 900; letter-spacing: 1px;">
-                  ${healthOk ? 'LINKED' : 'SETUP'}
+                
+                <div id="connection_feedback" class="fg-hidden fg-p-4 fg-rounded-2xl fg-text-xs fg-font-bold fg-text-center"></div>
+
+                <div class="fg-flex fg-justify-center">
+                  <button class="btn-premium fg-w-full fg-max-w-xs fg-justify-center fg-h-12 fg-hidden" id="btn_save_config">Update & Verify Sync</button>
+                </div>
+                
+                <div class="fg-flex fg-justify-center fg-gap-8 fg-mt-3">
+                  <button class="fg-text-xs fg-font-black fg-opacity-90 hover:fg-opacity-100 Transition fg-text-white" id="btn_open_nextdns_setup">SETUP GUIDE</button>
+                  <button class="fg-text-xs fg-font-black fg-opacity-90 hover:fg-opacity-100 Transition fg-text-white" id="btn_copy_doh_url">COPY DOH LINK</button>
                 </div>
               </div>
-              <div class="fg-grid fg-gap-[10px]">
-                <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:14px; background:rgba(255,255,255,0.02);">
-                  <div style="min-width:20px; color: var(--accent); font-size:11px; font-weight:900;">1</div>
-                  <div>
-                    <div style="font-size:12px; font-weight:800; color:var(--text); margin-bottom:4px;">Open NextDNS</div>
-                    <div style="font-size:11px; color:var(--muted); line-height:1.5;">Open the setup page for your Profile ID and the account page for your API Key.</div>
-                  </div>
-                </div>
-                <div style="display:flex; gap:12px; align-items:flex-start; padding:12px 14px; border-radius:14px; background:rgba(255,255,255,0.02);">
-                  <div style="min-width:20px; color: var(--accent); font-size:11px; font-weight:900;">2</div>
-                  <div>
-                    <div style="font-size:12px; font-weight:800; color:var(--text); margin-bottom:4px;">Save and test credentials</div>
-                    <div style="font-size:11px; color:var(--muted); line-height:1.5;">FocusGate verifies the profile before sync is enabled.</div>
-                  </div>
-                </div>
-                <div class="fg-flex fg-gap-3 fg-items-start fg-px-[14px] fg-py-3 fg-rounded-[14px]" style="background: rgba(255,255,255,0.02);">
-                  <div style="min-width:20px; color: var(--accent); font-size:11px; font-weight:900;">3</div>
-                  <div>
-                    <div style="font-size:12px; font-weight:800; color:var(--text); margin-bottom:4px;">Finish browser DNS</div>
-                    <div style="font-size:11px; color:var(--muted); line-height:1.5;">Paste the same DoH endpoint into ${
-                      browserGuide.name
-                    } so browser protection matches the linked profile.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="section-label">Quick Setup</div>
-            <div class="glass-card" style="padding: var(--space-lg); margin-bottom: var(--space-md);">
-              <div style="font-weight: 800; font-size: 14px; margin-bottom: 6px;">Open pages and copy the DNS endpoint</div>
-              <div style="font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 16px;">
-                Use these shortcuts anytime you need to reconnect or verify the browser DNS step.
-              </div>
-              <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px;">
-                <button class="btn-premium" id="btn_open_nextdns_setup" style="background: rgba(255,255,255,0.04); box-shadow: none; border: none;">OPEN SETUP</button>
-                <button class="btn-premium" id="btn_open_nextdns_account" style="background: rgba(255,255,255,0.04); box-shadow: none; border: none;">OPEN ACCOUNT</button>
-                <button class="btn-premium" id="btn_copy_doh_url" style="background: rgba(255,255,255,0.04); box-shadow: none; border: none;">COPY DNS URL</button>
-              </div>
-              <div style="padding: 12px 14px; border-radius: 12px; background: rgba(255,255,255,0.03); font-family: monospace; font-size: 11px; color: var(--text); margin-bottom: 16px; word-break: break-all;" id="setup_doh_url">${dnsEndpoint}</div>
-              <div class="fg-grid fg-gap-2">
-                ${browserGuide.steps
-                  .map(
-                    (step, index) => `
-                  <div class="fg-flex fg-gap-[10px] fg-items-start fg-px-3 fg-py-[10px] fg-rounded-[10px]" style="background: rgba(255,255,255,0.02);">
-                    <div class="fg-text-[11px] fg-font-black fg-text-[var(--accent)] fg-min-w-[18px]">${
-                      index + 1
-                    }</div>
-                    <div style="font-size: 12px; color: var(--text); line-height: 1.45;">${step}</div>
-                  </div>`,
-                  )
-                  .join('')}
-              </div>
-            </div>
-            <div class="section-label">Credentials</div>
-            <div class="glass-card" style="padding: var(--space-lg);">
-              <div style="font-size: 12px; color: var(--muted); line-height: 1.55; margin-bottom: 16px;">
-                Save your Profile ID and API Key here. This is the same detailed setup area you can return to later, even after onboarding.
-              </div>
-              <div class="field-group">
-                <div>
-                  <label class="field-label">Profile ID</label>
-                  <input type="text" id="cfg_profile" value="${profileId}" placeholder="abc123" class="input-premium">
-                </div>
-                <div>
-                  <label class="field-label">API Key</label>
-                  <input type="password" id="cfg_apiKey" value="${apiKey}" placeholder="••••••••••••••••" class="input-premium">
-                </div>
-              </div>
-              <div id="connection_feedback" style="display: none; padding: 12px; border-radius: 12px; font-size: 12px; font-weight: 600; margin-bottom: 16px; border: 1px solid transparent;"></div>
-              <button class="btn-premium" id="btn_save_config" style="width: 100%; justify-content: center; height: 48px;">SAVE & TEST</button>
-            </div>
-          </section>
+            </section>
           </div>
-          
-          <div id="sec_security" class="settings-content-section" style="display: none; animation: fadeIn 0.2s ease;">
-          <!-- Section 5: Security -->
-          <section>
-            <div class="section-label">Security Layer</div>
-            <div class="glass-card" style="padding: var(--space-lg); margin-bottom: var(--space-md);">
-              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        </div>
+
+        <!-- Tab: Security -->
+        <div id="tab_security" class="tab-content" style="display: none;">
+          <header class="fg-mb-10">
+            <h1 class="fg-text-4xl fg-font-black fg-mb-3 fg-tracking-tight fg-text-white">Safety Layers</h1>
+            <p class="fg-text-[var(--fg-muted)] fg-text-sm fg-opacity-100">Add intentional friction to prevent accidental policy changes.</p>
+          </header>
+
+          <div class="fg-grid fg-gap-8">
+            <section class="fg-panel-premium fg-p-8 fg-rounded-[34px]">
+              <div class="fg-flex fg-items-center fg-justify-between">
                 <div>
-                  <div style="font-weight: 700; font-size: 14px;">Strict Mode</div>
-                  <div style="font-size: 11px; color: var(--muted); margin-top: 4px; line-height: 1.4;" id="strict_status_msg">Prevent settings tampering during active focus sessions.</div>
+                  <h2 class="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest fg-opacity-70 fg-text-white fg-mb-1">Strict Enforcement</h2>
+                  <p class="fg-text-xs fg-opacity-80" id="strict_status_msg">Lock modifications when an active session is in progress.</p>
                 </div>
                 <label class="switch">
                   <input type="checkbox" id="chk_strict" ${
@@ -279,48 +143,223 @@ export async function renderSettingsPage(container) {
                   <span class="slider"></span>
                 </label>
               </div>
-            </div>
+            </section>
 
-            <div class="glass-card" style="padding: var(--space-lg);">
-              <div class="field-label">Security PIN</div>
-              <div style="font-size: 11px; color: var(--muted); margin-bottom: 16px;">Required for major configuration changes.</div>
-              <div style="display: flex; gap: var(--space-sm);">
-                 <input type="password" id="guardian_pin_input" placeholder="----" maxlength="4" class="input-premium" style="text-align: center; letter-spacing: 8px; font-weight: 900; font-size: 16px;">
-                 <button class="btn-premium" id="btn_save_pin">SET</button>
+            <section class="fg-panel-premium fg-p-8 fg-rounded-[34px]">
+              <h2 class="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest fg-opacity-70 fg-text-white fg-mb-6">Global Security PIN</h2>
+              <div class="fg-flex fg-gap-5">
+                <input type="password" id="guardian_pin_input" placeholder="----" maxlength="4" class="input-premium fg-text-center fg-tracking-[10px] fg-font-black fg-text-2xl fg-w-48">
+                <button class="btn-premium fg-flex-1 fg-justify-center" id="btn_save_pin">CONFIRM PIN</button>
               </div>
-              <button id="btn_clear_pin" style="background:none; border:none; color:var(--red); font-size:10px; font-weight:800; cursor:pointer; margin-top: 16px; width: 100%; text-align: right; opacity: 0.6; text-transform: uppercase;">Deactivate PIN</button>
-            </div>
-          </section>
+              <button id="btn_clear_pin" class="fg-mt-8 fg-text-[11px] fg-font-black fg-text-[var(--fg-red)] fg-opacity-90 hover:fg-opacity-100 fg-uppercase fg-tracking-widest transition fg-w-full">DEACTIVATE SECURITY SHIELD</button>
+            </section>
           </div>
         </div>
-      </div>
-    `;
+
+        <!-- Tab: Advanced -->
+        <div id="tab_advanced" class="tab-content" style="display: none;">
+          <header class="fg-mb-10">
+            <h1 class="fg-text-4xl fg-font-black fg-mb-3 fg-tracking-tight fg-text-white">System Utilities</h1>
+            <p class="fg-text-[var(--fg-muted)] fg-text-sm fg-opacity-100">Heuristics, audit trails, and manual override controls.</p>
+          </header>
+
+          <div class="fg-grid fg-gap-8">
+            <div class="fg-grid fg-grid-cols-2 fg-gap-8">
+              <!-- Rule Tester -->
+              <section class="fg-panel-premium fg-p-8 fg-rounded-[34px]">
+                <h2 class="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest fg-opacity-70 fg-text-white fg-mb-6">Rule Checker</h2>
+                <div class="fg-space-y-5">
+                  <input type="text" id="test_domain" placeholder="domain.com" class="input-premium">
+                  <button class="btn-premium fg-w-full fg-justify-center" id="btn_test_domain">ANALYZE</button>
+                </div>
+                <div id="test_result" class="fg-hidden fg-mt-4 fg-p-4 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black"></div>
+              </section>
+
+              <!-- Sync Stats -->
+              <section class="fg-panel-premium fg-p-8 fg-rounded-[34px]">
+                <div class="fg-flex fg-items-center fg-justify-between fg-mb-6">
+                  <h2 class="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest fg-opacity-70 fg-text-white">Sync Health</h2>
+                  <div class="fg-flex fg-gap-4">
+                    <button class="fg-text-[11px] fg-font-black fg-text-[var(--fg-accent)] hover:fg-opacity-70" id="btn_force_sync">PUSH</button>
+                    <button class="fg-text-[11px] fg-font-black fg-opacity-90 hover:fg-opacity-100 fg-text-white" id="btn_refresh_sync">POLL</button>
+                  </div>
+                </div>
+                <div id="sync_stats" class="fg-text-xs fg-font-mono fg-space-y-4"></div>
+              </section>
+            </div>
+
+            <!-- Persistence -->
+            <section class="fg-panel-premium fg-p-8 fg-rounded-[34px]">
+              <h2 class="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest fg-opacity-70 fg-text-white fg-mb-6">Data Vault</h2>
+              <div class="fg-flex fg-gap-5">
+                <button class="btn-secondary-v2 fg-flex-1 fg-py-4" id="btn_view_logs">AUDIT TRAIL</button>
+                <button class="btn-secondary-v2 fg-flex-1 fg-py-4" id="btn_export_rules">EXPORT STATE</button>
+                <button class="btn-secondary-v2 fg-flex-1 fg-py-4" id="btn_import_rules">IMPORT STATE</button>
+              </div>
+            </section>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <style>
+      .settings-tab-btn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 20px;
+        border-radius: 18px;
+        color: var(--fg-muted);
+        font-size: 14px;
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .settings-tab-btn:hover {
+        background: rgba(255,255,255,0.06);
+        color: var(--fg-text);
+      }
+      .settings-tab-btn.active {
+        background: var(--fg-accent);
+        color: white;
+      }
+      .fg-panel-premium {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.06);
+      }
+      .mode-card-v2 {
+        padding: 24px;
+        border-radius: 24px;
+        border: 1px solid rgba(255,255,255,0.04);
+        background: rgba(255,255,255,0.01);
+        cursor: pointer;
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      .mode-card-v2:hover {
+        background: rgba(255,255,255,0.05);
+        border-color: rgba(255,255,255,0.15);
+        transform: scale(1.02);
+      }
+      .mode-card-v2.active {
+        background: rgba(255,255,255,0.08);
+        border-color: var(--fg-accent);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      }
+      .mode-card-v2.locked {
+        opacity: 0.3;
+        cursor: not-allowed;
+        grayscale: 1;
+      }
+      .badge-premium {
+        font-size: 10px;
+        font-weight: 900;
+        padding: 5px 12px;
+        border-radius: 999px;
+        letter-spacing: 0.8px;
+      }
+      .badge-premium.active {
+        background: rgba(16, 185, 129, 0.2);
+        color: var(--fg-green);
+      }
+      .badge-premium.local {
+        background: rgba(59, 130, 246, 0.2);
+        color: #60a5fa;
+      }
+      .input-premium {
+        background: rgba(0,0,0,0.2) !important;
+        border: 1px solid rgba(255,255,255,0.05) !important;
+        border-radius: 16px;
+        padding: 14px 18px;
+        font-size: 14px;
+        color: white;
+        width: 100%;
+        transition: all 0.2s;
+        box-shadow: none !important;
+      }
+      .input-premium.readonly-input {
+        opacity: 0.85;
+      }
+      .input-premium:not([readonly]):focus {
+        border-color: var(--fg-accent) !important;
+        background: rgba(0,0,0,0.3) !important;
+      }
+      .btn-secondary-v2 {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.05);
+        color: white;
+        border-radius: 18px;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 1.2px;
+        transition: all 0.2s;
+      }
+      .btn-secondary-v2:hover {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.15);
+      }
+      .tab-content {
+        animation: fgBlurFadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      }
+      @keyframes fgBlurFadeIn {
+        from { opacity: 0; filter: blur(5px); transform: translateY(8px); }
+        to { opacity: 1; filter: blur(0); transform: translateY(0); }
+      }
+    </style>
+  `;
 
   // --- Logic & Event Handlers ---
 
+  const tabs = container.querySelectorAll('.settings-tab-btn');
+  const contents = container.querySelectorAll('.tab-content');
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const targetId = tab.getAttribute('data-target');
+      tabs.forEach((t) => t.classList.remove('active'));
+      tab.classList.add('active');
+      contents.forEach((content) => {
+        content.style.display = content.id === targetId ? 'block' : 'none';
+      });
+    });
+  });
+
   const openExternal = (url: string) => {
     if (chrome?.windows?.create) {
-      chrome.windows.create({
-        url,
-        type: 'popup',
-        width: 1180,
-        height: 900,
-        focused: true,
-      });
-      return;
+      chrome.windows.create({ url, type: 'popup', width: 1180, height: 900 });
+    } else {
+      window.open(url, '_blank');
     }
-
-    if (chrome?.tabs?.create) {
-      chrome.tabs.create({ url });
-      return;
-    }
-
-    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
+  // Edit Mode Logic
+  const editBtn = container.querySelector('#btn_edit_credentials');
+  const saveBtn = container.querySelector('#btn_save_config');
+  const inputs = container.querySelectorAll('.readonly-input');
+
+  editBtn?.addEventListener('click', () => {
+    const isEditing = editBtn.innerText === 'CANCEL';
+    if (isEditing) {
+      editBtn.innerText = 'EDIT SETUP';
+      saveBtn?.classList.add('fg-hidden');
+      inputs.forEach((input) => {
+        (input as HTMLInputElement).readOnly = true;
+        input.classList.add('readonly-input');
+      });
+    } else {
+      editBtn.innerText = 'CANCEL';
+      saveBtn?.classList.remove('fg-hidden');
+      inputs.forEach((input) => {
+        (input as HTMLInputElement).readOnly = false;
+        input.classList.remove('readonly-input');
+      });
+    }
+  });
+
   // Blocking Mode Selection
-  container.querySelectorAll('.enforcement-card').forEach((card) => {
+  container.querySelectorAll('.mode-card-v2').forEach((card) => {
     card.addEventListener('click', async () => {
+      if (card.classList.contains('locked')) {
+        return;
+      }
       const mode = card.getAttribute('data-mode');
       const guard = await checkGuard('change_settings');
       if (!guard.allowed) {
@@ -333,75 +372,39 @@ export async function renderSettingsPage(container) {
       );
       const currentPin = await storage.getString('guardian_pin');
       if (currentPin) {
-        const challenge = prompt(
-          'Enter Security PIN to change blocking level:',
-        );
+        const challenge = prompt('Verification Required');
         if (challenge !== currentPin) {
-          toast.error('UNAUTHORIZED: Shield remains active.');
+          toast.error('Identity Failed');
           return;
         }
       }
 
       await setSyncModeAction(mode);
-      await addActionLog(
-        `Changed Blocking Mode to ${mode.toUpperCase()}`,
-        'info',
-      );
-
-      // Update UI state
       container
-        .querySelectorAll('.enforcement-card')
+        .querySelectorAll('.mode-card-v2')
         .forEach((c) => c.classList.remove('active'));
       card.classList.add('active');
+      toast.success(`Strategy synchronized: ${mode.toUpperCase()}`);
     });
   });
 
-  // NextDNS Save
+  // NextDNS Actions
   container
     .querySelector('#btn_open_nextdns_setup')
     ?.addEventListener('click', () =>
       openExternal('https://my.nextdns.io/setup'),
     );
-
-  container
-    .querySelector('#btn_open_nextdns_account')
-    ?.addEventListener('click', () =>
-      openExternal('https://my.nextdns.io/account'),
-    );
-
   container
     .querySelector('#btn_copy_doh_url')
     ?.addEventListener('click', async () => {
-      const currentProfile = (
-        container.querySelector('#cfg_profile') as HTMLInputElement
-      )?.value.trim();
-      const currentDnsUrl = currentProfile
-        ? `https://dns.nextdns.io/${currentProfile}`
-        : 'https://dns.nextdns.io/YOUR_PROFILE_ID';
-
-      try {
-        if (!navigator.clipboard?.writeText) {
-          throw new Error('Clipboard unavailable');
-        }
-        await navigator.clipboard.writeText(currentDnsUrl);
-        toast.success('DNS URL copied.');
-      } catch {
-        toast.error('Could not copy DNS URL.');
-      }
-    });
-
-  container
-    .querySelector('#cfg_profile')
-    ?.addEventListener('input', (event) => {
-      const value = (event.target as HTMLInputElement).value.trim();
-      const dnsView = container.querySelector('#setup_doh_url') as HTMLElement;
-      if (!dnsView) {
-        return;
-      }
-
-      dnsView.innerText = value
-        ? `https://dns.nextdns.io/${value}`
-        : 'https://dns.nextdns.io/YOUR_PROFILE_ID';
+      const pidInput = container.querySelector(
+        '#cfg_profile',
+      ) as HTMLInputElement;
+      const url = `https://dns.nextdns.io/${
+        pidInput.value.trim() || 'YOUR_ID'
+      }`;
+      await navigator.clipboard.writeText(url);
+      toast.success('DoH Link Purged to Clipboard');
     });
 
   container
@@ -410,9 +413,11 @@ export async function renderSettingsPage(container) {
       const pid = (
         container.querySelector('#cfg_profile') as HTMLInputElement
       ).value.trim();
-      const key = (
+      const enteredKey = (
         container.querySelector('#cfg_apiKey') as HTMLInputElement
       ).value.trim();
+      const finalKey = enteredKey || apiKey;
+
       const feedback = container.querySelector(
         '#connection_feedback',
       ) as HTMLElement;
@@ -420,131 +425,73 @@ export async function renderSettingsPage(container) {
         '#btn_save_config',
       ) as HTMLButtonElement;
 
-      if (!pid || !key) {
-        toast.error('Enter both Profile ID and API Key.');
+      if (!pid || !finalKey) {
+        toast.error('Identity parameters incomplete');
         return;
       }
 
-      const { extensionAdapter: storage } = await import(
-        '../../background/platformAdapter'
-      );
-      const currentPin = await storage.getString('guardian_pin');
-      const guard = await checkGuard('change_settings');
-      if (!guard.allowed) {
-        toast.error((guard as any).reason);
-        return;
-      }
-
-      if (currentPin) {
-        const challenge = prompt(
-          'Enter Security PIN to authorize credential change:',
-        );
-        if (challenge !== currentPin) {
-          toast.error('UNAUTHORIZED: Configuration locked.');
-          return;
-        }
-      }
-
-      btn.innerText = 'SYNCING...';
+      btn.innerText = 'VERIFYING IDENTITY...';
       btn.disabled = true;
-      feedback.style.display = 'block';
-      feedback.style.background = 'rgba(255,255,255,0.02)';
-      feedback.style.color = 'var(--muted)';
-      feedback.style.borderColor = 'var(--glass-border)';
-      feedback.innerText = 'Verifying cloud credentials...';
+      feedback.classList.remove('fg-hidden');
+      feedback.className =
+        'fg-p-4 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-black/30 fg-text-[var(--fg-muted)]';
+      feedback.innerText = 'Negotiating with NextDNS Cloud...';
 
       try {
-        const result = await connectNextDNSAction(pid, key);
+        const result = await connectNextDNSAction(pid, finalKey);
         if (result.ok) {
-          const dnsView = container.querySelector(
-            '#setup_doh_url',
-          ) as HTMLElement;
-          if (dnsView) {
-            dnsView.innerText = `https://dns.nextdns.io/${pid}`;
-          }
-          feedback.style.background = 'rgba(16, 185, 129, 0.1)';
-          feedback.style.borderColor = 'rgba(16, 185, 129, 0.2)';
-          feedback.style.color = 'var(--green)';
-          feedback.innerHTML =
-            '<strong>Connection Optimal</strong><br>Connection verified. Devices synced.';
-          btn.innerText = 'CONNECTED';
-          await addActionLog('Successfully linked NextDNS account', 'success');
+          feedback.className =
+            'fg-p-4 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-[var(--fg-green)]/20 fg-text-[var(--fg-green)]';
+          feedback.innerText = 'CRYPTO-HANDSHAKE OPTIMAL';
+          btn.innerText = 'LINK SECURED';
+          toast.success('Cloud sync persistent');
+
+          // Re-lock UI
+          setTimeout(() => renderSettingsPage(container), 1500);
         } else {
-          throw new Error(result.error || 'Verification connection lost.');
+          throw new Error(result.error || 'Identity Rejected');
         }
       } catch (err) {
-        await addActionLog(`Link failure: ${err.message}`, 'error');
-        feedback.style.background = 'rgba(239, 68, 68, 0.1)';
-        feedback.style.borderColor = 'rgba(239, 68, 68, 0.2)';
-        feedback.style.color = 'var(--red)';
-        feedback.innerHTML = `<strong>Connection Failed</strong><br>${err.message}`;
-        btn.innerText = 'RETRY CONNECTION';
+        feedback.className =
+          'fg-p-4 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-[var(--fg-red)]/20 fg-text-[var(--fg-red)]';
+        feedback.innerText = err.message;
+        btn.innerText = 'RETRY HANDSHAKE';
         btn.disabled = false;
       }
     });
 
-  // Strict Mode Switch
-  const strictCheckbox = container.querySelector(
-    '#chk_strict',
-  ) as HTMLInputElement;
-  const strictMsg = container.querySelector(
-    '#strict_status_msg',
-  ) as HTMLElement;
+  // Security Logic
+  container
+    .querySelector('#chk_strict')
+    ?.addEventListener('change', async (e) => {
+      const checkbox = e.target as HTMLInputElement;
+      const isChecked = checkbox.checked;
+      const guard = await checkGuard('change_settings');
+      if (!guard.allowed) {
+        toast.error((guard as any).reason);
+        checkbox.checked = !isChecked;
+        return;
+      }
 
-  strictCheckbox?.addEventListener('change', async (e) => {
-    const isChecked = (e.target as HTMLInputElement).checked;
-    const checkbox = e.target as HTMLInputElement;
-
-    const guard = await checkGuard('change_settings');
-    if (!guard.allowed) {
-      toast.error((guard as any).reason);
-      checkbox.checked = !isChecked;
-      return;
-    }
-
-    if (!isChecked) {
-      const { extensionAdapter: storage } = await import(
-        '../../background/platformAdapter'
-      );
-      const currentPin = await storage.getString('guardian_pin');
-      if (currentPin) {
-        const challenge = prompt('Enter Security PIN to disable Strict Mode:');
-        if (challenge !== currentPin) {
-          toast.error('UNAUTHORIZED: Shield remains active.');
-          checkbox.checked = true;
-          return;
+      if (!isChecked) {
+        const { extensionAdapter: storage } = await import(
+          '../../background/platformAdapter'
+        );
+        const currentPin = await storage.getString('guardian_pin');
+        if (currentPin) {
+          const challenge = prompt('Verification Required');
+          if (challenge !== currentPin) {
+            toast.error('Identity Conflict');
+            checkbox.checked = true;
+            return;
+          }
         }
       }
 
-      checkbox.disabled = true;
-      let seconds = 5;
-      const interval = setInterval(() => {
-        seconds--;
-        if (seconds > 0) {
-          strictMsg.innerText = `COOLING DOWN: ${seconds}S REMAINING...`;
-        } else {
-          clearInterval(interval);
-          finalizeStrictChange(false);
-        }
-      }, 1000);
-      strictMsg.innerText = `COOLING DOWN: ${seconds}S REMAINING...`;
-      strictMsg.style.color = 'var(--red)';
-    } else {
-      finalizeStrictChange(true);
-    }
+      await setStrictModeAction(isChecked);
+      toast.info(`Shield Lock ${isChecked ? 'ENGAGED' : 'RELEASED'}`);
+    });
 
-    async function finalizeStrictChange(val) {
-      await setStrictModeAction(val);
-      await addActionLog(`Strict Mode turned ${val ? 'ON' : 'OFF'}`, 'info');
-      strictMsg.innerText = val
-        ? 'High-friction unblocking required.'
-        : 'Prevent settings tampering during focus sessions.';
-      strictMsg.style.color = 'var(--muted)';
-      checkbox.disabled = false;
-    }
-  });
-
-  // PIN
   container
     .querySelector('#btn_save_pin')
     ?.addEventListener('click', async () => {
@@ -552,13 +499,12 @@ export async function renderSettingsPage(container) {
         '#guardian_pin_input',
       ) as HTMLInputElement;
       const pin = input.value.trim();
-      if (pin.length !== 4 || !/^\d+$/.test(pin)) {
-        toast.error('PIN must be 4 digits.');
+      if (pin.length !== 4) {
+        toast.error('PIN requires 4 digits');
         return;
       }
       await setGuardianPinAction(pin);
-      await addActionLog('Security PIN updated', 'info');
-      toast.success('Security layer active.');
+      toast.success('Verification Sequence Set');
       input.value = '';
     });
 
@@ -572,125 +518,91 @@ export async function renderSettingsPage(container) {
       if (!currentPin) {
         return;
       }
-      const challenge = prompt('Enter current PIN to remove security layer:');
-      if (challenge) {
-        const ok = await verifyAndRemoveGuardianPinAction(challenge);
-        if (ok) {
-          await addActionLog('Security PIN decommissioned', 'warning');
-          toast.info('Security layer offline.');
-        } else {
-          toast.error('Access Denied');
-        }
+      const challenge = prompt('Enter Sequence to Deactivate');
+      if (challenge && (await verifyAndRemoveGuardianPinAction(challenge))) {
+        toast.info('Security Shield Offline');
+      } else {
+        toast.error('Sequence Invalid');
       }
     });
 
-  // Diagnostics & Sync
-  const refreshStats = async () => {
+  // Advanced Tools
+  const renderStats = () => {
     const statsDiv = container.querySelector('#sync_stats');
     if (!statsDiv) {
       return;
     }
-    // Refresh data via ViewModel
-    const { syncState: newSyncState } = await loadSettingsData();
-
     statsDiv.innerHTML = `
-      <div class="fg-grid fg-grid-cols-2 fg-gap-1 fg-text-[10px]" style="font-family: monospace;">
-        <div class="fg-text-[var(--muted)]">STATE:</div>
-        <div class="fg-text-[var(--text)] fg-text-right fg-font-bold">${newSyncState.status.toUpperCase()}</div>
-        <div class="fg-text-[var(--muted)]">LAST:</div>
-        <div class="fg-text-[var(--text)] fg-text-right fg-font-bold">${
-          newSyncState.lastSyncAt
-            ? new Date(newSyncState.lastSyncAt).toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit',
-              })
-            : 'N/A'
-        }</div>
-        <div class="fg-text-[var(--muted)]">OPS:</div>
-        <div class="fg-text-[var(--accent)] fg-text-right fg-font-bold">${
-          newSyncState.pendingOps || 0
-        } QUEUED</div>
-      </div>
+      <div class="fg-flex fg-justify-between fg-opacity-70"><span>Engine Health</span> <span class="${
+        syncState.status === 'error'
+          ? 'fg-text-[var(--fg-red)]'
+          : 'fg-text-[var(--fg-green)]'
+      } fg-font-black">${syncState.status.toUpperCase()}</span></div>
+      <div class="fg-flex fg-justify-between fg-opacity-70"><span>Telemetry Cycle</span> <span class="fg-font-black">${
+        syncState.lastSyncAt
+          ? new Date(syncState.lastSyncAt).toLocaleTimeString()
+          : 'INACTIVE'
+      }</span></div>
+      <div class="fg-flex fg-justify-between fg-opacity-70"><span>Pending Blobs</span> <span class="fg-text-[var(--fg-accent)] fg-font-black">${
+        syncState.pendingOps || 0
+      } UNITS</span></div>
     `;
   };
+  renderStats();
 
   container
     .querySelector('#btn_refresh_sync')
     ?.addEventListener('click', async () => {
-      const btn = container.querySelector(
-        '#btn_refresh_sync',
-      ) as HTMLButtonElement;
-      btn.innerText = '...';
-      await refreshStats();
-      btn.innerText = 'POLL';
+      const fresh = await loadSettingsData();
+      Object.assign(syncState, fresh.syncState);
+      renderStats();
+      toast.success('Telemetry Refreshed');
     });
 
-  container
-    .querySelector('#btn_force_sync')
-    ?.addEventListener('click', async () => {
-      const btn = container.querySelector(
-        '#btn_force_sync',
-      ) as HTMLButtonElement;
-      btn.innerText = 'PUSHING';
-      chrome.runtime.sendMessage({ action: 'manualSync' });
-      setTimeout(async () => {
-        await refreshStats();
-        btn.innerText = 'PUSH';
-      }, 1500);
-    });
+  container.querySelector('#btn_force_sync')?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'manualSync' });
+    toast.info('Manual push sequence active');
+  });
 
-  // Rule Tester
   container
     .querySelector('#btn_test_domain')
     ?.addEventListener('click', async () => {
-      const domain = (
-        container.querySelector('#test_domain') as HTMLInputElement
-      ).value
-        .trim()
-        .toLowerCase();
+      const input = container.querySelector('#test_domain') as HTMLInputElement;
+      const domain = input.value.trim().toLowerCase();
       const resultDiv = container.querySelector('#test_result') as HTMLElement;
       if (!domain) {
         return;
       }
-
-      resultDiv.style.display = 'block';
-      resultDiv.style.background = 'rgba(255,255,255,0.02)';
-      resultDiv.innerText = 'ANALYZING...';
-
+      resultDiv.classList.remove('fg-hidden');
+      resultDiv.innerText = 'SCANNING HEURISTICS...';
       const { localMatch, dnrMatch } = await testDomainCoverageAction(
         domain,
         dnrRules,
       );
-
       if (localMatch || dnrMatch) {
-        resultDiv.style.color = 'var(--green)';
-        resultDiv.style.borderColor = 'rgba(16, 185, 129, 0.2)';
-        resultDiv.innerHTML = localMatch
-          ? '<span style="display:flex; align-items:center; gap:6px; justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ACTIVE RULE MATCH</span>'
-          : '<span style="display:flex; align-items:center; gap:6px; justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> ENGINE AUTO-BLOCK</span>';
+        resultDiv.className =
+          'fg-mt-4 fg-p-4 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black fg-bg-[var(--fg-green)]/20 fg-text-[var(--fg-green)] fg-border fg-border-[var(--fg-green)]/20';
+        resultDiv.innerText = localMatch
+          ? 'BLOCK EVENT: PERSISTENT'
+          : 'BLOCK EVENT: VIRTUAL';
       } else {
-        resultDiv.style.color = 'var(--yellow)';
-        resultDiv.style.borderColor = 'rgba(245, 158, 11, 0.2)';
-        resultDiv.innerHTML =
-          '<span style="display:flex; align-items:center; gap:6px; justify-content:center;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> NO LOCAL MATCH</span>';
+        resultDiv.className =
+          'fg-mt-4 fg-p-4 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black fg-bg-[var(--fg-red)]/20 fg-text-[var(--fg-red)] fg-border fg-border-[var(--fg-red)]/20';
+        resultDiv.innerText = 'TRAFFIC CLEAN';
       }
     });
 
-  // Export/Import
   container
     .querySelector('#btn_export_rules')
     ?.addEventListener('click', async () => {
-      const rulesStr = await exportRulesAction();
-      const blob = new Blob([rulesStr], { type: 'application/json' });
+      const rules = await exportRulesAction();
+      const blob = new Blob([rules], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `focusgate_backup_${new Date()
-        .toISOString()
-        .slice(0, 10)}.json`;
+      a.download = 'focusgate_state.json';
       a.click();
-      URL.revokeObjectURL(url);
-      await addActionLog('Domain rules exported', 'info');
+      toast.success('State Archived');
     });
 
   container
@@ -707,23 +619,13 @@ export async function renderSettingsPage(container) {
         try {
           const text = await file.text();
           await importRulesAction(text);
-          await addActionLog('Domain rules restored', 'success');
-          toast.success('Rules synchronized.');
+          toast.success('State Restored');
           renderSettingsPage(container);
-        } catch (err: any) {
-          toast.error('Restore Failed: ' + err.message);
+        } catch (err) {
+          toast.error('State Corruption');
         }
       };
       input.click();
-    });
-
-  // Logs
-  container
-    .querySelector('#btn_clear_logs')
-    ?.addEventListener('click', async () => {
-      await clearEngineLogsAction();
-      await addActionLog('Audit log history purged', 'info');
-      toast.info('Logs cleared.');
     });
 
   container
@@ -732,127 +634,53 @@ export async function renderSettingsPage(container) {
       const { extensionAdapter: storage, STORAGE_KEYS } = await import(
         '../../background/platformAdapter'
       );
-      const logsStr = (await storage.getString(STORAGE_KEYS.LOGS)) || '[]';
-      const logs = JSON.parse(logsStr as string).reverse();
-
-      const modalOverlay = document.createElement('div');
-      modalOverlay.className = 'modal-overlay';
-      modalOverlay.innerHTML = `
-      <div class="modal">
-        <div class="modal-header">
-          <div class="modal-title">ENGINE AUDIT TRAIL</div>
-          <button id="btn_close_logs" style="background:none; border:none; color:var(--muted); font-size: 20px; cursor:pointer;">✕</button>
+      const logs = JSON.parse(
+        (await storage.getString(STORAGE_KEYS.LOGS)) || '[]',
+      ).reverse();
+      const modal = document.createElement('div');
+      modal.className =
+        'fg-fixed fg-inset-0 fg-bg-black/70 fg-backdrop-blur-xl fg-flex fg-items-center fg-justify-center fg-z-50 fg-p-8';
+      modal.innerHTML = `
+      <div class="fg-bg-[var(--fg-surface)] fg-w-full fg-max-w-xl fg-rounded-[44px] fg-border fg-border-[var(--fg-glass-border)] fg-flex fg-flex-col fg-max-h-[85vh] fg-shadow-2xl">
+        <div class="fg-p-10 fg-border-b fg-border-[var(--fg-glass-border)] fg-flex fg-justify-between fg-items-center">
+          <div class="fg-font-black fg-uppercase fg-tracking-widest fg-text-xs fg-opacity-30">Audit Trail History</div>
+          <button id="close_logs" class="fg-opacity-30 hover:fg-opacity-100 transition">✕</button>
         </div>
-        <div class="modal-content">
-          <div class="fg-flex fg-gap-2 fg-mb-6">
-            <button class="btn-tab active" data-filter="all">ALL ENTRIES</button>
-            <button class="btn-tab" data-filter="error">ERRORS</button>
-            <button class="btn-tab" data-filter="success">SYNC SUCCESS</button>
-          </div>
-          <div id="logs_list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+        <div class="fg-flex-1 fg-overflow-y-auto fg-p-8 fg-space-y-4">
+          ${
+            logs
+              .map(
+                (l) => `
+            <div class="fg-p-5 fg-bg-white/5 fg-rounded-3xl fg-text-[11px] fg-font-mono fg-flex fg-gap-5">
+              <span class="fg-opacity-20">${new Date(
+                l.timestamp,
+              ).toLocaleTimeString()}</span>
+              <span class="${
+                l.level === 'error'
+                  ? 'fg-text-[var(--fg-red)]'
+                  : 'fg-text-[var(--fg-green)]'
+              } fg-font-black">[${l.level.toUpperCase()}]</span>
+              <span class="fg-opacity-80">${l.message}</span>
+            </div>
+          `,
+              )
+              .join('') ||
+            '<div class="fg-text-center fg-opacity-20 fg-py-20 fg-font-black fg-uppercase fg-tracking-widest fg-text-[10px]">Vault Unaccessed</div>'
+          }
         </div>
-        <div class="modal-footer">
-          <button class="btn-premium" id="btn_export_logs_file" style="background:transparent; border: 1px solid var(--glass-border); box-shadow:none;">EXPORT LOGS</button>
-          <button class="btn-premium" id="btn_close_logs_footer">CLOSE</button>
+        <div class="fg-p-8 fg-flex fg-justify-end">
+           <button class="btn-premium fg-px-10" id="modal_close_btn">Close Terminal</button>
         </div>
       </div>
     `;
-
-      document.body.appendChild(modalOverlay);
-
-      const renderLogsList = (filter = 'all') => {
-        const list = modalOverlay.querySelector('#logs_list');
-        const filtered = logs.filter(
-          (l: any) =>
-            filter === 'all' ||
-            l.level === filter ||
-            l.message.toLowerCase().includes(filter),
-        );
-
-        list.innerHTML =
-          filtered
-            .map(
-              (l: any) => `
-        <div style="padding: 12px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 8px; font-family: monospace; font-size: 11px; display: flex; gap: 16px;">
-          <span style="color: var(--muted); opacity: 0.5;">${new Date(
-            l.timestamp,
-          ).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-          })}</span>
-          <span style="color: ${
-            l.level === 'error'
-              ? 'var(--red)'
-              : l.level === 'success'
-              ? 'var(--green)'
-              : 'var(--text)'
-          }; font-weight: 700;">[${l.level.toUpperCase()}]</span>
-          <span style="color: var(--text);">${l.message}</span>
-        </div>
-      `,
-            )
-            .join('') ||
-          '<div style="text-align:center; padding: 40px; color:var(--muted); font-size:12px;">No matching log entries found.</div>';
-      };
-
-      renderLogsList();
-
-      modalOverlay.querySelectorAll('.btn-tab').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          modalOverlay
-            .querySelectorAll('.btn-tab')
-            .forEach((b) => b.classList.remove('active'));
-          btn.classList.add('active');
-          renderLogsList((btn as HTMLElement).getAttribute('data-filter'));
-        });
+      document.body.appendChild(modal);
+      const close = () => modal.remove();
+      modal.querySelector('#close_logs')?.addEventListener('click', close);
+      modal.querySelector('#modal_close_btn')?.addEventListener('click', close);
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          close();
+        }
       });
-
-      const closeMod = () => document.body.removeChild(modalOverlay);
-      (modalOverlay.querySelector('#btn_close_logs') as HTMLElement).onclick =
-        closeMod;
-      (
-        modalOverlay.querySelector('#btn_close_logs_footer') as HTMLElement
-      ).onclick = closeMod;
-      (
-        modalOverlay.querySelector('#btn_export_logs_file') as HTMLElement
-      ).onclick = () => {
-        const blob = new Blob([logsStr as string], {
-          type: 'application/json',
-        });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `focusgate_audit_${Date.now()}.json`;
-        a.click();
-      };
     });
-
-  // Sidebar JS
-  container.querySelectorAll('.settings-tab-btn').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      container.querySelectorAll('.settings-tab-btn').forEach((b) => {
-        b.classList.remove('active');
-        (b as HTMLElement).style.background = 'transparent';
-        (b as HTMLElement).style.color = 'var(--muted)';
-      });
-      const targetBtn = e.currentTarget as HTMLElement;
-      targetBtn.classList.add('active');
-      targetBtn.style.background = 'rgba(255,255,255,0.04)';
-      targetBtn.style.color = 'var(--text)';
-
-      container.querySelectorAll('.settings-content-section').forEach((sec) => {
-        (sec as HTMLElement).style.display = 'none';
-      });
-
-      const targetPanel = container.querySelector(
-        '#' + targetBtn.getAttribute('data-target'),
-      );
-      if (targetPanel) {
-        (targetPanel as HTMLElement).style.display = 'block';
-      }
-    });
-  });
-
-  // Initial load
-  refreshStats();
 }

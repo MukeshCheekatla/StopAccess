@@ -27,8 +27,6 @@ const iconLock =
   '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 const iconAlert =
   '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-const iconArrowRight =
-  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
 
 export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
   if (!container) {
@@ -37,19 +35,10 @@ export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
 
   const { settings, isConfigured, error } = await vm.load();
 
-  if (!isConfigured) {
-    container.innerHTML = renderNotConfigured();
-    container
-      .querySelector('#btn_goto_settings_from_privacy')
-      ?.addEventListener('click', () => {
-        chrome.tabs.create({
-          url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
-        });
-      });
-    return;
-  }
+  // Onboarding Bridge: Allow viewing in Local Mode
+  const isLocalMode = !isConfigured;
 
-  if (error || !settings) {
+  if (error) {
     container.innerHTML = renderError(error ?? 'Unknown error');
     container
       .querySelector('#btn_retry_privacy')
@@ -57,61 +46,90 @@ export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
     return;
   }
 
-  const blocklistCount = await vm.getActiveBlocklistCount();
-  const nativeCount = await vm.getActiveNativeCount();
-  const disguisedActive = settings.disguisedTrackers;
-  const availableBlocklists = await vm.getAvailableBlocklists();
+  const blocklistCount = isLocalMode ? 0 : await vm.getActiveBlocklistCount();
+  const nativeCount = isLocalMode ? 0 : await vm.getActiveNativeCount();
+  const disguisedActive = isLocalMode ? false : settings?.disguisedTrackers;
+  const availableBlocklists = isLocalMode
+    ? []
+    : await vm.getAvailableBlocklists();
+  const privacySettings =
+    settings ||
+    ({
+      disguisedTrackers: false,
+      allowAffiliate: false,
+      natives: [],
+      blocklists: [],
+    } as any);
 
   container.innerHTML = `
-    <!-- Summary badges (Scan results) -->
-    <div class="fg-grid fg-grid-cols-3 fg-gap-4 fg-mb-8">
-      <div class="fg-flex fg-flex-col fg-gap-1 fg-p-5 fg-rounded-3xl fg-transition-all" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
-        <div class="fg-flex fg-items-center fg-justify-between fg-mb-1">
-          <span class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-widest" style="color: ${
-            blocklistCount > 0 ? 'var(--green)' : 'var(--muted)'
-          }; opacity: 0.8;">Filters</span>
-          <span style="color: ${
-            blocklistCount > 0 ? 'var(--green)' : 'var(--muted)'
-          };">${iconShield}</span>
+    ${isLocalMode ? renderLocalModeBanner() : ''}
+
+    <div id="privacy_content_container" class="${
+      isLocalMode ? 'fg-opacity-50 fg-pointer-events-none' : ''
+    }">
+      <!-- Summary badges (Scan results) -->
+      <div class="fg-grid fg-grid-cols-3 fg-gap-4 fg-mb-8">
+        <div class="fg-flex fg-flex-col fg-gap-1 fg-p-5 fg-rounded-3xl fg-transition-all" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
+          <div class="fg-flex fg-items-center fg-justify-between fg-mb-1">
+            <span class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-widest" style="color: ${
+              blocklistCount > 0 ? 'var(--green)' : 'var(--fg-muted)'
+            }; opacity: 0.8;">Filters</span>
+            <span style="color: ${
+              blocklistCount > 0 ? 'var(--green)' : 'var(--fg-muted)'
+            };">${iconShield}</span>
+          </div>
+          <div class="fg-text-3xl fg-font-black fg-text-[var(--fg-text)]">${blocklistCount}</div>
+          <div class="fg-text-[11px] fg-text-[var(--fg-muted)] fg-font-bold">Active Blocklists</div>
         </div>
-        <div class="fg-text-3xl fg-font-black fg-text-[var(--text)]">${blocklistCount}</div>
-        <div class="fg-text-[11px] fg-text-[var(--muted)] fg-font-bold">Active Blocklists</div>
+
+        <div class="fg-flex fg-flex-col fg-gap-1 fg-p-5 fg-rounded-3xl fg-transition-all" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
+          <div class="fg-flex fg-items-center fg-justify-between fg-mb-1">
+            <span class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-widest" style="color: ${
+              nativeCount > 0 ? 'rgb(56,189,248)' : 'var(--fg-muted)'
+            }; opacity: 0.8;">Tracking</span>
+            <span style="color: ${
+              nativeCount > 0 ? 'rgb(56,189,248)' : 'var(--fg-muted)'
+            };">${iconWifi}</span>
+          </div>
+          <div class="fg-text-3xl fg-font-black fg-text-[var(--fg-text)]">${nativeCount}</div>
+          <div class="fg-text-[11px] fg-text-[var(--fg-muted)] fg-font-bold">Native Rules</div>
+        </div>
+
+        <div class="fg-flex fg-flex-col fg-gap-1 fg-p-5 fg-rounded-3xl fg-transition-all" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
+          <div class="fg-flex fg-items-center fg-justify-between fg-mb-1">
+            <span class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-widest" style="color: ${
+              disguisedActive ? 'rgb(168,85,247)' : 'var(--fg-muted)'
+            }; opacity: 0.8;">Stealth</span>
+            <span style="color: ${
+              disguisedActive ? 'rgb(168,85,247)' : 'var(--fg-muted)'
+            };">${iconLayers}</span>
+          </div>
+          <div class="fg-text-3xl fg-font-black fg-text-[var(--fg-text)]">${
+            disguisedActive ? 'ON' : 'OFF'
+          }</div>
+          <div class="fg-text-[11px] fg-text-[var(--fg-muted)] fg-font-bold">Cloaking Protection</div>
+        </div>
       </div>
 
-      <div class="fg-flex fg-flex-col fg-gap-1 fg-p-5 fg-rounded-3xl fg-transition-all" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
-        <div class="fg-flex fg-items-center fg-justify-between fg-mb-1">
-          <span class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-widest" style="color: ${
-            nativeCount > 0 ? 'rgb(56,189,248)' : 'var(--muted)'
-          }; opacity: 0.8;">Tracking</span>
-          <span style="color: ${
-            nativeCount > 0 ? 'rgb(56,189,248)' : 'var(--muted)'
-          };">${iconWifi}</span>
-        </div>
-        <div class="fg-text-3xl fg-font-black fg-text-[var(--text)]">${nativeCount}</div>
-        <div class="fg-text-[11px] fg-text-[var(--muted)] fg-font-bold">Native Rules</div>
-      </div>
-
-      <div class="fg-flex fg-flex-col fg-gap-1 fg-p-5 fg-rounded-3xl fg-transition-all" style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);">
-        <div class="fg-flex fg-items-center fg-justify-between fg-mb-1">
-          <span class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-widest" style="color: ${
-            disguisedActive ? 'rgb(168,85,247)' : 'var(--muted)'
-          }; opacity: 0.8;">Stealth</span>
-          <span style="color: ${
-            disguisedActive ? 'rgb(168,85,247)' : 'var(--muted)'
-          };">${iconLayers}</span>
-        </div>
-        <div class="fg-text-3xl fg-font-black fg-text-[var(--text)]">${
-          disguisedActive ? 'ON' : 'OFF'
-        }</div>
-        <div class="fg-text-[11px] fg-text-[var(--muted)] fg-font-bold">Cloaking Protection</div>
-      </div>
+      <!-- Sections -->
+      ${renderPrivacyOptionsSection(privacySettings)}
+      ${renderNativeTrackersSection(privacySettings.natives ?? [])}
+      ${renderBlocklistsSection(
+        privacySettings.blocklists ?? [],
+        availableBlocklists,
+      )}
     </div>
-
-    <!-- Sections -->
-    ${renderPrivacyOptionsSection(settings)}
-    ${renderNativeTrackersSection(settings.natives ?? [])}
-    ${renderBlocklistsSection(settings.blocklists ?? [], availableBlocklists)}
   `;
+
+  if (isLocalMode) {
+    container
+      .querySelector('#btn_upgrade_cloud_privacy')
+      ?.addEventListener('click', () => {
+        chrome.tabs.create({
+          url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
+        });
+      });
+  }
 
   attachHandlers(container);
 }
@@ -379,12 +397,10 @@ function applyCardUI(
   }
   btn.setAttribute('data-active', String(active));
   btn.setAttribute('aria-pressed', String(active));
-  btn.style.background = active
-    ? 'rgba(0,196,140,0.12)'
-    : 'rgba(255,255,255,0.04)';
+  btn.style.background = active ? 'rgba(0,196,140,0.12)' : 'var(--fg-glass-bg)';
   btn.style.borderColor = active
     ? 'rgba(0,196,140,0.35)'
-    : 'rgba(255,255,255,0.12)';
+    : 'var(--fg-glass-border)';
   btn.style.color = active ? 'var(--green)' : 'var(--muted)';
   if (active) {
     btn.classList.add('active');
@@ -401,7 +417,8 @@ function applyToggleUI(btn: HTMLElement, active: boolean): void {
     btn.setAttribute('aria-checked', 'true');
   } else {
     btn.classList.remove('active');
-    btn.style.background = 'rgba(255,255,255,0.1)';
+    btn.style.background = 'var(--fg-glass-bg)';
+    btn.style.border = '1px solid var(--fg-glass-border)';
     btn.setAttribute('data-active', 'false');
     btn.setAttribute('aria-checked', 'false');
   }
@@ -411,17 +428,20 @@ function applyToggleUI(btn: HTMLElement, active: boolean): void {
   }
 }
 
-function renderNotConfigured(): string {
+function renderLocalModeBanner(): string {
   return `
-    <div class="app-card fg-text-center fg-py-10 fg-px-6" style="background: rgba(255,184,0,0.05); border-color: rgba(255,184,0,0.2);">
-      <div class="fg-mb-4 fg-text-[var(--yellow)] fg-flex fg-justify-center">${iconLock}</div>
-      <div class="fg-text-base fg-font-black fg-mb-2" style="color: var(--yellow);">NextDNS Required</div>
-      <div class="fg-text-[13px] fg-text-[var(--muted)] fg-leading-normal fg-mb-5">
-        Connect your NextDNS account in Settings to manage privacy filters.
+    <div class="glass-card fg-mb-8 fg-p-8 fg-flex fg-items-center fg-justify-between" style="border-color: var(--fg-yellow); background: rgba(245, 158, 11, 0.05);">
+      <div class="fg-flex fg-items-center fg-gap-5">
+        <div class="fg-w-12 fg-h-12 fg-rounded-2xl fg-bg-[var(--fg-yellow)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-yellow)]">
+          ${iconLock}
+        </div>
+        <div>
+          <div class="fg-text-lg fg-font-black fg-text-white">Local Privacy Preview</div>
+          <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-1">Multi-layered tracking protection requires cloud synchronization. Connect to enable global blocklists.</div>
+        </div>
       </div>
-      <button class="btn" id="btn_goto_settings_from_privacy"
-        style="background: rgba(255,184,0,0.1); color: var(--yellow); border: 1px solid rgba(255,184,0,0.2); display: flex; align-items: center; gap: 8px; justify-content: center;">
-        Open Settings ${iconArrowRight}
+      <button class="btn-premium fg-px-8" id="btn_upgrade_cloud_privacy" style="background: var(--fg-yellow); color: #000; font-weight: 900;">
+        Upgrade to Cloud
       </button>
     </div>
   `;
@@ -429,7 +449,7 @@ function renderNotConfigured(): string {
 
 function renderError(message: string): string {
   return `
-    <div class="app-card fg-text-center fg-py-10 fg-px-6" style="background: rgba(255,71,87,0.05); border-color: rgba(255,71,87,0.2);">
+    <div class="app-card fg-text-center fg-py-10 fg-px-6" style="background: var(--fg-glass-bg); border-color: var(--fg-glass-border);">
       <div class="fg-mb-4 fg-text-[var(--red)] fg-flex fg-justify-center">${iconAlert}</div>
       <div class="fg-text-base fg-font-black fg-text-[var(--red)] fg-mb-2">Failed to Load</div>
       <div class="fg-text-xs fg-text-[var(--muted)] fg-mb-5">${message}</div>
