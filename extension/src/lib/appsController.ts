@@ -57,12 +57,6 @@ export const appsController = {
     }
 
     try {
-      // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode
-      await this._runCloudSync(() =>
-        nextDNSApi.setTargetState(kind, id, nextState),
-      );
-
-      // 2. Local Layer (Browser DNR) - Always runs
       const existingRule = rules.find(
         (r) =>
           (r.customDomain || r.packageName) === id &&
@@ -77,14 +71,26 @@ export const appsController = {
               appName: name || id,
               type: 'domain' as const,
               customDomain: id,
-              scope: 'browser' as const,
+              scope: 'both' as const,
             }
           : {
               packageName: id,
               appName: name || id,
               type: kind as any,
-              scope: 'profile' as const,
+              scope: 'both' as const,
             });
+
+      // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode and if rule scope permits
+      const appsHardMode =
+        (await storage.getBoolean('fg_apps_dns_hard_mode')) ?? true;
+      if (
+        appsHardMode &&
+        (baseRule.scope === 'profile' || baseRule.scope === 'both')
+      ) {
+        await this._runCloudSync(() =>
+          nextDNSApi.setTargetState(kind, id, nextState),
+        );
+      }
 
       const newMode = !nextState
         ? ('allow' as const)
@@ -108,12 +114,47 @@ export const appsController = {
     }
   },
 
+  async setDnsEnforcement(id: string, enabled: boolean, rules: any[]) {
+    const rule = rules.find((r) => r.packageName === id);
+    if (!rule) {
+      return { ok: false, error: 'Rule not found' };
+    }
+
+    try {
+      const kind = rule.type || 'domain';
+      const actualState = Boolean(
+        rule.blockedToday || rule.mode === 'block' || rule.mode === 'limit',
+      );
+
+      // Apply immediate state to NextDNS
+      await this._runCloudSync(() =>
+        nextDNSApi.setTargetState(kind, id, enabled && actualState),
+      );
+
+      await updateRule(storage, {
+        ...rule,
+        scope: enabled ? 'both' : 'browser',
+        updatedAt: Date.now(),
+      });
+
+      chrome.runtime.sendMessage({ action: 'manualSync' });
+      return { ok: true };
+    } catch (err: any) {
+      toast.error(err.message);
+      return { ok: false, error: err.message };
+    }
+  },
+
   async addDomainRule(domain: string) {
     try {
       const resolved = await nextDNSApi.resolveTargetInput(domain);
 
-      // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode
-      await this._runCloudSync(() => nextDNSApi.addResolvedTarget(resolved));
+      // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode if apps hard mode is ON
+      const appsHardMode =
+        (await storage.getBoolean('fg_apps_dns_hard_mode')) ?? true;
+      if (appsHardMode) {
+        await this._runCloudSync(() => nextDNSApi.addResolvedTarget(resolved));
+      }
 
       // 2. Local Layer (Browser DNR) - Always runs
       const rule = {
@@ -165,6 +206,35 @@ export const appsController = {
     } catch (err: any) {
       toast.error(err.message);
       return { ok: false };
+    }
+  },
+
+  async reconcileAppsDnsMode(enabled: boolean, rules: any[]) {
+    try {
+      toast.info(
+        enabled ? 'Syncing Rules to DNS...' : 'Removing Rules from DNS...',
+      );
+
+      for (const rule of rules) {
+        const kind = rule.type || 'domain';
+        const id = rule.packageName;
+        const isActive = Boolean(
+          rule.blockedToday || rule.mode === 'block' || rule.mode === 'limit',
+        );
+
+        // If master is ON, sync only active rules. If master is OFF, remove ALL rules from DNS.
+        await this._runCloudSync(() =>
+          nextDNSApi.setTargetState(kind, id, enabled && isActive),
+        );
+      }
+
+      toast.success(
+        enabled ? 'DNS Hard Mode Active' : 'Local Verification Active',
+      );
+      return { ok: true };
+    } catch (err: any) {
+      toast.error(`Reconcile Failed: ${err.message}`);
+      return { ok: false, error: err.message };
     }
   },
 };

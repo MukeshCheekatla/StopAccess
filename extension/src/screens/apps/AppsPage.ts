@@ -12,6 +12,7 @@ import {
 import { toast } from '../../lib/toast';
 import { appsController } from '../../lib/appsController';
 import { getLockedDomains } from '../../background/sessionGuard';
+import { extensionAdapter } from '../../background/platformAdapter';
 
 let activeTab = 'shield';
 let availableServices: any[] = [];
@@ -19,6 +20,9 @@ let availableCategories: any[] = [];
 let isLoadingNextDNS = false;
 let searchTerm = '';
 let globalContainer: HTMLElement | null = null;
+let currentSyncMode = 'browser';
+let currentIsConfigured = false;
+let currentIsAppsDnsHardMode = true;
 
 function renderBrandLogo(identifier: string, name?: string, size = 44) {
   const iconInfo = getServiceIcon({ id: identifier, name });
@@ -53,6 +57,10 @@ export async function renderAppsPage(container: HTMLElement) {
   globalContainer = container;
   const vmData: any = await loadAppsData();
   const { isConfigured, rules, syncMode } = vmData;
+  currentSyncMode = syncMode;
+  currentIsConfigured = isConfigured;
+  currentIsAppsDnsHardMode =
+    (await extensionAdapter.getBoolean('fg_apps_dns_hard_mode')) ?? true;
 
   if (syncMode === 'profile') {
     await loadNextDNSMetadata();
@@ -60,75 +68,39 @@ export async function renderAppsPage(container: HTMLElement) {
 
   if (!container.querySelector('.search-bar')) {
     container.innerHTML = `
-      <div id="cloudStatusContainer"></div>
-      
       <div class="search-bar" style="margin-bottom: 32px; display: flex; gap: 12px; align-items: stretch;">
         <div style="position: relative; flex: 1;">
           <input type="text" placeholder="Filter or Add Domain (e.g. ${
             UI_EXAMPLES.DOMAIN
           })" id="appSearch" value="${escapeHtml(
       searchTerm,
-    )}" class="input-premium" style="width:100%; height:60px; font-size:15px; border-radius:20px; padding-left: 24px; background: rgba(15, 15, 22, 0.4);">
+    )}" class="input-premium" style="width:100%; height:60px; font-size:15px; border-radius:20px; padding-left: 24px; background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);">
           <div id="searchBadge" style="position: absolute; right: 20px; top: 20px; font-size: 12px; font-weight: 800; color: var(--muted); background: rgba(255,255,255,0.03); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--glass-border); pointer-events: none;">CTRL + F</div>
         </div>
         <div id="searchActionContainer"></div>
       </div>
 
-      <div id="appsNavigation" style="display: flex; padding: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 14px; margin-bottom: 40px; width: fit-content; min-width: 200px;">
-        <button class="nav-item-tab" data-tab="shield">BLOCK LIST</button>
-        ${
-          syncMode === 'profile'
-            ? `
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px;">
+        <div id="appsNavigation" style="display: flex; padding: 4px; background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border); border-radius: 14px; width: fit-content; min-width: 200px;">
+          <button class="nav-item-tab" data-tab="shield">BLOCKLIST</button>
           <button class="nav-item-tab" data-tab="categories">CATEGORIES</button>
-          <button class="nav-item-tab" data-tab="denylist">BLOCKLIST</button>
-        `
-            : ''
-        }
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 14px;" title="Block apps and domains at the router level via NextDNS.">
+          <div style="font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">DNS Hard Mode</div>
+          <button class="toggle-switch-btn ${
+            currentIsAppsDnsHardMode ? 'active' : ''
+          }" id="masterDnsToggle" ${
+      !currentIsConfigured ? 'disabled style="opacity:0.3"' : ''
+    } style="transform: scale(0.8); transform-origin: right;">
+            <span class="on-text">ON</span>
+            <span class="off-text">OFF</span>
+          </button>
+        </div>
       </div>
 
       <div id="tabContent"></div>
     `;
-
-    const statusDiv = container.querySelector('#cloudStatusContainer');
-    if (syncMode === 'profile' && statusDiv) {
-      statusDiv.innerHTML = `
-        <div class="glass-card" style="margin-bottom: 32px; padding: 24px; display: flex; justify-content: space-between; align-items: center; border-color: ${
-          isConfigured ? 'rgba(0,196,140,0.1)' : 'rgba(255,184,0,0.1)'
-        };">
-          <div>
-            <div style="font-size: 10px; font-weight: 800; color: var(--accent); letter-spacing: 2px;">PROTECTION MODE: <span style="color:white;">STRONG</span></div>
-            <div style="font-size: 13px; color: var(--muted); margin-top: 4px;">${
-              isConfigured
-                ? 'Cloud Rules Synchronized'
-                : 'NextDNS Credentials Required'
-            }</div>
-          </div>
-          <div style="display: flex; gap: 12px;">
-            <button class="btn-premium" id="btnSyncCloudNow" style="padding: 8px 16px; font-size: 11px; background: rgba(255,255,255,0.02); box-shadow: none; border-color: var(--glass-border); display: ${
-              isConfigured ? 'flex' : 'none'
-            };">FORCE CLOUD SYNC</button>
-            <div class="status-pill ${
-              isConfigured ? 'active' : 'warning'
-            }" style="font-size: 9px; padding: 6px 12px;">${
-        isConfigured ? 'CONNECTED' : 'DISCONNECTED'
-      }</div>
-          </div>
-        </div>
-      `;
-
-      statusDiv
-        .querySelector('#btnSyncCloudNow')
-        ?.addEventListener('click', async () => {
-          const btn = statusDiv.querySelector(
-            '#btnSyncCloudNow',
-          ) as HTMLButtonElement;
-          btn.innerText = 'SYNCING...';
-          chrome.runtime.sendMessage({ action: 'manualSync' });
-          await loadNextDNSMetadata();
-          await refreshListOnly();
-          btn.innerText = 'FORCE CLOUD SYNC';
-        });
-    }
 
     container.querySelector('#appSearch')?.addEventListener('input', (e) => {
       searchTerm = (e.target as HTMLInputElement).value.toLowerCase();
@@ -180,6 +152,30 @@ export async function renderAppsPage(container: HTMLElement) {
         refreshListOnly();
       });
     });
+
+    const masterToggle = container.querySelector(
+      '#masterDnsToggle',
+    ) as HTMLElement;
+    if (masterToggle) {
+      masterToggle.addEventListener('click', async () => {
+        if (!currentIsConfigured) {
+          toast.error('NextDNS credentials required. Configure in Settings.');
+          return;
+        }
+
+        const wasActive = masterToggle.classList.contains('active');
+        const targetState = !wasActive;
+        currentIsAppsDnsHardMode = targetState;
+
+        masterToggle.classList.toggle('active', targetState);
+
+        await extensionAdapter.set('fg_apps_dns_hard_mode', targetState);
+        await appsController.reconcileAppsDnsMode(targetState, rules);
+
+        chrome.runtime.sendMessage({ action: 'manualSync' });
+        setTimeout(() => refreshListOnly(), 300);
+      });
+    }
   }
 
   await refreshListOnly(rules);
@@ -479,8 +475,8 @@ async function renderSubTab(rules: any[], lockedDomains: string[]) {
           }
         </div>
       </div>
-      <div style="display:flex; justify-content:center; margin-top: 28px;">
-        <button class="btn-premium" id="btnOpenTargetDrawer" style="width: 58px; height: 58px; font-size: 24px; display:flex; align-items:center; justify-content:center; border-radius: 18px; padding: 0;">+</button>
+      <div style="position: fixed; bottom: 32px; right: 32px; z-index: 100;">
+        <button class="btn-premium" id="btnOpenTargetDrawer" style="width: 64px; height: 64px; font-size: 28px; display:flex; align-items:center; justify-content:center; border-radius: 20px; padding: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: transform 0.2s; cursor: pointer;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">+</button>
       </div>
     `;
   }
@@ -492,11 +488,20 @@ async function renderSubTab(rules: any[], lockedDomains: string[]) {
     });
     const visibleCategories = allCategories.filter(matchesSearch);
     const activeCount = visibleCategories.filter((c) => c.active).length;
+    const disabledWarning =
+      currentSyncMode !== 'profile'
+        ? `<div style="padding: 16px; border-radius: 12px; background: rgba(255, 184, 0, 0.1); border: 1px solid rgba(255, 184, 0, 0.2); margin-bottom: 24px; color: #ffeb3b; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+           DNS profile required to turn on categories.
+         </div>`
+        : '';
+
     return `
+      ${disabledWarning}
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
         <div>
           <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="font-weight: 900; color: #FFFFFF; font-size: 1rem; letter-spacing: -0.02em;">Category Toggles</div>
+            <div style="font-weight: 900; color: #FFFFFF; font-size: 1.1rem; letter-spacing: -0.02em;">Add a Category</div>
             ${
               activeCount > 0
                 ? `<span style="font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: 100px; background: rgba(61,61,74,0.2); color: var(--muted); border: 1px solid var(--glass-border);">${activeCount} active</span>`
@@ -673,26 +678,26 @@ function renderCategoryCard(
     ">
       <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%; padding: 14px 16px;">
         <div style="display:flex; align-items:center; gap: 12px; min-width: 0; flex: 1;">
-           <div style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0;">
-             ${badge}
-           </div>
+       <div style="width: 64px; height: 64px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; flex-shrink: 0; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1); box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+         ${badge}
+       </div>
            <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
-             <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 800;">${escapeHtml(
+             <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; font-weight: 900; letter-spacing: -0.01em;">${escapeHtml(
                category.name,
              )}</div>
-             <div style="display:flex; align-items:center; gap: 6px; margin-top: 3px;">
-               <span class="stat-lbl" style="font-size: 10px;">Category</span>
-               ${
-                 active
-                   ? '<span style="font-size: 9px; font-weight: 800; color: var(--accent); letter-spacing: 0.5px; text-transform: uppercase;">Active</span>'
-                   : ''
-               }
-             </div>
+             <div style="font-size: 11px; opacity: 0.6; margin-top: 5px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${escapeHtml(
+               category.description || '',
+             )}</div>
+             ${
+               active
+                 ? '<div style="margin-top: 8px;"><span style="font-size: 10px; font-weight: 800; color: var(--accent); letter-spacing: 0.5px; text-transform: uppercase;">Active</span></div>'
+                 : ''
+             }
            </div>
         </div>
         <div style="display:flex; align-items:center; gap: 8px; flex-shrink: 0;">
           <button class="toggle-switch-btn ${active ? 'active' : ''}" ${
-    isLocked ? 'disabled' : ''
+    isLocked || currentSyncMode !== 'profile' ? 'disabled' : ''
   } data-kind="category" data-id="${escapeHtml(
     category.id,
   )}" data-name="${escapeHtml(category.name)}">
