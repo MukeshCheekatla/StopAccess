@@ -59,13 +59,42 @@ export const NEXTDNS_SERVICES = [
 ];
 
 export const NEXTDNS_CATEGORIES = [
-  { id: 'games', name: 'Games' },
-  { id: 'social-networks', name: 'Social Networks' },
-  { id: 'video-streaming', name: 'Video Streaming' },
-  { id: 'gambling', name: 'Gambling' },
-  { id: 'porn', name: 'Porn' },
-  { id: 'dating', name: 'Dating' },
-  { id: 'shopping', name: 'Shopping' },
+  {
+    id: 'porn',
+    name: 'Porn',
+    description:
+      'Blocks adult and pornographic content. It includes escort sites, pornhub.com and similar domains.',
+  },
+  { id: 'gambling', name: 'Gambling', description: 'Blocks gambling content.' },
+  {
+    id: 'dating',
+    name: 'Dating',
+    description: 'Blocks all dating websites & apps.',
+  },
+  {
+    id: 'piracy',
+    name: 'Piracy',
+    description:
+      'Blocks P2P websites, protocols, copyright-infringing streaming websites and generic video hosting websites used mainly for illegally distributing copyrighted content.',
+  },
+  {
+    id: 'social-networks',
+    name: 'Social Networks',
+    description:
+      'Blocks all social networks sites and apps (Facebook, Instagram, TikTok, Reddit, etc.). Does not block messaging apps.',
+  },
+  {
+    id: 'games',
+    name: 'Online Gaming',
+    description:
+      'Blocks online gaming websites, online gaming apps and online gaming networks (Xbox Live, PlayStation Network, etc.).',
+  },
+  {
+    id: 'video-streaming',
+    name: 'Video Streaming',
+    description:
+      'Blocks video streaming services (YouTube, Netflix, Disney+, illegal streaming websites, video porn websites, etc.) and video-based social networks (TikTok, etc.).',
+  },
 ];
 
 export const POPULAR_DISTRACTIONS = [

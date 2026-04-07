@@ -238,10 +238,10 @@ export const AppsPopupView: React.FC = () => {
       {currentDomain && !currentSiteBlocked ? (
         <div className="fg-flex fg-items-center fg-justify-between fg-gap-3 fg-rounded-[16px] fg-bg-white/[0.03] fg-px-[14px] fg-py-3">
           <div className="fg-flex fg-items-center fg-gap-3">
-            <div className="fg-flex fg-h-8 fg-w-8 fg-items-center fg-justify-center fg-rounded-[8px] fg-bg-white/[0.02]">
+            <div className="fg-flex fg-h-8 fg-w-8 fg-items-center fg-justify-center">
               <img
                 src={`https://www.google.com/s2/favicons?domain=${currentDomain}&sz=64`}
-                className="fg-h-5 fg-w-5 fg-rounded-[4px]"
+                className="fg-h-6 fg-w-6 fg-rounded-[20%]"
                 alt=""
               />
             </div>
@@ -356,7 +356,7 @@ export const AppsPopupView: React.FC = () => {
                 <div className="fg-flex fg-min-w-0 fg-flex-1 fg-items-center fg-gap-[10px]">
                   <img
                     src={`https://www.google.com/s2/favicons?domain=${item.domain}&sz=64`}
-                    className="fg-h-4 fg-w-4"
+                    className="fg-h-5 fg-w-5 fg-rounded-[20%]"
                     alt=""
                   />
                   <div className="fg-truncate fg-text-[13px] fg-font-semibold fg-text-white">
