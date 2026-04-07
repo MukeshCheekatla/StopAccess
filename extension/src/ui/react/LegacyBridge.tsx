@@ -12,28 +12,11 @@ export function LegacyBridge({ renderFn }: LegacyBridgeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let cancelled = false;
-
     if (containerRef.current) {
-      const run = async () => {
-        try {
-          await renderFn(containerRef.current!);
-        } catch (error) {
-          if (!cancelled) {
-            console.error('[LegacyBridge] Render failed:', error);
-            containerRef.current!.innerHTML = `<div class="fg-p-8 fg-text-red-500 fg-text-xs">Bridge Fail: ${
-              error instanceof Error ? error.message : 'Unknown error'
-            }</div>`;
-          }
-        }
-      };
-      run();
+      renderFn(containerRef.current);
     }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [renderFn]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return <div ref={containerRef} className="fg-h-full fg-w-full fg-min-w-0" />;
 }

@@ -77,7 +77,7 @@ export function renderNativeTrackersSection(
         <div class="section-title fg-flex fg-items-center fg-gap-2" style="margin: 0;">
           <span class="fg-text-[var(--accent)]">${iconWifi}</span> Native Tracking Protection
         </div>
-        <span class="fg-text-[9px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid rgba(255,255,255,0.07);">${
+        <span class="fg-text-[9px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: var(--fg-glass-bg); color: var(--fg-muted); border: 1px solid var(--fg-glass-border);">${
           activeIds.size
         } ACTIVE</span>
       </div>
@@ -96,9 +96,9 @@ export function renderNativeTrackersSection(
             <div
               class="security-toggle-row native-toggle-card fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150"
               data-id="${vendor.id}"
-              style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);"
-              onmouseenter="this.style.transform='translateY(-2px)'; this.style.background='rgba(255,255,255,0.06)'"
-              onmouseleave="this.style.transform=''; this.style.background='rgba(255,255,255,0.03)'"
+              style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
+              onmouseenter="this.style.transform='translateY(-2px)'; this.style.opacity='0.8'"
+              onmouseleave="this.style.transform=''; this.style.opacity='1'"
             >
               <!-- Icon on the left (No box) -->
               <div class="fg-shrink-0 fg-flex fg-items-center fg-justify-center" style="width: 40px; height: 40px;">
@@ -138,7 +138,10 @@ export function renderNativeTrackersSection(
                 role="switch"
                 style="width: 32px; height: 18px; border-radius: 9px; border: none;
                   background: ${
-                    active ? 'var(--green)' : 'rgba(255,255,255,0.1)'
+                    active ? 'var(--green)' : 'var(--fg-toggle-bg)'
+                  };
+                  border: 1px solid ${
+                    active ? 'var(--green)' : 'var(--fg-toggle-bg)'
                   };
                   transition: background 0.2s ease; outline: none;"
               >
