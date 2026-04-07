@@ -11,6 +11,8 @@ import {
   NextDNSPrivacySettings,
   NextDNSBlocklist,
   NextDNSNativeTracking,
+  NextDNSRecreationTime,
+  NextDNSParentalControlSettings,
 } from '@focusgate/types';
 import { sleep } from '../utils/retry';
 import { getDomainForRule } from '../engine/domains';
@@ -22,6 +24,8 @@ import * as security from './security';
 import * as privacy from './privacy';
 import * as analytics from './analytics';
 import * as snapshot from './snapshot';
+import * as recreationTime from './recreationTime';
+import * as parentalControl from './parentalControl';
 
 export class NextDNSClient implements NextDNSApiClient {
   constructor(
@@ -226,6 +230,22 @@ export class NextDNSClient implements NextDNSApiClient {
   }
   async getFullSnapshot() {
     return snapshot.getFullSnapshot(this);
+  }
+
+  // --- Recreation Time ---
+  async getRecreationTime() {
+    return recreationTime.getRecreationTime(this);
+  }
+  async syncRecreationTime(recreation: NextDNSRecreationTime) {
+    return recreationTime.syncRecreationTime(this, recreation);
+  }
+
+  // --- Parental Control ---
+  async getParentalControl() {
+    return parentalControl.getParentalControl(this);
+  }
+  async patchParentalControl(patch: Partial<NextDNSParentalControlSettings>) {
+    return parentalControl.patchParentalControl(this, patch);
   }
 
   // --- Composite Block Logic ---

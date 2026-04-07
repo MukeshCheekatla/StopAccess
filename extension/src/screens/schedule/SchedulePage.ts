@@ -1,13 +1,19 @@
-import {
-  getSchedules,
-  updateSchedule,
-  deleteSchedule,
-} from '@focusgate/state/schedules';
-import { extensionAdapter as storage } from '../../background/platformAdapter';
-import { escapeHtml, buildDashboardTabPath } from '@focusgate/core';
+import { nextDNSApi } from '../../background/platformAdapter';
+import { buildDashboardTabPath } from '@focusgate/core';
 import { toast } from '../../lib/toast';
 
 declare var chrome: any;
+
+const DAY_KEYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const DAY_LABELS = [
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday',
+  'Sunday',
+];
 
 export async function renderSchedulePage(
   container: HTMLElement,
@@ -16,246 +22,287 @@ export async function renderSchedulePage(
   if (!container) {
     return;
   }
-  container.innerHTML = '<div class="loader">Syncing schedules...</div>';
+
+  const isConfigured = await nextDNSApi.isConfigured();
+  const isLocalMode = !isConfigured;
+
+  // Render the skeleton first
+  container.innerHTML = `
+    <div class="fg-max-w-[800px] fg-mx-auto fg-animate-fade-in fg-pb-20">
+      ${isLocalMode ? _renderCloudRequiredBanner() : ''}
+      <div id="schedule_content_container" class="${
+        isLocalMode ? 'fg-opacity-40 fg-pointer-events-none' : ''
+      }">
+        <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-mt-24">
+          <div class="loader fg-mb-4"></div>
+          <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-80 fg-mt-4 fg-uppercase fg-tracking-[3px] fg-animate-pulse">Accessing Cloud Hub</div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  if (isLocalMode) {
+    const mockRecreation = {
+      mon: { enabled: true, start: '18:00', end: '21:00' },
+      tue: { enabled: true, start: '18:00', end: '21:00' },
+      wed: { enabled: true, start: '18:00', end: '21:00' },
+      thu: { enabled: true, start: '18:00', end: '21:00' },
+      fri: { enabled: true, start: '17:00', end: '23:00' },
+      sat: { enabled: true, start: '09:00', end: '23:00' },
+      sun: { enabled: true, start: '09:00', end: '21:00' },
+    };
+    const content = container.querySelector('#schedule_content_container');
+    if (content) {
+      _renderPage(content as HTMLElement, mockRecreation);
+    }
+
+    container
+      .querySelector('#btn_upgrade_cloud_schedule')
+      ?.addEventListener('click', () => {
+        chrome.tabs.create({
+          url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
+        });
+      });
+    return;
+  }
 
   try {
-    const schedules = await getSchedules(storage);
+    const res = await nextDNSApi.getSchedules();
+    if (!res.ok) {
+      throw res.error;
+    }
+
+    const recreation = res.data || {};
 
     if (context === 'popup') {
-      _renderPopup(container, schedules);
+      _renderPopup(container);
     } else {
-      _renderPage(container, schedules);
+      _renderPage(container, recreation);
     }
   } catch (e: any) {
-    container.innerHTML = `<div class="empty-state">${e.message}</div>`;
+    _renderError(container, e);
   }
 }
 
-// ─── Full Page View ───────────────────────────────────────────────────────────
-
-function _renderPage(container: HTMLElement, schedules: any[]): void {
+function _renderPage(container: HTMLElement, recreation: any): void {
   container.innerHTML = `
-    <div class="fg-grid fg-gap-8 fg-items-start" style="grid-template-columns: 2fr 3fr;">
-      <!-- Creation Card -->
-      <section>
-        <div class="section-label">Deploy New Cycle</div>
-        <div class="glass-card fg-p-6" style="border: 2px dashed var(--glass-border); background: transparent;">
-          <div class="fg-flex fg-flex-col fg-gap-5">
-            <div>
-              <label class="field-label">Cycle Name</label>
-              <input type="text" id="schName" placeholder="e.g. Deep Work Morning" class="input-premium" style="font-size: 14px;">
-            </div>
-            <div class="fg-grid fg-grid-cols-2 fg-gap-4">
-              <div>
-                <label class="field-label">Start Time</label>
-                <input type="time" id="schStart" value="09:00" class="input-premium" style="height: 44px;">
-              </div>
-              <div>
-                <label class="field-label">End Time</label>
-                <input type="time" id="schEnd" value="17:00" class="input-premium" style="height: 44px;">
-              </div>
-            </div>
-            <div>
-              <label class="field-label fg-mb-3">Active Days</label>
-              <div id="day_picker" class="fg-flex fg-gap-[6px]">
-                ${['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                  .map(
-                    (d, i) =>
-                      `<button class="day-btn-premium ${
-                        [1, 2, 3, 4, 5].includes(i) ? 'active' : ''
-                      }" data-day="${i}">${d}</button>`,
-                  )
-                  .join('')}
-              </div>
-            </div>
-            <button class="btn-premium fg-justify-center fg-mt-2" id="btnCreateSchedule" style="height: 52px; font-size: 13px;">ACTIVATE CYCLE</button>
-          </div>
+    <div class="fg-max-w-[800px] fg-mx-auto fg-animate-fade-in fg-pb-20">
+      
+      <!-- User Screenshot Fidelity Modal -->
+      <div class="glass-card fg-mx-auto fg-mt-4" style="background: #212121; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.5);">
+        
+        <!-- Header -->
+        <div class="fg-flex fg-items-center fg-justify-between fg-p-6 fg-border-b fg-border-white/[0.08]">
+           <h2 class="fg-text-[22px] fg-font-black fg-text-white">Recreation Time</h2>
+           <button class="fg-text-white/40 hover:fg-text-white/80 fg-transition-colors">✕</button>
         </div>
-      </section>
 
-      <!-- Active Schedules -->
-      <section>
-        <div class="section-label">Active Focus Directives</div>
-        <div class="schedule-list fg-flex fg-flex-col fg-gap-4 fg-mt-[2px]">
-          ${
-            schedules.length === 0
-              ? `<div class="glass-card fg-p-10 fg-text-center fg-opacity-50">
-                  <div class="fg-mb-4 fg-text-[var(--muted)]" style="font-size: 24px;">⏰</div>
-                  <div class="fg-text-[11px] fg-font-extrabold fg-text-[var(--muted)] fg-uppercase">No automated block cycles found.</div>
-                </div>`
-              : schedules
-                  .map(
-                    (s) => `
-                <div class="glass-card fg-p-5 fg-px-6 fg-flex fg-flex-col fg-gap-4 fg-relative">
-                  <div class="fg-flex fg-justify-between fg-items-start">
-                    <div>
-                      <div class="fg-text-base fg-font-extrabold fg-text-[var(--text)]">${escapeHtml(
-                        s.name,
-                      )}</div>
-                      <div class="fg-text-[11px] fg-font-extrabold fg-mt-1 fg-uppercase fg-text-[var(--accent)]">${
-                        s.startTime
-                      } — ${s.endTime}</div>
-                    </div>
-                    <button class="delete-sch fg-p-1 fg-cursor-pointer" data-id="${
-                      s.id
-                    }" style="background: none; border: none; color: var(--red); opacity: 0.4;">
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                    </button>
-                  </div>
-                  <div class="fg-flex fg-gap-1 fg-pt-3" style="border-top: 1px solid var(--glass-border);">
-                    ${['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                      .map(
-                        (d, i) =>
-                          `<span class="fg-inline-flex fg-items-center fg-justify-center fg-text-[9px] fg-font-black fg-rounded-[6px]" style="width: 26px; height: 26px; font-family: monospace; background: ${
-                            s.days?.includes(i)
-                              ? 'var(--accent)'
-                              : 'rgba(255,255,255,0.02)'
-                          }; color: ${
-                            s.days?.includes(i)
-                              ? '#fff'
-                              : 'rgba(255,255,255,0.1)'
-                          };">${d}</span>`,
-                      )
-                      .join('')}
-                  </div>
+        <div class="fg-p-8 fg-flex fg-flex-col fg-gap-5">
+           ${DAY_KEYS.map((day, i) => {
+             const data = recreation[day] || {
+               enabled: false,
+               start: '18:00',
+               end: '20:30',
+             };
+             return `
+              <div class="day-slot fg-flex fg-items-center fg-justify-between">
+                <div class="fg-flex fg-items-center fg-gap-4 fg-w-[160px]">
+                  <input type="checkbox" class="day-check custom-check" ${
+                    data.enabled ? 'checked' : ''
+                  } data-day="${day}">
+                  <span class="fg-text-[16px] fg-font-extrabold fg-text-white">${
+                    DAY_LABELS[i]
+                  }</span>
                 </div>
-              `,
-                  )
-                  .join('')
-          }
+
+                <div class="fg-flex fg-items-center fg-gap-4 ${
+                  !data.enabled ? 'fg-opacity-60 fg-pointer-events-none' : ''
+                } slot-inputs">
+                  <input type="time" class="time-input fg-px-3" value="${
+                    data.start
+                  }" data-day="${day}" data-type="start"
+                         style="background: #2f3235; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; height: 42px; width: 120px; font-size: 15px; font-weight: 800;">
+                  
+                  <span class="fg-text-white/30 fg-font-light fg-text-xl">→</span>
+
+                  <input type="time" class="time-input fg-px-3" value="${
+                    data.end
+                  }" data-day="${day}" data-type="end"
+                         style="background: #2f3235; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; height: 42px; width: 120px; font-size: 15px; font-weight: 800;">
+                </div>
+              </div>
+             `;
+           }).join('')}
         </div>
-      </section>
+
+        <!-- Footer -->
+        <div class="fg-p-6 fg-border-t fg-border-white/[0.05] fg-flex fg-justify-end fg-gap-3">
+           <button class="fg-px-6 fg-py-2 fg-rounded-md fg-text-[14px] fg-font-semibold fg-text-white/60 hover:fg-bg-white/5 fg-border fg-border-white/10 fg-transition-all" style="height: 42px;">Cancel</button>
+           <button id="btnSaveMaster" class="fg-px-8 fg-py-2 fg-rounded-md fg-text-[14px] fg-font-bold fg-text-black fg-transition-all" style="background: #a3e635; height: 42px;">Save</button>
+        </div>
+      </div>
+
+      <div class="fg-mt-8 fg-px-4 fg-text-center">
+        <p class="fg-text-[12px] fg-text-[var(--fg-text)] fg-opacity-70 fg-leading-relaxed fg-max-w-[500px] fg-mx-auto">
+          Synchronizing these settings will update your NextDNS profile in the cloud. Changes might take a few minutes to reflect across all devices.
+        </p>
+      </div>
+
     </div>
 
     <style>
-      .day-btn-premium { flex:1; height:36px; border-radius:8px; border:1px solid var(--glass-border); background:rgba(255,255,255,0.02); color:var(--muted); font-size:11px; font-weight:800; font-family:monospace; cursor:pointer; transition:0.2s; }
-      .day-btn-premium.active { background:var(--accent); color:#fff; border-color:var(--accent); }
-      .day-btn-premium:hover:not(.active) { background:rgba(255,255,255,0.05); }
+      .custom-check {
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #3c3f41;
+        border-radius: 4px;
+        background: transparent;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s;
+      }
+      .custom-check:checked {
+        background: #3b82f6;
+        border-color: #3b82f6;
+      }
+      .custom-check:checked::after {
+        content: '✓';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+        font-weight: 900;
+        font-size: 12px;
+      }
+      
+      .time-input {
+        cursor: pointer;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+      .time-input:hover { border-color: rgba(255,255,255,0.2) !important; }
+      .time-input:focus { border-color: #3b82f6 !important; }
+
+      @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+      .fg-animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
     </style>
   `;
 
-  _attachPageHandlers(container);
+  _attachHandlers(container);
 }
 
-function _attachPageHandlers(container: HTMLElement): void {
-  container.querySelectorAll('.day-btn-premium').forEach((btn) => {
-    btn.addEventListener('click', () => btn.classList.toggle('active'));
+function _attachHandlers(container: HTMLElement): void {
+  // Checkbox interactions
+  container.querySelectorAll('.day-check').forEach((check) => {
+    check.addEventListener('change', () => {
+      const slot = check.closest('.day-slot');
+      const inputs = slot?.querySelector('.slot-inputs');
+      if (inputs) {
+        inputs.classList.toggle(
+          'fg-opacity-30',
+          !(check as HTMLInputElement).checked,
+        );
+        inputs.classList.toggle(
+          'fg-pointer-events-none',
+          !(check as HTMLInputElement).checked,
+        );
+      }
+    });
   });
 
+  // Master Save
   container
-    .querySelector('#btnCreateSchedule')
+    .querySelector('#btnSaveMaster')
     ?.addEventListener('click', async () => {
-      const name = (
-        container.querySelector('#schName') as HTMLInputElement
-      ).value.trim();
-      const start = (container.querySelector('#schStart') as HTMLInputElement)
-        .value;
-      const end = (container.querySelector('#schEnd') as HTMLInputElement)
-        .value;
-
-      if (!name) {
-        toast.error('Cycle name required.');
-        return;
-      }
-
-      const selectedDays = Array.from(
-        container.querySelectorAll('.day-btn-premium.active'),
-      ).map((b) =>
-        parseInt((b as HTMLElement).getAttribute('data-day') || '0', 10),
-      );
-      if (selectedDays.length === 0) {
-        toast.error('Select active days.');
-        return;
-      }
-
       const btn = container.querySelector(
-        '#btnCreateSchedule',
+        '#btnSaveMaster',
       ) as HTMLButtonElement;
-      btn.innerText = 'DEPLOYING...';
-      btn.disabled = true;
+      const originalText = btn.innerText;
 
-      await updateSchedule(storage, {
-        id: Date.now().toString(),
-        name,
-        startTime: start,
-        endTime: end,
-        days: selectedDays,
-        active: true,
-        appNames: [],
+      const payload: any = {};
+      container.querySelectorAll('.day-slot').forEach((slot) => {
+        const checkbox = slot.querySelector('.day-check') as HTMLInputElement;
+        const day = checkbox.dataset.day!;
+        const start = (
+          slot.querySelector(
+            '.time-input[data-type="start"]',
+          ) as HTMLInputElement
+        ).value;
+        const end = (
+          slot.querySelector('.time-input[data-type="end"]') as HTMLInputElement
+        ).value;
+
+        payload[day] = {
+          enabled: checkbox.checked,
+          start,
+          end,
+        };
       });
 
-      chrome.runtime.sendMessage({ action: 'manualSync' });
-      renderSchedulePage(container, 'page');
-    });
+      btn.innerText = 'Syncing...';
+      btn.style.opacity = '0.7';
+      btn.disabled = true;
 
-  container.querySelectorAll('.delete-sch').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const id = btn.getAttribute('data-id')!;
-      const modalOverlay = document.createElement('div');
-      modalOverlay.className = 'modal-overlay';
-      modalOverlay.innerHTML = `
-        <div class="modal" style="max-width: 320px;">
-          <div style="font-size:28px;" class="fg-mb-4">🗑️</div>
-          <div class="fg-text-base fg-font-black fg-mb-2">Decommission Cycle?</div>
-          <div class="fg-text-xs fg-text-[var(--muted)] fg-leading-normal fg-mb-6">This automated block period will be removed from the focus engine.</div>
-          <div class="fg-flex fg-gap-3 fg-w-full">
-            <button class="btn-premium btn-cancel fg-flex-1" style="background:transparent; border-color:var(--glass-border); box-shadow:none;">CANCEL</button>
-            <button class="btn-premium btn-confirm fg-flex-1" style="background:var(--red); border-color:var(--red);">DELETE</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modalOverlay);
-      const cleanup = () => document.body.removeChild(modalOverlay);
-      (modalOverlay.querySelector('.btn-cancel') as HTMLElement).onclick =
-        cleanup;
-      (modalOverlay.querySelector('.btn-confirm') as HTMLElement).onclick =
-        async () => {
-          cleanup();
-          await deleteSchedule(storage, id);
-          chrome.runtime.sendMessage({ action: 'manualSync' });
-          renderSchedulePage(container, 'page');
-        };
+      try {
+        const res = await nextDNSApi.updateSchedules(payload);
+        if (res.ok) {
+          toast.success('NextDNS Synchronized');
+          setTimeout(() => renderSchedulePage(container, 'page'), 800);
+        } else {
+          throw new Error(res.error?.message);
+        }
+      } catch (e: any) {
+        toast.error(e.message || 'Push failed');
+        btn.innerText = originalText;
+        btn.style.opacity = '1';
+        btn.disabled = false;
+      }
     });
-  });
 }
 
-// ─── Popup View ───────────────────────────────────────────────────────────────
-
-function _renderPopup(container: HTMLElement, schedules: any[]): void {
-  container.innerHTML = `
-    <div class="fg-flex fg-justify-between fg-items-center fg-mb-3 fg-px-1">
-      <div class="fg-text-[10px] fg-font-extrabold fg-text-[var(--muted)] fg-uppercase fg-tracking-[1.5px]">ACTIVE AUTOMATIONS</div>
-      <div class="fg-text-[10px] fg-font-extrabold fg-text-[var(--accent)]" style="opacity: 0.8;">${
-        schedules.length
-      }</div>
+function _renderCloudRequiredBanner(): string {
+  return `
+    <div class="glass-card fg-mb-8 fg-p-8 fg-flex fg-items-center fg-justify-between" style="border-color: var(--fg-accent); background: rgba(59, 130, 246, 0.05);">
+      <div class="fg-flex fg-items-center fg-gap-5">
+        <div class="fg-w-12 fg-h-12 fg-rounded-2xl fg-bg-[var(--fg-accent)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-accent)]">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19c.703 0 1.332-.416 1.636-1.042A4 4 0 0 0 18 10h-1.26A6 6 0 0 0 6 11c0 .123.003.246.01.368A4.5 4.5 0 0 0 7.5 20h10v-1z"/><path d="M12 13v8"/><path d="m9 16 3-3 3 3"/></svg>
+        </div>
+        <div>
+          <div class="fg-text-lg fg-font-black fg-text-white">Cloud Recreation Hub</div>
+          <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-1">Schedules are synchronized across all your devices via NextDNS. Link your profile to activate automation.</div>
+        </div>
+      </div>
+      <button class="btn-premium fg-px-8" id="btn_upgrade_cloud_schedule" style="background: var(--fg-accent); color: #fff; font-weight: 900;">
+        Sync Cloud
+      </button>
     </div>
-
-    <div class="fg-flex fg-flex-col fg-gap-2">
-      ${
-        schedules.length === 0
-          ? '<div class="glass-card fg-p-6 fg-text-center fg-text-[11px] fg-font-bold fg-text-[var(--muted)]" style="border-style: dashed;">Zero automated cycles</div>'
-          : schedules
-              .map(
-                (s) => `
-            <div class="glass-card fg-p-3 fg-px-4 fg-flex fg-items-center fg-justify-between" style="background: rgba(255,255,255,0.01);">
-              <div class="fg-flex-1">
-                <div class="fg-text-[13px] fg-font-bold fg-text-[var(--text)]">${escapeHtml(
-                  s.name,
-                )}</div>
-                <div class="fg-text-[10px] fg-font-black fg-mt-1 fg-tracking-[0.5px] fg-text-[var(--accent)]" style="opacity: 0.9;">${
-                  s.startTime
-                } — ${s.endTime}</div>
-              </div>
-              <div class="fg-text-[9px] fg-text-[var(--muted)] fg-font-black fg-px-2 fg-py-1 fg-rounded-[6px]" style="background: rgba(255,255,255,0.03);">AUTO</div>
-            </div>
-          `,
-              )
-              .join('')
-      }
-    </div>
-    <button class="btn-premium fg-w-full fg-mt-5 fg-text-[11px] fg-justify-center fg-text-[var(--text)]" id="btn_full_schedule" style="height: 44px; background: rgba(255,255,255,0.02); box-shadow: none; border-color: var(--glass-border); border-radius: 14px;">MANAGE ENFORCEMENT CYCLES</button>
   `;
+}
 
+function _renderError(container: HTMLElement, e: any): void {
+  container.innerHTML = `
+    <div class="glass-card fg-p-12 fg-text-center fg-mx-auto fg-mt-12" style="max-width: 440px; background: #1a1c1e; border: 1px solid rgba(255,100,100,0.2); border-radius: 20px;">
+      <div class="fg-text-lg fg-font-black fg-mb-2">Connection Blocked</div>
+      <div class="fg-text-xs fg-text-[var(--fg-muted)] fg-mb-8">${
+        e.message || 'Verification failed'
+      }</div>
+      <button class="btn-premium fg-mx-auto fg-w-full" onclick="location.reload()" style="height: 56px; border-radius: 12px; background: #a3e635; color: black; font-weight: 900;">RETRY SYNC</button>
+    </div>
+  `;
+}
+
+function _renderPopup(container: HTMLElement): void {
+  container.innerHTML = `
+    <div class="fg-flex fg-justify-between fg-items-center fg-mb-4 fg-px-1">
+       <div class="fg-text-[10px] fg-font-black fg-text-[var(--fg-muted)] fg-uppercase fg-tracking-[1.5px]">RECREATION</div>
+    </div>
+    <div class="glass-card fg-p-5 fg-text-center" style="border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: #1a1c1e;">
+       <div class="fg-text-xs fg-font-bold fg-text-white/80">Independent Cloud Scheduling</div>
+    </div>
+    <button class="btn-premium fg-w-full fg-mt-6 fg-text-[11px]" id="btn_full_schedule" style="height: 48px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: white; font-weight: 800;">OPEN CLOUD HUB</button>
+  `;
   container
     .querySelector('#btn_full_schedule')
     ?.addEventListener('click', () => {

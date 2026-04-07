@@ -11,6 +11,7 @@ import { createSecurityVM } from '../../../../packages/viewmodels/src/useSecurit
 import { renderThreatSection } from './components/ThreatSection';
 import { renderDomainProtectionSection } from './components/DomainProtectionSection';
 import { renderContentProtectionSection } from './components/ContentProtectionSection';
+import { renderParentalSection } from './components/ParentalSection';
 import { renderTldManager } from './components/TldManager';
 import { toast } from '../../lib/toast';
 import { buildDashboardTabPath } from '@focusgate/core';
@@ -20,8 +21,6 @@ const iconLock =
   '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 const iconAlert =
   '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-const iconArrowRight =
-  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
 
 const vm = createSecurityVM(storage, nextDNSApi);
 
@@ -38,21 +37,12 @@ export async function renderSecurityPage(
     </div>
   `;
 
-  const { settings, isConfigured, error } = await vm.load();
+  const { settings, parental, isConfigured, error } = await vm.load();
 
-  if (!isConfigured) {
-    container.innerHTML = renderNotConfigured();
-    container
-      .querySelector('#btn_goto_settings_from_security')
-      ?.addEventListener('click', () => {
-        chrome.tabs.create({
-          url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
-        });
-      });
-    return;
-  }
+  // Onboarding Bridge: Allow viewing in Local Mode
+  const isLocalMode = !isConfigured;
 
-  if (error || !settings) {
+  if (error) {
     container.innerHTML = renderError(error ?? 'Unknown error');
     container
       .querySelector('#btn_retry_security')
@@ -63,14 +53,28 @@ export async function renderSecurityPage(
   }
 
   container.innerHTML = `
+    ${isLocalMode ? renderLocalModeBanner() : ''}
     <!-- Sections -->
-    <div id="security_sections_container">
-      ${renderThreatSection(settings)}
-      ${renderDomainProtectionSection(settings)}
-      ${renderContentProtectionSection(settings)}
-      ${renderTldManager(settings.tlds || [])}
+    <div id="security_sections_container" class="${
+      isLocalMode ? 'fg-opacity-50 fg-pointer-events-none' : ''
+    }">
+      ${renderThreatSection(settings || ({} as any))}
+      ${renderDomainProtectionSection(settings || ({} as any))}
+      ${renderContentProtectionSection(settings || ({} as any))}
+      ${renderParentalSection(parental)}
+      ${renderTldManager((settings?.tlds as any) || [])}
     </div>
   `;
+
+  if (isLocalMode) {
+    container
+      .querySelector('#btn_upgrade_cloud')
+      ?.addEventListener('click', () => {
+        chrome.tabs.create({
+          url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
+        });
+      });
+  }
 
   attachHandlers(container, settings);
 }
@@ -179,9 +183,11 @@ function updateToggleUI(btn: HTMLElement, active: boolean): void {
   if (active) {
     btn.classList.add('active');
     btn.style.background = 'var(--green)';
+    btn.style.border = '1px solid var(--green)';
   } else {
     btn.classList.remove('active');
-    btn.style.background = 'rgba(255,255,255,0.1)';
+    btn.style.background = 'var(--fg-glass-bg)';
+    btn.style.border = '1px solid var(--fg-glass-border)';
   }
   const knob = btn.querySelector('span') as HTMLElement;
   if (knob) {
@@ -189,17 +195,20 @@ function updateToggleUI(btn: HTMLElement, active: boolean): void {
   }
 }
 
-function renderNotConfigured(): string {
+function renderLocalModeBanner(): string {
   return `
-    <div class="app-card fg-text-center fg-py-10 fg-px-6" style="background: rgba(255,184,0,0.05); border-color: rgba(255,184,0,0.2);">
-      <div class="fg-mb-4 fg-text-[var(--yellow)] fg-flex fg-justify-center">${iconLock}</div>
-      <div class="fg-text-base fg-font-black fg-mb-2" style="color: var(--yellow);">NextDNS Required</div>
-      <div class="fg-text-[13px] fg-text-[var(--muted)] fg-leading-normal fg-mb-5">
-        Connect your NextDNS account in Settings to manage security protections.
+    <div class="glass-card fg-mb-8 fg-p-8 fg-flex fg-items-center fg-justify-between" style="border-color: var(--fg-yellow); background: rgba(245, 158, 11, 0.05);">
+      <div class="fg-flex fg-items-center fg-gap-5">
+        <div class="fg-w-12 fg-h-12 fg-rounded-2xl fg-bg-[var(--fg-yellow)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-yellow)]">
+          ${iconLock}
+        </div>
+        <div>
+          <div class="fg-text-lg fg-font-black fg-text-white">Local Performance Mode</div>
+          <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-1">Cloud-level security layers are currently inactive. Connect your NextDNS account to enable global protection.</div>
+        </div>
       </div>
-      <button class="btn" id="btn_goto_settings_from_security"
-        style="background: rgba(255,184,0,0.1); color: var(--yellow); border: 1px solid rgba(255,184,0,0.2); display: flex; align-items: center; gap: 8px; justify-content: center;">
-        Open Settings ${iconArrowRight}
+      <button class="btn-premium fg-px-8" id="btn_upgrade_cloud" style="background: var(--fg-yellow); color: #000; font-weight: 900;">
+        Upgrade to Cloud
       </button>
     </div>
   `;
@@ -207,7 +216,7 @@ function renderNotConfigured(): string {
 
 function renderError(message: string): string {
   return `
-    <div class="app-card fg-text-center fg-py-10 fg-px-6" style="background: rgba(255,71,87,0.05); border-color: rgba(255,71,87,0.2);">
+    <div class="app-card fg-text-center fg-py-10 fg-px-6" style="background: var(--fg-glass-bg); border-color: var(--fg-glass-border);">
       <div class="fg-mb-4 fg-text-[var(--red)] fg-flex fg-justify-center">${iconAlert}</div>
       <div class="fg-text-base fg-font-black fg-text-[var(--red)] fg-mb-2">Failed to Load</div>
       <div class="fg-text-xs fg-text-[var(--muted)] fg-mb-5">${message}</div>
