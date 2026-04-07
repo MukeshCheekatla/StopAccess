@@ -82,7 +82,7 @@ export const appsController = {
 
       // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode and if rule scope permits
       const appsHardMode =
-        (await storage.getBoolean('fg_apps_dns_hard_mode')) ?? true;
+        (await storage.getBoolean('fg_apps_dns_hard_mode')) ?? false;
       if (
         appsHardMode &&
         (baseRule.scope === 'profile' || baseRule.scope === 'both')
@@ -127,9 +127,13 @@ export const appsController = {
       );
 
       // Apply immediate state to NextDNS
-      await this._runCloudSync(() =>
-        nextDNSApi.setTargetState(kind, id, enabled && actualState),
-      );
+      const appsHardMode =
+        (await storage.getBoolean('fg_apps_dns_hard_mode')) ?? false;
+      if (appsHardMode) {
+        await this._runCloudSync(() =>
+          nextDNSApi.setTargetState(kind, id, enabled && actualState),
+        );
+      }
 
       await updateRule(storage, {
         ...rule,
@@ -151,7 +155,7 @@ export const appsController = {
 
       // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode if apps hard mode is ON
       const appsHardMode =
-        (await storage.getBoolean('fg_apps_dns_hard_mode')) ?? true;
+        (await storage.getBoolean('fg_apps_dns_hard_mode')) ?? false;
       if (appsHardMode) {
         await this._runCloudSync(() => nextDNSApi.addResolvedTarget(resolved));
       }
@@ -194,9 +198,13 @@ export const appsController = {
     try {
       // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode
       if (rule) {
-        await this._runCloudSync(() =>
-          nextDNSApi.setTargetState(rule.type || 'domain', id, false),
-        );
+        const appsHardMode =
+          (await storage.getBoolean('fg_apps_dns_hard_mode')) ?? false;
+        if (appsHardMode) {
+          await this._runCloudSync(() =>
+            nextDNSApi.setTargetState(rule.type || 'domain', id, false),
+          );
+        }
       }
 
       // 2. Local Layer (Browser DNR) - Always runs

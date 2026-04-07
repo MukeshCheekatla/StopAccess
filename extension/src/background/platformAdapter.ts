@@ -11,6 +11,7 @@ import {
   NextDNSConfig,
   NextDNSSecuritySettings,
   NextDNSPrivacySettings,
+  NextDNSParentalControlSettings,
   StorageAdapter,
   AppRule,
   SyncState,
@@ -443,6 +444,24 @@ export const nextDNSApi = {
     const cfg = await nextDNSApi.getConfig();
     return ndnsCore.patchSecuritySettings(patch, cfg, extensionLogger.add);
   },
+  getParentalControl: async () => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.getParentalControlSettings(cfg, extensionLogger.add);
+  },
+  patchParentalControl: async (
+    patch: Partial<NextDNSParentalControlSettings>,
+  ) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.patchParentalControlSettings(
+      patch,
+      cfg,
+      extensionLogger.add,
+    );
+  },
   getBlockedTlds: async () => {
     const cfg = await nextDNSApi.getConfig();
     return ndnsCore.getBlockedTldsForProfile(cfg, extensionLogger.add);
@@ -534,5 +553,19 @@ export const nextDNSApi = {
 
     const cfg = await nextDNSApi.getConfig();
     return ndnsCore.unblockAll(cfg, extensionLogger.add);
+  },
+
+  getSchedules: async () => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.getQuietHoursSync(cfg, extensionLogger.add);
+  },
+
+  updateSchedules: async (recreationTime: any) => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.updateQuietHoursSync(
+      recreationTime,
+      cfg,
+      extensionLogger.add,
+    );
   },
 };
