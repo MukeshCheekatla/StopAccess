@@ -8,7 +8,6 @@ export async function loadSettingsData() {
   const profileId = (await storage.getString(STORAGE_KEYS.PROFILE_ID)) || '';
   const apiKey = (await storage.getString(STORAGE_KEYS.API_KEY)) || '';
   const strict = await storage.getBoolean('strict_mode_enabled');
-  const syncMode = (await storage.getString('fg_sync_mode')) || 'browser';
   const theme = ((await storage.getString(STORAGE_KEYS.THEME)) || 'system') as
     | 'dark'
     | 'light'
@@ -24,17 +23,32 @@ export async function loadSettingsData() {
 
   const healthOk = !!(profileId && apiKey);
   const syncState = await (storage as any).getSyncState();
+  const profile = {
+    name: (await storage.getString('fg_profile_name')) || '',
+    handle: (await storage.getString('fg_profile_handle')) || '',
+    bio: (await storage.getString('fg_profile_bio')) || '',
+  };
 
   return {
     profileId,
     apiKey,
+    profile,
     strict,
-    syncMode,
     theme,
     dnrRules,
     healthOk,
     syncState,
   };
+}
+
+export async function saveProfileAction(profile: {
+  name: string;
+  handle: string;
+  bio: string;
+}) {
+  await storage.set('fg_profile_name', profile.name.trim());
+  await storage.set('fg_profile_handle', profile.handle.trim());
+  await storage.set('fg_profile_bio', profile.bio.trim());
 }
 
 export async function connectNextDNSAction(pid: string, key: string) {
@@ -60,11 +74,6 @@ export async function connectNextDNSAction(pid: string, key: string) {
 
 export async function setStrictModeAction(val: boolean) {
   await storage.set('strict_mode_enabled', val);
-  chrome.runtime.sendMessage({ action: 'manualSync' });
-}
-
-export async function setSyncModeAction(mode: string) {
-  await storage.set('fg_sync_mode', mode);
   chrome.runtime.sendMessage({ action: 'manualSync' });
 }
 

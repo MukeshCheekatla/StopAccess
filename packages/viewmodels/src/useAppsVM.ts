@@ -9,7 +9,6 @@ declare var chrome: any;
 export interface AppsScreenData {
   rules: any;
   isConfigured: boolean;
-  syncMode: string;
   availableServices: any[];
   availableCategories: any[];
 }
@@ -19,10 +18,9 @@ export interface AppsScreenData {
  * Fetches everything in a single pass to avoid multiple UI flickers.
  */
 export async function loadAppsData(): Promise<AppsScreenData> {
-  const [rules, isConfigured, syncMode, cached] = await Promise.all([
+  const [rules, isConfigured, cached] = await Promise.all([
     getRules(storage),
     nextDNSApi.isConfigured(),
-    storage.getString('fg_sync_mode').then((val) => val || 'browser'),
     (async () => {
       const res = (await chrome.storage.local.get([
         'cached_ndns_metadata',
@@ -34,7 +32,6 @@ export async function loadAppsData(): Promise<AppsScreenData> {
   return {
     rules,
     isConfigured,
-    syncMode,
     availableServices: cached.services || [],
     availableCategories: cached.categories || [],
   };

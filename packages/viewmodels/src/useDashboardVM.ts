@@ -34,7 +34,6 @@ export async function loadDashboardData() {
     .slice(0, 5);
 
   const syncStatus = await storage.getString('nextdns_connection_status');
-  const syncMode = (await storage.getString('fg_sync_mode')) || 'browser';
   const lastSync = await storage.getString('fg_last_sync_at');
   const isNew = rules.length === 0 && !syncStatus;
 
@@ -48,7 +47,9 @@ export async function loadDashboardData() {
     try {
       const countersRes = await nextDNSApi.getAnalyticsCounters();
       if (countersRes && countersRes.ok) {
-        cloudBlockedQueries = (countersRes as any).data?.blocked || 0;
+        // Handle variations in NextDNS API response keys
+        const rawData = (countersRes as any).data || {};
+        cloudBlockedQueries = rawData.blocked ?? rawData.blockedQueries ?? 0;
       }
     } catch (e) {
       console.warn('Real-time sync failed. Using local state.', e);
@@ -73,7 +74,6 @@ export async function loadDashboardData() {
     allTotalMs,
     domainList,
     syncStatus,
-    syncMode,
     lastSync,
     isNew,
     blockedCount,

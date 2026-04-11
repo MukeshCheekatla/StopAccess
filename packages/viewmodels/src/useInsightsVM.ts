@@ -7,8 +7,6 @@ import {
 
 export async function loadInsightsData() {
   const isConfigured = await nextDNSApi.isConfigured();
-  const isSyncModeFull =
-    (await storage.getString('fg_sync_mode')) !== 'browser';
 
   let snapshots = await getRecentSnapshots(storage, 14); // 2 weeks trend
   if (!Array.isArray(snapshots)) {
@@ -83,7 +81,7 @@ export async function loadInsightsData() {
 
   return {
     isConfigured,
-    isSyncModeFull,
+    isSyncModeFull: isConfigured,
     snapshots,
     blockedLogs,
     topBlocked,

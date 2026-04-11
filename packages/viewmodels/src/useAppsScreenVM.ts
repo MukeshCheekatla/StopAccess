@@ -9,8 +9,6 @@ import {
 export async function loadAppsScreenData() {
   const rules = await getRules(storage);
   const isConfigured = await nextDNSApi.isConfigured();
-  const syncMode =
-    (await storage.getString(STORAGE_KEYS.SYNC_MODE)) || 'hybrid';
 
   let availableServices = [];
   let availableCategories = [];
@@ -26,7 +24,6 @@ export async function loadAppsScreenData() {
   return {
     rules,
     isConfigured,
-    syncMode,
     availableServices,
     availableCategories,
   };
