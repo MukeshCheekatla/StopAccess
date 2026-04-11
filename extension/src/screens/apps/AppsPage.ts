@@ -6,13 +6,15 @@ import {
 } from '@focusgate/core';
 import {
   getCategoryBadge,
-  resolveServiceIcon as getServiceIcon,
+  resolveServiceIcon,
   escapeHtml,
+  getRootDomain,
 } from '@focusgate/core';
 import { toast } from '../../lib/toast';
 import { appsController } from '../../lib/appsController';
 import { getLockedDomains } from '../../background/sessionGuard';
 import { extensionAdapter } from '../../background/platformAdapter';
+import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
 
 let activeTab = 'shield';
 let availableServices: any[] = [];
@@ -25,25 +27,27 @@ let currentIsConfigured = false;
 let currentIsAppsDnsHardMode = true;
 
 function renderBrandLogo(identifier: string, name?: string, size = 44) {
-  const iconInfo = getServiceIcon({ id: identifier, name });
+  const iconInfo = resolveServiceIcon({ id: identifier, name });
   const targetDomain = iconInfo.domain || identifier;
-  const safeIconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-    targetDomain,
-  )}&sz=128`;
-  const iconSize = Math.floor(size * 0.9); // Increased to fill naturally
+  const rootDomain = getRootDomain(targetDomain);
+
+  const primaryIconUrl = `https://logo.clearbit.com/${rootDomain}`;
+  const iconSize = Math.floor(size * 0.9);
 
   return `
-    <div class="brand-logo-container" style="position: relative; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+    <div class="brand-logo-container insights-logo-container" 
+         data-domain="${rootDomain}"
+         style="position: relative; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
        <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: ${Math.floor(
          size * 0.45,
-       )}px; font-weight: 900; color: var(--muted); z-index: 1; opacity: 0; letter-spacing: -1px;">${(
+       )}px; font-weight: 900; color: var(--fg-text); opacity: 0.3; z-index: 1; letter-spacing: -1px;">${(
     name || identifier
   )
     .slice(0, 2)
     .toUpperCase()}</div>
-       <img src="${safeIconUrl}" 
+       <img src="${primaryIconUrl}" 
             class="brand-logo-image"
-            style="position: relative; width: ${iconSize}px; height: ${iconSize}px; object-fit: contain; z-index: 2; border-radius: 20%;" 
+            style="position: relative; width: ${iconSize}px; height: ${iconSize}px; object-fit: contain; z-index: 2; border-radius: 20%; opacity: 0;" 
             alt="">
     </div>
   `;
@@ -270,18 +274,58 @@ async function refreshListOnly(passedRules?: any[]) {
 }
 
 function wireBrandLogoFallbacks(container: HTMLElement) {
-  container.querySelectorAll('.brand-logo-container').forEach((logo) => {
-    const img = logo.querySelector('.brand-logo-image') as HTMLImageElement;
-    const fallback = logo.querySelector('.logo-fallback') as HTMLElement;
-    if (!img || !fallback || img.dataset.fgFallbackBound === 'true') {
-      return;
-    }
-    img.dataset.fgFallbackBound = 'true';
-    img.addEventListener('error', () => {
-      img.style.display = 'none';
-      fallback.style.opacity = '1';
+  container
+    .querySelectorAll('.insights-logo-container')
+    .forEach(async (wrapper) => {
+      const img = wrapper.querySelector('img');
+      const fallback = wrapper.querySelector('.logo-fallback') as HTMLElement;
+      if (!img || !fallback || img.dataset.fgBound === 'true') {
+        return;
+      }
+
+      img.dataset.fgBound = 'true';
+      const domain = (wrapper as HTMLElement).dataset.domain || '';
+
+      // 1. Instant load from cache if available
+      if (domain) {
+        const cached = await getCachedIcon(domain);
+        if (cached) {
+          img.src = cached;
+          img.style.opacity = '1';
+          fallback.style.opacity = '0';
+        }
+      }
+
+      img.addEventListener('load', () => {
+        if (img.naturalWidth > 1) {
+          img.style.opacity = '1';
+          fallback.style.opacity = '0';
+          if (domain) {
+            saveIconToCache(domain, img.src);
+          }
+        } else {
+          img.dispatchEvent(new Event('error'));
+        }
+      });
+
+      img.addEventListener('error', () => {
+        const currentUrl = img.src;
+        if (currentUrl.includes('logo.clearbit.com') && domain) {
+          img.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
+            domain,
+          )}&sz=128`;
+        } else {
+          img.style.display = 'none';
+          fallback.style.opacity = '1';
+        }
+      });
+
+      // Handle cached images that are already complete
+      if (img.complete && img.naturalHeight > 1) {
+        img.style.opacity = '1';
+        fallback.style.opacity = '0';
+      }
     });
-  });
 }
 
 async function handleAddDomain() {
@@ -301,26 +345,7 @@ async function handleAddDomain() {
     btn.disabled = true;
   }
 
-  // Check if it's an exact match for a known service (app)
-  const exactService = availableServices.find(
-    (s) =>
-      s.name.toLowerCase() === input ||
-      s.id.slice(0, 15).toLowerCase() === input,
-  );
-
-  let result;
-  if (exactService) {
-    const vmData: any = await loadAppsData();
-    result = await appsController.toggleRule(
-      'service',
-      exactService.id,
-      exactService.name,
-      true,
-      vmData.rules,
-    );
-  } else {
-    result = await appsController.addDomainRule(input);
-  }
+  const result = await appsController.addDomainRule(input);
   if (result.ok) {
     searchTerm = '';
     const searchInput = globalContainer.querySelector(
@@ -354,6 +379,38 @@ function matchesSearch(item: any) {
   return name.includes(searchTerm) || domain.includes(searchTerm);
 }
 
+function renderCustomSelect(
+  options: { value: any; label: string }[],
+  current: any,
+  pkg: string,
+  className: string,
+  width = '130px',
+) {
+  const selectedLabel =
+    options.find((o) => o.value === current)?.label || options[0].label;
+  return `
+    <div class="fg-custom-select ${className}" data-pkg="${escapeHtml(pkg)}">
+      <div class="fg-select-trigger" style="width: ${width}; height: 32px; padding: 0 12px; font-size: 11px; font-weight: 800;">
+        <span>${selectedLabel}</span>
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="fg-select-menu">
+        ${options
+          .map(
+            (opt) => `
+          <div class="fg-select-option ${
+            Number(opt.value) === Number(current) ? 'selected' : ''
+          }" data-value="${opt.value}">
+            ${opt.label}
+          </div>
+        `,
+          )
+          .join('')}
+      </div>
+    </div>
+  `;
+}
+
 function getRuleActiveState(rule: any) {
   return Boolean(
     rule?.desiredBlockingState ?? rule?.blockedToday ?? rule?.mode !== 'allow',
@@ -374,20 +431,45 @@ function renderLimitSelector(rule: any) {
     { value: 120, label: '2 hours' },
   ];
 
+  return renderCustomSelect(
+    options,
+    limitValue,
+    rule.packageName,
+    'edit-limit-select',
+  );
+}
+
+function renderPassSelector(rule: any) {
+  const currentValue = Math.max(0, Number(rule.maxDailyPasses ?? 3));
+  const options = [0, 1, 2, 3, 4, 5].map((v) => ({
+    value: v,
+    label: `${v} pass${v === 1 ? '' : 'es'}`,
+  }));
+
+  return renderCustomSelect(
+    options,
+    currentValue,
+    rule.packageName,
+    'edit-pass-select',
+    '110px',
+  );
+}
+
+function renderStreakBadge(streak: number) {
+  const isZero = streak <= 0;
+  const color = isZero ? 'var(--muted)' : '#f97316';
+  const bg = isZero ? 'rgba(255,255,255,0.05)' : 'rgba(249, 115, 22, 0.1)';
+  const border = isZero ? 'var(--glass-border)' : 'rgba(249, 115, 22, 0.2)';
+
   return `
-    <select class="input-premium edit-limit-select" data-pkg="${escapeHtml(
-      rule.packageName,
-    )}" style="width: 130px; height: 32px; font-size: 11px; padding: 0 10px; border-radius: 10px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text); font-weight: 800;">
-      ${options
-        .map(
-          (opt) => `
-        <option value="${opt.value}" ${
-            limitValue === opt.value ? 'selected' : ''
-          }>${opt.label}</option>
-      `,
-        )
-        .join('')}
-    </select>
+    <div style="display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: ${bg}; border: 1px solid ${border}; border-radius: 12px; color: ${color}; font-weight: 950; filter: ${
+    isZero ? 'none' : 'drop-shadow(0 4px 12px rgba(249, 115, 22, 0.15))'
+  };">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity: ${
+        isZero ? 0.5 : 1
+      };"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3 0-1.03.46-2 1.39-3h.01c.78.78 1.1 1.63 1.1 2.5 0 1.05-.33 2.1-.8 3.01.52-.4 1.1-.73 1.56-1.1.28.9.23 1.83-.15 2.7-.3.7-.7 1.32-1.2 1.86A5 5 0 0 1 7 14.5c0-.9.2-1.74.57-2.5h.06l.87 2.5z"/><path d="M12 2c1 2 2 4 2 7a4 4 0 0 1-7.87 1C5.47 11.41 5 13.15 5 15a7 7 0 0 0 13.14 3.33L19 18a7 7 0 0 0-7-16z"/></svg>
+      <span style="font-size: 11px; letter-spacing: -0.01em;">${streak}d</span>
+    </div>
   `;
 }
 
@@ -611,8 +693,13 @@ function renderDomainRuleCard(rule: any, lockedDomains: string[] = []) {
         </div>
       </div>
       <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; border-top: 1px solid var(--fg-glass-border); background: var(--fg-glass-bg); border-radius: 0 0 20px 20px;">
-        ${renderLimitSelector(rule)}
-        <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Daily Limit</div>
+        <div style="display:flex; align-items:center; gap: 8px;">
+          ${renderLimitSelector(rule)}
+          ${renderPassSelector(rule)}
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 4px;">
+          ${renderStreakBadge(rule.streakDays || 0)}
+        </div>
       </div>
     </div>
   `;
@@ -641,20 +728,20 @@ function renderServiceCard(
     ">
       <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%; padding: 14px 16px;">
         <div style="display:flex; align-items:center; gap: 12px; min-width: 0; flex: 1;">
-           ${renderBrandLogo(service.id, service.name, 40)}
-           <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
-             <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 800;">${escapeHtml(
-               service.name,
-             )}</div>
-             <div style="display:flex; align-items:center; gap: 6px; margin-top: 3px;">
-               <span class="stat-lbl" style="font-size: 10px;">App</span>
-               ${
-                 active
-                   ? '<span style="font-size: 9px; font-weight: 800; color: var(--red); letter-spacing: 0.5px; text-transform: uppercase;">Blocked</span>'
-                   : ''
-               }
-             </div>
-           </div>
+            ${renderBrandLogo(service.id, service.name, 40)}
+            <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
+              <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 800;">${escapeHtml(
+                service.name,
+              )}</div>
+              <div style="display:flex; align-items:center; gap: 6px; margin-top: 3px;">
+                <span class="stat-lbl" style="font-size: 10px;">App</span>
+                ${
+                  active
+                    ? '<span style="font-size: 9px; font-weight: 800; color: var(--red); letter-spacing: 0.5px; text-transform: uppercase;">Blocked</span>'
+                    : ''
+                }
+              </div>
+            </div>
         </div>
         <div style="display:flex; align-items:center; gap: 8px; flex-shrink: 0;">
           <button class="toggle-switch-btn ${active ? 'active' : ''}" ${
@@ -680,8 +767,13 @@ function renderServiceCard(
         active
           ? `
       <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; border-top: 1px solid var(--fg-glass-border); background: var(--fg-glass-bg); border-radius: 0 0 20px 20px;">
-        ${localRule ? renderLimitSelector(localRule) : ''}
-        <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Daily Limit</div>
+        <div style="display:flex; align-items:center; gap: 8px;">
+          ${localRule ? renderLimitSelector(localRule) : ''}
+          ${localRule ? renderPassSelector(localRule) : ''}
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 4px;">
+          ${renderStreakBadge(localRule?.streakDays || 0)}
+        </div>
       </div>`
           : ''
       }
@@ -702,6 +794,20 @@ function renderCategoryCard(
   const badge = getCategoryBadge(category);
   const isLocked = lockedDomains.includes(category.id);
 
+  const themeMap: any = {
+    social: '#6366f1',
+    video: '#f43f5e',
+    gambling: '#f59e0b',
+    gaming: '#10b981',
+    dating: '#ec4899',
+    news: '#06b6d4',
+    shopping: '#8b5cf6',
+    crypto: '#facc15',
+    porn: '#7c3aed',
+    piracy: '#4b5563',
+  };
+  const theme = themeMap[category.id] || '#64748b';
+
   return `
     <div class="service-card ${active ? 'active' : ''}" style="
       display:flex; flex-direction:column; gap: 0; height: auto; padding: 0;
@@ -713,7 +819,7 @@ function renderCategoryCard(
     ">
       <div style="display:flex; align-items:center; gap: 10px; justify-content:space-between; width: 100%; padding: 14px 16px;">
         <div style="display:flex; align-items:center; gap: 10px; min-width: 0; flex: 1;">
-       <div style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
+       <div style="width: 40px; height: 40px; border-radius: 12px; background: ${theme}15; color: ${theme}; border: 1px solid ${theme}25; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
          ${badge}
        </div>
            <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
@@ -750,8 +856,13 @@ function renderCategoryCard(
         active
           ? `
       <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; border-top: 1px solid var(--fg-glass-border); background: var(--fg-glass-bg); border-radius: 0 0 20px 20px;">
-        ${localRule ? renderLimitSelector(localRule) : '<span></span>'}
-        <div style="font-size: 9px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 1px;">Daily Limit</div>
+        <div style="display:flex; align-items:center; gap: 8px;">
+          ${localRule ? renderLimitSelector(localRule) : '<span></span>'}
+          ${localRule ? renderPassSelector(localRule) : ''}
+        </div>
+        <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 4px;">
+          ${renderStreakBadge(localRule?.streakDays || 0)}
+        </div>
       </div>`
           : ''
       }
@@ -865,16 +976,74 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
     });
   });
 
-  container.querySelectorAll('.edit-limit-select').forEach((input) => {
-    const select = input as HTMLSelectElement;
-    select.addEventListener('change', async () => {
-      const pkg = select.getAttribute('data-pkg');
-      const val = parseInt(select.value, 10) || 0;
+  // Custom Select Global Interaction
+  container.querySelectorAll('.fg-select-trigger').forEach((trigger) => {
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const menu = trigger.nextElementSibling as HTMLElement;
+      const wasActive = menu.classList.contains('active');
+      const card = trigger.closest('.service-card') as HTMLElement;
+
+      // Close all other menus and reset their cards
+      document.querySelectorAll('.fg-select-menu.active').forEach((m) => {
+        if (m !== menu) {
+          m.classList.remove('active');
+          const otherCard = m.closest('.service-card') as HTMLElement;
+          if (otherCard) {
+            otherCard.style.zIndex = '1';
+          }
+        }
+      });
+
+      const nextActive = !wasActive;
+      menu.classList.toggle('active', nextActive);
+      if (card) {
+        card.style.zIndex = nextActive ? '100' : '1';
+      }
+    });
+  });
+
+  document.addEventListener(
+    'click',
+    () => {
+      document.querySelectorAll('.fg-select-menu.active').forEach((m) => {
+        m.classList.remove('active');
+        const card = m.closest('.service-card') as HTMLElement;
+        if (card) {
+          card.style.zIndex = '1';
+        }
+      });
+    },
+    { once: false },
+  );
+
+  container.querySelectorAll('.fg-select-option').forEach((option) => {
+    option.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const parent = option.closest('.fg-custom-select') as HTMLElement;
+      const pkg = parent.getAttribute('data-pkg');
+      const val = parseInt(
+        (option as HTMLElement).getAttribute('data-value') || '0',
+        10,
+      );
+      const isLimitSelect = parent.classList.contains('edit-limit-select');
+      const isPassSelect = parent.classList.contains('edit-pass-select');
+
+      const menu = parent.querySelector('.fg-select-menu');
+      menu?.classList.remove('active');
+
       const rule = rules.find(
         (r: any) => (r.customDomain || r.packageName) === pkg,
       );
-      if (rule && pkg) {
-        const newMode = val > 0 ? 'limit' : 'block';
+      if (!rule || !pkg) {
+        return;
+      }
+
+      if (isLimitSelect) {
+        // If the toggle is OFF, keep mode as 'allow' — don't activate limit tracking
+        const isEnabled =
+          rule.desiredBlockingState !== false && rule.mode !== 'allow';
+        const newMode = !isEnabled ? 'allow' : val > 0 ? 'limit' : 'block';
         const { extensionAdapter: storage } = await import(
           '../../background/platformAdapter'
         );
@@ -883,12 +1052,26 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
           ...(rule as any),
           dailyLimitMinutes: val,
           mode: newMode as any,
+          // Reset tracking when changing the limit so timer starts fresh
+          usedMinutesToday: 0,
+          blockedToday: newMode === 'block',
           updatedAt: Date.now(),
         });
         chrome.runtime.sendMessage({ action: 'manualSync' });
-        toast.info(
-          `Usage limit updated: ${select.options[select.selectedIndex].text}`,
+        toast.info(`Usage limit updated: ${(option as HTMLElement).innerText}`);
+        await refreshListOnly();
+      } else if (isPassSelect) {
+        const { extensionAdapter: storage } = await import(
+          '../../background/platformAdapter'
         );
+        const { updateRule } = await import('@focusgate/state/rules');
+        await updateRule(storage, {
+          ...(rule as any),
+          maxDailyPasses: val,
+          updatedAt: Date.now(),
+        });
+        chrome.runtime.sendMessage({ action: 'manualSync' });
+        toast.info(`Daily pass count updated to ${val}`);
         await refreshListOnly();
       }
     });
