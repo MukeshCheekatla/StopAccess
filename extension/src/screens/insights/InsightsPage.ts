@@ -2,8 +2,11 @@ import {
   getAppIconUrl as getSmartIcon,
   fmtTime,
   buildDashboardTabPath,
+  getRootDomain,
 } from '@focusgate/core';
 import { nextDNSApi } from '../../background/platformAdapter';
+import { appsController } from '../../lib/appsController';
+import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
 
 declare var chrome: any;
 
@@ -11,9 +14,6 @@ const iconActivity =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>';
 const iconShield =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
-const iconZap =
-  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
-
 export async function renderInsightsPage(
   container: HTMLElement,
   context: 'page' | 'popup' = 'page',
@@ -61,13 +61,27 @@ async function _renderPage(container: HTMLElement): Promise<void> {
     snapshots = [],
     blockedLogs = [],
     topBlocked = [],
-    avgFocusTime = 0,
     totalQueries = 0,
     blockedQueries = 0,
     protectionRate = 0,
   } = data as any;
 
+  // Build local icon lookup for instant render
+  const iconLookup: Record<string, string> = {};
+  for (const log of blockedLogs) {
+    if (log.domain) {
+      iconLookup[log.domain] = (await getCachedIcon(log.domain)) || '';
+    }
+  }
+  for (const item of topBlocked) {
+    if (item.domain || item.id) {
+      iconLookup[item.domain || item.id] =
+        (await getCachedIcon(item.domain || item.id)) || '';
+    }
+  }
+
   const weeklySnapshots = [...(snapshots as any[])].slice(-7);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const weeklyMaxMins = Math.max(
     1,
     ...weeklySnapshots.map((s: any) => s.screenTimeMinutes || 0),
@@ -75,72 +89,41 @@ async function _renderPage(container: HTMLElement): Promise<void> {
 
   container.innerHTML = `
     <div class="insights-shell fg-animate-in fg-fade-in fg-duration-500">
-      <!-- Hero Stat Cards -->
-      <div class="fg-grid fg-grid-cols-3 fg-gap-4 fg-mb-8">
+      ${!isConfigured ? _renderLocalModeBanner() : ''}
+      
+      <!-- Normalized Hero Stat Deck -->
+      <div class="fg-grid fg-grid-cols-3 fg-gap-4 fg-mb-10">
+        <!-- Total Traffic -->
         <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden">
-          <div class="fg-flex fg-items-center fg-gap-2 fg-mb-2">
+          <div class="fg-flex fg-items-center fg-gap-2 fg-mb-3">
             <span class="fg-text-[var(--accent)]">${iconActivity}</span>
-            <span class="field-label" style="margin: 0;">Total Activity</span>
+            <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-widest fg-text-[var(--fg-text)] fg-opacity-40">Total Activity</span>
           </div>
           <div class="fg-text-2xl fg-font-black fg-text-[var(--fg-text)]">${totalQueries.toLocaleString()}</div>
-          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-mt-1 fg-uppercase fg-font-bold fg-tracking-wider">All Requests</div>
+          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-50 fg-mt-1 fg-font-bold fg-uppercase fg-tracking-wider">All Requests</div>
         </div>
 
+        <!-- Blocked Intelligence -->
         <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden">
-          <div class="fg-flex fg-items-center fg-gap-2 fg-mb-2">
+          <div class="fg-flex fg-items-center fg-justify-between fg-mb-3">
+            <div class="fg-flex fg-items-center fg-gap-2">
+              <span class="fg-text-[var(--red)]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span>
+              <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-widest fg-text-[var(--fg-text)] fg-opacity-40">Blocked Activity</span>
+            </div>
+            <span class="fg-text-[8px] fg-font-black fg-bg-[var(--green)]/10 fg-text-[var(--green)] fg-px-2 fg-py-0.5 fg-rounded-md">ACTIVE</span>
+          </div>
+          <div class="fg-text-2xl fg-font-black fg-text-[var(--fg-text)]">${blockedQueries.toLocaleString()}</div>
+          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-50 fg-mt-1 fg-font-bold fg-uppercase fg-tracking-wider">Shielded Hits</div>
+        </div>
+
+        <!-- Safety Performance -->
+        <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden">
+          <div class="fg-flex fg-items-center fg-gap-2 fg-mb-3">
             <span class="fg-text-[var(--green)]">${iconShield}</span>
-            <span class="field-label" style="margin: 0;">Safety Score</span>
+            <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-widest fg-text-[var(--fg-text)] fg-opacity-40">Safety Score</span>
           </div>
           <div class="fg-text-2xl fg-font-black fg-text-[var(--green)]">${protectionRate}%</div>
-          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-mt-1 fg-uppercase fg-font-bold fg-tracking-wider">Shield Efficiency</div>
-        </div>
-
-        <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden">
-          <div class="fg-flex fg-items-center fg-gap-2 fg-mb-2">
-            <span class="fg-text-[var(--yellow)]">${iconZap}</span>
-            <span class="field-label" style="margin: 0;">Daily Focus</span>
-          </div>
-          <div class="fg-text-2xl fg-font-black fg-text-[var(--fg-text)]">${avgFocusTime}m</div>
-          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-mt-1 fg-uppercase fg-font-bold fg-tracking-wider">Average Deep Work</div>
-        </div>
-      </div>
-
-      <!-- Charts Section -->
-      <div class="fg-grid fg-grid-cols-2 fg-gap-8 fg-mb-10">
-        <!-- Focus Trend -->
-        <div class="glass-card fg-p-8">
-          <div class="fg-flex fg-justify-between fg-items-center fg-mb-8">
-            <div class="section-label" style="margin: 0;">Focus Trends</div>
-            <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase">Weekly History</div>
-          </div>
-          ${_renderFocusChart(weeklySnapshots, weeklyMaxMins)}
-        </div>
-
-        <!-- Network Mix -->
-        <div class="glass-card fg-p-8 fg-flex fg-flex-col">
-          <div class="fg-flex fg-justify-between fg-items-center fg-mb-8">
-            <div class="section-label" style="margin: 0;">Activity Breakdown</div>
-            <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase">Traffic Mix</div>
-          </div>
-          <div class="fg-flex-1 fg-flex fg-flex-col fg-justify-center">
-             <div class="fg-flex fg-justify-between fg-mb-3">
-                <span class="fg-text-[11px] fg-font-bold">Blocked Activity</span>
-                <span class="fg-text-[11px] fg-font-black fg-text-[var(--green)]">${blockedQueries.toLocaleString()}</span>
-             </div>
-             <div class="fg-h-3 fg-rounded-full fg-mb-8 fg-relative fg-overflow-hidden" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
-                <div class="fg-absolute fg-h-full fg-bg-[var(--green)] fg-rounded-full" style="width: ${protectionRate}%; transition: width 1s ease;"></div>
-             </div>
-             <div class="fg-grid fg-grid-cols-2 fg-gap-4">
-                <div class="fg-p-4 fg-rounded-2xl" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
-                   <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-font-bold fg-mb-1">Efficiency</div>
-                   <div class="fg-text-lg fg-font-black">${protectionRate}%</div>
-                </div>
-                <div class="fg-p-4 fg-rounded-2xl" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
-                   <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-font-bold fg-mb-1">Status</div>
-                   <div class="fg-text-lg fg-font-black fg-text-[var(--green)]">ACTIVE</div>
-                </div>
-             </div>
-          </div>
+          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-50 fg-mt-1 fg-font-bold fg-uppercase fg-tracking-wider">Shield Efficiency</div>
         </div>
       </div>
 
@@ -155,7 +138,7 @@ async function _renderPage(container: HTMLElement): Promise<void> {
             <div class="section-label" style="margin: 0;">Most Blocked Targets</div>
           </div>
           <div class="fg-flex fg-flex-col fg-gap-3">
-            ${_renderTopBlocked(isConfigured, topBlocked as any[])}
+            ${_renderTopBlocked(isConfigured, topBlocked as any[], iconLookup)}
           </div>
         </section>
 
@@ -173,14 +156,87 @@ async function _renderPage(container: HTMLElement): Promise<void> {
             </div>
           </div>
           <div class="fg-flex fg-flex-col fg-gap-2">
-            ${_renderLogsList(isConfigured, blockedLogs as any[])}
+            ${_renderLogsList(isConfigured, blockedLogs as any[], iconLookup)}
           </div>
         </section>
       </div>
     </div>
   `;
+
+  if (!isConfigured) {
+    container
+      .querySelector('#btn_upgrade_cloud_insights')
+      ?.addEventListener('click', () => {
+        chrome.tabs.create({
+          url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
+        });
+      });
+  }
+  container.querySelectorAll('.block-log-domain').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const domain = (button as HTMLButtonElement).dataset.domain;
+      if (!domain) {
+        return;
+      }
+      const result = await appsController.addDomainRule(domain);
+      if (result.ok) {
+        await _renderPage(container);
+      }
+    });
+  });
+
+  _wireInsightsIcons(container);
 }
 
+function _wireInsightsIcons(container: HTMLElement) {
+  container.querySelectorAll('.insights-logo-container').forEach((wrapper) => {
+    const img = wrapper.querySelector('img');
+    const fallback = wrapper.querySelector('.logo-fallback') as HTMLElement;
+    if (!img || !fallback || img.dataset.fgBound === 'true') {
+      return;
+    }
+
+    img.dataset.fgBound = 'true';
+
+    img.addEventListener('load', () => {
+      // Check if image is valid (not a 1x1 or empty)
+      if (img.naturalWidth > 1) {
+        img.style.opacity = '1';
+        fallback.style.opacity = '0';
+
+        // Save to cache
+        if (img.dataset.domain) {
+          saveIconToCache(img.dataset.domain, img.src);
+        }
+      } else {
+        img.dispatchEvent(new Event('error'));
+      }
+    });
+
+    img.addEventListener('error', () => {
+      const currentUrl = img.src;
+      const domain = img.dataset.domain;
+
+      // If Clearbit fails, try Google as last resort
+      if (currentUrl.includes('logo.clearbit.com') && domain) {
+        img.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
+          domain,
+        )}&sz=128`;
+      } else {
+        img.style.display = 'none';
+        fallback.style.opacity = '1';
+      }
+    });
+
+    // Handle cached images
+    if (img.complete && img.naturalHeight > 1) {
+      img.style.opacity = '1';
+      fallback.style.opacity = '0';
+    }
+  });
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function _renderFocusChart(
   weeklySnapshots: any[],
   weeklyMaxMins: number,
@@ -225,7 +281,11 @@ function _renderFocusChart(
     </div>`;
 }
 
-function _renderLogsList(isConfigured: boolean, blockedLogs: any[]): string {
+function _renderLogsList(
+  isConfigured: boolean,
+  blockedLogs: any[],
+  iconLookup: Record<string, string> = {},
+): string {
   if (!isConfigured) {
     return `
       <div class="glass-card fg-p-10 fg-text-center fg-opacity-90" style="border: 1px dashed var(--fg-glass-border); background: var(--fg-glass-bg);">
@@ -241,17 +301,27 @@ function _renderLogsList(isConfigured: boolean, blockedLogs: any[]): string {
   }
   return blockedLogs
     .map((log: any) => {
-      const iconUrl =
-        getSmartIcon(log.domain) ||
-        `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-          log.domain,
-        )}&sz=64`;
+      const label = log.domain;
+      const rootDomain = getRootDomain(label);
+      const cached = iconLookup[label];
+
+      // Use cached URL if available, otherwise primary fallback loop
+      const primaryIconUrl =
+        cached || `https://logo.clearbit.com/${rootDomain}`;
+
       return `
-        <div class="glass-card fg-flex fg-items-center fg-gap-4 fg-p-4 fg-rounded-2xl fg-transition-transform fg-duration-200 hover:fg-translate-x-1">
-          <div class="fg-shrink-0 fg-flex fg-items-center fg-justify-center fg-rounded-xl" style="width: 44px; height: 44px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
-            <img src="${iconUrl}" style="width: 20px; height: 20px; object-fit: contain;" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=${
-        log.domain
-      }'">
+        <div class="glass-card fg-flex fg-items-center fg-gap-5 fg-p-4 fg-rounded-2xl fg-transition-transform fg-duration-200 hover:fg-translate-x-1">
+          <div class="insights-logo-container fg-shrink-0 fg-relative fg-flex fg-items-center fg-justify-center" style="width: 32px; height: 32px;">
+            <div class="logo-fallback fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[10px] fg-font-black fg-text-[var(--muted)] fg-transition-opacity" style="opacity: ${
+              cached ? 0 : 1
+            }">
+              ${label.slice(0, 2).toUpperCase()}
+            </div>
+            <img src="${primaryIconUrl}" data-domain="${rootDomain}"
+                 style="width: 32px; height: 32px; object-fit: contain; opacity: ${
+                   cached ? 1 : 0
+                 }; z-index: 2; position: relative;" 
+                 class="fg-transition-opacity">
           </div>
           <div class="fg-flex-1 fg-min-w-0">
             <div class="fg-font-black fg-text-[13px] fg-text-[var(--fg-text)] fg-truncate">${
@@ -264,15 +334,26 @@ function _renderLogsList(isConfigured: boolean, blockedLogs: any[]): string {
               }</span>
             </div>
           </div>
-          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-font-black fg-opacity-80" style="font-family: monospace;">${_formatTimeAgo(
-            log.timestamp,
-          )}</div>
+          <div class="fg-flex fg-items-center fg-gap-2 fg-shrink-0">
+            <button class="block-log-domain fg-flex fg-h-8 fg-w-8 fg-items-center fg-justify-center fg-rounded-full fg-bg-[var(--fg-accent-soft)] fg-text-[var(--fg-accent)]" data-domain="${
+              log.domain
+            }" title="Block ${log.domain}">
+              +
+            </button>
+            <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-font-black" style="font-family: monospace;">${_formatTimeAgo(
+              log.timestamp,
+            )}</div>
+          </div>
         </div>`;
     })
     .join('');
 }
 
-function _renderTopBlocked(isConfigured: boolean, topBlocked: any[]): string {
+function _renderTopBlocked(
+  isConfigured: boolean,
+  topBlocked: any[],
+  iconLookup: Record<string, string> = {},
+): string {
   if (!isConfigured || topBlocked.length === 0) {
     return `<div class="glass-card fg-p-8 fg-text-center fg-text-[var(--fg-text)] fg-opacity-60">
       <div class="fg-text-[11px] fg-font-bold fg-uppercase">Awaiting stats...</div>
@@ -281,29 +362,36 @@ function _renderTopBlocked(isConfigured: boolean, topBlocked: any[]): string {
   return topBlocked
     .map((item: any) => {
       const label = item.domain || item.id || item.name || 'Unknown Target';
-      const iconUrl =
-        getSmartIcon(label) ||
-        `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-          label,
-        )}&sz=64`;
+      const rootDomain = getRootDomain(label);
+      const cached = iconLookup[label];
+      const primaryIconUrl =
+        cached || `https://logo.clearbit.com/${rootDomain}`;
+
       return `
         <div class="glass-card fg-flex fg-items-center fg-gap-4 fg-p-4 fg-rounded-2xl">
-          <div class="fg-shrink-0 fg-flex fg-items-center fg-justify-center fg-rounded-xl" style="width: 40px; height: 40px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
-            <img src="${iconUrl}" style="width: 18px; height: 18px; object-fit: contain;" onerror="this.src='https://api.dicebear.com/7.x/initials/svg?seed=${label}'">
+          <div class="insights-logo-container fg-shrink-0 fg-relative fg-flex fg-items-center fg-justify-center" style="width: 28px; height: 28px;">
+            <div class="logo-fallback fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[8px] fg-font-black fg-text-[var(--muted)] fg-transition-opacity" style="opacity: ${
+              cached ? 0 : 1
+            }">
+              ${label.slice(0, 2).toUpperCase()}
+            </div>
+            <img src="${primaryIconUrl}" data-domain="${rootDomain}"
+                 style="width: 28px; height: 28px; object-fit: contain; opacity: ${
+                   cached ? 1 : 0
+                 }; z-index: 2; position: relative;" 
+                 class="fg-transition-opacity">
           </div>
-          <div class="fg-flex-1">
-            <div class="fg-font-black fg-text-[13px] fg-truncate fg-max-w-[120px]">${label}</div>
-            <div class="fg-text-[11px] fg-font-black fg-mt-1 fg-text-[var(--accent)] fg-uppercase fg-tracking-wide">${
+          <div class="fg-flex-1 fg-min-w-0">
+            <div class="fg-font-black fg-text-[13px] fg-text-[var(--fg-text)] fg-truncate">${label}</div>
+            <div class="fg-text-[11px] fg-font-black fg-mt-1 fg-text-[var(--fg-text)] fg-opacity-50 fg-uppercase fg-tracking-wide">${
               item.queries
             } Blocks</div>
           </div>
-          <div class="fg-shrink-0">
-             <div class="fg-h-1 fg-w-12 fg-bg-[var(--fg-glass-bg)] fg-rounded-full fg-relative">
-                <div class="fg-absolute fg-h-full fg-bg-[var(--accent)] fg-rounded-full" style="width: ${Math.min(
-                  100,
-                  (item.queries / topBlocked[0].queries) * 100,
-                )}%;"></div>
-             </div>
+          <div class="fg-shrink-0 fg-text-right fg-min-w-[50px]">
+             <div class="fg-text-[12px] fg-font-black fg-text-[var(--accent)]">${Math.round(
+               (item.queries / topBlocked[0].queries) * 100,
+             )}%</div>
+             <div class="fg-text-[8px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-30 fg-uppercase fg-tracking-tighter">INTENSITY</div>
           </div>
         </div>`;
     })
@@ -398,4 +486,23 @@ function _formatTimeAgo(ts: string | number): string {
     return `${Math.floor(diff / 60000)}M`;
   }
   return `${Math.floor(diff / 3600000)}H`;
+}
+
+function _renderLocalModeBanner(): string {
+  return `
+    <div class="glass-card fg-mb-8 fg-p-8 fg-flex fg-items-center fg-justify-between" style="border-color: var(--fg-accent); background: rgba(59, 130, 246, 0.05);">
+      <div class="fg-flex fg-items-center fg-gap-5">
+        <div class="fg-w-12 fg-h-12 fg-rounded-2xl fg-bg-[var(--fg-accent)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-accent)]">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div>
+          <div class="fg-text-lg fg-font-black fg-text-white">Cloud Logic Inactive</div>
+          <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-1">Deep network intelligence and threat monitoring requires a cloud connection. Activate to see your full history.</div>
+        </div>
+      </div>
+      <button class="btn-premium fg-px-8" id="btn_upgrade_cloud_insights" style="background: var(--fg-accent); color: #fff; font-weight: 900;">
+        Activate Cloud
+      </button>
+    </div>
+  `;
 }

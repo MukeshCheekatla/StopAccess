@@ -115,17 +115,17 @@ function renderAmbientShell(
 ): string {
   const isPopup = context === 'popup';
   const gridTemplate = isPopup ? '1fr' : 'minmax(0,1fr) 280px';
-  const padding = isPopup ? '12px' : '28px';
-  const minHeight = isPopup ? '380px' : '540px';
+  const padding = isPopup ? '12px' : '18px';
+  const minHeight = isPopup ? '380px' : 'calc(100vh - 140px)';
 
   return `
-    <div style="position:relative; min-height:${minHeight}; border-radius:24px; overflow:hidden; background:
-      linear-gradient(180deg, #09090b, #0c0d12);
-      border:1px solid rgba(255,255,255,0.06); display: flex; flex-direction: column;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.4);">
-      <div style="position:absolute; inset:0; background: rgba(0,0,0,0.2);"></div>
-      <div style="position:relative; z-index:1; display:grid; grid-template-columns:${gridTemplate}; gap:20px; flex: 1; padding:${padding};">
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:5px;">
+    <div style="position:relative; min-height:${minHeight}; border-radius:28px; overflow:hidden; background:
+      linear-gradient(160deg, var(--fg-surface), var(--fg-bg));
+      border:1px solid var(--fg-glass-border); display: flex; flex-direction: column;
+      box-shadow: 0 18px 48px rgba(15,23,42,0.12);">
+      <div style="position:absolute; inset:0; background: linear-gradient(135deg, transparent, var(--fg-accent-soft));"></div>
+      <div style="position:relative; z-index:1; display:grid; grid-template-columns:${gridTemplate}; gap:16px; flex: 1; padding:${padding};">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0;">
           ${centerContent}
         </div>
         ${
@@ -156,26 +156,28 @@ function renderRingMarkup(
     const x2 = 190 + outer * Math.cos(angle);
     const y2 = 190 + outer * Math.sin(angle);
     const stroke =
-      index < activeTicks ? 'rgba(132,255,228,0.92)' : 'rgba(255,255,255,0.25)';
+      index < activeTicks
+        ? 'var(--fg-accent)'
+        : 'color-mix(in srgb, var(--fg-muted) 35%, transparent)';
     const strokeWidth = index % 5 === 0 ? 3.5 : 2.5;
     return `<line data-tick-index="${index}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
   }).join('');
 
   return `
-    <div style="position:relative; width:380px; height:380px; max-width:100%;">
-      <svg viewBox="0 0 380 380" style="position:absolute; inset:0; width:100%; height:100%;">
-        <circle cx="190" cy="190" r="110" fill="rgba(82, 82, 91, 0.03)" stroke="rgba(255,255,255,0.04)" stroke-width="1" />
-        ${lines}
-      </svg>
-      <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-        <div id="liveTimerDisplay" style="font-size:60px; font-weight:300; line-height:0.95; letter-spacing:-0.05em; color:rgba(255,255,255,0.96); font-variant-numeric:tabular-nums;">${timeDisplay}</div>
-        <div style="margin-top:10px; display:inline-flex; align-items:center; gap:8px; color:rgba(255,255,255,0.58); font-size:10px; letter-spacing:0.1em; text-transform:uppercase;">
-          <span style="width:6px; height:6px; border-radius:50%; background:rgba(132,255,228,0.95); box-shadow:0 0 8px rgba(132,255,228,0.45);"></span>
-          ${label}
+      <div style="position:relative; width:360px; height:360px; max-width:100%;">
+        <svg viewBox="0 0 380 380" style="position:absolute; inset:0; width:100%; height:100%;">
+          <circle cx="190" cy="190" r="110" fill="var(--fg-glass-bg)" stroke="var(--fg-glass-border)" stroke-width="1" />
+          ${lines}
+        </svg>
+        <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+          <div id="liveTimerDisplay" style="font-size:56px; font-weight:300; line-height:0.95; letter-spacing:-0.05em; color:var(--fg-text); font-variant-numeric:tabular-nums;">${timeDisplay}</div>
+          <div style="margin-top:10px; display:inline-flex; align-items:center; gap:8px; color:var(--fg-muted); font-size:10px; letter-spacing:0.1em; text-transform:uppercase;">
+            <span style="width:6px; height:6px; border-radius:50%; background:var(--fg-accent); box-shadow:0 0 8px var(--fg-accent-soft);"></span>
+            ${label}
+          </div>
+          <div id="liveSublabelDisplay" style="margin-top:6px; max-width:200px; text-align:center; font-size:12px; line-height:1.5; color:var(--fg-muted);">${sublabel}</div>
         </div>
-        <div id="liveSublabelDisplay" style="margin-top:6px; max-width:200px; text-align:center; font-size:12px; line-height:1.5; color:rgba(255,255,255,0.45);">${sublabel}</div>
       </div>
-    </div>
   `;
 }
 
@@ -189,7 +191,7 @@ function renderSessionNotes(items: string[]): string {
       ${items
         .map(
           (item) => `
-        <div class="fg-py-[10px] fg-px-[14px] fg-rounded-[14px] fg-text-xs fg-font-bold" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); color:rgba(255,255,255,0.72);">
+        <div class="fg-py-[10px] fg-px-[14px] fg-rounded-[14px] fg-text-xs fg-font-bold" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); color:var(--fg-text);">
           ${escapeHtml(item)}
         </div>
       `,
@@ -210,9 +212,9 @@ function renderPresetButtons(): string {
       ]
         .map(
           (preset) => `
-        <button class="btn-premium start-focus fg-flex fg-flex-col fg-items-start fg-gap-1 fg-text-left fg-rounded-[18px]" data-mins="${preset.m}" style="padding:16px 18px; min-height:80px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); box-shadow:none;">
-          <span style="font-size:22px; font-weight:900; color:rgba(255,255,255,0.95); line-height:1;">${preset.m}m</span>
-          <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-[0.1em]" style="color:rgba(255,255,255,0.45);">${preset.tag}</span>
+        <button class="btn-premium start-focus fg-flex fg-flex-col fg-items-start fg-gap-1 fg-text-left fg-rounded-[18px]" data-mins="${preset.m}" style="padding:16px 18px; min-height:80px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); box-shadow:none;">
+          <span style="font-size:22px; font-weight:900; color:var(--fg-text); line-height:1;">${preset.m}m</span>
+          <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-[0.1em]" style="color:var(--fg-muted);">${preset.tag}</span>
         </button>
       `,
         )
@@ -223,9 +225,9 @@ function renderPresetButtons(): string {
 
 function renderIdleStateSummary(): string {
   return `
-    <div style="width:min(420px, 100%); margin-bottom:16px; padding:18px 22px; border-radius:22px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); text-align:left; backdrop-filter:blur(12px);">
-      <div style="font-size:12px; font-weight:800; color:rgba(255,255,255,0.44); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:6px;">Ready</div>
-      <div style="font-size:15px; color:rgba(255,255,255,0.86); line-height:1.6;">Pick a session length and Focus will start a real countdown. Nothing shown here is simulated.</div>
+    <div style="width:min(420px, 100%); margin-bottom:12px; padding:18px 22px; border-radius:22px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); text-align:left; backdrop-filter:blur(12px);">
+      <div style="font-size:12px; font-weight:800; color:var(--fg-muted); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:6px;">Ready</div>
+      <div style="font-size:15px; color:var(--fg-text); line-height:1.6;">Pick a session length and Focus will start a real countdown. Nothing shown here is simulated.</div>
     </div>
   `;
 }
@@ -236,7 +238,7 @@ function renderDomainIcon(domain: string, size = 32): string {
     : domain;
   const iconUrl = `https://www.google.com/s2/favicons?domain=${root}&sz=128`;
   return `
-    <div style="width:${size}px; height:${size}px; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; overflow:hidden;">
+    <div style="width:${size}px; height:${size}px; border-radius:10px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); display:flex; align-items:center; justify-content:center; overflow:hidden;">
       <img src="${iconUrl}" style="width:${Math.round(
     size * 0.6,
   )}px; height:${Math.round(
@@ -251,10 +253,10 @@ function renderActiveStateSummary(
   count: number,
 ): string {
   return `
-    <div style="width:min(440px, 100%); margin-bottom:16px; padding:18px 22px; border-radius:22px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.06); text-align:left; backdrop-filter:blur(12px);">
+    <div style="width:min(440px, 100%); margin-bottom:12px; padding:18px 22px; border-radius:22px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); text-align:left; backdrop-filter:blur(12px);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div style="font-size:12px; font-weight:800; color:rgba(255,255,255,0.44); letter-spacing:0.12em; text-transform:uppercase;">Shielding Services</div>
-        <div style="font-size:10px; font-weight:900; background:rgba(132,255,228,0.1); color:rgba(132,255,228,1); padding:2px 8px; border-radius:6px; border:1px solid rgba(132,255,228,0.2);">${count} ACTIVE</div>
+        <div style="font-size:12px; font-weight:800; color:var(--fg-muted); letter-spacing:0.12em; text-transform:uppercase;">Shielding Services</div>
+        <div style="font-size:10px; font-weight:900; background:var(--fg-accent-soft); color:var(--fg-accent); padding:2px 8px; border-radius:6px; border:1px solid var(--fg-glass-border);">${count} ACTIVE</div>
       </div>
       <div style="display:flex; align-items:center; gap:10px; min-height:30px;">
         ${currentFocusHtml}
@@ -287,22 +289,22 @@ function renderFocusDetails(
 
 function renderSidePanels(title: string, body: string): string {
   return `
-    <div class="fg-p-6 fg-rounded-[22px]" style="background:rgba(255,255,255,0.045); border:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px);">
-      <div class="fg-text-xs fg-font-extrabold fg-tracking-[0.12em] fg-uppercase fg-mb-[14px]" style="color:rgba(255,255,255,0.44);">Today</div>
-      <div class="fg-text-sm fg-font-bold fg-mb-[10px]" style="color:rgba(255,255,255,0.88);">Focus Time</div>
-      <div style="font-size:42px; font-weight:300; line-height:1; color:rgba(255,255,255,0.96);">${formatMinutes(
+    <div class="fg-p-6 fg-rounded-[22px]" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); backdrop-filter:blur(16px);">
+      <div class="fg-text-xs fg-font-extrabold fg-tracking-[0.12em] fg-uppercase fg-mb-[14px]" style="color:var(--fg-muted);">Today</div>
+      <div class="fg-text-sm fg-font-bold fg-mb-[10px]" style="color:var(--fg-text);">Focus Time</div>
+      <div style="font-size:42px; font-weight:300; line-height:1; color:var(--fg-text);">${formatMinutes(
         getTodayFocusMinutes(),
       )}</div>
     </div>
-    <div class="fg-p-6 fg-rounded-[22px]" style="background:rgba(255,255,255,0.045); border:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px);">
-      <div class="fg-text-xs fg-font-extrabold fg-tracking-[0.12em] fg-uppercase fg-mb-[14px]" style="color:rgba(255,255,255,0.44);">Current State</div>
-      <div class="fg-text-sm fg-font-bold fg-mb-[10px]" style="color:rgba(255,255,255,0.88);">${title}</div>
-      <div style="font-size:15px; line-height:1.7; color:rgba(255,255,255,0.7);">${body}</div>
+    <div class="fg-p-6 fg-rounded-[22px]" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); backdrop-filter:blur(16px);">
+      <div class="fg-text-xs fg-font-extrabold fg-tracking-[0.12em] fg-uppercase fg-mb-[14px]" style="color:var(--fg-muted);">Current State</div>
+      <div class="fg-text-sm fg-font-bold fg-mb-[10px]" style="color:var(--fg-text);">${title}</div>
+      <div style="font-size:15px; line-height:1.7; color:var(--fg-muted);">${body}</div>
     </div>
-    <div class="fg-p-6 fg-rounded-[22px] fg-flex-1" style="background:rgba(255,255,255,0.045); border:1px solid rgba(255,255,255,0.07); backdrop-filter:blur(16px);">
-      <div class="fg-text-xs fg-font-extrabold fg-tracking-[0.12em] fg-uppercase fg-mb-[14px]" style="color:rgba(255,255,255,0.44);">Today Records</div>
-      <div class="fg-text-sm fg-font-bold fg-mb-1" style="color:rgba(255,255,255,0.88);">Session History</div>
-      <div class="fg-text-[13px] fg-mb-[14px]" style="color:rgba(255,255,255,0.5);">Completed and interrupted sessions from today.</div>
+    <div class="fg-p-6 fg-rounded-[22px] fg-flex-1" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); backdrop-filter:blur(16px);">
+      <div class="fg-text-xs fg-font-extrabold fg-tracking-[0.12em] fg-uppercase fg-mb-[14px]" style="color:var(--fg-muted);">Today Records</div>
+      <div class="fg-text-sm fg-font-bold fg-mb-1" style="color:var(--fg-text);">Session History</div>
+      <div class="fg-text-[13px] fg-mb-[14px]" style="color:var(--fg-muted);">Completed and interrupted sessions from today.</div>
       ${renderTodayRecords()}
     </div>
   `;
@@ -415,14 +417,14 @@ async function _renderActivePage(
         .slice(0, 5)
         .map((d) => renderDomainIcon(d, 36))
         .join('')
-    : '<div style="font-size:15px; color:rgba(255,255,255,0.9); line-height:1.6;">Focus session active</div>';
+    : '<div style="font-size:15px; color:var(--fg-text); line-height:1.6;">Focus session active</div>';
 
   const sublabel = `${Math.round(progress * 100)}% complete`;
 
   const centerContent = `
     ${renderActiveStateSummary(currentFocusHtml, uniqueBlocked.length)}
     ${renderRingMarkup(timeDisplay, progress, 'Session Running', sublabel)}
-    <button class="btn-premium" id="stopFocus" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.65); border-radius:999px; box-shadow:none; font-size:14px; font-weight:600; padding:10px 24px;">
+    <button class="btn-premium" id="stopFocus" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:var(--fg-text); border:1px solid var(--fg-glass-border); border-radius:999px; box-shadow:none; font-size:14px; font-weight:600; padding:10px 24px;">
       Pause
     </button>
     ${renderFocusDetails(
@@ -478,7 +480,9 @@ function _updateActiveTicks(container: HTMLElement, progress: number): void {
     const tick = el as SVGLineElement;
     const index = parseInt(tick.getAttribute('data-tick-index') || '0', 10);
     const stroke =
-      index < activeTicks ? 'rgba(132,255,228,0.92)' : 'rgba(255,255,255,0.25)';
+      index < activeTicks
+        ? 'var(--fg-accent)'
+        : 'color-mix(in srgb, var(--fg-muted) 35%, transparent)';
     if (tick.getAttribute('stroke') !== stroke) {
       tick.setAttribute('stroke', stroke);
     }
@@ -500,7 +504,7 @@ async function _renderActivePopup(
     <div style="transform: scale(0.8); margin: -20px 0;">
       ${renderRingMarkup(timeDisplay, progress, 'Active Focus', sublabel)}
     </div>
-    <button class="btn-premium" id="stopFocusPopup" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.65); border-radius:999px; box-shadow:none; font-size:12px; font-weight:600; padding:8px 20px;">
+    <button class="btn-premium" id="stopFocusPopup" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:var(--fg-text); border:1px solid var(--fg-glass-border); border-radius:999px; box-shadow:none; font-size:12px; font-weight:600; padding:8px 20px;">
       ABORT SESSION
     </button>
   `;

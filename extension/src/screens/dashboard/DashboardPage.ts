@@ -2,11 +2,11 @@ import Chart from 'chart.js/auto';
 import {
   fmtTime,
   buildDashboardTabPath,
-  resolveFaviconUrl,
   findServiceIdByDomain,
   getRootDomain,
 } from '@focusgate/core';
 import { appsController } from '../../lib/appsController';
+import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
 
 // This function opens the extension settings page
 function openSettingsPage() {
@@ -36,11 +36,16 @@ export async function renderDashboardPage(container) {
       allTotalMs,
       domainList,
       syncStatus,
-      syncMode,
       isNew,
       cloudBlockedQueries,
       focusEnd,
     } = data;
+
+    // Load icon cache for instant render
+    const iconLookup: Record<string, string> = {};
+    for (const d of domainList) {
+      iconLookup[d.domain] = (await getCachedIcon(d.domain)) || '';
+    }
 
     const isFocusing = focusEnd > Date.now();
     let timerDisplay = '25:00';
@@ -121,7 +126,7 @@ export async function renderDashboardPage(container) {
             <div class="glass-card widget-card" id="blockedWidget"></div>
           </div>
 
-          <div class="fg-grid fg-gap-8" style="grid-template-columns: 3fr 2fr;">
+          <div class="fg-grid fg-gap-8" style="grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start;">
             <div>
               <div class="section-label fg-text-[11px] fg-font-black fg-tracking-[1.5px] fg-mb-5">CURRENT ACTIVITY</div>
               <div class="service-grid fg-gap-3" id="activityGrid" style="grid-template-columns: 1fr;"></div>
@@ -229,7 +234,7 @@ export async function renderDashboardPage(container) {
           ${syncStatus === 'connected' ? 'READY' : 'OFFLINE'}
         </div>
         <div class="fg-text-[10px] fg-text-[var(--fg-text)] fg-font-black fg-uppercase fg-mt-1">
-          MODE: ${(syncMode as string).toUpperCase()}
+          CLOUD SYNC
         </div>
       `;
     }
@@ -237,9 +242,9 @@ export async function renderDashboardPage(container) {
     const blockedW = container.querySelector('#blockedWidget');
     if (blockedW) {
       blockedW.innerHTML = `
-        <div class="widget-title" style="color: var(--fg-text); font-weight: 950; font-size: 11px; letter-spacing: 0.1em; opacity: 1;">BLOCKED ATTEMPTS</div>
+        <div class="widget-title" style="color: var(--fg-text); font-weight: 950; font-size: 11px; letter-spacing: 0.1em; opacity: 1;">DNS BLOCKS</div>
         <div style="font-size:32px; font-weight:950; color:var(--fg-text);">${cloudBlockedQueries.toLocaleString()}</div>
-        <div style="font-size:11px; color:var(--fg-text); opacity: 0.6; font-weight:700; text-transform: uppercase; margin-top: 4px;">Filtered Blocks Today</div>
+        <div style="font-size:11px; color:var(--fg-text); opacity: 0.6; font-weight:700; text-transform: uppercase; margin-top: 4px;">Reported from DNS analytics</div>
       `;
     }
 
@@ -272,7 +277,11 @@ export async function renderDashboardPage(container) {
             }
             return false;
           });
-          const iconUrl = resolveFaviconUrl(d.domain);
+
+          const rootDomain = getRootDomain(d.domain);
+          const cached = iconLookup[d.domain];
+          const iconUrl = cached || `https://logo.clearbit.com/${rootDomain}`;
+
           const existingItem = activityG.querySelector(
             `.rule-item[data-domain="${d.domain}"]`,
           ) as HTMLElement;
@@ -282,30 +291,32 @@ export async function renderDashboardPage(container) {
           const statusLabelHtml = isBlocked
             ? '<span style="display:inline-flex; align-items:center; gap:4px;"><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" style="color:var(--red);"><circle cx="12" cy="12" r="12"/></svg> BLOCKED</span>'
             : '<span style="color: var(--fg-text); opacity: 0.7;">Monitoring</span>';
-          const timeColor = isBlocked ? 'var(--fg-muted)' : 'var(--fg-text)';
+          const timeColor = 'var(--fg-text)';
 
           const cardInner = `
-                 <div class="fg-flex fg-items-center fg-gap-4 fg-min-w-0">
-                    <div class="fg-shrink-0 fg-relative fg-flex fg-items-center fg-justify-center" style="width: 44px; height: 44px;">
+                 <div class="fg-flex fg-items-center fg-gap-3 fg-min-w-0">
+                    <div class="fg-shrink-0 fg-relative fg-flex fg-items-center fg-justify-center" style="width: 38px; height: 38px;">
                        <div class="placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-text)]" style="opacity: 0.5;">
                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
                        </div>
                        <img src="${iconUrl}" data-domain="${
             d.domain
-          }" style="width: 36px; height:36px; object-fit: contain; z-index: 2; position: relative; display: none; border-radius: 20%;">
+          }" style="width: 30px; height:30px; object-fit: contain; z-index: 2; position: relative; display: ${
+            cached ? 'block' : 'none'
+          }; border-radius: 20%;">
                     </div>
                    <div class="fg-min-w-0 fg-flex-1">
-                     <div class="fg-text-sm fg-font-extrabold fg-truncate">${
+                     <div class="fg-text-[13px] fg-font-extrabold fg-truncate">${
                        d.domain
                      }</div>
                      <div class="row-status fg-text-[11px] fg-font-bold fg-uppercase fg-mt-[2px]" style="color: ${
                        isBlocked ? 'var(--red)' : 'var(--fg-text)'
-                     }; opacity: ${isBlocked ? '1' : '0.6'};">
+                     }; opacity: 1;">
                        ${statusLabelHtml}
                      </div>
                    </div>
-                   <div class="fg-flex fg-items-center fg-gap-[10px] fg-shrink-0">
-                     <div class="row-time fg-text-[13px] fg-font-black" style="color:${timeColor}">${fmtTime(
+                   <div class="fg-flex fg-items-center fg-gap-[8px] fg-shrink-0">
+                     <div class="row-time fg-text-[12px] fg-font-black" style="color:${timeColor}">${fmtTime(
             d.timeMs,
           )}</div>
                      <div class="row-action">${badgeHtml}</div>
@@ -339,9 +350,9 @@ export async function renderDashboardPage(container) {
             div.setAttribute('data-domain', d.domain);
             div.setAttribute(
               'style',
-              `padding: 14px 20px; background: var(--fg-glass-bg); border-radius: 12px; margin-bottom: 8px; border-left: 3px solid ${
+              `padding: 12px 16px; background: var(--fg-glass-bg); border-radius: 12px; margin-bottom: 8px; border-left: 3px solid ${
                 isBlocked ? 'var(--red)' : 'transparent'
-              }; transition: border-color 0.2s;`,
+              }; transition: border-color 0.2s; max-width: 100%;`,
             );
             div.innerHTML = cardInner;
             activityG.appendChild(div);
@@ -367,15 +378,23 @@ export async function renderDashboardPage(container) {
     if (!container.__iconListenersAttached) {
       container.addEventListener(
         'load',
-        (e) => {
+        async (e) => {
           const target = e.target as HTMLImageElement;
           if (
             target.tagName === 'IMG' &&
             target.parentElement?.classList.contains('fg-shrink-0')
           ) {
-            target.style.display = 'block';
-            (target.previousElementSibling as HTMLElement).style.display =
-              'none';
+            if (target.naturalWidth > 1) {
+              target.style.display = 'block';
+              (target.previousElementSibling as HTMLElement).style.display =
+                'none';
+              const domain = target.dataset.domain;
+              if (domain) {
+                saveIconToCache(domain, target.src);
+              }
+            } else {
+              target.dispatchEvent(new Event('error'));
+            }
           }
         },
         true,
@@ -389,11 +408,11 @@ export async function renderDashboardPage(container) {
             target.parentElement?.classList.contains('fg-shrink-0')
           ) {
             const domain = target.dataset.domain;
-            if (domain && !target.dataset.triedFallback) {
-              target.dataset.triedFallback = 'true';
+            const currentUrl = target.src;
+            if (currentUrl.includes('logo.clearbit.com') && domain) {
               target.src = `https://www.google.com/s2/favicons?domain=${getRootDomain(
                 domain,
-              )}&sz=64`;
+              )}&sz=128`;
             } else {
               target.style.display = 'none';
               (target.previousElementSibling as HTMLElement).style.display =

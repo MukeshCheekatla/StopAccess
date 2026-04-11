@@ -73,9 +73,9 @@ export function FocusPopupView() {
   };
 
   const ringStyles = {
-    bg: 'linear-gradient(180deg, #09090b, #0c0d12)',
-    text: { color: '#ffffff', opacity: 1 },
-    dim: { color: 'rgba(255,255,255,0.7)', opacity: 1 },
+    bg: 'linear-gradient(180deg, #070708, #0c0d12)',
+    text: { color: '#fefefe', opacity: 1 },
+    dim: { color: 'rgba(255,255,255,0.5)', opacity: 1 },
   };
 
   if (rem > 0) {
@@ -217,14 +217,14 @@ export function FocusPopupView() {
           <button
             key={p.m}
             onClick={() => startFocus(p.m)}
-            className="fg-rounded-[20px] fg-border fg-border-white/10 fg-bg-white/[0.08] fg-p-4 fg-transition-all hover:fg-bg-white/15"
+            className="fg-rounded-[24px] fg-border fg-border-white/[0.03] fg-bg-[#18181b] fg-p-5 fg-transition-all hover:fg-bg-[#27272a] hover:fg-scale-[1.02] active:fg-scale-[0.98]"
           >
-            <div className="fg-text-lg fg-font-black" style={ringStyles.text}>
+            <div className="fg-text-2xl fg-font-black" style={ringStyles.text}>
               {p.m}M
             </div>
             <div
-              className="fg-text-[9px] fg-font-black fg-tracking-widest"
-              style={ringStyles.dim}
+              className="fg-text-[10px] fg-font-black fg-tracking-[0.15em] fg-mt-1"
+              style={{ color: '#84ffe4' }}
             >
               {p.t.toUpperCase()}
             </div>

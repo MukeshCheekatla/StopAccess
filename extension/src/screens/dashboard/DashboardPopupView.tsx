@@ -120,11 +120,10 @@ export function DashboardPopupView() {
 
   return (
     <div className="fg-flex fg-flex-col fg-gap-4 fg-p-4">
-      <div className="fg-grid fg-grid-cols-3 fg-gap-3">
-        <StatTile label="Daily Usage" value={fmtTime(totalUsageMs)} />
-        <StatTile label="Shield Status" value="ACTIVE" tone="active" />
+      <div className="fg-grid fg-grid-cols-2 fg-gap-3">
+        <StatTile label="Daily Activity" value={fmtTime(totalUsageMs)} />
         <StatTile
-          label="Timer"
+          label="Lock Timer"
           value={timerLabel}
           tone={remaining > 0 ? 'active' : 'default'}
           mono
@@ -142,7 +141,7 @@ export function DashboardPopupView() {
           activityRows.map((row) => <ActivityCard key={row.domain} row={row} />)
         ) : !loading ? (
           <div className="fg-panel-muted fg-rounded-[18px] fg-px-4 fg-py-10 fg-text-center">
-            <div className="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.2em] fg-text-slate-400">
+            <div className="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.2em] fg-text-[var(--fg-muted)]">
               No activity yet
             </div>
             <div className="fg-mt-2 fg-text-xs fg-font-medium fg-leading-relaxed fg-text-slate-500">
@@ -168,10 +167,10 @@ function StatTile({
 }) {
   const valueClassName =
     tone === 'active'
-      ? 'fg-text-white'
+      ? 'fg-text-[var(--fg-text)]'
       : tone === 'muted'
-      ? 'fg-text-slate-400'
-      : 'fg-text-white';
+      ? 'fg-text-[var(--fg-muted)]'
+      : 'fg-text-[var(--fg-text)]';
 
   return (
     <div className="fg-rounded-[12px] fg-bg-white/[0.03] fg-p-[14px]">
@@ -223,7 +222,9 @@ function ActivityCard({ row }: { row: ActivityRow }) {
       <div className="fg-min-w-0 fg-flex-1">
         <div
           className={`fg-truncate fg-text-[14px] fg-font-extrabold ${
-            row.isBlocked ? 'fg-text-slate-400' : 'fg-text-white'
+            row.isBlocked
+              ? 'fg-text-[var(--fg-muted)]'
+              : 'fg-text-[var(--fg-text)]'
           }`}
         >
           {row.domain}
@@ -232,7 +233,7 @@ function ActivityCard({ row }: { row: ActivityRow }) {
 
       <div
         className={`fg-text-[14px] fg-font-black fg-tabular-nums ${
-          row.isBlocked ? 'fg-text-red-400' : 'fg-text-white'
+          row.isBlocked ? 'fg-text-[var(--fg-red)]' : 'fg-text-[var(--fg-text)]'
         }`}
       >
         {fmtTime(row.timeMs)}
