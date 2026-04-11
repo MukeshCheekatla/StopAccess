@@ -139,6 +139,14 @@ if (manifest.manifest_version !== 3) {
   fail('manifest_version must be 3 for the current extension package');
 }
 
+if (!manifest.description || manifest.description.length > 132) {
+  fail(
+    `manifest.description must be 132 characters or less; current length is ${
+      manifest.description?.length ?? 0
+    }`,
+  );
+}
+
 const manifestFiles = [
   manifest.background?.service_worker,
   manifest.action?.default_popup,
