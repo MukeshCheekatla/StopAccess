@@ -28,10 +28,6 @@ export { STORAGE_KEYS } from '@focusgate/state';
 
 type GuardAction = 'remove_app' | 'disable_blocking' | 'modify_blocklist';
 
-function normalizeSyncMode(mode?: string | null): 'browser' | 'profile' {
-  return mode === 'profile' ? 'profile' : 'browser';
-}
-
 async function requireUnlocked(action: GuardAction): Promise<
   | {
       locked: false;
@@ -190,8 +186,7 @@ export const nextDNSApi = {
   },
 
   shouldSync: async () => {
-    const res = await chrome.storage.local.get(STORAGE_KEYS.SYNC_MODE);
-    return normalizeSyncMode(res[STORAGE_KEYS.SYNC_MODE]) === 'profile';
+    return nextDNSApi.isConfigured();
   },
 
   getConfig: async (): Promise<NextDNSConfig> => {

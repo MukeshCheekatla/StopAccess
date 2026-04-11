@@ -52,10 +52,6 @@ async function setActiveTabState(state: any) {
   }
 }
 
-function normalizeSyncMode(mode?: string | null): 'browser' | 'profile' {
-  return mode === 'profile' ? 'profile' : 'browser';
-}
-
 console.log('[FocusGate] TRACKER INITIALIZING');
 
 function recordRuntimeError(source, error) {
@@ -285,6 +281,14 @@ async function runCycle(forceSync = false) {
         usedMinutesToday: 0,
         blockedToday: false,
         extensionCountToday: 0,
+        streakDays:
+          r.desiredBlockingState === false
+            ? 0
+            : (r.streakUpdatedOn || '') === todayStr
+            ? r.streakDays || 0
+            : (r.streakDays || 0) + 1,
+        streakUpdatedOn:
+          r.desiredBlockingState === false ? undefined : todayStr,
         desiredBlockingState:
           r.mode === 'limit' ? true : r.desiredBlockingState,
       }));
@@ -326,12 +330,8 @@ async function runCycle(forceSync = false) {
       },
     };
 
-    const syncMode = normalizeSyncMode(
-      await extensionAdapter.getString(STORAGE_KEYS.SYNC_MODE),
-    );
-
-    // 1. NextDNS Cloud Sync (Only if STRONG protection is active)
-    if (nextdns_cfg.profileId && nextdns_cfg.apiKey && syncMode === 'profile') {
+    // NextDNS Cloud Sync (runs whenever credentials are present)
+    if (nextdns_cfg.profileId && nextdns_cfg.apiKey) {
       if (!sync) {
         sync = new SyncOrchestrator(ctx);
         await sync.onLaunch();
@@ -341,7 +341,7 @@ async function runCycle(forceSync = false) {
       }
 
       if (forceSync) {
-        await sync.onStateChange(true); // Immediate Push
+        await sync.onStateChange(true);
       }
 
       // Heartbeat
@@ -358,9 +358,7 @@ async function runCycle(forceSync = false) {
     } else {
       await extensionAdapter.set(
         STORAGE_KEYS.CONNECTION_STATUS,
-        nextdns_cfg.profileId && nextdns_cfg.apiKey
-          ? 'browser_mode'
-          : 'not_configured',
+        'not_configured',
       );
     }
 
@@ -465,7 +463,6 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       [STORAGE_KEYS.FOCUS_END]: 0,
       [STORAGE_KEYS.LOGS]: JSON.stringify([]),
       [STORAGE_KEYS.USAGE]: {},
-      [STORAGE_KEYS.SYNC_MODE]: 'browser',
       [STORAGE_KEYS.LAST_RESET]: new Date().toLocaleDateString('en-CA'),
     });
     // Open full-page dashboard on install

@@ -12,14 +12,19 @@ const TEMP_PASSES_KEY = 'fg_temp_passes';
 const EXT_COUNTS_KEY = 'fg_extension_counts';
 const CONTENT_DEBUG_KEY = 'fg_content_debug';
 const OVERLAY_ID = '__fg_block_overlay__';
-const MAX_DAILY_EXTENSIONS = 5;
+const DEFAULT_MAX_DAILY_PASSES = 3;
+const PASS_DURATION_MINUTES = 5;
+const OVERLAY_DELAY_MS = 2300;
+const PREBLOCK_ID = '__fg_block_prewarn__';
 
 let overlayActive = false;
 let overlayEl = null;
+let preblockEl = null;
 let previousBodyOverflow = '';
 let previousHtmlOverflow = '';
 let liveTimerInterval = null;
 let passCountdownInterval = null;
+let pendingOverlayTimer = null;
 
 function currentDomain() {
   return window.location.hostname.replace(/^www\./, '');
@@ -79,13 +84,18 @@ async function getExtensionCount(domain: string): Promise<number> {
   return (counts[today] && counts[today][domain]) || 0;
 }
 
+function getMaxPasses(rule: AppRule | undefined): number {
+  return Math.max(0, Number(rule?.maxDailyPasses ?? DEFAULT_MAX_DAILY_PASSES));
+}
+
 async function grantTempPass(
   domain: string,
   minutes: number,
+  maxDailyPasses = DEFAULT_MAX_DAILY_PASSES,
 ): Promise<boolean> {
   // Check extension count
   const count = await getExtensionCount(domain);
-  if (count >= MAX_DAILY_EXTENSIONS) {
+  if (count >= maxDailyPasses) {
     return false;
   }
 
@@ -144,7 +154,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
   const {
     canExtend = false,
     extensionCount = 0,
-    maxExtensions = MAX_DAILY_EXTENSIONS,
+    maxExtensions = DEFAULT_MAX_DAILY_PASSES,
     ruleMode = 'block',
     usedMinutes = 0,
     usedMs = 0,
@@ -161,7 +171,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
   const C = 2 * Math.PI * R;
   const offset = C - (C * pct) / 100;
 
-  const ringColor = pct >= 100 ? '#ef4444' : '#6366f1'; // Red or Accent
+  const ringColor = pct >= 100 ? 'var(--fg-red)' : 'var(--fg-accent)';
 
   const statusText = isLimitMode
     ? 'Daily limit reached'
@@ -224,11 +234,8 @@ function buildOverlayMarkup(domain, options: any = {}) {
               </div>
             </div>
             <div class="fg-grid fg-grid-cols-2 fg-gap-3">
-              <button class="fg-extend-btn fg-flex fg-items-center fg-justify-center fg-gap-2 fg-p-3 fg-bg-zinc-800/50 fg-border fg-border-zinc-700/50 fg-rounded-xl fg-text-sm fg-font-bold fg-text-zinc-300 fg-transition-all hover:fg-bg-zinc-700/50 active:fg-scale-[0.98] disabled:fg-opacity-30 disabled:fg-cursor-not-allowed" data-minutes="5">
-                ${clockSvg} 5 min
-              </button>
-              <button class="fg-extend-btn fg-flex fg-items-center fg-justify-center fg-gap-2 fg-p-3 fg-bg-zinc-800/50 fg-border fg-border-zinc-700/50 fg-rounded-xl fg-text-sm fg-font-bold fg-text-zinc-300 fg-transition-all hover:fg-bg-zinc-700/50 active:fg-scale-[0.98] disabled:fg-opacity-30 disabled:fg-cursor-not-allowed" data-minutes="10">
-                ${clockSvg} 10 min
+              <button class="fg-extend-btn fg-col-span-2 fg-flex fg-items-center fg-justify-center fg-gap-2 fg-p-3 fg-bg-zinc-800/50 fg-border fg-border-zinc-700/50 fg-rounded-xl fg-text-sm fg-font-bold fg-text-zinc-300 fg-transition-all hover:fg-bg-zinc-700/50 active:fg-scale-[0.98] disabled:fg-opacity-30 disabled:fg-cursor-not-allowed" data-minutes="${PASS_DURATION_MINUTES}">
+                ${clockSvg} ${PASS_DURATION_MINUTES} min pass
               </button>
             </div>
           </div>
@@ -250,6 +257,43 @@ function buildOverlayMarkup(domain, options: any = {}) {
   `;
 }
 
+function showPreBlockSignal() {
+  if (preblockEl || overlayActive) {
+    return;
+  }
+
+  preblockEl = document.createElement('div');
+  preblockEl.id = PREBLOCK_ID;
+  const shadow = preblockEl.attachShadow({ mode: 'open' });
+
+  const styleLink = document.createElement('link');
+  styleLink.rel = 'stylesheet';
+  styleLink.href = chrome.runtime.getURL('tailwind.css');
+  shadow.appendChild(styleLink);
+
+  const wrapper = document.createElement('div');
+  wrapper.innerHTML = `
+    <div class="fg-fixed fg-inset-0 fg-z-[2147483646] fg-flex fg-items-center fg-justify-center fg-bg-black/10 fg-backdrop-blur-[1px]">
+      <div class="fg-flex fg-h-36 fg-w-36 fg-items-center fg-justify-center fg-rounded-full fg-border fg-border-[var(--fg-red)]/40 fg-bg-[var(--fg-red)]/15 fg-shadow-[0_0_80px_rgba(239,68,68,0.35)]">
+        <div class="fg-h-16 fg-w-16 fg-rounded-full fg-bg-[var(--fg-red)] fg-animate-pulse"></div>
+      </div>
+    </div>
+  `;
+  shadow.appendChild(wrapper);
+  document.documentElement.appendChild(preblockEl);
+}
+
+function removePreBlockSignal() {
+  if (pendingOverlayTimer) {
+    clearTimeout(pendingOverlayTimer);
+    pendingOverlayTimer = null;
+  }
+  if (preblockEl?.parentNode) {
+    preblockEl.parentNode.removeChild(preblockEl);
+  }
+  preblockEl = null;
+}
+
 // ── Overlay Inject / Remove ───────────────────────
 
 function injectOverlay(domain, options: any = {}) {
@@ -258,6 +302,7 @@ function injectOverlay(domain, options: any = {}) {
   }
 
   overlayActive = true;
+  removePreBlockSignal();
   window.stop();
 
   previousHtmlOverflow = document.documentElement.style.overflow;
@@ -310,7 +355,11 @@ function injectOverlay(domain, options: any = {}) {
         .querySelectorAll('.fg-extend-btn')
         .forEach((b) => b.setAttribute('disabled', 'true'));
 
-      const ok = await grantTempPass(domain, minutes);
+      const ok = await grantTempPass(
+        domain,
+        minutes,
+        Number(options.maxExtensions || DEFAULT_MAX_DAILY_PASSES),
+      );
       if (ok) {
         await chrome.runtime.sendMessage({ action: 'manualSync' });
         removeOverlay();
@@ -344,10 +393,12 @@ function injectOverlay(domain, options: any = {}) {
 
 function removeOverlay() {
   if (!overlayActive) {
+    removePreBlockSignal();
     return;
   }
 
   overlayActive = false;
+  removePreBlockSignal();
   if (liveTimerInterval) {
     clearInterval(liveTimerInterval);
     liveTimerInterval = null;
@@ -440,10 +491,11 @@ async function checkAndBlock() {
 
   const matchingRule = findMatchingRule(rules, domain);
   const extensionCount = await getExtensionCount(domain);
+  const maxDailyPasses = getMaxPasses(matchingRule);
   const canExtend =
     matchingRule &&
     (matchingRule.mode === 'limit' || matchingRule.mode === 'block') &&
-    extensionCount < MAX_DAILY_EXTENSIONS;
+    extensionCount < maxDailyPasses;
 
   chrome.storage.local
     .set({
@@ -472,16 +524,22 @@ async function checkAndBlock() {
     );
     const sessions = domainUsage?.sessions || 0;
 
-    injectOverlay(domain, {
-      canExtend,
-      extensionCount,
-      maxExtensions: MAX_DAILY_EXTENSIONS,
-      ruleMode: matchingRule?.mode || 'block',
-      usedMinutes: effectiveUsed,
-      usedMs: effectiveMs,
-      limitMinutes: matchingRule?.dailyLimitMinutes || 0,
-      sessions,
-    });
+    if (!overlayActive && !pendingOverlayTimer) {
+      showPreBlockSignal();
+      pendingOverlayTimer = setTimeout(() => {
+        pendingOverlayTimer = null;
+        injectOverlay(domain, {
+          canExtend,
+          extensionCount,
+          maxExtensions: maxDailyPasses,
+          ruleMode: matchingRule?.mode || 'block',
+          usedMinutes: effectiveUsed,
+          usedMs: effectiveMs,
+          limitMinutes: matchingRule?.dailyLimitMinutes || 0,
+          sessions,
+        });
+      }, OVERLAY_DELAY_MS);
+    }
   } else {
     removeOverlay();
   }
@@ -544,3 +602,199 @@ chrome.storage.onChanged.addListener((changes) => {
     checkAndBlock();
   }
 });
+
+// ════════════════════════════════════════════════════════════
+// NextDNS Setup Helper
+// Only shown when the user navigated here from FocusGate
+// onboarding or settings (intent flag set in storage).
+// ════════════════════════════════════════════════════════════
+
+if (window.location.hostname === 'my.nextdns.io') {
+  const FG_HELPER_ID = '__fg_nextdns_helper__';
+
+  type Intent = { mode: 'setup' | 'api'; expiresAt: number };
+
+  function profileIdFromUrl(): string | null {
+    const m = window.location.pathname.match(/^\/([a-z0-9]{4,12})(\/|$)/i);
+    if (!m) {
+      return null;
+    }
+    if (['account', 'login', 'signup', 'new'].includes(m[1])) {
+      return null;
+    }
+    return m[1];
+  }
+
+  function readApiKeyFromPage(): string | null {
+    // Look for text inputs containing a long alphanumeric value (API key pattern)
+    for (const el of Array.from(
+      document.querySelectorAll('input[type="text"],input:not([type])'),
+    )) {
+      const v = (el as HTMLInputElement).value.trim();
+      if (v.length >= 20 && /^[a-zA-Z0-9]+$/.test(v)) {
+        return v;
+      }
+    }
+    // Check code/pre blocks
+    for (const el of Array.from(document.querySelectorAll('code, pre'))) {
+      const v = (el as HTMLElement).textContent?.trim() || '';
+      if (v.length >= 20 && /^[a-zA-Z0-9]+$/.test(v)) {
+        return v;
+      }
+    }
+    return null;
+  }
+
+  function clearIntent() {
+    chrome.storage.local.remove('fg_helper_intent');
+  }
+
+  function removeHelper() {
+    document.getElementById(FG_HELPER_ID)?.remove();
+  }
+
+  async function maybeMount() {
+    // Check intent flag
+    const res = await chrome.storage.local.get('fg_helper_intent');
+    const intent = res.fg_helper_intent as Intent | undefined;
+
+    if (!intent || Date.now() > intent.expiresAt) {
+      removeHelper();
+      return;
+    }
+
+    const isSetupPage = !!profileIdFromUrl();
+    const isAccountPage = window.location.pathname.startsWith('/account');
+
+    // Guard: only show the right card on the right page
+    if (intent.mode === 'setup' && !isSetupPage) {
+      return;
+    }
+    if (intent.mode === 'api' && !isAccountPage) {
+      return;
+    }
+
+    // Already mounted
+    if (document.getElementById(FG_HELPER_ID)) {
+      return;
+    }
+
+    const root = document.body || document.documentElement;
+    if (!root) {
+      return;
+    }
+
+    const iconUrl = chrome.runtime.getURL('assets/icon-32.png');
+    const profileId = profileIdFromUrl();
+
+    const card = document.createElement('div');
+    card.id = FG_HELPER_ID;
+    card.setAttribute(
+      'style',
+      [
+        'position:fixed',
+        'bottom:24px',
+        'right:24px',
+        'z-index:2147483646',
+        'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+        'background:#18181b',
+        'border:1.5px solid rgba(255,255,255,0.12)',
+        'border-radius:18px',
+        'padding:18px 20px',
+        'width:264px',
+        'box-shadow:0 16px 48px rgba(0,0,0,0.6)',
+        'color:#fff',
+      ].join(';'),
+    );
+
+    const hdr = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+      <img src="${iconUrl}" style="width:20px;height:20px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);" />
+      <span style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.4);">FocusGate</span>
+      <button id="fgh_close" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:18px;line-height:1;padding:0 2px;">&times;</button>
+    </div>`;
+
+    if (intent.mode === 'setup' && profileId) {
+      card.innerHTML =
+        hdr +
+        `
+        <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.14em;font-weight:800;">Profile ID</div>
+        <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:20px;font-weight:900;font-family:monospace;letter-spacing:0.04em;margin-bottom:12px;">${profileId}</div>
+        <button id="fgh_copy" style="width:100%;background:#fff;color:#18181b;border:none;border-radius:10px;padding:11px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;">Copy Profile ID</button>
+        <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:#10b981;font-weight:700;">Copied — switch back to FocusGate</div>`;
+    } else if (intent.mode === 'api') {
+      card.innerHTML =
+        hdr +
+        `
+        <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:12px;line-height:1.65;">
+          Your <strong style="color:#fff;">API Key</strong> is shown in the <em>API</em> section on this page.
+        </div>
+        <button id="fgh_copy" style="width:100%;background:#fff;color:#18181b;border:none;border-radius:10px;padding:11px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;">Copy API Key</button>
+        <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:#10b981;font-weight:700;">Copied — switch back to FocusGate</div>
+        <div id="fgh_err" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:rgba(255,255,255,0.4);font-weight:600;">Key not visible yet — scroll down to the API section first.</div>`;
+    } else {
+      return; // nothing to show
+    }
+
+    root.appendChild(card);
+
+    card.querySelector('#fgh_close')?.addEventListener('click', () => {
+      clearIntent();
+      removeHelper();
+    });
+
+    card.querySelector('#fgh_copy')?.addEventListener('click', async () => {
+      const value = intent.mode === 'setup' ? profileId! : readApiKeyFromPage();
+
+      const btn = card.querySelector('#fgh_copy') as HTMLButtonElement;
+      const ok = card.querySelector('#fgh_ok') as HTMLElement;
+      const err = card.querySelector('#fgh_err') as HTMLElement | null;
+
+      if (!value) {
+        if (err) {
+          err.style.display = 'block';
+        }
+        return;
+      }
+
+      await navigator.clipboard.writeText(value).catch(() => {});
+      // Clear intent so card won't re-show
+      clearIntent();
+      btn.textContent = 'Copied!';
+      btn.style.background = '#10b981';
+      btn.style.color = '#fff';
+      ok.style.display = 'block';
+      if (err) {
+        err.style.display = 'none';
+      }
+    });
+  }
+
+  // Initial mount — wait for page to render
+  function boot() {
+    setTimeout(maybeMount, 800);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+
+  // Re-check on SPA navigation (NextDNS is a Vue SPA)
+  let _hlastUrl = window.location.href;
+  new MutationObserver(() => {
+    if (window.location.href !== _hlastUrl) {
+      _hlastUrl = window.location.href;
+      removeHelper();
+      boot();
+    }
+  }).observe(document.documentElement, { childList: true, subtree: true });
+
+  // Also re-check if storage changes (e.g. user opens a second NextDNS tab)
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.fg_helper_intent) {
+      removeHelper();
+      boot();
+    }
+  });
+}
