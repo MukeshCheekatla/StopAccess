@@ -184,7 +184,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
   const timeStr = formatTime(usedMs || usedMinutes * 60000);
 
   return `
-    <div class="fg-min-h-[100dvh] fg-w-[100vw] fg-flex fg-items-center fg-justify-center fg-bg-[#0B0B0B] fg-text-white fg-font-sans fg-overflow-y-auto fg-px-4 fg-py-6 sm:fg-p-8">
+    <div class="fg-h-[100vh] fg-w-[100vw] fg-flex fg-items-center fg-justify-center fg-bg-[#0B0B0B] fg-text-white fg-font-sans fg-overflow-y-auto fg-px-4 fg-py-6 sm:fg-p-8">
       <div class="fg-w-full fg-max-w-[440px] fg-flex fg-flex-col fg-items-center fg-p-4 sm:fg-p-6">
         <div class="fg-text-[12px] sm:fg-text-[13px] fg-font-black fg-tracking-[0.24em] fg-text-white fg-mb-5 sm:fg-mb-8">STOPACCESS</div>
 
@@ -327,16 +327,22 @@ function injectOverlay(domain, options: any = {}) {
   const baseStyle = document.createElement('style');
   baseStyle.textContent = `
     :host {
-      all: initial;
-      position: fixed;
-      inset: 0;
-      z-index: 2147483647;
-      display: block;
+      all: initial !important;
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 2147483647 !important;
+      display: block !important;
+      background-color: #0B0B0B !important;
     }
   `;
   shadow.appendChild(baseStyle);
 
   const wrapper = document.createElement('div');
+  wrapper.style.width = '100%';
+  wrapper.style.height = '100%';
   wrapper.innerHTML = buildOverlayMarkup(domain, options);
   shadow.appendChild(wrapper);
 
@@ -623,26 +629,6 @@ if (window.location.hostname === 'my.nextdns.io') {
       return null;
     }
     return m[1];
-  }
-
-  function readApiKeyFromPage(): string | null {
-    // Look for text inputs containing a long alphanumeric value (API key pattern)
-    for (const el of Array.from(
-      document.querySelectorAll('input[type="text"],input:not([type])'),
-    )) {
-      const v = (el as HTMLInputElement).value.trim();
-      if (v.length >= 20 && /^[a-zA-Z0-9]+$/.test(v)) {
-        return v;
-      }
-    }
-    // Check code/pre blocks
-    for (const el of Array.from(document.querySelectorAll('code, pre'))) {
-      const v = (el as HTMLElement).textContent?.trim() || '';
-      if (v.length >= 20 && /^[a-zA-Z0-9]+$/.test(v)) {
-        return v;
-      }
-    }
-    return null;
   }
 
   function clearIntent() {
