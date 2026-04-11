@@ -6,7 +6,7 @@
   "scripts": {
     "tw:build": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --config ./tailwind.config.js --minify",
     "tw:watch": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --config ./tailwind.config.js --watch",
-    "build": "npm run typecheck && npm run tw:build && node build.js",
+    "build": "npm run typecheck && node build.js && npm run tw:build",
     "watch": "npm run tw:watch & node build.js --watch",
     "check": "node ../scripts/check-extension.mjs",
     "lint": "eslint . --fix",
