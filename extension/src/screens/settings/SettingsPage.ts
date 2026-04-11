@@ -53,8 +53,8 @@ export async function renderSettingsPage(container) {
                   ${iconCloud}
                 </div>
                 <div>
-                  <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Cloud Identity</h2>
-                  <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Synchronize blocking rules across all devices.</p>
+                  <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">NextDNS Profile Sync</h2>
+                  <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Sync services, denylist domains, privacy lists, security toggles, and diagnostics.</p>
                 </div>
               </div>
               <button id="btn_edit_credentials" class="fg-text-[9px] fg-font-black fg-text-[var(--fg-accent)] hover:fg-underline fg-uppercase fg-tracking-[0.2em] fg-bg-[var(--fg-accent)]/10 fg-px-3 fg-py-1.5 fg-rounded-lg ${
@@ -98,8 +98,8 @@ export async function renderSettingsPage(container) {
                   ${iconGlobe}
                 </div>
                <div>
-                <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">In-Tab Protection</h2>
-                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Route browser traffic through encrypted DNS.</p>
+                <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Browser DNS Coverage</h2>
+                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Use your private NextDNS endpoint when you want browser traffic covered outside extension rules.</p>
               </div>
             </div>
             <div class="fg-space-y-8 fg-mt-6">
@@ -152,8 +152,8 @@ export async function renderSettingsPage(container) {
                 ${iconLock}
               </div>
               <div>
-                <h2 class="fg-text-lg fg-font-bold fg-text-[var(--fg-text)]">Strict Enforcement</h2>
-                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Lock modification during active sessions.</p>
+                <h2 class="fg-text-lg fg-font-bold fg-text-[var(--fg-text)]">Strict Mode</h2>
+                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Add friction before rules, sessions, or sensitive settings can be weakened.</p>
               </div>
             </div>
             <label class="switch-toggle">
@@ -171,7 +171,7 @@ export async function renderSettingsPage(container) {
               </div>
               <div>
                 <h2 class="fg-text-lg fg-font-bold fg-text-[var(--fg-text)]">Guardian PIN</h2>
-                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Secure settings with a numeric vault code.</p>
+                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Require a 4-digit code before protected changes are allowed.</p>
               </div>
             </div>
             <label class="switch-toggle">
@@ -186,8 +186,8 @@ export async function renderSettingsPage(container) {
                 ${iconSearch}
               </div>
               <div>
-                <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Rule Analysis</h2>
-                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Verify real-time block status for any host.</p>
+                <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Domain Coverage Test</h2>
+                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Check whether a host is covered by local extension rules or synced DNS rules.</p>
               </div>
             </div>
             <div class="fg-space-y-4">
@@ -206,8 +206,8 @@ export async function renderSettingsPage(container) {
                   ${iconActivity}
                 </div>
                 <div>
-                  <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Network Pulse</h2>
-                  <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Cloud synchronization health and status.</p>
+                  <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Sync Health</h2>
+                  <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Recent sync status, pending rule changes, and connection state.</p>
                 </div>
               </div>
               <div class="fg-flex fg-gap-2">
@@ -224,8 +224,8 @@ export async function renderSettingsPage(container) {
                 ${iconDatabase}
               </div>
               <div>
-                <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Data Vault</h2>
-                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Manage local state backups and audit trails.</p>
+                <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Rules And Logs</h2>
+                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Review recent actions and import or export local rule state.</p>
               </div>
             </div>
             <div class="fg-grid fg-grid-cols-3 fg-gap-3">

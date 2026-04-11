@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "StopAccess - Website & App Blocker",
   "version": "1.0.0",
-  "description": "Total control over your attention. Access denied to distractions.",
+  "description": "Block distracting sites and services with browser rules, NextDNS sync, schedules, focus sessions, strict mode, privacy controls, and diagnostics.",
   "permissions": [
     "declarativeNetRequest",
     "scripting",

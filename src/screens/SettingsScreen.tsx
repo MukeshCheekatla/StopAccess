@@ -149,7 +149,7 @@ export default function SettingsScreen({ navigation }: any) {
     {
       key: 'engine',
       title: 'NextDNS Profile',
-      subtitle: 'Credentials, connection guide, and device linking',
+      subtitle: 'Profile-wide service, domain, privacy, and security sync',
       icon: 'dns-outline',
       tint: COLORS.accent,
       badge: cloudConnected ? 'LINKED' : 'SETUP',
@@ -158,7 +158,7 @@ export default function SettingsScreen({ navigation }: any) {
     {
       key: 'security',
       title: 'Security Controls',
-      subtitle: 'Strict mode, cloud threat toggles, and TLD protections',
+      subtitle: 'Threat protection, TLD blocking, and stricter change controls',
       icon: 'shield-key-outline',
       tint: COLORS.red,
       badge: `${securityEnabledCount} ON`,
@@ -167,7 +167,7 @@ export default function SettingsScreen({ navigation }: any) {
     {
       key: 'privacy',
       title: 'Privacy Controls',
-      subtitle: 'Tracker blocking, blocklists, and native telemetry rules',
+      subtitle: 'Trackers, blocklists, native tracking, and affiliate controls',
       icon: 'incognito',
       tint: COLORS.green,
       badge: `${privacyFeatureCount} LIVE`,
@@ -176,7 +176,7 @@ export default function SettingsScreen({ navigation }: any) {
     {
       key: 'diagnostics',
       title: 'Diagnostics',
-      subtitle: 'Logs, sync state, and engine inspection tools',
+      subtitle: 'Logs, sync status, rule coverage, and protection health',
       icon: 'application-braces-outline',
       tint: COLORS.yellow,
       badge: `${diagnosticEvents} EVENTS`,
@@ -199,7 +199,7 @@ export default function SettingsScreen({ navigation }: any) {
             System Hub
           </Text>
           <Text className="mt-1 text-sm font-semibold text-muted">
-            Manage protection and connectivity
+            Manage local blocking, NextDNS sync, privacy, security, and diagnostics
           </Text>
         </View>
 

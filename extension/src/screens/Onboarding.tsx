@@ -61,7 +61,7 @@ function Field({
           onClick={onHintClick}
           className="fg-bg-transparent fg-border-0 fg-text-[var(--fg-muted)] fg-text-[11px] fg-font-bold fg-tracking-wide fg-cursor-pointer fg-font-[inherit] fg-underline hover:fg-text-[var(--fg-text)] fg-transition-colors fg-p-0"
         >
-          {hint} →
+          {hint}
         </button>
       </div>
       <input
@@ -171,7 +171,7 @@ export const OnboardingReact: React.FC<{
       const ok = await nextDNSApi.testConnection();
       if (!ok) {
         setError(
-          'Could not connect — double-check your Profile ID and API Key.',
+          'Could not connect - double-check your Profile ID and API Key.',
         );
         return;
       }
@@ -185,7 +185,7 @@ export const OnboardingReact: React.FC<{
   };
 
   const skip = () => {
-    // Mark onboarding done without NextDNS — the app works in local mode
+    // Mark onboarding done without NextDNS; the extension can still block locally.
     onComplete('dash');
   };
 
@@ -201,30 +201,32 @@ export const OnboardingReact: React.FC<{
           />
 
           <div className="fg-text-[10px] fg-font-black fg-tracking-[0.2em] fg-uppercase fg-text-[var(--fg-muted)] fg-mb-3">
-            DNS-level focus control
+            Browser and NextDNS protection
           </div>
 
           <h1 className="fg-text-[30px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tighter fg-leading-tight fg-mb-4">
-            Block sites that steal
+            Block sites, services, and
             <br />
-            your focus.
+            bypass loops.
           </h1>
 
           <p className="fg-text-[14px] fg-text-[var(--fg-muted)] fg-leading-7 fg-mb-6 fg-max-w-[400px] fg-mx-auto">
-            StopAccess blocks YouTube, Reddit, Twitter and any site you pick —
-            at the{' '}
-            <strong className="fg-text-[var(--fg-text)]">DNS level</strong>, so
-            it works across every app, not just the browser.
+            StopAccess combines browser blocking, service toggles, custom
+            domains, NextDNS profile-wide sync, focus sessions, strict mode,
+            privacy controls, and diagnostics.
           </p>
 
           <div className="fg-grid fg-grid-cols-3 fg-gap-2.5 fg-mb-8">
             {[
               {
-                title: 'Block any site',
-                desc: 'DNS-level, impossible to bypass',
+                title: 'Block sites',
+                desc: 'Browser rules and custom domains',
               },
-              { title: 'Time-based rules', desc: 'Auto-enforced limits' },
-              { title: 'Live analytics', desc: 'See exactly what was blocked' },
+              {
+                title: 'Sync NextDNS',
+                desc: 'Profile-wide services and denylist',
+              },
+              { title: 'Lock changes', desc: 'Strict mode and Guardian PIN' },
             ].map(({ title, desc }) => (
               <div
                 key={title}
@@ -241,14 +243,14 @@ export const OnboardingReact: React.FC<{
           </div>
 
           <OBtn className="fg-w-full" onClick={() => setStep('connect')}>
-            Connect NextDNS — takes 2 min
+            Connect NextDNS
           </OBtn>
 
           <button
             onClick={skip}
             className="fg-bg-transparent fg-border-0 fg-text-[var(--fg-muted)] fg-text-[11px] fg-font-bold fg-tracking-widest fg-uppercase fg-cursor-pointer fg-font-[inherit] hover:fg-text-[var(--fg-text)] fg-transition-colors fg-mt-4 fg-block fg-mx-auto"
           >
-            Skip for now — use local blocking only
+            Skip for now - use browser blocking only
           </button>
         </div>
       </Shell>
@@ -266,8 +268,8 @@ export const OnboardingReact: React.FC<{
           Paste your credentials
         </h1>
         <p className="fg-text-[13px] fg-text-[var(--fg-muted)] fg-leading-relaxed fg-mb-6">
-          Click each link to open NextDNS, copy the value, switch back and
-          paste. Both open in a new tab.
+          Connect a profile to sync service blocks, custom domains, privacy
+          settings, security toggles, and diagnostics through NextDNS.
         </p>
 
         <div className="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[18px] fg-p-5 fg-flex fg-flex-col fg-gap-4">
@@ -352,10 +354,10 @@ export const OnboardingReact: React.FC<{
           StopAccess is live.
         </h1>
         <p className="fg-text-[13px] fg-text-[var(--fg-muted)] fg-leading-7 fg-mb-4 fg-max-w-[340px] fg-mx-auto">
-          DNS-level blocking is active. To also protect browser traffic, add
-          your NextDNS endpoint in browser settings — find it in{' '}
+          NextDNS sync is active. For full browser DNS coverage, add your
+          private NextDNS endpoint in browser settings. Find it in{' '}
           <strong className="fg-text-[var(--fg-text)]">
-            Settings → Cloud Identity
+            Settings - Cloud Identity
           </strong>
           .
         </p>
@@ -366,9 +368,12 @@ export const OnboardingReact: React.FC<{
             Quick tour
           </div>
           {[
-            ['Block List', 'Add any site to block or set a daily time limit'],
-            ['Focus', 'Start a timed focus session — blocks everything'],
-            ['Reports', 'See live analytics on what was blocked'],
+            ['Apps and Sites', 'Block services, domains, or custom targets'],
+            ['Focus', 'Start a timed session with stronger rule enforcement'],
+            [
+              'Settings',
+              'Manage sync, strict mode, PIN, privacy, and diagnostics',
+            ],
           ].map(([label, desc]) => (
             <div
               key={label}
@@ -376,7 +381,7 @@ export const OnboardingReact: React.FC<{
             >
               <div className="fg-w-1 fg-h-1 fg-rounded-full fg-bg-emerald-400 fg-mt-2 fg-shrink-0" />
               <span className="fg-text-[12px] fg-text-[var(--fg-text)]">
-                <strong>{label}</strong> — {desc}
+                <strong>{label}</strong> - {desc}
               </span>
             </div>
           ))}
@@ -393,7 +398,7 @@ export const OnboardingReact: React.FC<{
           onClick={() => openTab('https://my.nextdns.io/setup')}
           className="fg-bg-transparent fg-border-0 fg-text-[var(--fg-muted)] fg-text-[11px] fg-font-bold fg-tracking-widest fg-uppercase fg-cursor-pointer fg-font-[inherit] hover:fg-text-[var(--fg-text)] fg-transition-colors fg-mt-4 fg-block fg-mx-auto"
         >
-          Open NextDNS setup →
+          Open NextDNS setup
         </button>
       </div>
     </Shell>

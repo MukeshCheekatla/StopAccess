@@ -229,11 +229,11 @@ function SetupNudge({
   }
 
   const title = !configured
-    ? 'Connect NextDNS Profile'
-    : 'Start controlling apps';
+    ? 'Connect NextDNS for stronger blocking'
+    : 'Create your first app rule';
   const sub = !configured
-    ? 'Blocking requires an active NextDNS profile ID.'
-    : 'Add your first app rule to start saving time.';
+    ? 'Local blocking works on this device. NextDNS adds profile-wide service, domain, security, and privacy enforcement.'
+    : 'Choose apps to block, limit, schedule, or include in focus sessions.';
   const btnLabel = !configured ? 'Open Settings' : 'Add Apps';
   const tabName = !configured ? 'Settings' : 'Apps';
 
@@ -304,7 +304,7 @@ function FeatureShortcutGrid({ onOpen }: { onOpen: (route: string) => void }) {
   return (
     <View style={styles.section}>
       <Text className="mb-3 text-lg font-extrabold tracking-tighter text-white">
-        Control Center
+        What You Can Control
       </Text>
       <View style={styles.shortcutGrid}>
         {shortcuts.map((shortcut) => (
@@ -497,7 +497,7 @@ export default function DashboardScreen() {
         <View style={styles.heroGradientPlaceholder}>
           <View style={[styles.heroContent, heroContentStyle]}>
             <View>
-              <Text style={styles.heroGreeting}>Focus State</Text>
+              <Text style={styles.heroGreeting}>Protection State</Text>
               <View style={styles.statusRow}>
                 <View
                   style={[

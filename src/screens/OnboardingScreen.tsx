@@ -196,7 +196,7 @@ export default function OnboardingScreen({
             <Text
               style={[styles.stepTitle, { fontSize: responsive.titleSize }]}
             >
-              Modern Discipline
+              Block apps, sites, and weak moments
             </Text>
             <Text
               style={[
@@ -207,8 +207,9 @@ export default function OnboardingScreen({
                 },
               ]}
             >
-              Stop wasting time on addictive apps. StopAccess builds a
-              state-of-the-art wall around your flow state.
+              StopAccess combines Android app blocking, NextDNS rules, focus
+              sessions, schedules, and strict controls so your limits are
+              harder to casually bypass.
             </Text>
 
             <SurfaceCard
@@ -217,11 +218,11 @@ export default function OnboardingScreen({
             >
               <View style={styles.cardHeaderRow}>
                 <Icon name="auto-fix" size={14} color={COLORS.accent} />
-                <Text style={styles.cardHeader}>INTELLIGENT ENFORCEMENT</Text>
+                <Text style={styles.cardHeader}>WHAT GETS PROTECTED</Text>
               </View>
-              <CheckItem done={false} label="System-Level Interception" />
-              <CheckItem done={false} label="NextDNS Infrastructure" />
-              <CheckItem done={false} label="Impulse Control Protocols" />
+              <CheckItem done={false} label="Android app limits and blocks" />
+              <CheckItem done={false} label="NextDNS profile-wide rules" />
+              <CheckItem done={false} label="Strict Mode and Guardian PIN" />
             </SurfaceCard>
           </View>
         )}
@@ -256,7 +257,7 @@ export default function OnboardingScreen({
             <Text
               style={[styles.stepTitle, { fontSize: responsive.titleSize }]}
             >
-              Enforcement
+              Enable Android enforcement
             </Text>
             <Text
               style={[
@@ -267,8 +268,9 @@ export default function OnboardingScreen({
                 },
               ]}
             >
-              Enable the following permissions to ensure your focus protocols
-              can't be easily bypassed.
+              These permissions let StopAccess detect app usage, block active
+              distractions, show the block screen, and warn you when protection
+              needs attention.
             </Text>
 
             <SurfaceCard
@@ -278,10 +280,10 @@ export default function OnboardingScreen({
                 marginBottom: marginStyle.marginBottom,
               }}
             >
-              <CheckItem done={usagePerm} label="Real-Time Usage Tracking" />
-              <CheckItem done={a11yPerm} label="Active Layer Interception" />
-              <CheckItem done={overlayPerm} label="HUD Overlay Protection" />
-              <CheckItem done={notiPerm} label="System Alerts" />
+              <CheckItem done={usagePerm} label="Usage access for app limits" />
+              <CheckItem done={a11yPerm} label="Accessibility app detection" />
+              <CheckItem done={overlayPerm} label="Block screen overlay" />
+              <CheckItem done={notiPerm} label="Protection alerts" />
             </SurfaceCard>
 
             <View style={styles.permGrid}>
@@ -334,7 +336,7 @@ export default function OnboardingScreen({
             </View>
 
             <Text style={styles.skipHint}>
-              Full activation is recommended for maximum discipline.
+              Full activation is recommended for reliable Android blocking.
             </Text>
           </View>
         )}
