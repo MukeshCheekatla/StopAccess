@@ -25,10 +25,9 @@ export const appsController = {
    * Internal helper to execute a cloud action only if Strong Protection (syncMode=profile) is active.
    */
   async _runCloudSync(action: () => Promise<any>) {
-    const syncMode = (await storage.getString('fg_sync_mode')) || 'browser';
     const isConfigured = await nextDNSApi.isConfigured();
 
-    if (isConfigured && syncMode === 'profile') {
+    if (isConfigured) {
       const result = await action();
       if (result && result.ok === false) {
         const errorMsg =
@@ -103,6 +102,10 @@ export const appsController = {
         blockedToday: nextState,
         mode: newMode,
         desiredBlockingState: nextState,
+        maxDailyPasses: baseRule.maxDailyPasses ?? 3,
+        streakDays: nextState ? baseRule.streakDays ?? 0 : 0,
+        streakUpdatedOn: nextState ? baseRule.streakUpdatedOn : undefined,
+        addedAt: baseRule.addedAt ?? Date.now(),
         updatedAt: Date.now(),
       });
 
@@ -172,6 +175,10 @@ export const appsController = {
         dailyLimitMinutes: 0,
         blockedToday: true,
         desiredBlockingState: true,
+        maxDailyPasses: 3,
+        streakDays: 0,
+        streakUpdatedOn: undefined,
+        addedAt: Date.now(),
         updatedAt: Date.now(),
         addedByUser: true,
       };
