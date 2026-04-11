@@ -52,6 +52,8 @@ const analyticsPackages = [
   'web-vitals',
 ];
 
+const blockedRemoteResourceHosts = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+
 function fail(message) {
   console.error(`Extension check failed: ${message}`);
   process.exit(1);
@@ -85,7 +87,7 @@ function collectSourceFiles(dir, acc = []) {
       collectSourceFiles(fullPath, acc);
       continue;
     }
-    if (entry.isFile() && /\.(ts|tsx|js|mjs|html|json)$/.test(entry.name)) {
+    if (entry.isFile() && /\.(ts|tsx|js|mjs|html|json|css)$/.test(entry.name)) {
       acc.push(fullPath);
     }
   }
@@ -257,6 +259,13 @@ for (const file of collectSourceFiles(extensionRoot)) {
     if (source.toLowerCase().includes(vendor)) {
       fail(
         `analytics/telemetry vendor "${vendor}" found in ${relativeFile}; disclose and explicitly allow it before shipping`,
+      );
+    }
+  }
+  for (const host of blockedRemoteResourceHosts) {
+    if (source.toLowerCase().includes(host)) {
+      fail(
+        `remote font/resource host "${host}" found in ${relativeFile}; bundle assets locally or use system fonts`,
       );
     }
   }

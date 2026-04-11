@@ -3,7 +3,13 @@
  * Generates an optimized distribution with correct internal wiring.
  */
 import * as esbuild from 'esbuild';
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import {
+  copyFileSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -14,6 +20,7 @@ const SRC_DIR = resolve(__dirname, 'src');
 const DIST_DIR = resolve(__dirname, 'dist');
 
 // Ensure directories
+rmSync(DIST_DIR, { recursive: true, force: true });
 mkdirSync(DIST_DIR, { recursive: true });
 mkdirSync(resolve(DIST_DIR, 'popup'), { recursive: true });
 mkdirSync(resolve(DIST_DIR, 'assets'), { recursive: true });
@@ -23,6 +30,10 @@ const baseConfig = {
   format: 'esm',
   platform: 'browser',
   logLevel: 'info',
+  minify: true,
+  define: {
+    'process.env.NODE_ENV': '"production"',
+  },
   alias: {
     '@stopaccess/core': resolve(__dirname, '../packages/core/src'),
     '@stopaccess/state': resolve(__dirname, '../packages/state/src'),

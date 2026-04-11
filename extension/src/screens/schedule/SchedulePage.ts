@@ -92,9 +92,12 @@ function _renderPage(container: HTMLElement, recreation: any): void {
       <div class="glass-card fg-mx-auto fg-mt-4" style="background: var(--fg-surface); border: 1px solid var(--fg-glass-border); border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(15,23,42,0.12);">
         
         <!-- Header -->
-        <div class="fg-flex fg-items-center fg-justify-between fg-p-5 fg-border-b fg-border-white/[0.08]">
-           <h2 class="fg-text-[22px] fg-font-black fg-text-[var(--fg-text)]">Recreation Time</h2>
-           <button class="fg-text-white/40 hover:fg-text-white/80 fg-transition-colors">✕</button>
+        <div class="fg-flex fg-items-start fg-justify-between fg-p-5 fg-border-b fg-border-white/[0.08]">
+           <div>
+             <h2 class="fg-text-[22px] fg-font-black fg-text-[var(--fg-text)]">Recreation Time</h2>
+             <p class="fg-text-[13px] fg-text-[var(--fg-text)] fg-opacity-50 fg-mt-1 fg-max-w-[400px]">Schedule your daily "Free Time" when all blocks are automatically paused so you can browse freely.</p>
+           </div>
+           <button class="fg-text-white/40 hover:fg-text-white/80 fg-transition-colors fg-mt-1">✕</button>
         </div>
 
         <div class="fg-p-5 fg-flex fg-flex-col fg-gap-3">

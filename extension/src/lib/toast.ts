@@ -48,7 +48,7 @@ class ToastManager {
         border-radius: 12px;
         padding: 16px;
         color: #F8FAFC;
-        font-family: 'Plus Jakarta Sans', sans-serif;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         font-size: 13px;
         font-weight: 500;
         box-shadow: 0 12px 32px rgba(0,0,0,0.4);
