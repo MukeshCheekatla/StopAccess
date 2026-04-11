@@ -73,14 +73,14 @@ export async function renderSettingsPage(container) {
               </div>
 
               <div class="fg-flex fg-flex-col fg-gap-2.5">
-                <label class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-80 fg-uppercase fg-tracking-wider fg-block">Access Token</label>
+                <label class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-80 fg-uppercase fg-tracking-wider fg-block">Dedicated API Token</label>
                 <div class="fg-flex fg-items-center fg-gap-5">
                   <input type="password" id="cfg_apiKey" value="" placeholder="${
-                    apiKey ? '••••••••••••••••' : 'Paste API Key'
+                    apiKey ? 'Token saved' : 'Paste dedicated token'
                   }" class="input-premium fg-flex-1 fg-h-12 fg-text-xl fg-font-black fg-text-[var(--fg-text)] fg-bg-transparent fg-border-0 fg-p-0 ${
     isSetupActive ? 'readonly-input' : ''
   }" ${isSetupActive ? 'readonly' : ''}>
-                  <button class="btn-secondary-v2 fg-px-5 fg-py-2 fg-h-10 fg-whitespace-nowrap fg-text-[9px]" id="btn_open_nextdns_account">Generate Key</button>
+                  <button class="btn-secondary-v2 fg-px-5 fg-py-2 fg-h-10 fg-whitespace-nowrap fg-text-[9px]" id="btn_open_nextdns_account">Generate Token</button>
                 </div>
               </div>
             </div>
@@ -99,7 +99,7 @@ export async function renderSettingsPage(container) {
                 </div>
                <div>
                 <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Browser DNS Coverage</h2>
-                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Use your private NextDNS endpoint when you want browser traffic covered outside extension rules.</p>
+                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Use your private NextDNS endpoint when browser traffic should be covered outside extension rules.</p>
               </div>
             </div>
             <div class="fg-space-y-8 fg-mt-6">

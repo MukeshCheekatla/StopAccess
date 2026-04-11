@@ -184,11 +184,11 @@ function buildOverlayMarkup(domain, options: any = {}) {
   const timeStr = formatTime(usedMs || usedMinutes * 60000);
 
   return `
-    <div class="fg-min-h-screen fg-w-screen fg-flex fg-items-center fg-justify-center fg-bg-[#0B0B0B] fg-text-white fg-font-sans">
-      <div class="fg-w-full fg-max-w-[420px] fg-flex fg-flex-col fg-items-center fg-p-6">
-        <div class="fg-text-[12px] fg-font-black fg-tracking-[0.3em] fg-text-white fg-mb-8">STOPACCESS</div>
+    <div class="fg-min-h-[100dvh] fg-w-[100vw] fg-flex fg-items-center fg-justify-center fg-bg-[#0B0B0B] fg-text-white fg-font-sans fg-overflow-y-auto fg-px-4 fg-py-6 sm:fg-p-8">
+      <div class="fg-w-full fg-max-w-[440px] fg-flex fg-flex-col fg-items-center fg-p-4 sm:fg-p-6">
+        <div class="fg-text-[12px] sm:fg-text-[13px] fg-font-black fg-tracking-[0.24em] fg-text-white fg-mb-5 sm:fg-mb-8">STOPACCESS</div>
 
-        <div class="fg-relative fg-w-[180px] fg-h-[180px] fg-mb-8">
+        <div class="fg-relative fg-w-[150px] fg-h-[150px] sm:fg-w-[180px] sm:fg-h-[180px] fg-mb-6 sm:fg-mb-8">
           <svg class="fg-w-full fg-h-full fg--rotate-90" viewBox="0 0 180 180">
             <circle class="fg-fill-none fg-stroke-zinc-800" cx="90" cy="90" r="${R}" stroke-width="8" />
             <circle class="fg-fill-none" cx="90" cy="90" r="${R}" 
@@ -196,45 +196,45 @@ function buildOverlayMarkup(domain, options: any = {}) {
               style="stroke-dasharray: ${C}; stroke-dashoffset: ${offset}; transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);" />
           </svg>
           <div class="fg-absolute fg-inset-0 fg-flex fg-flex-col fg-items-center fg-justify-center fg-gap-1">
-            <div class="fg-text-3xl fg-font-bold fg-tracking-tighter fg-tabular-nums" id="__fg_live_time">${timeStr}</div>
+            <div class="fg-text-2xl sm:fg-text-3xl fg-font-bold fg-tracking-tight fg-tabular-nums" id="__fg_live_time">${timeStr}</div>
             <div class="fg-text-[10px] fg-font-semibold fg-text-zinc-500 fg-uppercase fg-tracking-widest">
               ${isLimitMode ? 'used today' : 'screen time'}
             </div>
           </div>
         </div>
 
-        <div class="fg-text-2xl fg-font-bold fg-tracking-tight fg-mb-1 fg-text-white/90">${safeDomain}</div>
-        <div class="fg-text-sm fg-text-zinc-500 fg-mb-8 fg-text-center">${statusText}</div>
+        <div class="fg-w-full fg-break-words fg-text-center fg-text-[22px] sm:fg-text-2xl fg-font-bold fg-tracking-tight fg-mb-1 fg-text-white/90">${safeDomain}</div>
+        <div class="fg-text-[13px] sm:fg-text-sm fg-text-zinc-500 fg-mb-6 sm:fg-mb-8 fg-text-center fg-leading-relaxed">${statusText}</div>
 
-        <div class="fg-grid fg-grid-cols-3 fg-gap-px fg-w-full fg-bg-zinc-800 fg-rounded-2xl fg-overflow-hidden fg-mb-8 fg-border fg-border-zinc-800">
-          <div class="fg-bg-zinc-950 fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-lg fg-font-bold fg-text-zinc-200">${sessions}</div>
-            <div class="fg-text-[9px] fg-font-bold fg-text-zinc-600 fg-uppercase fg-tracking-wider">Sessions</div>
+        <div class="fg-grid fg-grid-cols-3 fg-gap-px fg-w-full fg-bg-zinc-800 fg-rounded-2xl fg-overflow-hidden fg-mb-6 sm:fg-mb-8 fg-border fg-border-zinc-800">
+          <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
+            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${sessions}</div>
+            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600 fg-uppercase fg-tracking-wider">Sessions</div>
           </div>
-          <div class="fg-bg-zinc-950 fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-lg fg-font-bold fg-text-zinc-200">${
+          <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
+            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${
               isLimitMode ? remaining + 'm' : '—'
             }</div>
-            <div class="fg-text-[9px] fg-font-bold fg-text-zinc-600 fg-uppercase fg-tracking-wider">Remaining</div>
+            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600 fg-uppercase fg-tracking-wider">Remaining</div>
           </div>
-          <div class="fg-bg-zinc-950 fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-lg fg-font-bold fg-text-zinc-200">${extensionCount}/${maxExtensions}</div>
-            <div class="fg-text-[9px] fg-font-bold fg-text-zinc-600 fg-uppercase fg-tracking-wider">Passes</div>
+          <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
+            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${extensionCount}/${maxExtensions}</div>
+            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600 fg-uppercase fg-tracking-wider">Passes</div>
           </div>
         </div>
 
         ${
           canExtend
             ? `
-          <div class="fg-w-full fg-p-5 fg-bg-zinc-900/50 fg-border fg-border-zinc-800 fg-rounded-[20px] fg-mb-4">
+          <div class="fg-w-full fg-p-4 sm:fg-p-5 fg-bg-zinc-900/50 fg-border fg-border-zinc-800 fg-rounded-[20px] fg-mb-4">
             <div class="fg-flex fg-items-center fg-justify-between fg-mb-4">
-              <div class="fg-text-sm fg-font-black fg-text-zinc-300">REQUEST TEMPORARY ACCESS</div>
+              <div class="fg-text-[13px] sm:fg-text-sm fg-font-black fg-text-zinc-300">REQUEST TEMPORARY ACCESS</div>
               <div class="fg-text-[10px] fg-font-bold fg-text-zinc-500 fg-bg-zinc-800/50 fg-px-2 fg-py-0.5 fg-rounded-full">
                 ${maxExtensions - extensionCount} left
               </div>
             </div>
             <div class="fg-grid fg-grid-cols-2 fg-gap-3">
-              <button class="fg-extend-btn fg-col-span-2 fg-flex fg-items-center fg-justify-center fg-gap-2 fg-p-3 fg-bg-zinc-800/50 fg-border fg-border-zinc-700/50 fg-rounded-xl fg-text-sm fg-font-bold fg-text-zinc-300 fg-transition-all hover:fg-bg-zinc-700/50 active:fg-scale-[0.98] disabled:fg-opacity-30 disabled:fg-cursor-not-allowed" data-minutes="${PASS_DURATION_MINUTES}">
+              <button class="fg-extend-btn fg-col-span-2 fg-flex fg-items-center fg-justify-center fg-gap-2 fg-p-3.5 fg-bg-zinc-800/50 fg-border fg-border-zinc-700/50 fg-rounded-xl fg-text-sm fg-font-bold fg-text-zinc-300 fg-transition-all hover:fg-bg-zinc-700/50 active:fg-scale-[0.98] disabled:fg-opacity-30 disabled:fg-cursor-not-allowed" data-minutes="${PASS_DURATION_MINUTES}">
                 ${clockSvg} ${PASS_DURATION_MINUTES} min pass
               </button>
             </div>
@@ -249,7 +249,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
             : ''
         }
 
-        <button class="fg-back fg-w-full fg-p-3.5 fg-border fg-border-zinc-800 fg-rounded-xl fg-bg-transparent fg-text-zinc-500 fg-text-sm fg-font-black fg-transition-all hover:fg-bg-white/5 active:fg-scale-[0.98]">
+        <button class="fg-back fg-w-full fg-p-4 fg-border fg-border-zinc-800 fg-rounded-xl fg-bg-transparent fg-text-zinc-400 fg-text-sm fg-font-black fg-transition-all hover:fg-bg-white/5 active:fg-scale-[0.98]">
           &larr; COMPLY AND RETURN
         </button>
       </div>
@@ -697,40 +697,40 @@ if (window.location.hostname === 'my.nextdns.io') {
         'right:24px',
         'z-index:2147483646',
         'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
-        'background:#18181b',
-        'border:1.5px solid rgba(255,255,255,0.12)',
+        'background:#ffffff',
+        'border:1px solid rgba(0,0,0,0.08)',
         'border-radius:18px',
         'padding:18px 20px',
         'width:264px',
-        'box-shadow:0 16px 48px rgba(0,0,0,0.6)',
-        'color:#fff',
+        'box-shadow:0 12px 40px rgba(0,0,0,0.12)',
+        'color:#111827',
       ].join(';'),
     );
 
     const hdr = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-      <img src="${iconUrl}" style="width:20px;height:20px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);" />
-      <span style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.4);">StopAccess</span>
-      <button id="fgh_close" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:18px;line-height:1;padding:0 2px;">&times;</button>
+      <img src="${iconUrl}" style="width:20px;height:20px;border-radius:6px;border:1px solid rgba(0,0,0,0.05);" />
+      <span style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:rgba(0,0,0,0.4);">StopAccess</span>
+      <button id="fgh_close" style="margin-left:auto;background:none;border:none;color:rgba(0,0,0,0.3);cursor:pointer;font-size:18px;line-height:1;padding:0 2px;">&times;</button>
     </div>`;
 
     if (intent.mode === 'setup' && profileId) {
       card.innerHTML =
         hdr +
         `
-        <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.14em;font-weight:800;">Profile ID</div>
-        <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:20px;font-weight:900;font-family:monospace;letter-spacing:0.04em;margin-bottom:12px;">${profileId}</div>
-        <button id="fgh_copy" style="width:100%;background:#fff;color:#18181b;border:none;border-radius:10px;padding:11px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;">Copy Profile ID</button>
+        <div style="font-size:10px;color:rgba(0,0,0,0.4);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.14em;font-weight:800;">Profile ID</div>
+        <div style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.06);border-radius:12px;padding:12px 14px;font-size:20px;font-weight:900;font-family:monospace;letter-spacing:0.04em;margin-bottom:14px;color:#111827;">${profileId}</div>
+        <button id="fgh_copy" style="width:100%;background:#111827;color:#fff;border:none;border-radius:12px;padding:12px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;transition:opacity 0.2s;">Copy Profile ID</button>
         <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:#10b981;font-weight:700;">Copied — switch back to StopAccess</div>`;
     } else if (intent.mode === 'api') {
       card.innerHTML =
         hdr +
         `
-        <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:12px;line-height:1.65;">
-          Your <strong style="color:#fff;">API Key</strong> is shown in the <em>API</em> section on this page.
+        <div style="font-size:12px;color:rgba(0,0,0,0.6);margin-bottom:12px;line-height:1.6;font-weight:500;">
+          Generate a dedicated StopAccess API key, then copy only the visible token.
         </div>
-        <button id="fgh_copy" style="width:100%;background:#fff;color:#18181b;border:none;border-radius:10px;padding:11px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;">Copy API Key</button>
+        <button id="fgh_copy" style="width:100%;background:#111827;color:#fff;border:none;border-radius:12px;padding:12px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;transition:opacity 0.2s;">Copy visible token</button>
         <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:#10b981;font-weight:700;">Copied — switch back to StopAccess</div>
-        <div id="fgh_err" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:rgba(255,255,255,0.4);font-weight:600;">Key not visible yet — scroll down to the API section first.</div>`;
+        <div id="fgh_err" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:rgba(0,0,0,0.4);font-weight:600;">Key not visible yet — scroll down to API section.</div>`;
     } else {
       return; // nothing to show
     }

@@ -17,7 +17,7 @@
     --fg-surface: #2f2f2f;
     --fg-surface-hover: #3a3a3a;
     --fg-text: #ececec;
-    --fg-muted: #8e8ea0;
+    --fg-muted: #a1a1aa;
     --fg-border: #3a3a3a;
     --fg-glass-border: rgba(255, 255, 255, 0.08);
     --fg-glass-bg: #2f2f2f;
@@ -45,7 +45,7 @@
     --fg-surface: #f4f4f5;
     --fg-surface-hover: #ececec;
     --fg-text: #0d0d0d;
-    --fg-muted: #6e6e80;
+    --fg-muted: #52525b;
     --fg-border: #e5e5e5;
     --fg-glass-border: #e5e5e5;
     --fg-glass-bg: #f4f4f5;
@@ -79,7 +79,9 @@
     color: var(--fg-text);
     color-scheme: light dark;
     transition: background-color 0.3s ease, color 0.3s ease;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
+    font-size: 16px;
+    line-height: 1.5;
   }
 
   * {
@@ -96,6 +98,7 @@
     cursor: pointer;
     font-family: inherit;
     outline: none;
+    line-height: 1.3;
   }
 
   *::-webkit-scrollbar {
@@ -131,7 +134,7 @@
   }
 
   .fg-kicker {
-    @apply fg-text-[10px] fg-font-black fg-uppercase fg-tracking-[0.18em];
+    @apply fg-text-[12px] fg-font-bold fg-uppercase fg-tracking-wide;
     color: var(--fg-muted);
   }
 
@@ -140,6 +143,51 @@
     max-width: 1480px;
     margin: 0 auto;
     padding: 28px 40px 40px;
+  }
+
+  .fg-shell-bg .fg-text-\[9px\],
+  .fg-shell-bg .fg-text-\[10px\],
+  .fg-shell-bg .fg-text-\[11px\],
+  .is-full-page .fg-shell-content .fg-text-\[9px\],
+  .is-full-page .fg-shell-content .fg-text-\[10px\],
+  .is-full-page .fg-shell-content .fg-text-\[11px\] {
+    font-size: 12px !important;
+    line-height: 1.45 !important;
+  }
+
+  .fg-shell-bg .fg-text-xs,
+  .is-full-page .fg-shell-content .fg-text-xs {
+    font-size: 13px !important;
+    line-height: 1.5 !important;
+  }
+
+  .fg-shell-bg .fg-opacity-30,
+  .fg-shell-bg .fg-opacity-40,
+  .fg-shell-bg .fg-opacity-50,
+  .is-full-page .fg-shell-content .fg-opacity-30,
+  .is-full-page .fg-shell-content .fg-opacity-40,
+  .is-full-page .fg-shell-content .fg-opacity-50 {
+    opacity: 0.72 !important;
+  }
+
+  .fg-shell-bg .fg-text-\[var\(--fg-muted\)\],
+  .fg-shell-bg .fg-text-\[var\(--muted\)\],
+  .is-full-page .fg-shell-content .fg-text-\[var\(--fg-muted\)\],
+  .is-full-page .fg-shell-content .fg-text-\[var\(--muted\)\] {
+    font-weight: 500;
+  }
+
+  .is-full-page .fg-shell-content button,
+  .is-full-page .fg-shell-content input,
+  .is-full-page .fg-shell-content select,
+  .is-full-page .fg-shell-content textarea {
+    font-size: max(13px, 0.875rem);
+  }
+
+  @media (max-width: 760px) {
+    .fg-shell-content {
+      padding: 18px 16px 28px;
+    }
   }
 
   .fg-popup-action {

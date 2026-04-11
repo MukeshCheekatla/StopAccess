@@ -60,6 +60,8 @@ function formatCountdown(expiresAt: number) {
 
 function PopupApp() {
   const [activeTab, setActiveTab] = useState<TabId>(() => resolveInitialTab());
+  const [ready, setReady] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [status, setStatus] = useState<ShellStatus>({
     label: 'LOCAL',
     tone: 'muted',
@@ -75,6 +77,27 @@ function PopupApp() {
   useEffect(() => {
     localStorage.setItem('fg_tab', activeTab);
   }, [activeTab]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkOnboarding = async () => {
+      const isConfigured = await nextDNSApi.isConfigured();
+      const isOnboardingDone =
+        (await storage.getString('fg_onboarding_done')) === 'true';
+
+      if (!cancelled) {
+        setNeedsOnboarding(!isConfigured && !isOnboardingDone);
+        setReady(true);
+      }
+    };
+
+    checkOnboarding();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -146,6 +169,46 @@ function PopupApp() {
       window.clearInterval(intervalId);
     };
   }, []);
+
+  if (!ready) {
+    return (
+      <div className="fg-main fg-shell-bg fg-flex fg-h-screen fg-w-screen fg-items-center fg-justify-center fg-text-[var(--fg-text)]">
+        <div className="fg-h-8 fg-w-8 fg-animate-spin fg-rounded-full fg-border-4 fg-border-white/10 fg-border-t-[var(--accent)]" />
+      </div>
+    );
+  }
+
+  if (needsOnboarding) {
+    return (
+      <div className="fg-main fg-shell-bg fg-flex fg-h-screen fg-w-screen fg-items-center fg-justify-center fg-p-5 fg-text-[var(--fg-text)]">
+        <div className="fg-w-full fg-max-w-[320px] fg-rounded-xl fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-surface)] fg-p-5 fg-text-center">
+          <img
+            src={chrome.runtime.getURL('assets/icon-48.png')}
+            alt="StopAccess"
+            className="fg-mx-auto fg-mb-4 fg-h-12 fg-w-12 fg-rounded-lg"
+          />
+          <div className="fg-mb-2 fg-text-[18px] fg-font-black">
+            Finish setup
+          </div>
+          <p className="fg-mb-5 fg-text-[14px] fg-leading-relaxed fg-text-[var(--fg-muted)]">
+            Complete onboarding once to connect NextDNS or choose browser-only
+            blocking.
+          </p>
+          <button
+            type="button"
+            className="fg-w-full fg-rounded-lg fg-border-0 fg-bg-[var(--accent)] fg-px-4 fg-py-3 fg-text-[14px] fg-font-bold fg-text-white"
+            onClick={() =>
+              chrome.tabs.create({
+                url: chrome.runtime.getURL('dashboard.html'),
+              })
+            }
+          >
+            Open setup
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <PopupShell
