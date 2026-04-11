@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StopAccess - Precision Site Blocker</title>
+    <style>
+        :root {
+            --bg-color: #0b0b0b;
+            --surface-color: #1a1a1a;
+            --text-color: #ffffff;
+            --muted-color: #a1a1aa;
+            --accent-color: #ef4444; /* Premium Red */
+            --border-color: #333333;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border-color);
+            background: rgba(11, 11, 11, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.2rem 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .logo svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 6rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            margin: 0 0 1rem 0;
+            letter-spacing: -0.03em;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--muted-color);
+            max-width: 600px;
+            margin: 0 auto 2rem;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: var(--text-color);
+            color: var(--bg-color);
+            padding: 1rem 2rem;
+            border-radius: 99px;
+            font-weight: 800;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: opacity 0.2s;
+        }
+
+        .cta-button:hover {
+            opacity: 0.9;
+        }
+
+        .policy-section {
+            padding: 4rem 1rem;
+            background-color: var(--bg-color);
+        }
+
+        .policy-content {
+            background-color: var(--surface-color);
+            padding: 3rem;
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-top: 0;
+            margin-bottom: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        h3 {
+            font-size: 1.2rem;
+            margin-top: 2rem;
+            color: var(--accent-color);
+            font-weight: 700;
+        }
+
+        p {
+            color: rgba(255, 255, 255, 0.85);
+            margin-bottom: 1rem;
+        }
+
+        ul {
+            color: rgba(255, 255, 255, 0.85);
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 3rem;
+            border-top: 1px solid var(--border-color);
+            color: var(--muted-color);
+            font-size: 0.9rem;
+        }
+
+        /* Mockup container just to show user an image representation if they upload it to github */
+        .mockup {
+            margin-top: 3rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            max-width: 100%;
+            height: auto;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="nav-container">
+            <div class="logo">
+                <svg viewBox="0 0 100 100" fill="none">
+                    <path d="M20 20 H80 V40 H40 V50 H80 V80 H20 V60 H60 V50 H20 V20 Z" fill="#ef4444"/>
+                </svg>
+                StopAccess
+            </div>
+            <a href="#privacy" style="color: var(--muted-color); text-decoration: none; font-weight: 600; font-size: 0.9rem;">Privacy Policy</a>
+        </div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <div class="container">
+                <h1>Total Access Protection.</h1>
+                <p>Precision site blocking and productivity management powered by strict access denial and secure NextDNS cloud sync.</p>
+                <a href="https://chrome.google.com/webstore" class="cta-button" target="_blank">Get it for Chrome</a>
+                
+                <!-- If you commit the screenshot to docs/assets/screenshots/welcome_640x400.png, it will appear here on your live site -->
+                <img src="assets/screenshots/welcome_640x400.png" alt="StopAccess Interface" class="mockup" onerror="this.style.display='none'">
+            </div>
+        </section>
+
+        <section id="privacy" class="policy-section">
+            <div class="container">
+                <div class="policy-content">
+                    <h2>Privacy Policy</h2>
+                    <p>Last updated: April 11, 2026</p>
+                    
+                    <p>StopAccess ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how our Chrome Extension operates and what data it processes. <strong>Our core philosophy is absolute privacy: we do not collect, transmit, or monetize your personal data.</strong></p>
+
+                    <h3>1. Data We Do Not Collect</h3>
+                    <p>StopAccess operates entirely on your local machine. We do not run any external analytics, trackers, or telemetric servers. Specifically, we do <strong>not</strong> collect or store:</p>
+                    <ul>
+                        <li>Your browsing history</li>
+                        <li>Your IP address</li>
+                        <li>Your email or identifying information</li>
+                    </ul>
+
+                    <h3>2. Local Data Processing</h3>
+                    <p>To function correctly, StopAccess must read the URLs of the tabs you visit in real-time. This is solely to compare the incoming web traffic against your personal blocklist (using the <code>declarativeNetRequest</code> and <code>tabs</code> permissions). This evaluation happens strictly locally within your browser. The history is never saved by us or transmitted externally.</p>
+
+                    <h3>3. Cloud Sync (NextDNS Integration)</h3>
+                    <p>If you choose to use the "NextDNS Profile Sync" feature, you must provide your NextDNS Profile ID and API Key. StopAccess securely stores these credentials in the <strong>local storage</strong> of your Chrome browser profile.</p>
+                    <p>The extension communicates directly with the NextDNS API (<code>api.nextdns.io</code>) to sync your denylists. This interaction happens strictly between your machine and NextDNS. We do not proxy this traffic, nor do we have servers that can intercept it.</p>
+
+                    <h3>4. Guardian PIN</h3>
+                    <p>If you enable "Strict Mode" or the "Guardian PIN" security feature, your PIN is stored locally within Chrome's secured extension storage mechanisms. It is not transmitted anywhere.</p>
+
+                    <h3>5. Required Permissions Justification</h3>
+                    <ul>
+                        <li><strong>storage</strong>: Used to save your block rules and app settings locally.</li>
+                        <li><strong>tabs</strong>: Used to detect when you navigate to a blocked site so the extension can show the 'Access Denied' overlay.</li>
+                        <li><strong>declarativeNetRequest</strong>: Used to block network requests at the browser engine level with high efficiency.</li>
+                        <li><strong>alarms & idle</strong>: Used to measure focus session lengths and automatically unpause blocking when your timer expires, even if the browser goes idle.</li>
+                        <li><strong>&lt;all_urls&gt; host permission</strong>: Required solely to inject the visual overlay onto any website you explicitly choose to restrict.</li>
+                    </ul>
+
+                    <h3>6. Changes to This Privacy Policy</h3>
+                    <p>We may update this Privacy Policy from time to time. Since we have no way of mass-emailing our users, any changes will be reflected directly on this page and published as an update note alongside new extension versions on the Chrome Web Store.</p>
+
+                    <h3>7. Contact</h3>
+                    <p>If you have any questions or concerns about this Privacy Policy or how your data is handled, please consult our GitHub repository or contact the developer directly through the Chrome Web Store support page.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 StopAccess. Designed for uncompromising focus.</p>
+        </div>
+    </footer>
+
+</body>
+</html>
