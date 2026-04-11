@@ -35,12 +35,12 @@ export function renderPrivacyOptionsSection(
           </div>
           <div class="fg-flex-1 fg-min-w-0">
             <div class="fg-flex fg-items-center fg-gap-2 fg-mb-1">
-              <span class="fg-text-[14px] fg-font-black fg-text-white fg-truncate">Cloaking Protection</span>
-              <span class="fg-tooltip" data-tooltip="Blocks third-party trackers that disguise themselves as first-party to bypass standard filters.">
+              <span class="fg-text-[14px] fg-font-black fg-text-white fg-truncate">Block Disguised Third-Party Trackers</span>
+              <span class="fg-tooltip" data-tooltip="Standard browser protections like ITP are often bypassed by trackers using CNAME cloaking. FocusGate detects and neutralizes these hidden connections.">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="fg-text-[var(--fg-text)] fg-opacity-40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               </span>
             </div>
-            <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-relaxed">Block third-party trackers disguising themselves as first-party via CNAME.</div>
+            <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-relaxed">Automatically detect and block third-party trackers disguising themselves as first-party to circumvent recent browser's privacy protections like ITP.</div>
           </div>
           <button
             class="privacy-option-toggle ${
@@ -77,12 +77,12 @@ export function renderPrivacyOptionsSection(
           </div>
           <div class="fg-flex-1 fg-min-w-0">
              <div class="fg-flex fg-items-center fg-gap-2 fg-mb-1">
-              <span class="fg-text-[14px] fg-font-black fg-text-white fg-truncate">Affiliate Transparency</span>
-               <span class="fg-tooltip" data-tooltip="Allows affiliate & tracking domains common on deals websites and search results. Disable to block all referral tracking.">
+              <span class="fg-text-[14px] fg-font-black fg-text-white fg-truncate">Allow Affiliate & Tracking Links</span>
+               <span class="fg-tooltip" data-tooltip="Commonly used for cash-back, deals, or promotional search results. FocusGate ensures your IP stays hidden when these links are activated.">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="fg-text-[var(--fg-text)] fg-opacity-40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               </span>
             </div>
-            <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-relaxed">Allow referral links and deal tracking common in search results.</div>
+            <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-relaxed">Allow affiliate & tracking domains common on deals websites, in emails or in search results. Your IP address will automatically be hidden from those websites to preserve your privacy.</div>
           </div>
           <button
             class="privacy-option-toggle ${

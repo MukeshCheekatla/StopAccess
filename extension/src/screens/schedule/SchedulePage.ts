@@ -28,7 +28,7 @@ export async function renderSchedulePage(
 
   // Render the skeleton first
   container.innerHTML = `
-    <div class="fg-max-w-[800px] fg-mx-auto fg-animate-fade-in fg-pb-20">
+    <div class="fg-max-w-[760px] fg-mx-auto fg-animate-fade-in" style="min-height: calc(100vh - 180px); display:flex; flex-direction:column; justify-content:center;">
       ${isLocalMode ? _renderCloudRequiredBanner() : ''}
       <div id="schedule_content_container" class="${
         isLocalMode ? 'fg-opacity-40 fg-pointer-events-none' : ''
@@ -89,15 +89,15 @@ function _renderPage(container: HTMLElement, recreation: any): void {
     <div class="fg-max-w-[800px] fg-mx-auto fg-animate-fade-in fg-pb-20">
       
       <!-- User Screenshot Fidelity Modal -->
-      <div class="glass-card fg-mx-auto fg-mt-4" style="background: #212121; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(0,0,0,0.5);">
+      <div class="glass-card fg-mx-auto fg-mt-4" style="background: var(--fg-surface); border: 1px solid var(--fg-glass-border); border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(15,23,42,0.12);">
         
         <!-- Header -->
-        <div class="fg-flex fg-items-center fg-justify-between fg-p-6 fg-border-b fg-border-white/[0.08]">
-           <h2 class="fg-text-[22px] fg-font-black fg-text-white">Recreation Time</h2>
+        <div class="fg-flex fg-items-center fg-justify-between fg-p-5 fg-border-b fg-border-white/[0.08]">
+           <h2 class="fg-text-[22px] fg-font-black fg-text-[var(--fg-text)]">Recreation Time</h2>
            <button class="fg-text-white/40 hover:fg-text-white/80 fg-transition-colors">✕</button>
         </div>
 
-        <div class="fg-p-8 fg-flex fg-flex-col fg-gap-5">
+        <div class="fg-p-5 fg-flex fg-flex-col fg-gap-3">
            ${DAY_KEYS.map((day, i) => {
              const data = recreation[day] || {
                enabled: false,
@@ -105,12 +105,12 @@ function _renderPage(container: HTMLElement, recreation: any): void {
                end: '20:30',
              };
              return `
-              <div class="day-slot fg-flex fg-items-center fg-justify-between">
+              <div class="day-slot fg-flex fg-items-center fg-justify-between" style="min-height:46px;">
                 <div class="fg-flex fg-items-center fg-gap-4 fg-w-[160px]">
                   <input type="checkbox" class="day-check custom-check" ${
                     data.enabled ? 'checked' : ''
                   } data-day="${day}">
-                  <span class="fg-text-[16px] fg-font-extrabold fg-text-white">${
+                  <span class="fg-text-[16px] fg-font-extrabold fg-text-[var(--fg-text)]">${
                     DAY_LABELS[i]
                   }</span>
                 </div>
@@ -121,14 +121,14 @@ function _renderPage(container: HTMLElement, recreation: any): void {
                   <input type="time" class="time-input fg-px-3" value="${
                     data.start
                   }" data-day="${day}" data-type="start"
-                         style="background: #2f3235; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; height: 42px; width: 120px; font-size: 15px; font-weight: 800;">
+                         style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; color: var(--fg-text); height: 42px; width: 120px; font-size: 15px; font-weight: 800;">
                   
                   <span class="fg-text-white/30 fg-font-light fg-text-xl">→</span>
 
                   <input type="time" class="time-input fg-px-3" value="${
                     data.end
                   }" data-day="${day}" data-type="end"
-                         style="background: #2f3235; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; height: 42px; width: 120px; font-size: 15px; font-weight: 800;">
+                         style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; color: var(--fg-text); height: 42px; width: 120px; font-size: 15px; font-weight: 800;">
                 </div>
               </div>
              `;
@@ -138,12 +138,12 @@ function _renderPage(container: HTMLElement, recreation: any): void {
         <!-- Footer -->
         <div class="fg-p-6 fg-border-t fg-border-white/[0.05] fg-flex fg-justify-end fg-gap-3">
            <button class="fg-px-6 fg-py-2 fg-rounded-md fg-text-[14px] fg-font-semibold fg-text-white/60 hover:fg-bg-white/5 fg-border fg-border-white/10 fg-transition-all" style="height: 42px;">Cancel</button>
-           <button id="btnSaveMaster" class="fg-px-8 fg-py-2 fg-rounded-md fg-text-[14px] fg-font-bold fg-text-black fg-transition-all" style="background: #a3e635; height: 42px;">Save</button>
+           <button id="btnSaveMaster" class="fg-px-8 fg-py-2 fg-rounded-md fg-text-[14px] fg-font-bold fg-text-white fg-transition-all" style="background: var(--fg-accent); height: 42px;">Save</button>
         </div>
       </div>
 
-      <div class="fg-mt-8 fg-px-4 fg-text-center">
-        <p class="fg-text-[12px] fg-text-[var(--fg-text)] fg-opacity-70 fg-leading-relaxed fg-max-w-[500px] fg-mx-auto">
+      <div class="fg-mt-4 fg-px-4 fg-text-center">
+        <p class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-70 fg-leading-relaxed fg-max-w-[500px] fg-mx-auto">
           Synchronizing these settings will update your NextDNS profile in the cloud. Changes might take a few minutes to reflect across all devices.
         </p>
       </div>
@@ -155,7 +155,7 @@ function _renderPage(container: HTMLElement, recreation: any): void {
         appearance: none;
         width: 20px;
         height: 20px;
-        border: 2px solid #3c3f41;
+        border: 2px solid var(--fg-glass-border);
         border-radius: 4px;
         background: transparent;
         cursor: pointer;
@@ -163,8 +163,8 @@ function _renderPage(container: HTMLElement, recreation: any): void {
         transition: all 0.2s;
       }
       .custom-check:checked {
-        background: #3b82f6;
-        border-color: #3b82f6;
+        background: var(--fg-accent);
+        border-color: var(--fg-accent);
       }
       .custom-check:checked::after {
         content: '✓';
@@ -183,7 +183,7 @@ function _renderPage(container: HTMLElement, recreation: any): void {
         transition: border-color 0.2s;
       }
       .time-input:hover { border-color: rgba(255,255,255,0.2) !important; }
-      .time-input:focus { border-color: #3b82f6 !important; }
+      .time-input:focus { border-color: var(--fg-accent) !important; }
 
       @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
       .fg-animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
@@ -270,7 +270,7 @@ function _renderCloudRequiredBanner(): string {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19c.703 0 1.332-.416 1.636-1.042A4 4 0 0 0 18 10h-1.26A6 6 0 0 0 6 11c0 .123.003.246.01.368A4.5 4.5 0 0 0 7.5 20h10v-1z"/><path d="M12 13v8"/><path d="m9 16 3-3 3 3"/></svg>
         </div>
         <div>
-          <div class="fg-text-lg fg-font-black fg-text-white">Cloud Recreation Hub</div>
+          <div class="fg-text-lg fg-font-black fg-text-[var(--fg-text)]">Cloud Recreation Hub</div>
           <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-1">Schedules are synchronized across all your devices via NextDNS. Link your profile to activate automation.</div>
         </div>
       </div>
@@ -288,7 +288,7 @@ function _renderError(container: HTMLElement, e: any): void {
       <div class="fg-text-xs fg-text-[var(--fg-muted)] fg-mb-8">${
         e.message || 'Verification failed'
       }</div>
-      <button class="btn-premium fg-mx-auto fg-w-full" onclick="location.reload()" style="height: 56px; border-radius: 12px; background: #a3e635; color: black; font-weight: 900;">RETRY SYNC</button>
+      <button class="btn-premium fg-mx-auto fg-w-full" onclick="location.reload()" style="height: 56px; border-radius: 12px; background: var(--fg-accent); color: white; font-weight: 900;">RETRY SYNC</button>
     </div>
   `;
 }
