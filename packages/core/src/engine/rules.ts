@@ -40,6 +40,10 @@ export function evaluateRules({
       if (limit > 0 && used >= limit) {
         shouldBlock = true;
       }
+      // Preserve already-blocked state (set by saveUsage) across engine cycles
+      if (r.blockedToday === true) {
+        shouldBlock = true;
+      }
     }
 
     const updated = { ...r, blockedToday: shouldBlock };

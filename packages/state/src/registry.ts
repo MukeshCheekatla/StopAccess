@@ -22,4 +22,5 @@ export const STORAGE_KEYS = {
   SYNC_STATE: 'sync_state',
   STRICT_MODE: 'strict_mode_enabled',
   THEME: 'fg_appearance_theme',
+  ICON_CACHE: 'fg_icon_cache',
 };

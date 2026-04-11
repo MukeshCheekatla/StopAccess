@@ -7,7 +7,7 @@
  * Used for intra-extension navigation between Dashboard, Apps, etc.
  */
 export function buildDashboardTabPath(tabId: string): string {
-  return `dashboard.html#${tabId}`;
+  return `dashboard.html?tab=${tabId}`;
 }
 
 export function buildExtensionPagePath(pageName: string): string {

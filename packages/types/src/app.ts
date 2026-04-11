@@ -18,6 +18,10 @@ export interface AppRule {
   changeId?: string;
   desiredBlockingState?: boolean;
   lastObservedState?: boolean;
+  addedAt?: number;
+  maxDailyPasses?: number;
+  streakDays?: number;
+  streakUpdatedOn?: string;
 }
 
 export interface AppUsageStat {
