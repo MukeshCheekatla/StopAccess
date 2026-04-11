@@ -25,4 +25,4 @@ export interface RuleEngineModule {
   openAccessibilitySettings: () => void;
 }
 
-export * from '@focusgate/types';
+export * from '@stopaccess/types';

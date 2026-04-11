@@ -1,4 +1,4 @@
-package com.focusgate
+package com.stopaccess
 
 import android.os.Bundle
 import android.graphics.Color
@@ -32,7 +32,7 @@ class MainActivity : ReactActivity() {
         super.onCreate(null)
     }
 
-    override fun getMainComponentName(): String = "FocusGate"
+    override fun getMainComponentName(): String = "StopAccess"
 
     override fun createReactActivityDelegate(): ReactActivityDelegate =
         object : DefaultReactActivityDelegate(this, mainComponentName, fabricEnabled) {

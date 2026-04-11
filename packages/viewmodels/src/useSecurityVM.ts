@@ -9,12 +9,12 @@ import {
   saveLocalSecurity,
   getLocalParental,
   saveLocalParental,
-} from '@focusgate/state/security';
+} from '@stopaccess/state/security';
 import type {
   NextDNSSecuritySettings,
   NextDNSParentalControlSettings,
   StorageAdapter,
-} from '@focusgate/types';
+} from '@stopaccess/types';
 
 export interface SecurityVMData {
   settings: NextDNSSecuritySettings | null;

@@ -1,10 +1,10 @@
 /**
- * Session Guard for FocusGate Extension
+ * Session Guard for StopAccess Extension
  * Uses blockedAtStart snapshot to enforce immutability during focus.
  */
 
 declare var chrome: any;
-import { FocusSessionRecord } from '@focusgate/types';
+import { FocusSessionRecord } from '@stopaccess/types';
 
 const SESSION_KEY = 'fg_active_session';
 

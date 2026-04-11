@@ -1,9 +1,9 @@
 /**
- * @focusgate/state — Insights Persistence (State Wrapper)
+ * @stopaccess/state — Insights Persistence (State Wrapper)
  */
 
-import { getInsights } from '@focusgate/core/insights';
-import { DailySnapshot, StorageAdapter } from '@focusgate/types';
+import { getInsights } from '@stopaccess/core/insights';
+import { DailySnapshot, StorageAdapter } from '@stopaccess/types';
 
 export async function fetchInsights(
   storage: StorageAdapter,

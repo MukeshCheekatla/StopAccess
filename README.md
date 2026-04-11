@@ -1,6 +1,6 @@
-# FocusGate
+# StopAccess
 
-> Reclaim your focus. FocusGate blocks distracting apps at the DNS level using NextDNS — making bypasses nearly impossible without your own cooperation.
+> Reclaim your focus. StopAccess blocks distracting apps at the DNS level using NextDNS — making bypasses nearly impossible without your own cooperation.
 
 ---
 
@@ -81,8 +81,8 @@ Copy `.env.example` to `.env` — no secrets are stored here; credentials are en
 
 ```bash
 keytool -genkeypair -v \
-  -keystore focusgate-release.jks \
-  -alias focusgate \
+  -keystore StopAccess-release.jks \
+  -alias StopAccess \
   -keyalg RSA -keysize 2048 \
   -validity 10000
 ```
@@ -92,9 +92,9 @@ Store the keystore file outside the repository.
 ### 2. Add credentials to `android/local.properties`
 
 ```
-RELEASE_STORE_FILE=/path/to/focusgate-release.jks
+RELEASE_STORE_FILE=/path/to/StopAccess-release.jks
 RELEASE_STORE_PASSWORD=yourpassword
-RELEASE_KEY_ALIAS=focusgate
+RELEASE_KEY_ALIAS=StopAccess
 RELEASE_KEY_PASSWORD=yourkeypassword
 ```
 
@@ -136,7 +136,7 @@ src/
   utils/                         — time, text helpers
 android/
   app/src/main/
-    java/com/focusgate/
+    java/com/stopaccess/
       BootReceiver.kt            — Sets reboot_recovery_pending flag on boot
     AndroidManifest.xml
 ```

@@ -1,4 +1,4 @@
-import { NextDNSService, NextDNSResponse } from '@focusgate/types';
+import { NextDNSService, NextDNSResponse } from '@stopaccess/types';
 import { wrapResponse } from './base';
 import type { NextDNSClient } from './client';
 

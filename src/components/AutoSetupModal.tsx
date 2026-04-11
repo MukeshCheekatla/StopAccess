@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { SERVICE_URLS } from '@focusgate/core';
+import { SERVICE_URLS } from '@stopaccess/core';
 import { COLORS, SPACING, RADIUS } from './theme';
 
 interface AutoSetupModalProps {

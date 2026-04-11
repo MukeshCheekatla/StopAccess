@@ -1,5 +1,5 @@
 /**
- * @focusgate/core — Navigation Helpers
+ * @stopaccess/core — Navigation Helpers
  */
 
 /**

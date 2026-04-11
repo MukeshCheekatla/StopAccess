@@ -1,4 +1,4 @@
-import { AppRule, ScheduleRule, SyncContext } from '@focusgate/types';
+import { AppRule, ScheduleRule, SyncContext } from '@stopaccess/types';
 import { getDomainForRule, FALLBACK_DOMAINS } from './domains';
 import { SyncOrchestrator } from './sync';
 

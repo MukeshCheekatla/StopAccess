@@ -7,7 +7,7 @@
         <!-- Post-splash theme (what the app transitions into) -->
         <item name="postSplashScreenTheme">@style/AppTheme</item>
         
-        <!-- Center the FocusGate Shield Icon over the Deep Midnight background -->
+        <!-- Center the StopAccess Shield Icon over the Deep Midnight background -->
         <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/primary_dark</item>
         <item name="windowSplashScreenAnimationDuration">1000</item>

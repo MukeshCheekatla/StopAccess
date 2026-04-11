@@ -811,7 +811,7 @@ export async function renderSettingsPage(container) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'focusgate_state.json';
+      a.download = 'StopAccess_state.json';
       a.click();
       toast.success('State Archived');
     });

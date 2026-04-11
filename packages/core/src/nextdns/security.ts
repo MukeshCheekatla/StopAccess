@@ -3,7 +3,7 @@ import {
   NextDNSTld,
   NextDNSResponse,
   NextDNSConfig,
-} from '@focusgate/types';
+} from '@stopaccess/types';
 import { wrapResponse } from './base';
 import { NextDNSClient } from './client';
 

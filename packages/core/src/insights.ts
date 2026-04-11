@@ -1,8 +1,8 @@
 /**
- * @focusgate/core — Focus Insights Engine
+ * @stopaccess/core — Focus Insights Engine
  */
 
-import { DailySnapshot, StorageAdapter } from '@focusgate/types';
+import { DailySnapshot, StorageAdapter } from '@stopaccess/types';
 
 export const INSIGHTS_KEY = 'insights_v2';
 

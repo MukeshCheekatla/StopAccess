@@ -1,7 +1,7 @@
 import React, { type ReactNode } from 'react';
 
 /**
- * Design System Components for FocusGate
+ * Design System Components for StopAccess
  * Enforcing 100% Tailwind and strict visual hierarchy.
  */
 

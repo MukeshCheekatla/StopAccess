@@ -3,7 +3,7 @@ import {
   getSchedules,
   updateSchedule,
   deleteSchedule,
-} from '@focusgate/state/schedules';
+} from '@stopaccess/state/schedules';
 import { extensionAdapter as storage } from '../../../extension/src/background/platformAdapter';
 
 export async function loadScheduleData() {

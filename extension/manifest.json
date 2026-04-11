@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "FocusGate",
+  "name": "StopAccess - Website & App Blocker",
   "version": "1.0.0",
-  "description": "Enterprise-grade focus enforcement for the modern browser. Powered by NextDNS.",
+  "description": "Total control over your attention. Access denied to distractions.",
   "permissions": [
     "declarativeNetRequest",
     "scripting",
@@ -60,7 +60,7 @@
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "focusgate@focusgate.io",
+      "id": "StopAccess@StopAccess.io",
       "strict_min_version": "100.0"
     }
   }

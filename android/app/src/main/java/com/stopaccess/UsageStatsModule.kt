@@ -1,4 +1,4 @@
-package com.focusgate
+package com.stopaccess
 
 import android.app.AppOpsManager
 import android.app.usage.UsageStatsManager

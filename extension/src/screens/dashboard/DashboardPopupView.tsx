@@ -4,7 +4,7 @@ import {
   fmtTime,
   findServiceIdByDomain,
   resolveFaviconUrl,
-} from '@focusgate/core';
+} from '@stopaccess/core';
 
 type UsageEntry = {
   time?: number;

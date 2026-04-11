@@ -86,7 +86,7 @@ export async function testDomainCoverageAction(
   domain: string,
   dnrRules: any[],
 ) {
-  const { getRules } = await import('@focusgate/state/rules');
+  const { getRules } = await import('@stopaccess/state/rules');
   const rules = await getRules(storage);
   const appRules = rules as any[];
 
@@ -132,7 +132,7 @@ export async function clearEngineLogsAction() {
 }
 
 export async function loadSecuritySettingsAction() {
-  const { getSecuritySettings } = await import('@focusgate/state/security');
+  const { getSecuritySettings } = await import('@stopaccess/state/security');
   const { nextDNSApi } = await import(
     '../../../extension/src/background/platformAdapter'
   );
@@ -146,7 +146,7 @@ export async function loadSecuritySettingsAction() {
 export async function updateSecuritySettingsAction(nextSettings: any) {
   try {
     const { updateSecuritySettings } = await import(
-      '@focusgate/state/security'
+      '@stopaccess/state/security'
     );
     await updateSecuritySettings(storage, nextSettings);
     chrome.runtime.sendMessage({ action: 'manualSync' });
@@ -157,7 +157,7 @@ export async function updateSecuritySettingsAction(nextSettings: any) {
 }
 
 export async function loadPrivacySettingsAction() {
-  const { getPrivacySettings } = await import('@focusgate/state/privacy');
+  const { getPrivacySettings } = await import('@stopaccess/state/privacy');
   const { nextDNSApi } = await import(
     '../../../extension/src/background/platformAdapter'
   );
@@ -170,7 +170,7 @@ export async function loadPrivacySettingsAction() {
 
 export async function updatePrivacySettingsAction(nextSettings: any) {
   try {
-    const { updatePrivacySettings } = await import('@focusgate/state/privacy');
+    const { updatePrivacySettings } = await import('@stopaccess/state/privacy');
     await updatePrivacySettings(storage, nextSettings);
     chrome.runtime.sendMessage({ action: 'manualSync' });
     return { ok: true };

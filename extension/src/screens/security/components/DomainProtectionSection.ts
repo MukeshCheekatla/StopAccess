@@ -3,8 +3,8 @@
  * Renders: DNS Rebinding, IDN Homographs, Typosquatting, DGA, NRD, DDNS, Parking
  */
 
-import { escapeHtml } from '@focusgate/core';
-import type { NextDNSSecuritySettings } from '@focusgate/types';
+import { escapeHtml } from '@stopaccess/core';
+import type { NextDNSSecuritySettings } from '@stopaccess/types';
 
 interface DomainToggle {
   key: keyof Omit<NextDNSSecuritySettings, 'tlds'>;

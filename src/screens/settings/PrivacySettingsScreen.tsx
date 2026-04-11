@@ -16,7 +16,7 @@ import {
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, RADIUS } from '../../components/theme';
 import { privacyVM } from '../../api/nextdnsSettings';
-import type { NextDNSPrivacySettings } from '@focusgate/types';
+import type { NextDNSPrivacySettings } from '@stopaccess/types';
 
 function ToggleRow({
   icon,
@@ -346,7 +346,7 @@ export default function PrivacySettingsScreen({ navigation }: any) {
         ) : null}
 
         <View style={styles.footer}>
-          <Text style={styles.footerTitle}>FocusGate Privacy Bridge</Text>
+          <Text style={styles.footerTitle}>StopAccess Privacy Bridge</Text>
           <Text style={styles.footerCopy}>
             Powered by the same shared privacy view-models used by the
             extension.

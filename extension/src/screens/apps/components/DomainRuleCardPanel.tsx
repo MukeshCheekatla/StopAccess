@@ -1,5 +1,5 @@
 import React from 'react';
-import { resolveServiceIcon } from '@focusgate/core';
+import { resolveServiceIcon } from '@stopaccess/core';
 
 interface DomainRuleCardProps {
   rule: any;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Image, ViewStyle, StyleSheet, Text } from 'react-native';
 import { getIconByPackage } from '../modules/installedApps';
-import { resolveIconUrl } from '@focusgate/core';
+import { resolveIconUrl } from '@stopaccess/core';
 
 interface AppIconProps {
   packageName?: string;
@@ -17,7 +17,7 @@ const ICON_CACHE: Record<string, string> = {};
  * Unified AppIcon Component for React Native.
  * Handles:
  *  1. Local Android App Icons (Base64)
- *  2. Remote Brand Icons (via @focusgate/core)
+ *  2. Remote Brand Icons (via @stopaccess/core)
  *  3. Initials Fallback
  */
 const AppIcon: React.FC<AppIconProps> = ({
@@ -91,7 +91,7 @@ const AppIcon: React.FC<AppIconProps> = ({
     );
   }
 
-  // B. Remote Branded Icon (from @focusgate/core)
+  // B. Remote Branded Icon (from @stopaccess/core)
   if (remoteUrl) {
     return (
       <View style={containerStyle}>

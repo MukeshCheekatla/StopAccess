@@ -1,4 +1,4 @@
-package com.focusgate
+package com.stopaccess
 
 import android.accessibilityservice.AccessibilityServiceInfo
 import android.content.Context
@@ -22,7 +22,7 @@ import android.view.accessibility.AccessibilityManager
  */
 object ProtectionLevelManager {
 
-    private const val TAG = "FocusGate/ProtectionLevel"
+    private const val TAG = "StopAccess/ProtectionLevel"
     private const val KEY_LEVEL = "protection_level"
     private const val KEY_DNS_ENABLED = "dns_layer_enabled"
 

@@ -3,7 +3,7 @@ import {
   fmtTime,
   buildDashboardTabPath,
   getRootDomain,
-} from '@focusgate/core';
+} from '@stopaccess/core';
 import { nextDNSApi } from '../../background/platformAdapter';
 import { appsController } from '../../lib/appsController';
 import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
@@ -28,7 +28,7 @@ export async function renderInsightsPage(
     container.innerHTML = `
       <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-py-20 fg-animate-pulse">
         <div class="loader fg-mb-4"></div>
-        <div class="fg-text-xs fg-font-bold fg-text-[var(--fg-text)] fg-opacity-80 fg-uppercase fg-tracking-widest">Compiling network intelligence...</div>
+        <div class="fg-text-xs fg-font-bold fg-text-[var(--fg-text)] fg-opacity-80 fg-uppercase fg-tracking-widest">Analyzing denied traffic...</div>
       </div>
     `;
   }
@@ -108,12 +108,12 @@ async function _renderPage(container: HTMLElement): Promise<void> {
           <div class="fg-flex fg-items-center fg-justify-between fg-mb-3">
             <div class="fg-flex fg-items-center fg-gap-2">
               <span class="fg-text-[var(--red)]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span>
-              <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-widest fg-text-[var(--fg-text)] fg-opacity-40">Blocked Activity</span>
+              <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-widest fg-text-[var(--fg-text)] fg-opacity-40">Denied Requests</span>
             </div>
             <span class="fg-text-[8px] fg-font-black fg-bg-[var(--green)]/10 fg-text-[var(--green)] fg-px-2 fg-py-0.5 fg-rounded-md">ACTIVE</span>
           </div>
           <div class="fg-text-2xl fg-font-black fg-text-[var(--fg-text)]">${blockedQueries.toLocaleString()}</div>
-          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-50 fg-mt-1 fg-font-bold fg-uppercase fg-tracking-wider">Shielded Hits</div>
+          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-50 fg-mt-1 fg-font-bold fg-uppercase fg-tracking-wider">Stopped Attempts</div>
         </div>
 
         <!-- Safety Performance -->
@@ -135,7 +135,7 @@ async function _renderPage(container: HTMLElement): Promise<void> {
             <div class="fg-w-8 fg-h-8 fg-rounded-xl fg-bg-[var(--red)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--red)]">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
             </div>
-            <div class="section-label" style="margin: 0;">Most Blocked Targets</div>
+            <div class="section-label" style="margin: 0;">Top Denied Threats</div>
           </div>
           <div class="fg-flex fg-flex-col fg-gap-3">
             ${_renderTopBlocked(isConfigured, topBlocked as any[], iconLookup)}
@@ -149,7 +149,7 @@ async function _renderPage(container: HTMLElement): Promise<void> {
               <div class="fg-w-8 fg-h-8 fg-rounded-xl fg-bg-[var(--accent)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--accent)]">
                 ${iconActivity}
               </div>
-              <div class="section-label" style="margin: 0;">Live Activity Log</div>
+              <div class="section-label" style="margin: 0;">Real-Time Denial Feed</div>
             </div>
             <div class="fg-flex fg-items-center fg-gap-2 fg-text-[11px] fg-font-bold fg-text-[var(--green)] fg-uppercase fg-tracking-widest">
               <span class="fg-w-1.5 fg-h-1.5 fg-bg-[var(--green)] fg-rounded-full fg-animate-pulse"></span> Live Monitoring
@@ -296,7 +296,7 @@ function _renderLogsList(
   }
   if (blockedLogs.length === 0) {
     return `<div class="glass-card fg-p-8 fg-text-center fg-text-[var(--fg-text)] fg-opacity-60">
-      <div class="fg-text-[11px] fg-font-bold fg-uppercase fg-tracking-widest">No recent traffic blocked</div>
+      <div class="fg-text-[11px] fg-font-bold fg-uppercase fg-tracking-widest">No denials recorded</div>
     </div>`;
   }
   return blockedLogs
@@ -437,13 +437,13 @@ async function _renderPopup(container: HTMLElement): Promise<void> {
       </div>
 
       <div class="fg-flex fg-items-center fg-justify-between fg-mb-4">
-        <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-tracking-widest">Most Blocked</div>
+        <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-tracking-widest">Top Denied</div>
         <div class="fg-text-[10px] fg-font-bold fg-text-[var(--green)] fg-uppercase">Healthy</div>
       </div>
       <div class="fg-flex fg-flex-col fg-gap-2">
         ${
           topBlocked.length === 0
-            ? '<div class="glass-card fg-p-8 fg-text-center fg-text-[10px] fg-text-[var(--muted)]">No obstacles detected</div>'
+            ? '<div class="glass-card fg-p-8 fg-text-center fg-text-[10px] fg-text-[var(--muted)]">No threats denied</div>'
             : topBlocked
                 .map((d) => {
                   const label = d.domain || d.id || d.name || 'Unknown Target';

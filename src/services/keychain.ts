@@ -1,7 +1,7 @@
 import * as Keychain from 'react-native-keychain';
 import { addLog } from './logger';
 
-const SERVICE_NAME = 'focusgate_nextdns';
+const SERVICE_NAME = 'StopAccess_nextdns';
 
 /**
  * Stores the NextDNS API Key in the native secure storage (Keystore/Keychain).

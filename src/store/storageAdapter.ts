@@ -1,6 +1,6 @@
 /**
  * React Native Storage Adapter
- * Implements the @focusgate/types/StorageAdapter interface using react-native-mmkv.
+ * Implements the @stopaccess/types/StorageAdapter interface using react-native-mmkv.
  */
 import { MMKV } from 'react-native-mmkv';
 import {
@@ -8,13 +8,13 @@ import {
   GlobalState,
   SyncState,
   StorageAdapter,
-} from '@focusgate/types';
-import * as rulesState from '@focusgate/state/rules';
-import * as schedulesState from '@focusgate/state/schedules';
-import * as syncState from '@focusgate/state/sync';
-import { STORAGE_KEYS } from '@focusgate/state';
+} from '@stopaccess/types';
+import * as rulesState from '@stopaccess/state/rules';
+import * as schedulesState from '@stopaccess/state/schedules';
+import * as syncState from '@stopaccess/state/sync';
+import { STORAGE_KEYS } from '@stopaccess/state';
 
-export const storage = new MMKV({ id: 'focusgate-storage' });
+export const storage = new MMKV({ id: 'StopAccess-storage' });
 
 export const storageAdapter: StorageAdapter = {
   getString: async (key: string, fallback?: string): Promise<string | null> =>

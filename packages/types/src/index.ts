@@ -1,5 +1,5 @@
 /**
- * @focusgate/types — Shared Type Definitions
+ * @stopaccess/types — Shared Type Definitions
  */
 
 export * from './app';

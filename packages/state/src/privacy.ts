@@ -1,4 +1,4 @@
-import { StorageAdapter, NextDNSPrivacySettings } from '@focusgate/types';
+import { StorageAdapter, NextDNSPrivacySettings } from '@stopaccess/types';
 
 export const PRIVACY_KEY = 'fg_privacy_settings';
 

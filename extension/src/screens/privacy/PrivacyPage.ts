@@ -12,7 +12,7 @@ import { renderBlocklistsSection } from './components/BlocklistsSection';
 import { renderNativeTrackersSection } from './components/NativeTrackersSection';
 import { renderPrivacyOptionsSection } from './components/PrivacyOptionsSection';
 import { toast } from '../../lib/toast';
-import { buildDashboardTabPath, getRootDomain } from '@focusgate/core';
+import { buildDashboardTabPath, getRootDomain } from '@stopaccess/core';
 
 const vm = createPrivacyVM(storage, nextDNSApi);
 

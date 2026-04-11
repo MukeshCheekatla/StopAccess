@@ -324,7 +324,7 @@ export default function SettingsScreen({ navigation }: any) {
           <View className="flex-row items-center gap-2 opacity-50">
             <Icon name="shield-star" size={18} color={COLORS.accent} />
             <Text className="text-[11px] font-black uppercase tracking-[1px] text-white">
-              FocusGate Mobile v1.2
+              StopAccess Mobile v1.2
             </Text>
           </View>
           <Text className="text-[10px] font-extrabold uppercase tracking-[1.5px] text-muted/40">

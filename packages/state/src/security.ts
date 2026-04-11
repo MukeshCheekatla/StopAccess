@@ -2,7 +2,7 @@ import {
   StorageAdapter,
   NextDNSSecuritySettings,
   NextDNSParentalControlSettings,
-} from '@focusgate/types';
+} from '@stopaccess/types';
 
 export const SECURITY_KEY = 'fg_security_settings';
 

@@ -4,7 +4,7 @@ import {
   extensionAdapter as storage,
   nextDNSApi,
 } from '../background/platformAdapter';
-import { STORAGE_KEYS } from '@focusgate/state';
+import { STORAGE_KEYS } from '@stopaccess/state';
 import {
   PopupShell,
   type ShellStatus,
@@ -104,7 +104,7 @@ function PopupApp() {
           setStatus({ label: 'LOCAL', tone: 'muted' });
         }
       } catch (error) {
-        console.error('[FocusGate] Status Check Error:', error);
+        console.error('[StopAccess] Status Check Error:', error);
       }
     };
 

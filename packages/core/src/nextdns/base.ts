@@ -1,4 +1,4 @@
-import { NextDNSErrorCode, NextDNSResponse } from '@focusgate/types';
+import { NextDNSErrorCode, NextDNSResponse } from '@stopaccess/types';
 
 export const BASE_URL = 'https://api.nextdns.io';
 export const MAX_RETRIES = 3;

@@ -1,4 +1,4 @@
-package com.focusgate
+package com.stopaccess
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -18,8 +18,8 @@ import org.json.JSONArray
  */
 object RuleEngine {
 
-    private const val TAG = "FocusGate/RuleEngine"
-    const val PREFS_NAME = "focusgate_prefs"
+    private const val TAG = "StopAccess/RuleEngine"
+    const val PREFS_NAME = "StopAccess_prefs"
     const val KEY_BLOCKED_PACKAGES = "blocked_packages"
 
     /** Returns true if [packageName] is in the active blocklist. */

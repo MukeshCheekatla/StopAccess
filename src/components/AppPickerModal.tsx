@@ -26,7 +26,7 @@ import { COLORS } from './theme';
 import { getInstalledApps, InstalledApp } from '../modules/installedApps';
 import AppIcon from './AppIcon';
 import { refreshTodayUsage, getCachedUsage } from '../modules/usageStats';
-import { AppUsageStat } from '@focusgate/types';
+import { AppUsageStat } from '@stopaccess/types';
 import { formatDuration } from '../utils/time';
 
 interface Props {

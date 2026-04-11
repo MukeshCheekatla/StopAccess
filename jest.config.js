@@ -1,5 +1,5 @@
 /**
- * jest.config.js -- Jest configuration for the FocusGate React Native project.
+ * jest.config.js -- Jest configuration for the StopAccess React Native project.
  *
  * Key decisions:
  *  - preset: react-native  -- sets up Babel transform and module resolution

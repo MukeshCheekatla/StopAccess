@@ -1,4 +1,4 @@
-import { AppRule, ResolvedTarget } from '@focusgate/types';
+import { AppRule, ResolvedTarget } from '@stopaccess/types';
 
 const APP_DOMAINS: Record<string, string> = {
   'com.instagram.android': 'instagram.com',

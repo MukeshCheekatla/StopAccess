@@ -3,7 +3,7 @@
  * Per-vendor native tracking toggles — 3-column grid with real brand icons.
  */
 
-import type { NextDNSNativeTracking } from '@focusgate/types';
+import type { NextDNSNativeTracking } from '@stopaccess/types';
 
 interface VendorMeta {
   id: string;

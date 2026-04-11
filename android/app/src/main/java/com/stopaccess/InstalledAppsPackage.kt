@@ -1,4 +1,4 @@
-package com.focusgate
+package com.stopaccess
 
 import com.facebook.react.ReactPackage
 import com.facebook.react.bridge.NativeModule

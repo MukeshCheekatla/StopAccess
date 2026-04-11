@@ -3,8 +3,8 @@
  * Renders: Threat Intelligence, AI Detection, Google Safe Browsing, Cryptojacking
  */
 
-import { escapeHtml } from '@focusgate/core';
-import type { NextDNSSecuritySettings } from '@focusgate/types';
+import { escapeHtml } from '@stopaccess/core';
+import type { NextDNSSecuritySettings } from '@stopaccess/types';
 
 interface ThreatToggle {
   key: keyof Omit<NextDNSSecuritySettings, 'tlds'>;

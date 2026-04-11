@@ -3,10 +3,10 @@ import { View, Text, StyleSheet, StatusBar } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS } from '../components/theme';
-import { getSnapshots } from '@focusgate/state/insights';
-import { getFocusStreak } from '@focusgate/core/insights';
+import { getSnapshots } from '@stopaccess/state/insights';
+import { getFocusStreak } from '@stopaccess/core/insights';
 import { storageAdapter } from '../store/storageAdapter';
-import { DailySnapshot } from '@focusgate/types';
+import { DailySnapshot } from '@stopaccess/types';
 import { formatDuration } from '../utils/time';
 import { SCREEN_WIDTH, HORIZONTAL_PADDING, isShort } from '../constants/layout';
 import {

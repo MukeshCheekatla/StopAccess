@@ -1,4 +1,4 @@
-import { SyncContext, SyncState, NextDNSError } from '@focusgate/types';
+import { SyncContext, SyncState, NextDNSError } from '@stopaccess/types';
 import {
   NextDNSSyncAdapter,
   SyncPullResult,

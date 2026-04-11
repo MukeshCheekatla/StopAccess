@@ -1,4 +1,4 @@
-import { AppRule, SyncContext } from '@focusgate/types';
+import { AppRule, SyncContext } from '@stopaccess/types';
 import {
   evaluateRules,
   runFullEngineCycle,

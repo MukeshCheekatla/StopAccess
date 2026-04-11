@@ -3,7 +3,7 @@
  * Renders blocked TLD list with add/remove functionality.
  */
 
-import type { NextDNSTld } from '@focusgate/types';
+import type { NextDNSTld } from '@stopaccess/types';
 
 // Common TLDs to suggest
 const COMMON_RISKY_TLDS = [

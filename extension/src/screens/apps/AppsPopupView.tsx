@@ -2,8 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { appsController } from '../../lib/appsController';
 import { getLockedDomains } from '../../background/sessionGuard';
 import { toast } from '../../lib/toast';
-import { findServiceIdByDomain, resolveServiceIcon } from '@focusgate/core';
-import { STORAGE_KEYS } from '@focusgate/state';
+import { findServiceIdByDomain, resolveServiceIcon } from '@stopaccess/core';
+import { STORAGE_KEYS } from '@stopaccess/state';
 
 type UsageMap = Record<string, { time?: number }>;
 

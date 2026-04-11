@@ -1,9 +1,9 @@
-import { SyncContext } from '@focusgate/types';
-import { FocusEngine } from '@focusgate/core';
+import { SyncContext } from '@stopaccess/types';
+import { FocusEngine } from '@stopaccess/core';
 
 /**
  * App-Level Engine Orchestration
- * This coordinates the shared @focusgate/core engine with the React Native specific context.
+ * This coordinates the shared @stopaccess/core engine with the React Native specific context.
  *
  * 👉 Goal: Prevent duplication by moving all heavy logic into packages/core.
  * This class is now a thin wrapper around the Focus Engine.

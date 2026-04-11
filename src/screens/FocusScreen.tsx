@@ -24,10 +24,10 @@ import {
   isTablet,
   isShort,
 } from '../constants/layout';
-import { getRules } from '@focusgate/state/rules';
+import { getRules } from '@stopaccess/state/rules';
 import { storageAdapter } from '../store/storageAdapter';
 import * as nextDNS from '../api/nextdns';
-import { recordFocusSession } from '@focusgate/core/insights';
+import { recordFocusSession } from '@stopaccess/core/insights';
 import { orchestrator } from '../engine/nativeEngine';
 
 const { RuleEngine } = NativeModules;

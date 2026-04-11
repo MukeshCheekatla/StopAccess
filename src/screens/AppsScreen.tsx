@@ -26,9 +26,9 @@ import {
   CARD_RADIUS,
   isTablet,
 } from '../constants/layout';
-import { getRules, updateRule, deleteRule } from '@focusgate/state/rules';
+import { getRules, updateRule, deleteRule } from '@stopaccess/state/rules';
 import { storageAdapter } from '../store/storageAdapter';
-import { AppRule, RuleMode } from '@focusgate/types';
+import { AppRule, RuleMode } from '@stopaccess/types';
 import * as nextDNS from '../api/nextdns';
 import { AppPickerModal } from '../components/AppPickerModal';
 import AppIcon from '../components/AppIcon';
@@ -50,7 +50,7 @@ import {
   getNextDNSServiceId,
   POPULAR_DISTRACTIONS,
   UI_EXAMPLES,
-} from '@focusgate/core';
+} from '@stopaccess/core';
 import {
   IconChip,
   PrimaryButton,

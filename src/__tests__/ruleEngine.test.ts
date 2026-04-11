@@ -3,9 +3,9 @@ import {
   runFullEngineCycle,
   startEngine,
   stopEngine,
-} from '@focusgate/core/engine';
+} from '@stopaccess/core/engine';
 
-describe('@focusgate/core engine', () => {
+describe('@stopaccess/core engine', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     jest.useFakeTimers();

@@ -1,7 +1,7 @@
-import * as core from '@focusgate/core';
-import { getRules } from '@focusgate/state/rules';
+import * as core from '@stopaccess/core';
+import { getRules } from '@stopaccess/state/rules';
 import { addLog } from '../services/logger';
-import { NextDNSConfig, AppRule, NextDNSService } from '@focusgate/types';
+import { NextDNSConfig, AppRule, NextDNSService } from '@stopaccess/types';
 import { storageAdapter as storage } from '../store/storageAdapter';
 
 import {

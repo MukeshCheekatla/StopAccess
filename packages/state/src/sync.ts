@@ -1,8 +1,8 @@
 /**
- * @focusgate/state — Sync State Persistence
+ * @stopaccess/state — Sync State Persistence
  */
 
-import { SyncState, SyncTelemetry, StorageAdapter } from '@focusgate/types';
+import { SyncState, SyncTelemetry, StorageAdapter } from '@stopaccess/types';
 
 export const SYNC_STATE_KEY = 'sync_state';
 

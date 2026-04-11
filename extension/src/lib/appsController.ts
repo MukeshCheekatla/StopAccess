@@ -1,4 +1,4 @@
-import { updateRule, deleteRule } from '@focusgate/state/rules';
+import { updateRule, deleteRule } from '@stopaccess/state/rules';
 import {
   nextDNSApi,
   extensionAdapter as storage,

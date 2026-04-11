@@ -1,4 +1,4 @@
-package com.focusgate
+package com.stopaccess
 
 import android.content.Context
 import android.content.Intent
@@ -27,7 +27,7 @@ import android.widget.TextView
  */
 object OverlayManager {
 
-    private const val TAG = "FocusGate/OverlayManager"
+    private const val TAG = "StopAccess/OverlayManager"
 
     private var overlayView: View? = null
     private var windowManager: WindowManager? = null

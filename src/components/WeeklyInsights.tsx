@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { DailySnapshot } from '@focusgate/types';
+import { DailySnapshot } from '@stopaccess/types';
 
 interface WeeklyInsightsProps {
   snapshots: DailySnapshot[];

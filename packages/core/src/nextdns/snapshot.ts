@@ -4,7 +4,7 @@ import {
   NextDNSEntity,
   NextDNSResponse,
   NextDNSFullSnapshot,
-} from '@focusgate/types';
+} from '@stopaccess/types';
 import type { NextDNSClient } from './client';
 import { getServices } from './services';
 import { getCategories } from './categories';

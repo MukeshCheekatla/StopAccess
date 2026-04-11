@@ -3,13 +3,13 @@ import {
   UI_EXAMPLES,
   NEXTDNS_CATEGORIES,
   NEXTDNS_SERVICES,
-} from '@focusgate/core';
+} from '@stopaccess/core';
 import {
   getCategoryBadge,
   resolveServiceIcon,
   escapeHtml,
   getRootDomain,
-} from '@focusgate/core';
+} from '@stopaccess/core';
 import { toast } from '../../lib/toast';
 import { appsController } from '../../lib/appsController';
 import { getLockedDomains } from '../../background/sessionGuard';
@@ -204,7 +204,7 @@ async function loadNextDNSMetadata() {
     availableCategories = res.cached_ndns_metadata?.categories || [];
     (window as any).availableDenylist =
       res.cached_ndns_metadata?.denylist || [];
-    console.error('[FocusGate] Metadata Sync Fail:', err);
+    console.error('[StopAccess] Metadata Sync Fail:', err);
   } finally {
     isLoadingNextDNS = false;
   }
@@ -1047,7 +1047,7 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
         const { extensionAdapter: storage } = await import(
           '../../background/platformAdapter'
         );
-        const { updateRule } = await import('@focusgate/state/rules');
+        const { updateRule } = await import('@stopaccess/state/rules');
         await updateRule(storage, {
           ...(rule as any),
           dailyLimitMinutes: val,
@@ -1064,7 +1064,7 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
         const { extensionAdapter: storage } = await import(
           '../../background/platformAdapter'
         );
-        const { updateRule } = await import('@focusgate/state/rules');
+        const { updateRule } = await import('@stopaccess/state/rules');
         await updateRule(storage, {
           ...(rule as any),
           maxDailyPasses: val,

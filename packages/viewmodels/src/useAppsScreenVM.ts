@@ -1,5 +1,5 @@
 declare var chrome: any;
-import { getRules } from '@focusgate/state/rules';
+import { getRules } from '@stopaccess/state/rules';
 import {
   extensionAdapter as storage,
   nextDNSApi,

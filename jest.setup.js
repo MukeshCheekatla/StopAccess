@@ -1,5 +1,5 @@
 /**
- * jest.setup.js -- Global Jest setup for FocusGate.
+ * jest.setup.js -- Global Jest setup for StopAccess.
  *
  * Referenced by setupFilesAfterFramework in jest.config.js.
  * Runs after the test framework is installed in the environment.

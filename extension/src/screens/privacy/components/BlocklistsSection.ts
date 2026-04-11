@@ -3,8 +3,8 @@
  * Management for NextDNS blocklists with centered discovery library.
  */
 
-import { escapeHtml } from '@focusgate/core';
-import type { NextDNSBlocklist } from '@focusgate/types';
+import { escapeHtml } from '@stopaccess/core';
+import type { NextDNSBlocklist } from '@stopaccess/types';
 
 // Icons
 const iconList =

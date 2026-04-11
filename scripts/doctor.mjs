@@ -1,10 +1,10 @@
 import fs from 'fs';
 
 /**
- * FocusGate Doctor — Workspace and RN Consistency Check
+ * StopAccess Doctor — Workspace and RN Consistency Check
  */
 
-console.log('FocusGate Doctor is checking your workspace health...\n');
+console.log('StopAccess Doctor is checking your workspace health...\n');
 
 try {
   // 1. Root package.json check

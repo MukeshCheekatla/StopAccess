@@ -3,7 +3,7 @@
  * Disguised trackers + allow affiliate toggles — no emojis.
  */
 
-import type { NextDNSPrivacySettings } from '@focusgate/types';
+import type { NextDNSPrivacySettings } from '@stopaccess/types';
 
 const iconSettings =
   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
@@ -36,7 +36,7 @@ export function renderPrivacyOptionsSection(
           <div class="fg-flex-1 fg-min-w-0">
             <div class="fg-flex fg-items-center fg-gap-2 fg-mb-1">
               <span class="fg-text-[14px] fg-font-black fg-text-white fg-truncate">Block Disguised Third-Party Trackers</span>
-              <span class="fg-tooltip" data-tooltip="Standard browser protections like ITP are often bypassed by trackers using CNAME cloaking. FocusGate detects and neutralizes these hidden connections.">
+              <span class="fg-tooltip" data-tooltip="Standard browser protections like ITP are often bypassed by trackers using CNAME cloaking. StopAccess detects and neutralizes these hidden connections.">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="fg-text-[var(--fg-text)] fg-opacity-40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               </span>
             </div>
@@ -78,7 +78,7 @@ export function renderPrivacyOptionsSection(
           <div class="fg-flex-1 fg-min-w-0">
              <div class="fg-flex fg-items-center fg-gap-2 fg-mb-1">
               <span class="fg-text-[14px] fg-font-black fg-text-white fg-truncate">Allow Affiliate & Tracking Links</span>
-               <span class="fg-tooltip" data-tooltip="Commonly used for cash-back, deals, or promotional search results. FocusGate ensures your IP stays hidden when these links are activated.">
+               <span class="fg-tooltip" data-tooltip="Commonly used for cash-back, deals, or promotional search results. StopAccess ensures your IP stays hidden when these links are activated.">
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="fg-text-[var(--fg-text)] fg-opacity-40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               </span>
             </div>

@@ -17,7 +17,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, RADIUS } from '../../components/theme';
 import { storageAdapter } from '../../store/storageAdapter';
 import { getLogs, LogEntry } from '../../services/logger';
-import { AppRule, SyncState } from '@focusgate/types';
+import { AppRule, SyncState } from '@stopaccess/types';
 import { orchestrator } from '../../engine/nativeEngine';
 
 export default function DiagnosticsSettingsScreen({ navigation }: any) {
@@ -156,7 +156,7 @@ export default function DiagnosticsSettingsScreen({ navigation }: any) {
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionLabel}>DEBUGGING TOOLS</Text>
           <Text style={styles.sectionDesc}>
-            Inspect the runtime behavior of FocusGate.
+            Inspect the runtime behavior of StopAccess.
           </Text>
         </View>
 

@@ -1,5 +1,5 @@
 /**
- * FocusGate Toast Notification System
+ * StopAccess Toast Notification System
  * Professional, high-density, monochrome notifications.
  */
 

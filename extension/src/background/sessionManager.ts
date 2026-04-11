@@ -1,7 +1,7 @@
-import { FocusSessionRecord, NextDNSEntity } from '@focusgate/types';
+import { FocusSessionRecord, NextDNSEntity } from '@stopaccess/types';
 import { syncDNRRules } from './dnrAdapter';
 import { nextDNSApi } from './platformAdapter';
-import { STORAGE_KEYS } from '@focusgate/state';
+import { STORAGE_KEYS } from '@stopaccess/state';
 /**
  * Starts a new focus session.
  * Snapshots current blocked state and optionally enables NextDNS block bypass protection.
@@ -37,7 +37,7 @@ export async function startSession(config: {
         .map((c: NextDNSEntity) => c.id),
     };
   } catch (e) {
-    console.warn('[FocusGate] Could not snapshot NextDNS state:', e);
+    console.warn('[StopAccess] Could not snapshot NextDNS state:', e);
   }
 
   // 2. Enable NextDNS block bypass if requested
@@ -154,9 +154,9 @@ async function toggleBlockBypass(enabled: boolean) {
         body: JSON.stringify({ blockBypass: enabled }),
       },
     );
-    console.log(`[FocusGate] NextDNS blockBypass set to: ${enabled}`);
+    console.log(`[StopAccess] NextDNS blockBypass set to: ${enabled}`);
   } catch (e) {
-    console.warn('[FocusGate] Failed to toggle blockBypass:', e);
+    console.warn('[StopAccess] Failed to toggle blockBypass:', e);
   }
 }
 

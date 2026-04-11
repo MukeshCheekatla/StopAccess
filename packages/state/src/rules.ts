@@ -1,8 +1,8 @@
 /**
- * @focusgate/state — Rule Persistence
+ * @stopaccess/state — Rule Persistence
  */
 
-import { AppRule, StorageAdapter } from '@focusgate/types';
+import { AppRule, StorageAdapter } from '@stopaccess/types';
 
 export const RULES_KEY = 'rules';
 

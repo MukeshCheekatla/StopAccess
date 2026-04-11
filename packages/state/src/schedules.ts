@@ -1,8 +1,8 @@
 /**
- * @focusgate/state — Schedule Persistence
+ * @stopaccess/state — Schedule Persistence
  */
 
-import { ScheduleRule, StorageAdapter } from '@focusgate/types';
+import { ScheduleRule, StorageAdapter } from '@stopaccess/types';
 
 export const SCHEDULES_KEY = 'schedules';
 

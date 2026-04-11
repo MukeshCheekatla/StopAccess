@@ -12,11 +12,11 @@ const config = {
   resolver: {
     blockList: [/android\/app\/build\/.*/, /ios\/build\/.*/],
     extraNodeModules: {
-      '@focusgate/core': path.resolve(__dirname, 'packages/core'),
-      '@focusgate/state': path.resolve(__dirname, 'packages/state'),
-      '@focusgate/sync': path.resolve(__dirname, 'packages/sync'),
-      '@focusgate/types': path.resolve(__dirname, 'packages/types'),
-      '@focusgate/viewmodels': path.resolve(__dirname, 'packages/viewmodels'),
+      '@stopaccess/core': path.resolve(__dirname, 'packages/core'),
+      '@stopaccess/state': path.resolve(__dirname, 'packages/state'),
+      '@stopaccess/sync': path.resolve(__dirname, 'packages/sync'),
+      '@stopaccess/types': path.resolve(__dirname, 'packages/types'),
+      '@stopaccess/viewmodels': path.resolve(__dirname, 'packages/viewmodels'),
     },
     unstable_enablePackageExports: true,
   },

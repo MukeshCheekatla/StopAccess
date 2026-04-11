@@ -1,5 +1,5 @@
 declare var chrome: any;
-import { getRecentSnapshots } from '@focusgate/core';
+import { getRecentSnapshots } from '@stopaccess/core';
 import {
   extensionAdapter as storage,
   nextDNSApi,

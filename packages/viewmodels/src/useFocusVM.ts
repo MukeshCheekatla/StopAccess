@@ -3,7 +3,7 @@ import {
   extensionAdapter as storage,
   STORAGE_KEYS,
 } from '../../../extension/src/background/platformAdapter';
-import { FocusSessionRecord } from '@focusgate/types';
+import { FocusSessionRecord } from '@stopaccess/types';
 
 export async function loadFocusData() {
   const activeSessionResults = await chrome.storage.local.get([

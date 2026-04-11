@@ -4,7 +4,7 @@ import {
   buildDashboardTabPath,
   findServiceIdByDomain,
   getRootDomain,
-} from '@focusgate/core';
+} from '@stopaccess/core';
 import { appsController } from '../../lib/appsController';
 import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
 
@@ -166,7 +166,7 @@ export async function renderDashboardPage(container) {
         } catch (err) {
           btn.textContent = '+';
           btn.disabled = false;
-          console.error('[FocusGate] Quick-block failed:', err);
+          console.error('[StopAccess] Quick-block failed:', err);
         }
       });
     }

@@ -7,15 +7,15 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@focusgate/core": ["packages/core/src/index.ts"],
-      "@focusgate/core/*": ["packages/core/src/*.ts"],
-      "@focusgate/state": ["packages/state/src/index.ts"],
-      "@focusgate/state/*": ["packages/state/src/*.ts"],
-      "@focusgate/sync": ["packages/sync/src/index.ts"],
-      "@focusgate/sync/*": ["packages/sync/src/*.ts"],
-      "@focusgate/types": ["packages/types/src/index.ts"],
-      "@focusgate/viewmodels": ["packages/viewmodels/src/index.ts"],
-      "@focusgate/viewmodels/*": ["packages/viewmodels/src/*.ts"]
+      "@stopaccess/core": ["packages/core/src/index.ts"],
+      "@stopaccess/core/*": ["packages/core/src/*.ts"],
+      "@stopaccess/state": ["packages/state/src/index.ts"],
+      "@stopaccess/state/*": ["packages/state/src/*.ts"],
+      "@stopaccess/sync": ["packages/sync/src/index.ts"],
+      "@stopaccess/sync/*": ["packages/sync/src/*.ts"],
+      "@stopaccess/types": ["packages/types/src/index.ts"],
+      "@stopaccess/viewmodels": ["packages/viewmodels/src/index.ts"],
+      "@stopaccess/viewmodels/*": ["packages/viewmodels/src/*.ts"]
     }
   },
   "include": [

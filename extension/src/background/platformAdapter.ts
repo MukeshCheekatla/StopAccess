@@ -1,10 +1,10 @@
 /**
  * Extension Platform Adapter
- * Thin bridge between Chrome APIs and @focusgate/core.
+ * Thin bridge between Chrome APIs and @stopaccess/core.
  */
 
 declare var chrome: any;
-import * as ndnsCore from '@focusgate/core';
+import * as ndnsCore from '@stopaccess/core';
 import {
   NextDNSService,
   NextDNSCategory,
@@ -16,11 +16,11 @@ import {
   AppRule,
   SyncState,
   GlobalState,
-} from '@focusgate/types';
-import { STORAGE_KEYS } from '@focusgate/state';
+} from '@stopaccess/types';
+import { STORAGE_KEYS } from '@stopaccess/state';
 import { checkGuard } from './sessionGuard';
 
-export { STORAGE_KEYS } from '@focusgate/state';
+export { STORAGE_KEYS } from '@stopaccess/state';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Add this helper at the TOP of the file
@@ -172,7 +172,7 @@ export const extensionLogger = {
       ...logs,
     ].slice(0, 100);
     await extensionAdapter.set(STORAGE_KEYS.LOGS, JSON.stringify(updated));
-    console.log(`[FocusGate] ${redactedMessage}`, redactedDetails);
+    console.log(`[StopAccess] ${redactedMessage}`, redactedDetails);
   },
 };
 

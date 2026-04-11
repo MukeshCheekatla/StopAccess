@@ -19,7 +19,7 @@ export async function syncDNRRules(domains: string[]) {
 
     if (missingLocked.length > 0) {
       console.warn(
-        '[FocusGate] Protection: Re-injecting locked domains into DNR rules:',
+        '[StopAccess] Protection: Re-injecting locked domains into DNR rules:',
         missingLocked,
       );
       domains = [...domains, ...missingLocked];
@@ -72,16 +72,16 @@ export async function syncDNRRules(domains: string[]) {
           addRules: netRules as any,
         });
         console.log(
-          `[FocusGate] DNR Synced (Delayed): ${netRules.length} sub-resource rules active.`,
+          `[StopAccess] DNR Synced (Delayed): ${netRules.length} sub-resource rules active.`,
         );
       } catch (e) {
-        console.error('[FocusGate] Delayed DNR update failed', e);
+        console.error('[StopAccess] Delayed DNR update failed', e);
       }
     }, 2000);
 
     return { ok: true, count: netRules.length };
   } catch (error) {
-    console.error('[FocusGate] DNR Sync failed:', error);
+    console.error('[StopAccess] DNR Sync failed:', error);
     return { ok: false, error: error.message };
   }
 }

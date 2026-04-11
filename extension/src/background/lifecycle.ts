@@ -9,11 +9,11 @@ import {
   SyncOrchestrator,
   buildExtensionPagePath,
   getDomainForRule,
-} from '@focusgate/core';
-import { NextDNSConfig } from '@focusgate/types';
-import { getRules, saveRules } from '@focusgate/state/rules';
+} from '@stopaccess/core';
+import { NextDNSConfig } from '@stopaccess/types';
+import { getRules, saveRules } from '@stopaccess/state/rules';
 import { extensionAdapter, extensionLogger } from './platformAdapter';
-import { STORAGE_KEYS } from '@focusgate/state';
+import { STORAGE_KEYS } from '@stopaccess/state';
 import { syncDNRRules } from './dnrAdapter';
 import {
   handleAlarm,
@@ -52,12 +52,12 @@ async function setActiveTabState(state: any) {
   }
 }
 
-console.log('[FocusGate] TRACKER INITIALIZING');
+console.log('[StopAccess] TRACKER INITIALIZING');
 
 function recordRuntimeError(source, error) {
   const message =
     error instanceof Error ? error.stack || error.message : String(error);
-  console.error(`[FocusGate] ${source}`, error);
+  console.error(`[StopAccess] ${source}`, error);
   chrome.storage.local
     .set({
       [STORAGE_KEYS.RUNTIME_ERROR]: JSON.stringify({
@@ -470,7 +470,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     chrome.tabs.create({ url });
   }
   await initActiveTab();
-  chrome.alarms.create('focusgate_engine', {
+  chrome.alarms.create('StopAccess_engine', {
     periodInMinutes: 1,
     when: Date.now() + 500,
   });
@@ -479,7 +479,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 
 chrome.runtime.onStartup.addListener(async () => {
   initActiveTab();
-  chrome.alarms.create('focusgate_engine', {
+  chrome.alarms.create('StopAccess_engine', {
     periodInMinutes: 1,
     when: Date.now() + 500,
   });
@@ -498,7 +498,7 @@ chrome.runtime.onStartup.addListener(async () => {
 });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
-  if (alarm.name === 'focusgate_engine') {
+  if (alarm.name === 'StopAccess_engine') {
     runCycle().catch((err) => recordRuntimeError('alarm_run_cycle', err));
   }
   handleAlarm(alarm)

@@ -21,7 +21,7 @@ import { isConfigured as isNextDnsConfigured } from '../../api/nextdns';
 import {
   NextDNSSecuritySettings,
   NextDNSPrivacySettings,
-} from '@focusgate/types';
+} from '@stopaccess/types';
 
 const STRICT_MODE_KEY = 'strict_mode_enabled';
 
@@ -387,7 +387,7 @@ export default function SecuritySettingsScreen({ navigation }: any) {
             <View style={styles.infoCard}>
               <Icon name="information-outline" size={16} color={COLORS.muted} />
               <Text style={styles.infoText}>
-                Cloud settings are synced across all your FocusGate protected
+                Cloud settings are synced across all your StopAccess protected
                 devices using NextDNS infrastructure.
               </Text>
             </View>
@@ -481,7 +481,7 @@ export default function SecuritySettingsScreen({ navigation }: any) {
 
         <View style={styles.footer}>
           <Text style={styles.versionText}>
-            FocusGate Security Engine v2.0.4
+            StopAccess Security Engine v2.0.4
           </Text>
           <Text style={styles.engineText}>Powered by NextDNS Intelligence</Text>
         </View>

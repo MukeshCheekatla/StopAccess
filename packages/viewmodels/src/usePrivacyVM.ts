@@ -6,8 +6,8 @@
 import {
   getPrivacySettings as getLocalPrivacy,
   saveLocalPrivacy,
-} from '@focusgate/state/privacy';
-import type { NextDNSPrivacySettings, StorageAdapter } from '@focusgate/types';
+} from '@stopaccess/state/privacy';
+import type { NextDNSPrivacySettings, StorageAdapter } from '@stopaccess/types';
 
 export interface PrivacyVMData {
   settings: NextDNSPrivacySettings | null;

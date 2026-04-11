@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from '@focusgate/state';
+import { STORAGE_KEYS } from '@stopaccess/state';
 
 export interface IconCacheEntry {
   url: string;

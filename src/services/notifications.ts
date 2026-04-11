@@ -4,12 +4,12 @@
 import notifee, { AndroidImportance } from '@notifee/react-native';
 import { formatDuration } from '../utils/time';
 
-const CHANNEL_ID = 'focusgate_alerts';
+const CHANNEL_ID = 'StopAccess_alerts';
 
 export async function setupNotifications() {
   await notifee.createChannel({
     id: CHANNEL_ID,
-    name: 'FocusGate Alerts',
+    name: 'StopAccess Alerts',
     importance: AndroidImportance.HIGH,
   });
 }

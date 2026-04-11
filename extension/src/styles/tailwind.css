@@ -4,16 +4,16 @@
 
 @layer base {
   :root {
-    --fg-accent: #5a5a5a;
+    --fg-accent: #ff3b30;
     --fg-green: #10b981;
-    --fg-red: #ef4444;
+    --fg-red: #ff3b30;
     --fg-yellow: #f59e0b;
-    --fg-accent-soft: rgba(37, 99, 235, 0.12);
+    --fg-accent-soft: rgba(255, 59, 48, 0.12);
   }
 
   .dark-theme,
   :root:not(.light-theme) {
-    --fg-bg: #171717;
+    --fg-bg: #0b0b0b;
     --fg-surface: #2f2f2f;
     --fg-surface-hover: #3a3a3a;
     --fg-text: #ececec;

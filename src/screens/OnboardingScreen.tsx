@@ -155,7 +155,7 @@ export default function OnboardingScreen({
         <View style={styles.header}>
           <View style={styles.logoRow}>
             <Icon name="shield-lock" size={24} color={COLORS.accent} />
-            <Text style={styles.brandText}>FOCUSGATE</Text>
+            <Text style={styles.brandText}>StopAccess</Text>
           </View>
           <View style={styles.progressRow}>
             <View style={styles.progressTrack}>
@@ -207,7 +207,7 @@ export default function OnboardingScreen({
                 },
               ]}
             >
-              Stop wasting time on addictive apps. FocusGate builds a
+              Stop wasting time on addictive apps. StopAccess builds a
               state-of-the-art wall around your flow state.
             </Text>
 

@@ -1,4 +1,4 @@
-import { BrandDefinition } from '@focusgate/types';
+import { BrandDefinition } from '@stopaccess/types';
 
 export const BRAND_DATA: Record<string, BrandDefinition> = {
   '9gag': {

@@ -19,11 +19,11 @@ import {
   addSchedule,
   deleteSchedule,
   toggleSchedule,
-} from '@focusgate/state/schedules';
+} from '@stopaccess/state/schedules';
 import { storageAdapter } from '../store/storageAdapter';
-import { ScheduleRule } from '@focusgate/types';
+import { ScheduleRule } from '@stopaccess/types';
 import AppIcon from '../components/AppIcon';
-import { getRules } from '@focusgate/state/rules';
+import { getRules } from '@stopaccess/state/rules';
 import {
   AppScreen,
   PrimaryButton,

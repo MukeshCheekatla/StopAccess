@@ -1,5 +1,5 @@
 import { nextDNSApi } from '../../background/platformAdapter';
-import { buildDashboardTabPath } from '@focusgate/core';
+import { buildDashboardTabPath } from '@stopaccess/core';
 import { toast } from '../../lib/toast';
 
 declare var chrome: any;
@@ -35,7 +35,7 @@ export async function renderSchedulePage(
       }">
         <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-mt-24">
           <div class="loader fg-mb-4"></div>
-          <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-80 fg-mt-4 fg-uppercase fg-tracking-[3px] fg-animate-pulse">Accessing Cloud Hub</div>
+          <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-80 fg-mt-4 fg-uppercase fg-tracking-[3px] fg-animate-pulse">Contacting Control Hub</div>
         </div>
       </div>
     </div>
@@ -270,7 +270,7 @@ function _renderCloudRequiredBanner(): string {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19c.703 0 1.332-.416 1.636-1.042A4 4 0 0 0 18 10h-1.26A6 6 0 0 0 6 11c0 .123.003.246.01.368A4.5 4.5 0 0 0 7.5 20h10v-1z"/><path d="M12 13v8"/><path d="m9 16 3-3 3 3"/></svg>
         </div>
         <div>
-          <div class="fg-text-lg fg-font-black fg-text-[var(--fg-text)]">Cloud Recreation Hub</div>
+          <div class="fg-text-lg fg-font-black fg-text-[var(--fg-text)]">StopAccess Control Hub</div>
           <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-1">Schedules are synchronized across all your devices via NextDNS. Link your profile to activate automation.</div>
         </div>
       </div>
@@ -284,11 +284,11 @@ function _renderCloudRequiredBanner(): string {
 function _renderError(container: HTMLElement, e: any): void {
   container.innerHTML = `
     <div class="glass-card fg-p-12 fg-text-center fg-mx-auto fg-mt-12" style="max-width: 440px; background: #1a1c1e; border: 1px solid rgba(255,100,100,0.2); border-radius: 20px;">
-      <div class="fg-text-lg fg-font-black fg-mb-2">Connection Blocked</div>
+      <div class="fg-text-lg fg-font-black fg-mb-2">ACCESS DENIED</div>
       <div class="fg-text-xs fg-text-[var(--fg-muted)] fg-mb-8">${
-        e.message || 'Verification failed'
+        e.message || 'Identity verification failed'
       }</div>
-      <button class="btn-premium fg-mx-auto fg-w-full" onclick="location.reload()" style="height: 56px; border-radius: 12px; background: var(--fg-accent); color: white; font-weight: 900;">RETRY SYNC</button>
+      <button class="btn-premium fg-mx-auto fg-w-full" onclick="location.reload()" style="height: 56px; border-radius: 12px; background: var(--fg-accent); color: white; font-weight: 900;">RETRY ACCESS</button>
     </div>
   `;
 }

@@ -1,4 +1,4 @@
-package com.focusgate
+package com.stopaccess
 
 import android.accessibilityservice.AccessibilityService
 import android.accessibilityservice.AccessibilityServiceInfo
@@ -26,7 +26,7 @@ import android.view.accessibility.AccessibilityEvent
  */
 class BlockerAccessibilityService : AccessibilityService() {
 
-    private val TAG = "FocusGate/A11yService"
+    private val TAG = "StopAccess/A11yService"
 
     override fun onServiceConnected() {
         super.onServiceConnected()

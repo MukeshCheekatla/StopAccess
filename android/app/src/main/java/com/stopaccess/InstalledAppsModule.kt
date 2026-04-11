@@ -1,4 +1,4 @@
-package com.focusgate
+package com.stopaccess
 
 import android.content.Intent
 import android.content.pm.ApplicationInfo

@@ -1,4 +1,4 @@
-package com.focusgate
+package com.stopaccess
 
 import android.app.Application
 import com.facebook.react.PackageList

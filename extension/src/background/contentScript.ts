@@ -1,10 +1,10 @@
 /**
- * FocusGate Content Script - Overlay Enforcer
+ * StopAccess Content Script - Overlay Enforcer
  * Blocks sites via full-screen overlay. Supports temporary passes.
  */
 
-import { getDomainForRule } from '@focusgate/core';
-import { AppRule } from '@focusgate/types';
+import { getDomainForRule } from '@stopaccess/core';
+import { AppRule } from '@stopaccess/types';
 
 const BLOCKED_DOMAINS_KEY = 'blocked_domains';
 const RULES_KEY = 'rules';
@@ -174,8 +174,8 @@ function buildOverlayMarkup(domain, options: any = {}) {
   const ringColor = pct >= 100 ? 'var(--fg-red)' : 'var(--fg-accent)';
 
   const statusText = isLimitMode
-    ? 'Daily limit reached'
-    : 'Blocked by your focus rules';
+    ? 'DAILY ACCESS LIMIT EXCEEDED'
+    : 'ACCESS DENIED BY STOPACCESS';
   const remaining = isLimitMode ? Math.max(0, limitMinutes - usedMinutes) : 0;
 
   const clockSvg =
@@ -184,9 +184,9 @@ function buildOverlayMarkup(domain, options: any = {}) {
   const timeStr = formatTime(usedMs || usedMinutes * 60000);
 
   return `
-    <div class="fg-min-h-screen fg-w-screen fg-flex fg-items-center fg-justify-center fg-bg-zinc-950 fg-text-white fg-font-sans">
+    <div class="fg-min-h-screen fg-w-screen fg-flex fg-items-center fg-justify-center fg-bg-[#0B0B0B] fg-text-white fg-font-sans">
       <div class="fg-w-full fg-max-w-[420px] fg-flex fg-flex-col fg-items-center fg-p-6">
-        <div class="fg-text-[10px] fg-font-extrabold fg-tracking-[0.25em] fg-text-zinc-600 fg-mb-8">FOCUSGATE</div>
+        <div class="fg-text-[12px] fg-font-black fg-tracking-[0.3em] fg-text-white fg-mb-8">STOPACCESS</div>
 
         <div class="fg-relative fg-w-[180px] fg-h-[180px] fg-mb-8">
           <svg class="fg-w-full fg-h-full fg--rotate-90" viewBox="0 0 180 180">
@@ -228,7 +228,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
             ? `
           <div class="fg-w-full fg-p-5 fg-bg-zinc-900/50 fg-border fg-border-zinc-800 fg-rounded-[20px] fg-mb-4">
             <div class="fg-flex fg-items-center fg-justify-between fg-mb-4">
-              <div class="fg-text-sm fg-font-bold fg-text-zinc-300">Take a short break</div>
+              <div class="fg-text-sm fg-font-black fg-text-zinc-300">REQUEST TEMPORARY ACCESS</div>
               <div class="fg-text-[10px] fg-font-bold fg-text-zinc-500 fg-bg-zinc-800/50 fg-px-2 fg-py-0.5 fg-rounded-full">
                 ${maxExtensions - extensionCount} left
               </div>
@@ -249,8 +249,8 @@ function buildOverlayMarkup(domain, options: any = {}) {
             : ''
         }
 
-        <button class="fg-back fg-w-full fg-p-3.5 fg-border fg-border-zinc-800 fg-rounded-xl fg-bg-transparent fg-text-zinc-500 fg-text-sm fg-font-semibold fg-transition-all hover:fg-bg-zinc-900 active:fg-scale-[0.98]">
-          &larr; Go back
+        <button class="fg-back fg-w-full fg-p-3.5 fg-border fg-border-zinc-800 fg-rounded-xl fg-bg-transparent fg-text-zinc-500 fg-text-sm fg-font-black fg-transition-all hover:fg-bg-white/5 active:fg-scale-[0.98]">
+          &larr; COMPLY AND RETURN
         </button>
       </div>
     </div>
@@ -477,7 +477,7 @@ async function checkAndBlock() {
       .filter(Boolean);
   } catch (error) {
     console.warn(
-      '[FocusGate] Failed to derive blocked domains from rules',
+      '[StopAccess] Failed to derive blocked domains from rules',
       error,
     );
   }
@@ -605,7 +605,7 @@ chrome.storage.onChanged.addListener((changes) => {
 
 // ════════════════════════════════════════════════════════════
 // NextDNS Setup Helper
-// Only shown when the user navigated here from FocusGate
+// Only shown when the user navigated here from StopAccess
 // onboarding or settings (intent flag set in storage).
 // ════════════════════════════════════════════════════════════
 
@@ -709,7 +709,7 @@ if (window.location.hostname === 'my.nextdns.io') {
 
     const hdr = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
       <img src="${iconUrl}" style="width:20px;height:20px;border-radius:5px;border:1px solid rgba(255,255,255,0.1);" />
-      <span style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.4);">FocusGate</span>
+      <span style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:rgba(255,255,255,0.4);">StopAccess</span>
       <button id="fgh_close" style="margin-left:auto;background:none;border:none;color:rgba(255,255,255,0.3);cursor:pointer;font-size:18px;line-height:1;padding:0 2px;">&times;</button>
     </div>`;
 
@@ -720,7 +720,7 @@ if (window.location.hostname === 'my.nextdns.io') {
         <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.14em;font-weight:800;">Profile ID</div>
         <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px 14px;font-size:20px;font-weight:900;font-family:monospace;letter-spacing:0.04em;margin-bottom:12px;">${profileId}</div>
         <button id="fgh_copy" style="width:100%;background:#fff;color:#18181b;border:none;border-radius:10px;padding:11px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;">Copy Profile ID</button>
-        <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:#10b981;font-weight:700;">Copied — switch back to FocusGate</div>`;
+        <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:#10b981;font-weight:700;">Copied — switch back to StopAccess</div>`;
     } else if (intent.mode === 'api') {
       card.innerHTML =
         hdr +
@@ -729,7 +729,7 @@ if (window.location.hostname === 'my.nextdns.io') {
           Your <strong style="color:#fff;">API Key</strong> is shown in the <em>API</em> section on this page.
         </div>
         <button id="fgh_copy" style="width:100%;background:#fff;color:#18181b;border:none;border-radius:10px;padding:11px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;">Copy API Key</button>
-        <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:#10b981;font-weight:700;">Copied — switch back to FocusGate</div>
+        <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:#10b981;font-weight:700;">Copied — switch back to StopAccess</div>
         <div id="fgh_err" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:rgba(255,255,255,0.4);font-weight:600;">Key not visible yet — scroll down to the API section first.</div>`;
     } else {
       return; // nothing to show

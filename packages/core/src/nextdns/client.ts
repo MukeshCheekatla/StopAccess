@@ -13,7 +13,7 @@ import {
   NextDNSNativeTracking,
   NextDNSRecreationTime,
   NextDNSParentalControlSettings,
-} from '@focusgate/types';
+} from '@stopaccess/types';
 import { sleep } from '../utils/retry';
 import { getDomainForRule } from '../engine/domains';
 import { BASE_URL, MAX_RETRIES, RETRY_BASE_MS, wrapResponse } from './base';

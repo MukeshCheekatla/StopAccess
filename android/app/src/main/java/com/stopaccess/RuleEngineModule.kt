@@ -1,4 +1,4 @@
-package com.focusgate
+package com.stopaccess
 
 import android.app.NotificationManager
 import android.content.Context

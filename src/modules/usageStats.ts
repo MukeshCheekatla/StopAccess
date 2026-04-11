@@ -16,7 +16,7 @@
 
 import { NativeModules, Platform } from 'react-native';
 import { storage } from '../store/storageAdapter';
-import { AppUsageStat } from '@focusgate/types';
+import { AppUsageStat } from '@stopaccess/types';
 
 // --- Internal types ---
 
@@ -74,7 +74,7 @@ export async function hasUsagePermission(): Promise<boolean> {
 
 /**
  * Open the Android Usage Access Settings screen.
- * The user must manually toggle access for FocusGate.
+ * The user must manually toggle access for StopAccess.
  * Resolves immediately after the Intent is fired.
  * Rejects if the settings Intent cannot be launched.
  */

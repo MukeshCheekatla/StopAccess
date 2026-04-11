@@ -1,8 +1,8 @@
 /**
- * @focusgate/core — Iconography Engine
+ * @stopaccess/core — Iconography Engine
  * Resolves brands and domains to high-quality assets.
  */
-import { BrandDefinition, ServiceIconResult } from '@focusgate/types';
+import { BrandDefinition, ServiceIconResult } from '@stopaccess/types';
 import { BRAND_DATA } from './iconography.data';
 
 export const SERVICE_URLS = {

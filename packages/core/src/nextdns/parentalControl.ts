@@ -1,7 +1,7 @@
 import {
   NextDNSParentalControlSettings,
   NextDNSResponse,
-} from '@focusgate/types';
+} from '@stopaccess/types';
 import { wrapResponse } from './base';
 import type { NextDNSClient } from './client';
 

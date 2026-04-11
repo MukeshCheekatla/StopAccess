@@ -1,5 +1,5 @@
 /**
- * FocusGate Extension Logger
+ * StopAccess Extension Logger
  * Tracks recent user actions and system events for the dashboard feed.
  */
 

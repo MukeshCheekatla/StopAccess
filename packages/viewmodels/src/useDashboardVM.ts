@@ -56,7 +56,7 @@ export async function loadDashboardData() {
     }
   }
 
-  const { getInsights } = await import('@focusgate/core');
+  const { getInsights } = await import('@stopaccess/core');
   const insights = await getInsights(storage);
   const avgFocusMins =
     insights.length > 0

@@ -15,11 +15,11 @@ if (localPropsFile.exists()) {
 }
 
 android {
-    namespace "com.focusgate"
+    namespace "com.stopaccess"
     compileSdkVersion 34
 
     defaultConfig {
-        applicationId "com.focusgate"
+        applicationId "com.stopaccess"
         minSdkVersion 24
         targetSdkVersion 34
         versionCode = project.hasProperty('versionCode') ? versionCode.toInteger() : 1

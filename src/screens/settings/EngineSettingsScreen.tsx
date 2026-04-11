@@ -18,7 +18,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { COLORS, SPACING, RADIUS } from '../../components/theme';
 import { saveConfig, getConfig } from '../../api/nextdns';
 import * as nextDNSApi from '../../api/nextdns';
-import { runFullEngineCycle } from '@focusgate/core';
+import { runFullEngineCycle } from '@stopaccess/core';
 import { storageAdapter } from '../../store/storageAdapter';
 import { addLog } from '../../services/logger';
 import { notifyBlocked } from '../../services/notifications';

@@ -1,5 +1,5 @@
 /**
- * FocusGate Extension Build Script
+ * StopAccess Extension Build Script
  * Generates an optimized distribution with correct internal wiring.
  */
 import * as esbuild from 'esbuild';
@@ -24,15 +24,15 @@ const baseConfig = {
   platform: 'browser',
   logLevel: 'info',
   alias: {
-    '@focusgate/core': resolve(__dirname, '../packages/core/src'),
-    '@focusgate/state': resolve(__dirname, '../packages/state/src'),
-    '@focusgate/sync': resolve(__dirname, '../packages/sync/src'),
-    '@focusgate/types': resolve(__dirname, '../packages/types/src'),
+    '@stopaccess/core': resolve(__dirname, '../packages/core/src'),
+    '@stopaccess/state': resolve(__dirname, '../packages/state/src'),
+    '@stopaccess/sync': resolve(__dirname, '../packages/sync/src'),
+    '@stopaccess/types': resolve(__dirname, '../packages/types/src'),
   },
 };
 
 async function build() {
-  console.log('[FocusGate] Starting professional build...');
+  console.log('[StopAccess] Starting professional build...');
 
   await Promise.all([
     // Service Worker
@@ -101,18 +101,18 @@ async function build() {
       resolve(DIST_DIR, 'manifest.json'),
       JSON.stringify(rawManifest, null, 2),
     );
-    console.log('[FocusGate] Manifest re-mapped correctly for distribution.');
+    console.log('[StopAccess] Manifest re-mapped correctly for distribution.');
   } catch (e) {
     console.error(`[Build] Manifest re-mapping failed: ${e.message}`);
   }
 
-  console.log('[FocusGate] Build complete.');
+  console.log('[StopAccess] Build complete.');
   console.log(
     '>>> IMPORTANT: Load the "dist" folder in chrome://extensions <<<',
   );
 }
 
 build().catch((err) => {
-  console.error('[FocusGate] Build failed:', err);
+  console.error('[StopAccess] Build failed:', err);
   process.exit(1);
 });

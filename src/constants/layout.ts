@@ -4,7 +4,7 @@ const { width, height } = Dimensions.get('window');
 
 /**
  * Nuvio-style Layout Constants
- * Standardized breakpoints and fluid dimensions for FocusGate.
+ * Standardized breakpoints and fluid dimensions for StopAccess.
  */
 export const SCREEN_WIDTH = width;
 export const SCREEN_HEIGHT = height;

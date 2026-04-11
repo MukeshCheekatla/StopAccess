@@ -2,7 +2,7 @@ import {
   extensionAdapter as storage,
   STORAGE_KEYS,
 } from '../../background/platformAdapter';
-import { FocusSessionRecord } from '@focusgate/types';
+import { FocusSessionRecord } from '@stopaccess/types';
 
 declare var chrome: any;
 declare var window: any;

@@ -1,5 +1,5 @@
 /**
- * @focusgate/core — NextDNS Infrastructure
+ * @stopaccess/core — NextDNS Infrastructure
  */
 
 import {
@@ -8,7 +8,7 @@ import {
   NextDNSCategory,
   AppRule,
   NextDNSRecreationTime,
-} from '@focusgate/types';
+} from '@stopaccess/types';
 
 import { NEXTDNS_SERVICES, NEXTDNS_CATEGORIES } from './constants';
 

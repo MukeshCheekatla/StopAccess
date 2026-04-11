@@ -9,14 +9,14 @@
  *   const data = await securityVM.load();
  */
 
-import { createSecurityVM } from '@focusgate/viewmodels/useSecurityVM';
-import { createPrivacyVM } from '@focusgate/viewmodels/usePrivacyVM';
+import { createSecurityVM } from '@stopaccess/viewmodels/useSecurityVM';
+import { createPrivacyVM } from '@stopaccess/viewmodels/usePrivacyVM';
 import { storageAdapter } from '../store/storageAdapter';
 import * as nextDNS from './nextdns';
 
 /**
  * Mobile shim that satisfies the `api` contract expected by Security/PrivacyVM.
- * Maps @focusgate/core NextDNS calls through the mobile API layer (keychain + MMKV).
+ * Maps @stopaccess/core NextDNS calls through the mobile API layer (keychain + MMKV).
  */
 const mobileApi = {
   isConfigured: nextDNS.isConfigured,
@@ -24,69 +24,69 @@ const mobileApi = {
   // --- Security ---
   getSecurity: async () => {
     const cfg = await nextDNS.getConfig();
-    const { getSecuritySettings } = await import('@focusgate/core');
+    const { getSecuritySettings } = await import('@stopaccess/core');
     return getSecuritySettings(cfg, console.warn);
   },
   patchSecurity: async (patch: Record<string, unknown>) => {
     const cfg = await nextDNS.getConfig();
-    const { patchSecuritySettings } = await import('@focusgate/core');
+    const { patchSecuritySettings } = await import('@stopaccess/core');
     return patchSecuritySettings(patch as any, cfg, console.warn);
   },
   getBlockedTlds: async () => {
     const cfg = await nextDNS.getConfig();
-    const { getBlockedTldsForProfile } = await import('@focusgate/core');
+    const { getBlockedTldsForProfile } = await import('@stopaccess/core');
     return getBlockedTldsForProfile(cfg, console.warn);
   },
   addBlockedTld: async (id: string) => {
     const cfg = await nextDNS.getConfig();
-    const { addBlockedTldToProfile } = await import('@focusgate/core');
+    const { addBlockedTldToProfile } = await import('@stopaccess/core');
     return addBlockedTldToProfile(id, cfg, console.warn);
   },
   removeBlockedTld: async (id: string) => {
     const cfg = await nextDNS.getConfig();
-    const { removeBlockedTldFromProfile } = await import('@focusgate/core');
+    const { removeBlockedTldFromProfile } = await import('@stopaccess/core');
     return removeBlockedTldFromProfile(id, cfg, console.warn);
   },
 
   // --- Privacy ---
   getPrivacy: async () => {
     const cfg = await nextDNS.getConfig();
-    const { getPrivacySettings } = await import('@focusgate/core');
+    const { getPrivacySettings } = await import('@stopaccess/core');
     return getPrivacySettings(cfg, console.warn);
   },
   patchPrivacy: async (patch: Record<string, unknown>) => {
     const cfg = await nextDNS.getConfig();
-    const { patchPrivacySettings } = await import('@focusgate/core');
+    const { patchPrivacySettings } = await import('@stopaccess/core');
     return patchPrivacySettings(patch as any, cfg, console.warn);
   },
   getBlocklists: async () => {
     const cfg = await nextDNS.getConfig();
-    const { getBlocklistsForProfile } = await import('@focusgate/core');
+    const { getBlocklistsForProfile } = await import('@stopaccess/core');
     return getBlocklistsForProfile(cfg, console.warn);
   },
   addBlocklist: async (id: string) => {
     const cfg = await nextDNS.getConfig();
-    const { addBlocklistToProfile } = await import('@focusgate/core');
+    const { addBlocklistToProfile } = await import('@stopaccess/core');
     return addBlocklistToProfile(id, cfg, console.warn);
   },
   removeBlocklist: async (id: string) => {
     const cfg = await nextDNS.getConfig();
-    const { removeBlocklistFromProfile } = await import('@focusgate/core');
+    const { removeBlocklistFromProfile } = await import('@stopaccess/core');
     return removeBlocklistFromProfile(id, cfg, console.warn);
   },
   getNativeTracking: async () => {
     const cfg = await nextDNS.getConfig();
-    const { getNativeTrackingForProfile } = await import('@focusgate/core');
+    const { getNativeTrackingForProfile } = await import('@stopaccess/core');
     return getNativeTrackingForProfile(cfg, console.warn);
   },
   addNativeTracking: async (id: string) => {
     const cfg = await nextDNS.getConfig();
-    const { addNativeTrackingToProfile } = await import('@focusgate/core');
+    const { addNativeTrackingToProfile } = await import('@stopaccess/core');
     return addNativeTrackingToProfile(id, cfg, console.warn);
   },
   removeNativeTracking: async (id: string) => {
     const cfg = await nextDNS.getConfig();
-    const { removeNativeTrackingFromProfile } = await import('@focusgate/core');
+    const { removeNativeTrackingFromProfile } = await import('@stopaccess/core');
     return removeNativeTrackingFromProfile(id, cfg, console.warn);
   },
 };
@@ -106,7 +106,7 @@ export async function getAnalytics() {
 
   const cfg = await nextDNS.getConfig();
   const { getAnalyticsCounters, getTopBlockedDomains, getLogs } = await import(
-    '@focusgate/core'
+    '@stopaccess/core'
   );
 
   const [countersRes, topRes, logsRes] = await Promise.allSettled([

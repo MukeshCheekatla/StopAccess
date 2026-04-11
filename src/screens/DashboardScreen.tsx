@@ -26,16 +26,16 @@ import {
   CARD_RADIUS,
 } from '../constants/layout';
 import { refreshTodayUsage, getCachedUsage } from '../modules/usageStats';
-import { DailySnapshot, AppRule, AppUsageStat } from '@focusgate/types';
+import { DailySnapshot, AppRule, AppUsageStat } from '@stopaccess/types';
 import AppIcon from '../components/AppIcon';
 import { formatDuration } from '../utils/time';
 import { formatAppName } from '../utils/text';
-import { getRules, updateRule } from '@focusgate/state/rules';
-import { getSnapshots } from '@focusgate/state/insights';
+import { getRules, updateRule } from '@stopaccess/state/rules';
+import { getSnapshots } from '@stopaccess/state/insights';
 import { storageAdapter } from '../store/storageAdapter';
 import { isConfigured } from '../api/nextdns';
 const { RuleEngine } = NativeModules;
-import { getFocusStreak } from '@focusgate/core/insights';
+import { getFocusStreak } from '@stopaccess/core/insights';
 import { getLogs, LogEntry } from '../services/logger';
 
 // --- State Management ---

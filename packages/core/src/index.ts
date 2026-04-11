@@ -1,5 +1,5 @@
 /**
- * @focusgate/core — Core Logic and API Client
+ * @stopaccess/core — Core Logic and API Client
  */
 
 export * from './nextdns/index';

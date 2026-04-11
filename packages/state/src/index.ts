@@ -1,5 +1,5 @@
 /**
- * @focusgate/state — Shared State Persistence Logic
+ * @stopaccess/state — Shared State Persistence Logic
  */
 
 export * from './rules';

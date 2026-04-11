@@ -1,4 +1,4 @@
-package com.focusgate
+package com.stopaccess
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -21,9 +21,9 @@ import android.util.Log
 class BootReceiver : BroadcastReceiver() {
 
     companion object {
-        const val PREFS_NAME = "focusgate_prefs"
+        const val PREFS_NAME = "StopAccess_prefs"
         const val KEY_REBOOT_PENDING = "reboot_recovery_pending"
-        private const val TAG = "FocusGate/BootReceiver"
+        private const val TAG = "StopAccess/BootReceiver"
     }
 
     override fun onReceive(context: Context, intent: Intent) {

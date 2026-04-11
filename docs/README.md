@@ -1,4 +1,4 @@
-# FocusGate Master Plan
+# StopAccess Master Plan
 > Updated: 30 Mar 2026
 > Scope: single source of truth for product direction, architecture, screens, execution order, release readiness, and recovery notes
 
@@ -8,7 +8,7 @@ This file replaces the scattered active docs set with one working document.
 
 It should answer:
 
-1. What FocusGate is trying to become.
+1. What StopAccess is trying to become.
 2. What is already true in the repo right now.
 3. What we should build next.
 4. How Android, extension, shared packages, and NextDNS fit together.
@@ -18,7 +18,7 @@ The `docs/archive/` folder is still kept for history, but this file is the only 
 
 ## Product Definition
 
-FocusGate should become a real commitment product for distraction control.
+StopAccess should become a real commitment product for distraction control.
 
 It should not behave like a generic screen-time tracker that only reports usage after the damage is done.
 It should help users:
@@ -93,7 +93,7 @@ The real activation moment is when the user sees a distracting app or site actua
 
 ### Strong modes must be explicit
 
-Whenever FocusGate changes NextDNS profile-wide settings, the product must say so clearly.
+Whenever StopAccess changes NextDNS profile-wide settings, the product must say so clearly.
 Browser-only actions and profile-wide actions cannot feel identical in the UI.
 
 ### The product should help users return
@@ -128,7 +128,7 @@ The repo currently centers around:
 
 ### Current enforcement model
 
-FocusGate now supports three conceptual enforcement layers:
+StopAccess now supports three conceptual enforcement layers:
 
 1. Browser-only:
    extension local blocking via browser controls
@@ -141,7 +141,7 @@ FocusGate now supports three conceptual enforcement layers:
 
 ### Why NextDNS matters
 
-NextDNS is what gives FocusGate stronger enforcement beyond local UI toggles.
+NextDNS is what gives StopAccess stronger enforcement beyond local UI toggles.
 It allows the product to:
 
 - block known services with a simple toggle
@@ -392,7 +392,7 @@ Priority work:
 ### Phase 3: Trust And Explainability
 
 Main goal:
-help users understand whether FocusGate is actually working.
+help users understand whether StopAccess is actually working.
 
 Priority work:
 
@@ -482,7 +482,7 @@ Priority work:
 
 ## Release And Support Requirements
 
-Before treating FocusGate as launch-ready, the product needs:
+Before treating StopAccess as launch-ready, the product needs:
 
 - repeatable release flow
 - privacy copy that matches actual behavior
@@ -531,7 +531,7 @@ Because some NextDNS settings are profile-wide, not local-only.
 
 ## Privacy Position
 
-FocusGate should stay conservative in its privacy posture.
+StopAccess should stay conservative in its privacy posture.
 
 Core principle:
 
@@ -545,7 +545,7 @@ User-facing expectations:
 
 ## Definition Of Done For “Real Product”
 
-FocusGate becomes a real product when:
+StopAccess becomes a real product when:
 
 - setup leads quickly to a first successful block
 - Android and extension both clearly show protection health
@@ -595,4 +595,4 @@ It is for history only, not current planning.
 
 ## One-Sentence Direction
 
-FocusGate should become the product people use when they want their digital limits to be real, understandable, and hard to casually bypass.
+StopAccess should become the product people use when they want their digital limits to be real, understandable, and hard to casually bypass.

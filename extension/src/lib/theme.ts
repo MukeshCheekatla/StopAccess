@@ -1,4 +1,4 @@
-import { STORAGE_KEYS } from '@focusgate/state';
+import { STORAGE_KEYS } from '@stopaccess/state';
 import { extensionAdapter as storage } from '../background/platformAdapter';
 
 export async function applyTheme(manualTheme?: string) {

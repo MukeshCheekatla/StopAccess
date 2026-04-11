@@ -196,7 +196,7 @@ export const OnboardingReact: React.FC<{
         <div className="fg-text-center">
           <img
             src={chrome?.runtime?.getURL('assets/icon-128.png')}
-            alt="FocusGate"
+            alt="StopAccess"
             className="fg-w-[68px] fg-h-[68px] fg-rounded-[20px] fg-mx-auto fg-mb-6 fg-object-contain"
           />
 
@@ -211,9 +211,10 @@ export const OnboardingReact: React.FC<{
           </h1>
 
           <p className="fg-text-[14px] fg-text-[var(--fg-muted)] fg-leading-7 fg-mb-6 fg-max-w-[400px] fg-mx-auto">
-            FocusGate blocks YouTube, Reddit, Twitter and any site you pick — at
-            the <strong className="fg-text-[var(--fg-text)]">DNS level</strong>,
-            so it works across every app, not just the browser.
+            StopAccess blocks YouTube, Reddit, Twitter and any site you pick —
+            at the{' '}
+            <strong className="fg-text-[var(--fg-text)]">DNS level</strong>, so
+            it works across every app, not just the browser.
           </p>
 
           <div className="fg-grid fg-grid-cols-3 fg-gap-2.5 fg-mb-8">
@@ -348,7 +349,7 @@ export const OnboardingReact: React.FC<{
           Connected
         </div>
         <h1 className="fg-text-[28px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight fg-mb-3">
-          FocusGate is live.
+          StopAccess is live.
         </h1>
         <p className="fg-text-[13px] fg-text-[var(--fg-muted)] fg-leading-7 fg-mb-4 fg-max-w-[340px] fg-mx-auto">
           DNS-level blocking is active. To also protect browser traffic, add

@@ -118,12 +118,12 @@ export function DashboardShell<T extends string>({
         <div className="fg-px-3 fg-pt-4 fg-pb-[22px] fg-flex fg-items-center fg-gap-[14px]">
           <img
             src="/assets/icon-48.png"
-            alt="FocusGate"
+            alt="StopAccess"
             className="fg-w-9 fg-h-9 fg-rounded-[10px] fg-border fg-border-[var(--fg-glass-border)] fg-object-contain"
           />
           <div className="fg-flex fg-items-baseline fg-gap-3">
             <div className="fg-text-[1.15rem] fg-font-black fg-tracking-[-0.03em] fg-text-[var(--fg-text)]">
-              FocusGate
+              StopAccess
             </div>
             <div
               id="statusBadge"

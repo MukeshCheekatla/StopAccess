@@ -3,7 +3,7 @@ import {
   AppRule,
   NextDNSError,
   LogLevel,
-} from '@focusgate/types';
+} from '@stopaccess/types';
 
 export interface SyncPushResult {
   ok: boolean;
@@ -20,7 +20,7 @@ export interface SyncPullResult {
 
 /**
  * High-level Sync Adapter for NextDNS.
- * Maps between FocusGate AppRules and NextDNS entities.
+ * Maps between StopAccess AppRules and NextDNS entities.
  */
 export class NextDNSSyncAdapter {
   api: NextDNSApiClient;
