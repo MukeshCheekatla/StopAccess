@@ -181,10 +181,25 @@ function PopupApp() {
           onClick={() =>
             chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') })
           }
-          className="fg-popup-action fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-text-[9px] fg-font-black fg-rounded-md fg-tracking-[0.16em] fg-whitespace-nowrap hover:fg-bg-[#2d2d34] focus:fg-scale-[0.98] fg-transition-all"
+          className="fg-popup-action fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-md fg-transition-all fg-flex fg-items-center fg-justify-center"
+          style={{ color: '#fefefe' }}
           type="button"
+          title="Open Full Dashboard"
         >
-          PORTAL
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+            <polyline points="15 3 21 3 21 9" />
+            <line x1="10" y1="14" x2="21" y2="3" />
+          </svg>
         </button>
       }
     >

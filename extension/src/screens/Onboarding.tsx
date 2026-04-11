@@ -1,475 +1,400 @@
 declare var chrome: any;
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   extensionAdapter as storage,
   nextDNSApi,
   STORAGE_KEYS,
 } from '../background/platformAdapter';
-import { Button, Card } from '../ui/react/FocusComponents';
 
-type SetupStep = 'welcome' | 'mode' | 'credentials' | 'browser' | 'ready';
+type Step = 'welcome' | 'connect' | 'done';
 
-function detectBrowserGuide() {
-  const userAgent = navigator.userAgent.toLowerCase();
-
-  if (userAgent.includes('firefox')) {
-    return {
-      browser: 'Firefox',
-      steps: [
-        'Open Settings > Privacy & Security.',
-        'Scroll to DNS over HTTPS.',
-        'Choose Max Protection.',
-        'Select Custom and paste your NextDNS endpoint.',
-      ],
-    };
-  }
-
-  return {
-    browser: 'Chrome / Brave / Edge',
-    steps: [
-      'Open Settings > Privacy and security > Security.',
-      'Find Use secure DNS.',
-      'Choose Custom.',
-      'Paste your NextDNS endpoint and save the browser setting.',
-    ],
-  };
+// ── Primary CTA button ───────────────────────────────────────────────────────
+function OBtn({
+  onClick,
+  children,
+  className = '',
+  disabled = false,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+  className?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`fg-bg-[var(--fg-text)] fg-text-[var(--fg-bg)] fg-rounded-[14px] fg-px-8 fg-py-4 fg-text-[12px] fg-font-black fg-tracking-[0.14em] fg-uppercase fg-border-0 fg-cursor-pointer fg-transition-opacity hover:fg-opacity-80 fg-font-[inherit] disabled:fg-opacity-40 disabled:fg-cursor-not-allowed ${className}`}
+    >
+      {children}
+    </button>
+  );
 }
 
+// ── Field with label + "open" link ───────────────────────────────────────────
+function Field({
+  label,
+  hint,
+  value,
+  onChange,
+  placeholder,
+  type = 'text',
+  onHintClick,
+}: {
+  label: string;
+  hint: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  type?: string;
+  onHintClick: () => void;
+}) {
+  const hasValue = value.trim().length > 3;
+  return (
+    <div>
+      <div className="fg-flex fg-items-center fg-justify-between fg-mb-2">
+        <div className="fg-text-[11px] fg-font-black fg-tracking-[0.16em] fg-uppercase fg-text-[var(--fg-text)]">
+          {label}
+        </div>
+        <button
+          onClick={onHintClick}
+          className="fg-bg-transparent fg-border-0 fg-text-[var(--fg-muted)] fg-text-[11px] fg-font-bold fg-tracking-wide fg-cursor-pointer fg-font-[inherit] fg-underline hover:fg-text-[var(--fg-text)] fg-transition-colors fg-p-0"
+        >
+          {hint} →
+        </button>
+      </div>
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="fg-w-full fg-box-border fg-bg-[var(--fg-glass-bg)] fg-rounded-[12px] fg-px-4 fg-py-3 fg-text-[13px] fg-font-semibold fg-text-[var(--fg-text)] fg-outline-none fg-font-[inherit]"
+        style={{
+          border: `1.5px solid ${
+            hasValue ? 'rgba(16,185,129,0.45)' : 'var(--fg-glass-border)'
+          }`,
+          transition: 'border-color 0.2s',
+        }}
+      />
+    </div>
+  );
+}
+
+// ── Alert strip ──────────────────────────────────────────────────────────────
+function Alert({ msg, tone }: { msg: string; tone: 'error' | 'success' }) {
+  return (
+    <div
+      className={`fg-rounded-[12px] fg-px-4 fg-py-3 fg-text-[13px] fg-font-semibold fg-border ${
+        tone === 'error'
+          ? 'fg-bg-red-500/10 fg-text-red-400 fg-border-red-500/20'
+          : 'fg-bg-emerald-500/10 fg-text-emerald-400 fg-border-emerald-500/20'
+      }`}
+    >
+      {msg}
+    </div>
+  );
+}
+
+// ── Page shell ───────────────────────────────────────────────────────────────
+function Shell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="fg-min-h-screen fg-bg-[var(--fg-bg)] fg-flex fg-flex-col fg-items-center fg-justify-center fg-px-6 fg-py-10 fg-relative fg-overflow-hidden">
+      <div
+        className="fg-absolute fg-inset-0 fg-pointer-events-none"
+        style={{
+          background:
+            'radial-gradient(ellipse 70% 50% at 50% 0%, rgba(99,102,241,0.05) 0%, transparent 70%)',
+        }}
+      />
+      <div className="fg-w-full fg-max-w-[520px] fg-relative">{children}</div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+// MAIN COMPONENT
+// ════════════════════════════════════════════════════════════
 export const OnboardingReact: React.FC<{
   onComplete: (tab?: string) => void;
 }> = ({ onComplete }) => {
-  const [step, setStep] = useState<SetupStep>('welcome');
+  const [step, setStep] = useState<Step>('welcome');
   const [profileId, setProfileId] = useState('');
   const [apiKey, setApiKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-  const [isCopying, setIsCopying] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
 
-  const guide = useMemo(() => detectBrowserGuide(), []);
-  const dohUrl = profileId.trim()
-    ? `https://dns.nextdns.io/${profileId.trim()}`
-    : 'https://dns.nextdns.io/YOUR_PROFILE_ID';
+  // detectBrowser reserved for future platform-specific hints
 
   useEffect(() => {
-    let cancelled = false;
-
-    const loadExistingConfig = async () => {
-      const config = await nextDNSApi.getConfig();
-      if (cancelled) {
-        return;
+    nextDNSApi.getConfig().then((cfg) => {
+      if (cfg.profileId) {
+        setProfileId(cfg.profileId);
       }
-
-      setProfileId(config.profileId || '');
-      setApiKey(config.apiKey || '');
-    };
-
-    loadExistingConfig();
-
-    return () => {
-      cancelled = true;
-    };
+      if (cfg.apiKey) {
+        setApiKey(cfg.apiKey);
+      }
+    });
   }, []);
 
-  const openExternal = (url: string) => {
-    if (chrome?.windows?.create) {
-      chrome.windows.create({
-        url,
-        type: 'popup',
-        width: 1180,
-        height: 900,
-        focused: true,
-      });
-      return;
-    }
-
+  const openWithIntent = (url: string, mode: 'setup' | 'api') => {
+    chrome?.storage?.local?.set({
+      fg_helper_intent: { mode, expiresAt: Date.now() + 10 * 60 * 1000 },
+    });
     if (chrome?.tabs?.create) {
       chrome.tabs.create({ url });
-      return;
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
-
-    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
-  const saveBrowserMode = async () => {
-    setError('');
-    setSuccess('');
-    await storage.set(STORAGE_KEYS.SYNC_MODE, 'browser');
-    await storage.set('fg_onboarding_done', 'true');
-    setStep('ready');
+  const openTab = (url: string) => {
+    if (chrome?.tabs?.create) {
+      chrome.tabs.create({ url });
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   };
 
-  const saveProfileMode = async () => {
-    const trimmedProfile = profileId.trim();
-    const trimmedKey = apiKey.trim();
-
-    if (!trimmedProfile || !trimmedKey) {
-      setError('Enter both your Profile ID and API Key.');
-      setSuccess('');
+  const saveAndVerify = async () => {
+    const pid = profileId.trim();
+    const key = apiKey.trim();
+    if (!pid || !key) {
+      setError('Both Profile ID and API Key are required.');
       return;
     }
-
     setIsSaving(true);
     setError('');
-    setSuccess('');
-
     try {
-      await storage.set(STORAGE_KEYS.PROFILE_ID, trimmedProfile);
-      await storage.set(STORAGE_KEYS.API_KEY, trimmedKey);
-
+      await storage.set(STORAGE_KEYS.PROFILE_ID, pid);
+      await storage.set(STORAGE_KEYS.API_KEY, key);
       const ok = await nextDNSApi.testConnection();
       if (!ok) {
-        setError('Connection failed. Check the Profile ID and API Key.');
+        setError(
+          'Could not connect — double-check your Profile ID and API Key.',
+        );
         return;
       }
-
-      await storage.set(STORAGE_KEYS.SYNC_MODE, 'profile');
       chrome?.runtime?.sendMessage?.({ action: 'manualSync' });
-      setSuccess('Credentials verified. Finish the browser DNS step next.');
-      setStep('browser');
+      setStep('done');
     } catch (err: any) {
-      setError(err?.message || 'Could not save your NextDNS connection.');
+      setError(err?.message || 'Could not connect to NextDNS.');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const copyDohUrl = async () => {
-    try {
-      setIsCopying(true);
-      if (!navigator.clipboard?.writeText) {
-        throw new Error('Clipboard unavailable');
-      }
-      await navigator.clipboard.writeText(dohUrl);
-      setError('');
-      setSuccess('DNS endpoint copied.');
-    } catch {
-      setError('Clipboard access failed. Copy the DNS endpoint manually.');
-    } finally {
-      setIsCopying(false);
-    }
+  const skip = () => {
+    // Mark onboarding done without NextDNS — the app works in local mode
+    onComplete('dash');
   };
 
-  const finishProfileSetup = async () => {
-    await storage.set('fg_onboarding_done', 'true');
-    setStep('ready');
-  };
-
+  // ── WELCOME ─────────────────────────────────────────────────────────────────
   if (step === 'welcome') {
     return (
-      <div className="fg-flex fg-min-h-[520px] fg-flex-col fg-items-center fg-justify-center fg-p-10 fg-text-center">
-        <div className="fg-mb-6 fg-flex fg-h-20 fg-w-20 fg-items-center fg-justify-center fg-rounded-[28px] fg-bg-sky-300/10 fg-text-4xl fg-text-sky-200">
-          FG
+      <Shell>
+        <div className="fg-text-center">
+          <img
+            src={chrome?.runtime?.getURL('assets/icon-128.png')}
+            alt="FocusGate"
+            className="fg-w-[68px] fg-h-[68px] fg-rounded-[20px] fg-mx-auto fg-mb-6 fg-object-contain"
+          />
+
+          <div className="fg-text-[10px] fg-font-black fg-tracking-[0.2em] fg-uppercase fg-text-[var(--fg-muted)] fg-mb-3">
+            DNS-level focus control
+          </div>
+
+          <h1 className="fg-text-[30px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tighter fg-leading-tight fg-mb-4">
+            Block sites that steal
+            <br />
+            your focus.
+          </h1>
+
+          <p className="fg-text-[14px] fg-text-[var(--fg-muted)] fg-leading-7 fg-mb-6 fg-max-w-[400px] fg-mx-auto">
+            FocusGate blocks YouTube, Reddit, Twitter and any site you pick — at
+            the <strong className="fg-text-[var(--fg-text)]">DNS level</strong>,
+            so it works across every app, not just the browser.
+          </p>
+
+          <div className="fg-grid fg-grid-cols-3 fg-gap-2.5 fg-mb-8">
+            {[
+              {
+                title: 'Block any site',
+                desc: 'DNS-level, impossible to bypass',
+              },
+              { title: 'Time-based rules', desc: 'Auto-enforced limits' },
+              { title: 'Live analytics', desc: 'See exactly what was blocked' },
+            ].map(({ title, desc }) => (
+              <div
+                key={title}
+                className="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[14px] fg-p-3 fg-text-left"
+              >
+                <div className="fg-text-[12px] fg-font-black fg-text-[var(--fg-text)] fg-mb-0.5">
+                  {title}
+                </div>
+                <div className="fg-text-[11px] fg-text-[var(--fg-muted)] fg-leading-snug">
+                  {desc}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <OBtn className="fg-w-full" onClick={() => setStep('connect')}>
+            Connect NextDNS — takes 2 min
+          </OBtn>
+
+          <button
+            onClick={skip}
+            className="fg-bg-transparent fg-border-0 fg-text-[var(--fg-muted)] fg-text-[11px] fg-font-bold fg-tracking-widest fg-uppercase fg-cursor-pointer fg-font-[inherit] hover:fg-text-[var(--fg-text)] fg-transition-colors fg-mt-4 fg-block fg-mx-auto"
+          >
+            Skip for now — use local blocking only
+          </button>
         </div>
-        <div className="fg-kicker fg-mb-3">Welcome</div>
-        <h1 className="fg-text-[34px] fg-font-black fg-tracking-tight fg-text-white">
-          FocusGate for deep work
-        </h1>
-        <p className="fg-mt-3 fg-max-w-[420px] fg-text-sm fg-font-medium fg-leading-relaxed fg-text-slate-400">
-          Set up your workspace once, then let the extension handle blocking,
-          focus sessions, and daily awareness.
-        </p>
-        <Button
-          className="fg-mt-8 fg-w-full fg-max-w-[260px]"
-          onClick={() => setStep('mode')}
-        >
-          Get started
-        </Button>
-      </div>
+      </Shell>
     );
   }
 
-  if (step === 'mode') {
+  // ── CONNECT ─────────────────────────────────────────────────────────────────
+  if (step === 'connect') {
     return (
-      <div className="fg-flex fg-min-h-[520px] fg-flex-col fg-p-8 md:fg-p-10">
-        <div className="fg-kicker fg-mb-3">Setup mode</div>
-        <h1 className="fg-text-[28px] fg-font-black fg-tracking-tight fg-text-white">
-          Choose your workspace type
+      <Shell>
+        <div className="fg-text-[10px] fg-font-black fg-tracking-[0.2em] fg-uppercase fg-text-[var(--fg-muted)] fg-mb-2">
+          Connect NextDNS
+        </div>
+        <h1 className="fg-text-[24px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight fg-mb-2">
+          Paste your credentials
         </h1>
-        <p className="fg-mt-3 fg-max-w-[680px] fg-text-sm fg-font-medium fg-leading-relaxed fg-text-slate-400">
-          Start immediately with local protection or connect to NextDNS for
-          enterprise-grade security and cross-device synchronization.
+        <p className="fg-text-[13px] fg-text-[var(--fg-muted)] fg-leading-relaxed fg-mb-6">
+          Click each link to open NextDNS, copy the value, switch back and
+          paste. Both open in a new tab.
         </p>
 
-        <div className="fg-mt-8 fg-grid fg-w-full fg-gap-6 md:fg-grid-cols-2">
-          <Card
-            className="fg-cursor-pointer fg-p-8 fg-relative fg-overflow-hidden"
-            hover
-            onClick={saveBrowserMode}
-          >
-            <div className="fg-kicker fg-mb-3 fg-text-emerald-400">
-              Instant Access
-            </div>
-            <div className="fg-text-2xl fg-font-black fg-text-white">
-              Local Mode
-            </div>
-            <div className="fg-mt-4 fg-space-y-2">
-              <div className="fg-flex fg-items-center fg-gap-2 fg-text-xs fg-font-bold fg-text-white/60">
-                <span className="fg-text-emerald-400">✓</span> No account
-                required
-              </div>
-              <div className="fg-flex fg-items-center fg-gap-2 fg-text-xs fg-font-bold fg-text-white/60">
-                <span className="fg-text-emerald-400">✓</span> Zero latency
-                blocking
-              </div>
-              <div className="fg-flex fg-items-center fg-gap-2 fg-text-xs fg-font-bold fg-text-white/60">
-                <span className="fg-text-emerald-400">✓</span> Private local
-                storage
-              </div>
-            </div>
-            <div className="fg-mt-6 fg-text-xs fg-font-black fg-uppercase fg-tracking-widest fg-text-emerald-400/80">
-              Start Now →
-            </div>
-          </Card>
+        <div className="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[18px] fg-p-5 fg-flex fg-flex-col fg-gap-4">
+          <Field
+            label="Profile ID"
+            hint="Find on nextdns.io/setup"
+            value={profileId}
+            onChange={setProfileId}
+            placeholder="e.g. abc123"
+            onHintClick={() =>
+              openWithIntent('https://my.nextdns.io/setup', 'setup')
+            }
+          />
+          <Field
+            label="API Key"
+            hint="Get on nextdns.io/account"
+            value={apiKey}
+            onChange={setApiKey}
+            placeholder="Long API token"
+            type="password"
+            onHintClick={() =>
+              openWithIntent('https://my.nextdns.io/account', 'api')
+            }
+          />
 
-          <Card
-            className="fg-cursor-pointer fg-border-sky-500/30 fg-p-8 fg-relative fg-overflow-hidden"
-            hover
-            onClick={() => setStep('credentials')}
-            style={{ background: 'rgba(14, 165, 233, 0.03)' }}
+          {error && <Alert msg={error} tone="error" />}
+
+          <OBtn
+            className="fg-w-full"
+            onClick={saveAndVerify}
+            disabled={isSaving}
           >
-            <div className="fg-kicker fg-mb-3 fg-text-sky-400">
-              Advanced Security
-            </div>
-            <div className="fg-text-2xl fg-font-black fg-text-white">
-              Cloud Sync
-            </div>
-            <div className="fg-mt-4 fg-space-y-2">
-              <div className="fg-flex fg-items-center fg-gap-2 fg-text-xs fg-font-bold fg-text-white/60">
-                <span className="fg-text-sky-400">✓</span> Cross-device policies
-              </div>
-              <div className="fg-flex fg-items-center fg-gap-2 fg-text-xs fg-font-bold fg-text-white/60">
-                <span className="fg-text-sky-400">✓</span> Deep analytics & logs
-              </div>
-              <div className="fg-flex fg-items-center fg-gap-2 fg-text-xs fg-font-bold fg-text-white/60">
-                <span className="fg-text-sky-400">✓</span> AI Threat Protection
-              </div>
-            </div>
-            <div className="fg-mt-6 fg-text-xs fg-font-black fg-uppercase fg-tracking-widest fg-text-sky-400/80">
-              Connect NextDNS →
-            </div>
-          </Card>
+            {isSaving ? 'Verifying...' : 'Save & Connect'}
+          </OBtn>
         </div>
+
+        <div className="fg-flex fg-justify-between fg-mt-5">
+          <button
+            onClick={() => setStep('welcome')}
+            className="fg-bg-transparent fg-border-0 fg-text-[var(--fg-muted)] fg-text-[11px] fg-font-bold fg-tracking-widest fg-uppercase fg-cursor-pointer fg-font-[inherit] hover:fg-text-[var(--fg-text)] fg-transition-colors"
+          >
+            ← Back
+          </button>
+          <button
+            onClick={skip}
+            className="fg-bg-transparent fg-border-0 fg-text-[var(--fg-muted)] fg-text-[11px] fg-font-bold fg-tracking-widest fg-uppercase fg-cursor-pointer fg-font-[inherit] hover:fg-text-[var(--fg-text)] fg-transition-colors"
+          >
+            Skip
+          </button>
+        </div>
+      </Shell>
+    );
+  }
+
+  // ── DONE ────────────────────────────────────────────────────────────────────
+  return (
+    <Shell>
+      <div className="fg-text-center">
+        <div
+          className="fg-w-[68px] fg-h-[68px] fg-rounded-full fg-mx-auto fg-mb-6 fg-flex fg-items-center fg-justify-center fg-bg-emerald-500/10 fg-border fg-border-emerald-500/20"
+          style={{ boxShadow: '0 0 40px rgba(16,185,129,0.1)' }}
+        >
+          <svg
+            width="28"
+            height="28"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="fg-text-emerald-400"
+          >
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+        </div>
+
+        <div className="fg-text-[10px] fg-font-black fg-tracking-[0.2em] fg-uppercase fg-text-emerald-500 fg-mb-3">
+          Connected
+        </div>
+        <h1 className="fg-text-[28px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight fg-mb-3">
+          FocusGate is live.
+        </h1>
+        <p className="fg-text-[13px] fg-text-[var(--fg-muted)] fg-leading-7 fg-mb-4 fg-max-w-[340px] fg-mx-auto">
+          DNS-level blocking is active. To also protect browser traffic, add
+          your NextDNS endpoint in browser settings — find it in{' '}
+          <strong className="fg-text-[var(--fg-text)]">
+            Settings → Cloud Identity
+          </strong>
+          .
+        </p>
+
+        {/* Quick tip */}
+        <div className="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[14px] fg-p-4 fg-text-left fg-mb-7">
+          <div className="fg-text-[11px] fg-font-black fg-tracking-[0.12em] fg-uppercase fg-text-[var(--fg-muted)] fg-mb-2">
+            Quick tour
+          </div>
+          {[
+            ['Block List', 'Add any site to block or set a daily time limit'],
+            ['Focus', 'Start a timed focus session — blocks everything'],
+            ['Reports', 'See live analytics on what was blocked'],
+          ].map(([label, desc]) => (
+            <div
+              key={label}
+              className="fg-flex fg-gap-2 fg-items-start fg-py-1.5"
+            >
+              <div className="fg-w-1 fg-h-1 fg-rounded-full fg-bg-emerald-400 fg-mt-2 fg-shrink-0" />
+              <span className="fg-text-[12px] fg-text-[var(--fg-text)]">
+                <strong>{label}</strong> — {desc}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <OBtn
+          className="fg-w-full fg-max-w-[260px]"
+          onClick={() => onComplete('settings')}
+        >
+          Open dashboard
+        </OBtn>
 
         <button
-          className="fg-mt-8 fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.18em] fg-text-slate-500 fg-transition-colors hover:fg-text-slate-200"
-          onClick={() => setStep('welcome')}
+          onClick={() => openTab('https://my.nextdns.io/setup')}
+          className="fg-bg-transparent fg-border-0 fg-text-[var(--fg-muted)] fg-text-[11px] fg-font-bold fg-tracking-widest fg-uppercase fg-cursor-pointer fg-font-[inherit] hover:fg-text-[var(--fg-text)] fg-transition-colors fg-mt-4 fg-block fg-mx-auto"
         >
-          Back
+          Open NextDNS setup →
         </button>
       </div>
-    );
-  }
-
-  if (step === 'credentials') {
-    return (
-      <div className="fg-flex fg-min-h-[520px] fg-flex-col fg-p-8 md:fg-p-10">
-        <div className="fg-kicker fg-mb-3">NextDNS setup</div>
-        <h1 className="fg-text-[28px] fg-font-black fg-tracking-tight fg-text-white">
-          Connect your NextDNS profile
-        </h1>
-        <p className="fg-mt-3 fg-max-w-[700px] fg-text-sm fg-font-medium fg-leading-relaxed fg-text-slate-400">
-          Go to NextDNS, copy your Profile ID from the setup page, then copy an
-          API Key from the account page. Save both here before finishing the
-          browser DNS step.
-        </p>
-
-        <div className="fg-mt-8 fg-grid fg-gap-4 md:fg-grid-cols-2">
-          <Card className="fg-p-6">
-            <div className="fg-kicker fg-mb-3">Step 1</div>
-            <div className="fg-text-lg fg-font-black fg-text-white">
-              Open NextDNS
-            </div>
-            <div className="fg-mt-2 fg-text-sm fg-leading-relaxed fg-text-slate-400">
-              Use the setup page for the Profile ID and the account page for the
-              API Key.
-            </div>
-            <div className="fg-mt-3 fg-text-xs fg-font-semibold fg-text-slate-500">
-              Opens in a dedicated browser window so you can keep onboarding in
-              view while copying values back.
-            </div>
-            <div className="fg-mt-5 fg-flex fg-flex-wrap fg-gap-3">
-              <Button
-                size="sm"
-                onClick={() => openExternal('https://my.nextdns.io/setup')}
-              >
-                Open setup page
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => openExternal('https://my.nextdns.io/account')}
-              >
-                Open account page
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="fg-p-6">
-            <div className="fg-kicker fg-mb-3">Step 2</div>
-            <div className="fg-text-lg fg-font-black fg-text-white">
-              Paste and verify
-            </div>
-            <div className="fg-mt-2 fg-text-sm fg-leading-relaxed fg-text-slate-400">
-              FocusGate tests the connection before moving you to browser DNS
-              setup.
-            </div>
-
-            <div className="fg-mt-5 fg-space-y-4">
-              <label className="fg-block">
-                <div className="fg-mb-2 fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.16em] fg-text-slate-400">
-                  Profile ID
-                </div>
-                <input
-                  className="fg-w-full fg-rounded-[14px] fg-border-0 fg-bg-white/[0.03] fg-px-4 fg-py-3 fg-text-sm fg-font-semibold fg-text-white fg-outline-none fg-shadow-none [appearance:none] focus:fg-border-0 focus:fg-outline-none focus:fg-shadow-none placeholder:fg-text-slate-500"
-                  onChange={(event) => setProfileId(event.target.value)}
-                  placeholder="abc123"
-                  value={profileId}
-                />
-              </label>
-
-              <label className="fg-block">
-                <div className="fg-mb-2 fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.16em] fg-text-slate-400">
-                  API Key
-                </div>
-                <input
-                  className="fg-w-full fg-rounded-[14px] fg-border-0 fg-bg-white/[0.03] fg-px-4 fg-py-3 fg-text-sm fg-font-semibold fg-text-white fg-outline-none fg-shadow-none [appearance:none] focus:fg-border-0 focus:fg-outline-none focus:fg-shadow-none placeholder:fg-text-slate-500"
-                  onChange={(event) => setApiKey(event.target.value)}
-                  placeholder="Paste your NextDNS API key"
-                  type="password"
-                  value={apiKey}
-                />
-              </label>
-
-              {error ? (
-                <div className="fg-rounded-[14px] fg-bg-red-500/10 fg-px-4 fg-py-3 fg-text-sm fg-font-semibold fg-text-red-200">
-                  {error}
-                </div>
-              ) : null}
-
-              {success ? (
-                <div className="fg-rounded-[14px] fg-bg-emerald-500/10 fg-px-4 fg-py-3 fg-text-sm fg-font-semibold fg-text-emerald-200">
-                  {success}
-                </div>
-              ) : null}
-
-              <div className="fg-flex fg-flex-wrap fg-gap-3">
-                <Button onClick={saveProfileMode}>
-                  {isSaving ? 'Saving...' : 'Save & Test'}
-                </Button>
-                <Button
-                  onClick={() => setStep('mode')}
-                  size="sm"
-                  variant="ghost"
-                >
-                  Back
-                </Button>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
-  }
-
-  if (step === 'browser') {
-    return (
-      <div className="fg-flex fg-min-h-[520px] fg-flex-col fg-p-8 md:fg-p-10">
-        <div className="fg-kicker fg-mb-3">Browser DNS</div>
-        <h1 className="fg-text-[28px] fg-font-black fg-tracking-tight fg-text-white">
-          Finish the {guide.browser} browser setting
-        </h1>
-        <p className="fg-mt-3 fg-max-w-[720px] fg-text-sm fg-font-medium fg-leading-relaxed fg-text-slate-400">
-          Add the same NextDNS endpoint to your browser settings so FocusGate
-          and DNS protection stay aligned.
-        </p>
-
-        <div className="fg-mt-8 fg-grid fg-gap-4 md:fg-grid-cols-[1.2fr_1fr]">
-          <Card className="fg-p-6">
-            <div className="fg-kicker fg-mb-3">DNS endpoint</div>
-            <div className="fg-rounded-[16px] fg-bg-white/[0.03] fg-p-4">
-              <div className="fg-break-all fg-text-sm fg-font-bold fg-text-white">
-                {dohUrl}
-              </div>
-            </div>
-            <div className="fg-mt-4 fg-flex fg-flex-wrap fg-gap-3">
-              <Button size="sm" onClick={copyDohUrl}>
-                {isCopying ? 'Copying...' : 'Copy URL'}
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => openExternal('https://my.nextdns.io/setup')}
-              >
-                Open NextDNS setup
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="fg-p-6">
-            <div className="fg-kicker fg-mb-3">What to do</div>
-            <div className="fg-space-y-3 fg-text-sm fg-font-medium fg-leading-relaxed fg-text-slate-300">
-              {guide.steps.map((item, index) => (
-                <div
-                  key={item}
-                  className="fg-flex fg-items-start fg-gap-3 fg-rounded-[14px] fg-bg-white/[0.02] fg-p-3"
-                >
-                  <span className="fg-mt-[2px] fg-text-xs fg-font-black fg-text-sky-200">
-                    {index + 1}
-                  </span>
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-
-        {error ? (
-          <div className="fg-mt-4 fg-rounded-[14px] fg-bg-red-500/10 fg-px-4 fg-py-3 fg-text-sm fg-font-semibold fg-text-red-200">
-            {error}
-          </div>
-        ) : null}
-
-        {success ? (
-          <div className="fg-mt-4 fg-rounded-[14px] fg-bg-emerald-500/10 fg-px-4 fg-py-3 fg-text-sm fg-font-semibold fg-text-emerald-200">
-            {success}
-          </div>
-        ) : null}
-
-        <div className="fg-mt-8 fg-flex fg-flex-wrap fg-gap-3">
-          <Button onClick={finishProfileSetup}>Finish setup</Button>
-          <Button
-            onClick={() => setStep('credentials')}
-            size="sm"
-            variant="ghost"
-          >
-            Back
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="fg-flex fg-min-h-[520px] fg-flex-col fg-items-center fg-justify-center fg-p-10 fg-text-center">
-      <div className="fg-mb-6 fg-flex fg-h-20 fg-w-20 fg-items-center fg-justify-center fg-rounded-[28px] fg-bg-emerald-400/12 fg-text-3xl fg-font-black fg-text-emerald-200">
-        OK
-      </div>
-      <div className="fg-kicker fg-mb-3">Ready</div>
-      <h1 className="fg-text-[30px] fg-font-black fg-tracking-tight fg-text-white">
-        Your workspace is set
-      </h1>
-      <p className="fg-mt-3 fg-max-w-[320px] fg-text-sm fg-font-medium fg-leading-relaxed fg-text-slate-400">
-        You can start blocking distractions immediately and fine-tune the setup
-        later from the dashboard settings page.
-      </p>
-      <Button
-        className="fg-mt-8 fg-w-full fg-max-w-[240px]"
-        onClick={() => onComplete('dash')}
-      >
-        Open dashboard
-      </Button>
-    </div>
+    </Shell>
   );
 };

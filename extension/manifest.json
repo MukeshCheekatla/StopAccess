@@ -48,7 +48,13 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["tailwind.css"],
+      "resources": [
+        "tailwind.css",
+        "assets/icon-16.png",
+        "assets/icon-32.png",
+        "assets/icon-48.png",
+        "assets/icon-128.png"
+      ],
       "matches": ["<all_urls>"]
     }
   ],

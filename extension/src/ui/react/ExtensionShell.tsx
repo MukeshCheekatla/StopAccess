@@ -55,10 +55,10 @@ export function PopupShell<T extends string>({
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            className={`fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-lg fg-text-[10px] fg-font-extrabold fg-tracking-[0.08em] fg-whitespace-nowrap fg-transition-all fg-duration-150 active:fg-scale-95 ${
+            className={`fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-lg fg-text-[10px] fg-font-extrabold fg-tracking-[0.1em] fg-whitespace-nowrap fg-transition-all fg-duration-150 active:fg-scale-95 ${
               activeTab === tab.id
-                ? 'fg-bg-[var(--accent)] fg-text-white'
-                : 'fg-bg-[rgba(255,255,255,0.03)] fg-text-[var(--muted)] hover:fg-text-white hover:fg-bg-[rgba(255,255,255,0.05)]'
+                ? 'fg-bg-[var(--accent)] fg-text-[#fefefe]'
+                : 'fg-bg-[var(--fg-glass-bg)] fg-text-[var(--muted)] hover:fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface)]'
             }`}
             data-tab={tab.id}
             onClick={() => onTabChange(tab.id)}
@@ -173,7 +173,9 @@ export function DashboardShell<T extends string>({
                   ? 'fg-bg-white fg-shadow-sm'
                   : 'fg-text-[var(--fg-muted)]'
               }`}
-              style={{ color: theme === 'light' ? '#000000' : '#ffffff' }}
+              style={{
+                color: theme === 'light' ? 'var(--fg-text)' : 'var(--fg-text)',
+              }}
               title="Light Mode"
             >
               <svg
@@ -204,7 +206,7 @@ export function DashboardShell<T extends string>({
                   ? 'fg-bg-[#27272a] fg-shadow-sm'
                   : 'fg-text-[var(--fg-muted)]'
               }`}
-              style={{ color: theme === 'dark' ? '#ffffff' : '#000000' }}
+              style={{ color: 'var(--fg-text)' }}
               title="Dark Mode"
             >
               <svg

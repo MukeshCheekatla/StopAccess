@@ -8,11 +8,12 @@
     --fg-green: #10b981;
     --fg-red: #ef4444;
     --fg-yellow: #f59e0b;
-    --fg-accent-soft: rgba(59, 130, 246, 0.1);
+    --fg-accent-soft: rgba(37, 99, 235, 0.12);
   }
 
-  .dark-theme, :root:not(.light-theme) {
-    --fg-bg: #212121;
+  .dark-theme,
+  :root:not(.light-theme) {
+    --fg-bg: #171717;
     --fg-surface: #2f2f2f;
     --fg-surface-hover: #3a3a3a;
     --fg-text: #ececec;
@@ -21,10 +22,10 @@
     --fg-glass-border: rgba(255, 255, 255, 0.08);
     --fg-glass-bg: #2f2f2f;
     --fg-chart-bar: #ececec;
-    --fg-sidebar-bg: #171717;
+    --fg-sidebar-bg: #212121;
     --fg-nav-active: #2f2f2f;
     --fg-nav-border: rgba(255, 255, 255, 0.08);
-    
+
     /* System Compat Legacy */
     --bg-dark: var(--fg-bg);
     --bg-card: var(--fg-surface);
@@ -76,6 +77,7 @@
   body {
     background-color: var(--fg-bg);
     color: var(--fg-text);
+    color-scheme: light dark;
     transition: background-color 0.3s ease, color 0.3s ease;
     letter-spacing: -0.01em;
   }
@@ -224,6 +226,7 @@
   align-items: center;
   justify-content: center;
 }
+
 .fg-tooltip:before {
   content: attr(data-tooltip);
   position: absolute;
@@ -240,13 +243,14 @@
   white-space: pre-wrap;
   width: 200px;
   text-align: left;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
   opacity: 0;
   visibility: hidden;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: none;
   z-index: 9999;
 }
+
 .fg-tooltip:after {
   content: '';
   position: absolute;
@@ -262,7 +266,9 @@
   pointer-events: none;
   z-index: 9998;
 }
-.fg-tooltip:hover:before, .fg-tooltip:hover:after {
+
+.fg-tooltip:hover:before,
+.fg-tooltip:hover:after {
   opacity: 1;
   visibility: visible;
   transform: translateX(-50%) translateY(0);
@@ -271,8 +277,9 @@
 .light-theme .fg-tooltip:before {
   background: #ffffff;
   color: #0d1117;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.1), 0 0 0 1px rgba(0,0,0,0.08);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.08);
 }
+
 .light-theme .fg-tooltip:after {
   border-color: #ffffff transparent transparent transparent;
 }
@@ -287,7 +294,79 @@
   font-weight: 800;
   cursor: help;
 }
+
 .fg-info-icon:hover {
   background: rgba(255, 255, 255, 0.12);
   color: var(--fg-text);
+}
+
+/* ── Custom Select System ── */
+.fg-custom-select {
+  position: relative;
+  display: inline-block;
+  user-select: none;
+}
+
+.fg-select-trigger {
+  cursor: pointer;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--fg-glass-bg);
+  border: 1px solid var(--fg-glass-border);
+  color: var(--fg-text);
+  border-radius: 10px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fg-select-trigger:hover {
+  border-color: var(--fg-text);
+  background: var(--fg-surface-hover);
+}
+
+.fg-select-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 140px;
+  background: var(--fg-bg);
+  border: 1px solid var(--fg-glass-border);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+  padding: 6px;
+  z-index: 1000;
+  display: none;
+  backdrop-filter: blur(12px);
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.fg-select-menu.active {
+  display: block;
+}
+
+.fg-select-option {
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--fg-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.fg-select-option:hover {
+  background: var(--fg-surface-hover);
+  color: var(--fg-text);
+}
+
+.fg-select-option.selected {
+  background: var(--accent-soft);
+  color: var(--fg-text);
+}
+
+.light-theme .fg-select-menu {
+  background: #ffffff;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
 }
