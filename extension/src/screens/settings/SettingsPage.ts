@@ -12,6 +12,8 @@ const iconActivity =
   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>';
 const iconDatabase =
   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>';
+const iconEdit =
+  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="fg-mr-1.5"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
 
 import { toast } from '../../lib/toast';
 import { checkGuard } from '../../background/sessionGuard';
@@ -57,9 +59,12 @@ export async function renderSettingsPage(container) {
                   <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Sync services, denylist domains, privacy lists, security toggles, and diagnostics.</p>
                 </div>
               </div>
-              <button id="btn_edit_credentials" class="fg-text-[9px] fg-font-black fg-text-[var(--fg-accent)] hover:fg-underline fg-uppercase fg-tracking-[0.2em] fg-bg-[var(--fg-accent)]/10 fg-px-3 fg-py-1.5 fg-rounded-lg ${
+              <button id="btn_edit_credentials" class="fg-flex fg-items-center fg-text-[9px] fg-font-black fg-text-[var(--fg-accent)] hover:fg-opacity-80 fg-uppercase fg-tracking-[0.2em] fg-bg-[var(--fg-accent)]/10 fg-px-3 fg-py-2 fg-rounded-lg fg-transition-opacity ${
                 isSetupActive ? '' : 'fg-hidden'
-              }">Modify</button>
+              }">
+                ${iconEdit}
+                <span>MODIFY</span>
+              </button>
             </div>
             <div class="fg-flex fg-flex-col fg-gap-8 fg-mt-4">
               <div class="fg-flex fg-flex-col fg-gap-2.5">
@@ -271,6 +276,7 @@ export async function renderSettingsPage(container) {
       }
       .input-premium.readonly-input {
         opacity: 0.88;
+        cursor: not-allowed !important;
       }
       .input-premium::placeholder {
         font-size: 11px !important;
@@ -421,22 +427,32 @@ export async function renderSettingsPage(container) {
 
   const editBtn = container.querySelector('#btn_edit_credentials');
   const saveBtn = container.querySelector('#btn_save_config');
-  const inputs = container.querySelectorAll('.readonly-input');
+  const editLabel = editBtn?.querySelector('span');
+
+  const inputs = container.querySelectorAll(
+    '#cfg_profile, #cfg_apiKey',
+  ) as NodeListOf<HTMLInputElement>;
 
   editBtn?.addEventListener('click', () => {
-    const isEditing = editBtn.innerText === 'CANCEL';
+    const isEditing = editBtn.classList.contains('active-edit');
     if (isEditing) {
-      editBtn.innerText = 'EDIT SETUP';
+      editBtn.classList.remove('active-edit');
+      if (editLabel) {
+        editLabel.innerText = 'MODIFY';
+      }
       saveBtn?.classList.add('fg-hidden');
       inputs.forEach((input) => {
-        (input as HTMLInputElement).readOnly = true;
+        input.readOnly = true;
         input.classList.add('readonly-input');
       });
     } else {
-      editBtn.innerText = 'CANCEL';
+      editBtn.classList.add('active-edit');
+      if (editLabel) {
+        editLabel.innerText = 'CANCEL';
+      }
       saveBtn?.classList.remove('fg-hidden');
       inputs.forEach((input) => {
-        (input as HTMLInputElement).readOnly = false;
+        input.readOnly = false;
         input.classList.remove('readonly-input');
       });
     }

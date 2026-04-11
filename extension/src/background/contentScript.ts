@@ -720,17 +720,16 @@ if (window.location.hostname === 'my.nextdns.io') {
         <div style="font-size:10px;color:rgba(0,0,0,0.4);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.14em;font-weight:800;">Profile ID</div>
         <div style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.06);border-radius:12px;padding:12px 14px;font-size:20px;font-weight:900;font-family:monospace;letter-spacing:0.04em;margin-bottom:14px;color:#111827;">${profileId}</div>
         <button id="fgh_copy" style="width:100%;background:#111827;color:#fff;border:none;border-radius:12px;padding:12px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;transition:opacity 0.2s;">Copy Profile ID</button>
-        <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:#10b981;font-weight:700;">Copied — switch back to StopAccess</div>`;
+        <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:12px;line-height:1.45;color:#10b981;font-weight:800;">Profile ID copied. Return to StopAccess and paste it.</div>`;
     } else if (intent.mode === 'api') {
       card.innerHTML =
         hdr +
         `
         <div style="font-size:12px;color:rgba(0,0,0,0.6);margin-bottom:12px;line-height:1.6;font-weight:500;">
-          Generate a dedicated StopAccess API key, then copy only the visible token.
+          Find the API section. Generate a dedicated StopAccess key. Copy the key NextDNS shows, then return to StopAccess and paste it.
         </div>
-        <button id="fgh_copy" style="width:100%;background:#111827;color:#fff;border:none;border-radius:12px;padding:12px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;transition:opacity 0.2s;">Copy visible token</button>
-        <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:#10b981;font-weight:700;">Copied — switch back to StopAccess</div>
-        <div id="fgh_err" style="display:none;text-align:center;margin-top:9px;font-size:11px;color:rgba(0,0,0,0.4);font-weight:600;">Key not visible yet — scroll down to API section.</div>`;
+        <button id="fgh_copy" style="width:100%;background:#111827;color:#fff;border:none;border-radius:12px;padding:12px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;transition:opacity 0.2s;">Done, return to StopAccess</button>
+        <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:12px;line-height:1.45;color:#10b981;font-weight:800;">Return to StopAccess and paste the key.</div>`;
     } else {
       return; // nothing to show
     }
@@ -743,11 +742,21 @@ if (window.location.hostname === 'my.nextdns.io') {
     });
 
     card.querySelector('#fgh_copy')?.addEventListener('click', async () => {
-      const value = intent.mode === 'setup' ? profileId! : readApiKeyFromPage();
-
       const btn = card.querySelector('#fgh_copy') as HTMLButtonElement;
       const ok = card.querySelector('#fgh_ok') as HTMLElement;
       const err = card.querySelector('#fgh_err') as HTMLElement | null;
+
+      if (intent.mode === 'api') {
+        clearIntent();
+        btn.textContent = 'Return to StopAccess';
+        btn.style.background = '#10b981';
+        btn.style.color = '#fff';
+        ok.textContent = 'Return to StopAccess and paste the key.';
+        ok.style.display = 'block';
+        return;
+      }
+
+      const value = profileId!;
 
       if (!value) {
         if (err) {
@@ -759,9 +768,10 @@ if (window.location.hostname === 'my.nextdns.io') {
       await navigator.clipboard.writeText(value).catch(() => {});
       // Clear intent so card won't re-show
       clearIntent();
-      btn.textContent = 'Copied!';
+      btn.textContent = 'ID copied';
       btn.style.background = '#10b981';
       btn.style.color = '#fff';
+      ok.textContent = 'Profile ID copied. Return to StopAccess and paste it.';
       ok.style.display = 'block';
       if (err) {
         err.style.display = 'none';
