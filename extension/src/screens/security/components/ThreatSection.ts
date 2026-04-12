@@ -9,6 +9,7 @@ import {
   renderToggleSwitch,
   renderSectionBadge,
   renderSectionTitleRow,
+  renderInfoTooltip,
 } from '../../../lib/ui';
 
 interface ThreatToggle {
@@ -108,12 +109,7 @@ function renderToggleRow(toggle: ThreatToggle, active: boolean): string {
           <div class="fg-text-sm fg-font-bold fg-leading-[1.3] fg-text-[var(--text)] fg-truncate">
             ${escapeHtml(toggle.label)}
           </div>
-          <div
-            class="fg-tooltip fg-info-icon"
-            data-tooltip="${toggle.tooltip || ''}"
-          >
-            i
-          </div>
+          ${renderInfoTooltip(toggle.tooltip ?? '')}
         </div>
         <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-[1.4]">
           ${escapeHtml(toggle.description)}

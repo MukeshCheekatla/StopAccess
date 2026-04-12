@@ -4,6 +4,7 @@
  */
 
 import type { NextDNSTld } from '@stopaccess/types';
+import { renderInfoTooltip, renderEmptyState } from '../../../lib/ui';
 
 // Common TLDs to suggest
 const COMMON_RISKY_TLDS = [
@@ -40,12 +41,9 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
           <div>
             <div class="fg-flex fg-items-center fg-gap-2">
               <div class="fg-text-sm fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight">Global Shield</div>
-              <div
-                class="fg-tooltip fg-info-icon"
-                data-tooltip="Enhance security by blocking entire top-level domains (TLDs) like .ru, .cn, or .top to prevent access to high-risk regions and malicious extensions."
-              >
-                i
-              </div>
+              ${renderInfoTooltip(
+                'Enhance security by blocking entire top-level domains (TLDs) like .ru, .cn, or .top to prevent access to high-risk regions and malicious extensions.',
+              )}
             </div>
             <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-tracking-widest">TLD Blocker</div>
           </div>
@@ -142,10 +140,7 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
           </div>
         `
             : `
-          <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-py-10 fg-rounded-3xl fg-opacity-40" style="border: 1px dashed var(--fg-glass-border);">
-             <div class="fg-mb-2">${iconGlobe}</div>
-             <div class="fg-text-[11px] fg-font-bold fg-uppercase fg-tracking-wider">No Regions Restricted</div>
-          </div>
+          ${renderEmptyState('No Regions Restricted')}
         `
         }
       </div>

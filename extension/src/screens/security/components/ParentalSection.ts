@@ -3,6 +3,7 @@ import {
   renderToggleSwitch,
   renderSectionBadge,
   renderSectionTitleRow,
+  renderInfoTooltip,
 } from '../../../lib/ui';
 
 const iconSearch =
@@ -79,12 +80,7 @@ export function renderParentalSection(
                 <div class="fg-text-sm fg-font-bold fg-leading-[1.3] fg-text-[var(--text)]">
                   ${ctrl.label}
                 </div>
-                <div
-                  class="fg-tooltip fg-info-icon"
-                  data-tooltip="${ctrl.tooltip || ''}"
-                >
-                  i
-                </div>
+                ${renderInfoTooltip(ctrl.tooltip || '')}
               </div>
               <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-snug">
                 ${ctrl.desc}

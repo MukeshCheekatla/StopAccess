@@ -469,3 +469,49 @@ export function renderSectionTitleRow(
     </div>
   `;
 }
+
+// ─────────────────────────────────────────────
+// Stat Card — write once, use everywhere
+// ─────────────────────────────────────────────
+
+/**
+ * Render a 3-column Hero stat panel used in InsightsPage and PrivacyPage.
+ */
+export function renderStatCard(
+  title: string,
+  iconHtml: string,
+  iconColor: string,
+  valueText: string | number,
+  subLabel: string,
+  badgeHtml: string = '',
+): string {
+  return `
+    <div class="fg-flex fg-flex-col fg-gap-1 fg-p-5 fg-rounded-3xl fg-relative fg-overflow-hidden fg-transition-all" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
+      <div class="fg-flex fg-items-center fg-justify-between fg-mb-1">
+        <div class="fg-flex fg-items-center fg-gap-2">
+          <span style="color: ${iconColor};">${iconHtml}</span>
+          <span style="${UI_TOKENS.TEXT.LABEL}">${title}</span>
+        </div>
+        ${badgeHtml}
+      </div>
+      <div style="${UI_TOKENS.TEXT.STAT}">${valueText}</div>
+      <div style="${UI_TOKENS.TEXT.LABEL}; margin-top: 4px;">${subLabel}</div>
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────
+// Info Tooltip — write once, use everywhere
+// ─────────────────────────────────────────────
+
+/**
+ * Render the info 'i' circle tooltip icon used on toggle rows.
+ */
+export function renderInfoTooltip(tooltipText: string): string {
+  if (!tooltipText) {
+    return '';
+  }
+  return `
+    <div class="fg-tooltip fg-info-icon" data-tooltip="${tooltipText}">i</div>
+  `;
+}

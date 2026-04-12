@@ -8,10 +8,10 @@ import { nextDNSApi } from '../../background/platformAdapter';
 import { appsController } from '../../lib/appsController';
 import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
 import {
-  UI_TOKENS,
   renderCloudBanner,
   renderErrorCard,
   renderLoader,
+  renderStatCard,
 } from '../../lib/ui';
 
 declare var chrome: any;
@@ -94,50 +94,28 @@ async function _renderPage(container: HTMLElement): Promise<void> {
       
       <!-- Normalized Hero Stat Deck -->
       <div class="fg-grid fg-grid-cols-3 fg-gap-4 fg-mb-10">
-        <!-- Total Traffic -->
-        <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden">
-          <div class="fg-flex fg-items-center fg-gap-2 fg-mb-3">
-            <span class="fg-text-[var(--accent)]">${iconActivity}</span>
-            <span style="${UI_TOKENS.TEXT.LABEL}">Total Activity</span>
-          </div>
-          <div style="${
-            UI_TOKENS.TEXT.STAT
-          }">${totalQueries.toLocaleString()}</div>
-          <div style="${
-            UI_TOKENS.TEXT.LABEL
-          }; margin-top: 4px;">All Requests</div>
-        </div>
-
-        <!-- Blocked Intelligence -->
-        <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden">
-          <div class="fg-flex fg-items-center fg-justify-between fg-mb-3">
-            <div class="fg-flex fg-items-center fg-gap-2">
-              <span class="fg-text-[var(--red)]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span>
-              <span style="${UI_TOKENS.TEXT.LABEL}">Denied Requests</span>
-            </div>
-            <span class="fg-text-[8px] fg-font-black fg-bg-[var(--green)]/10 fg-text-[var(--green)] fg-px-2 fg-py-0.5 fg-rounded-md">ACTIVE</span>
-          </div>
-          <div style="${
-            UI_TOKENS.TEXT.STAT
-          }">${blockedQueries.toLocaleString()}</div>
-          <div style="${
-            UI_TOKENS.TEXT.LABEL
-          }; margin-top: 4px;">Stopped Attempts</div>
-        </div>
-
-        <!-- Safety Performance -->
-        <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden">
-          <div class="fg-flex fg-items-center fg-gap-2 fg-mb-3">
-            <span class="fg-text-[var(--green)]">${iconShield}</span>
-            <span style="${UI_TOKENS.TEXT.LABEL}">Safety Score</span>
-          </div>
-          <div style="${
-            UI_TOKENS.TEXT.STAT
-          }; color: var(--fg-green);">${protectionRate}%</div>
-          <div style="${
-            UI_TOKENS.TEXT.LABEL
-          }; margin-top: 4px;">Shield Efficiency</div>
-        </div>
+        ${renderStatCard(
+          'Total Activity',
+          iconActivity,
+          'var(--accent)',
+          totalQueries.toLocaleString(),
+          'All Requests',
+        )}
+        ${renderStatCard(
+          'Denied Requests',
+          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>',
+          'var(--red)',
+          blockedQueries.toLocaleString(),
+          'Stopped Attempts',
+          '<span class="fg-text-[8px] fg-font-black fg-bg-[var(--green)]/10 fg-text-[var(--green)] fg-px-2 fg-py-0.5 fg-rounded-md">ACTIVE</span>',
+        )}
+        ${renderStatCard(
+          'Safety Score',
+          iconShield,
+          'var(--green)',
+          `<span style="color: var(--fg-green);">${protectionRate}%</span>`,
+          'Shield Efficiency',
+        )}
       </div>
 
       <!-- Detail Sections -->

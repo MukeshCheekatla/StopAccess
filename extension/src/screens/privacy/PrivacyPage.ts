@@ -18,6 +18,7 @@ import {
   renderErrorCard,
   applyToggleUI,
   applyCardToggleUI,
+  renderStatCard,
 } from '../../lib/ui';
 
 const vm = createPrivacyVM(storage, nextDNSApi);
@@ -74,46 +75,27 @@ export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
     }">
       <!-- Summary badges (Scan results) -->
       <div class="fg-grid fg-grid-cols-3 fg-gap-4 fg-mb-8">
-        <div class="fg-flex fg-flex-col fg-gap-1 fg-p-5 fg-rounded-3xl fg-transition-all" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
-          <div class="fg-flex fg-items-center fg-justify-between fg-mb-1">
-            <span class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-widest" style="color: ${
-              blocklistCount > 0 ? 'var(--green)' : 'var(--fg-muted)'
-            }; opacity: 0.8;">Filters</span>
-            <span style="color: ${
-              blocklistCount > 0 ? 'var(--green)' : 'var(--fg-muted)'
-            };">${iconShield}</span>
-          </div>
-          <div class="fg-text-3xl fg-font-black fg-text-[var(--fg-text)]">${blocklistCount}</div>
-          <div class="fg-text-[11px] fg-text-[var(--fg-muted)] fg-font-bold">Active Blocklists</div>
-        </div>
-
-        <div class="fg-flex fg-flex-col fg-gap-1 fg-p-5 fg-rounded-3xl fg-transition-all" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
-          <div class="fg-flex fg-items-center fg-justify-between fg-mb-1">
-            <span class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-widest" style="color: ${
-              nativeCount > 0 ? 'rgb(56,189,248)' : 'var(--fg-muted)'
-            }; opacity: 0.8;">Tracking</span>
-            <span style="color: ${
-              nativeCount > 0 ? 'rgb(56,189,248)' : 'var(--fg-muted)'
-            };">${iconWifi}</span>
-          </div>
-          <div class="fg-text-3xl fg-font-black fg-text-[var(--fg-text)]">${nativeCount}</div>
-          <div class="fg-text-[11px] fg-text-[var(--fg-muted)] fg-font-bold">Native Rules</div>
-        </div>
-
-        <div class="fg-flex fg-flex-col fg-gap-1 fg-p-5 fg-rounded-3xl fg-transition-all" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
-          <div class="fg-flex fg-items-center fg-justify-between fg-mb-1">
-            <span class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-widest" style="color: ${
-              disguisedActive ? 'rgb(168,85,247)' : 'var(--fg-muted)'
-            }; opacity: 0.8;">Stealth</span>
-            <span style="color: ${
-              disguisedActive ? 'rgb(168,85,247)' : 'var(--fg-muted)'
-            };">${iconLayers}</span>
-          </div>
-          <div class="fg-text-3xl fg-font-black fg-text-[var(--fg-text)]">${
-            disguisedActive ? 'ON' : 'OFF'
-          }</div>
-          <div class="fg-text-[11px] fg-text-[var(--fg-muted)] fg-font-bold">Cloaking Protection</div>
-        </div>
+        ${renderStatCard(
+          'Filters',
+          iconShield,
+          blocklistCount > 0 ? 'var(--green)' : 'var(--fg-muted)',
+          blocklistCount,
+          'Active Blocklists',
+        )}
+        ${renderStatCard(
+          'Tracking',
+          iconWifi,
+          nativeCount > 0 ? 'rgb(56,189,248)' : 'var(--fg-muted)',
+          nativeCount,
+          'Native Rules',
+        )}
+        ${renderStatCard(
+          'Stealth',
+          iconLayers,
+          disguisedActive ? 'rgb(168,85,247)' : 'var(--fg-muted)',
+          disguisedActive ? 'ON' : 'OFF',
+          'Cloaking Protection',
+        )}
       </div>
 
       <!-- Sections -->

@@ -8,6 +8,7 @@ import {
   renderToggleSwitch,
   renderSectionBadge,
   renderSectionTitleRow,
+  renderInfoTooltip,
 } from '../../../lib/ui';
 
 const iconLock =
@@ -47,12 +48,9 @@ export function renderContentProtectionSection(
               <div class="fg-text-sm fg-font-bold fg-leading-[1.3] fg-text-[var(--text)]">
                 Block CSAM
               </div>
-              <div
-                class="fg-tooltip fg-info-icon"
-                data-tooltip="Blocks access to known Child Sexual Abuse Material (CSAM) domains using industry-standard safety lists from organizations like the NCMEC."
-              >
-                i
-              </div>
+              ${renderInfoTooltip(
+                'Blocks access to known Child Sexual Abuse Material (CSAM) domains using industry-standard safety lists from organizations like the NCMEC.',
+              )}
             </div>
             <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-snug">
               Block child sexual abuse material.
