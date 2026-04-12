@@ -4,17 +4,23 @@ import {
   NEXTDNS_CATEGORIES,
   NEXTDNS_SERVICES,
 } from '@stopaccess/core';
-import {
-  getCategoryBadge,
-  resolveServiceIcon,
-  escapeHtml,
-  getRootDomain,
-} from '@stopaccess/core';
+import { getCategoryBadge, escapeHtml } from '@stopaccess/core';
 import { toast } from '../../lib/toast';
 import { appsController } from '../../lib/appsController';
 import { getLockedDomains } from '../../background/sessionGuard';
 import { extensionAdapter } from '../../background/platformAdapter';
 import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
+import {
+  renderBrandLogo,
+  renderAppIcon,
+  getRuleActiveState,
+  renderLimitSelector,
+  renderPassSelector,
+  renderStreakBadge,
+  UI_TOKENS,
+  renderLoader,
+  renderEmptyState,
+} from '../../lib/ui';
 
 let activeTab = 'shield';
 let availableServices: any[] = [];
@@ -26,36 +32,7 @@ let currentSyncMode = 'browser';
 let currentIsConfigured = false;
 let currentIsAppsDnsHardMode = true;
 
-function renderBrandLogo(identifier: string, name?: string, size = 44) {
-  const iconInfo = resolveServiceIcon({ id: identifier, name });
-  const targetDomain = iconInfo.domain || identifier;
-  const rootDomain = getRootDomain(targetDomain);
-
-  const primaryIconUrl = `https://logo.clearbit.com/${rootDomain}`;
-  const iconSize = Math.floor(size * 0.9);
-
-  return `
-    <div class="brand-logo-container insights-logo-container" 
-         data-domain="${rootDomain}"
-         style="position: relative; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-       <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: ${Math.floor(
-         size * 0.45,
-       )}px; font-weight: 900; color: var(--fg-text); opacity: 0.3; z-index: 1; letter-spacing: -1px;">${(
-    name || identifier
-  )
-    .slice(0, 2)
-    .toUpperCase()}</div>
-       <img src="${primaryIconUrl}" 
-            class="brand-logo-image"
-            style="position: relative; width: ${iconSize}px; height: ${iconSize}px; object-fit: contain; z-index: 2; border-radius: 20%; opacity: 0;" 
-            alt="">
-    </div>
-  `;
-}
-
-function renderAppIcon(domain: string, name?: string) {
-  return renderBrandLogo(domain, name, 44);
-}
+// Externalized UI functions and tokens imported above
 
 export async function renderAppsPage(container: HTMLElement) {
   globalContainer = container;
@@ -227,7 +204,7 @@ async function refreshListOnly(passedRules?: any[]) {
   ) as HTMLElement;
 
   if (tabContent && isLoadingNextDNS && availableServices.length === 0) {
-    tabContent.innerHTML = '<div class="loader">Syncing with NextDNS...</div>';
+    tabContent.innerHTML = renderLoader('Syncing with NextDNS...');
   }
 
   globalContainer.querySelectorAll('.nav-item-tab').forEach((btn) => {
@@ -379,101 +356,13 @@ function matchesSearch(item: any) {
   return name.includes(searchTerm) || domain.includes(searchTerm);
 }
 
-function renderCustomSelect(
-  options: { value: any; label: string }[],
-  current: any,
-  pkg: string,
-  className: string,
-  width = '130px',
+// Externalized UI functions and tokens imported above
+
+async function renderSubTab(
+  rules: any[],
+  lockedDomains: string[],
+  passes: any = {},
 ) {
-  const selectedLabel =
-    options.find((o) => o.value === current)?.label || options[0].label;
-  return `
-    <div class="fg-custom-select ${className}" data-pkg="${escapeHtml(pkg)}">
-      <div class="fg-select-trigger" style="width: ${width}; height: 32px; padding: 0 12px; font-size: 11px; font-weight: 800;">
-        <span>${selectedLabel}</span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="m6 9 6 6 6-6"/></svg>
-      </div>
-      <div class="fg-select-menu">
-        ${options
-          .map(
-            (opt) => `
-          <div class="fg-select-option ${
-            Number(opt.value) === Number(current) ? 'selected' : ''
-          }" data-value="${opt.value}">
-            ${opt.label}
-          </div>
-        `,
-          )
-          .join('')}
-      </div>
-    </div>
-  `;
-}
-
-function getRuleActiveState(rule: any) {
-  return Boolean(
-    rule?.desiredBlockingState ?? rule?.blockedToday ?? rule?.mode !== 'allow',
-  );
-}
-
-function renderLimitSelector(rule: any) {
-  const limitValue = rule.dailyLimitMinutes || 0;
-  const options = [
-    { value: 0, label: 'Instant Block' },
-    { value: 5, label: '5 min' },
-    { value: 10, label: '10 min' },
-    { value: 15, label: '15 min' },
-    { value: 30, label: '30 min' },
-    { value: 45, label: '45 min' },
-    { value: 60, label: '1 hour' },
-    { value: 90, label: '1.5 hours' },
-    { value: 120, label: '2 hours' },
-  ];
-
-  return renderCustomSelect(
-    options,
-    limitValue,
-    rule.packageName,
-    'edit-limit-select',
-  );
-}
-
-function renderPassSelector(rule: any) {
-  const currentValue = Math.max(0, Number(rule.maxDailyPasses ?? 3));
-  const options = [0, 1, 2, 3, 4, 5].map((v) => ({
-    value: v,
-    label: `${v} pass${v === 1 ? '' : 'es'}`,
-  }));
-
-  return renderCustomSelect(
-    options,
-    currentValue,
-    rule.packageName,
-    'edit-pass-select',
-    '110px',
-  );
-}
-
-function renderStreakBadge(streak: number) {
-  const isZero = streak <= 0;
-  const color = isZero ? 'var(--muted)' : '#f97316';
-  const bg = isZero ? 'rgba(255,255,255,0.05)' : 'rgba(249, 115, 22, 0.1)';
-  const border = isZero ? 'var(--glass-border)' : 'rgba(249, 115, 22, 0.2)';
-
-  return `
-    <div style="display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: ${bg}; border: 1px solid ${border}; border-radius: 12px; color: ${color}; font-weight: 950; filter: ${
-    isZero ? 'none' : 'drop-shadow(0 4px 12px rgba(249, 115, 22, 0.15))'
-  };">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity: ${
-        isZero ? 0.5 : 1
-      };"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3 0-1.03.46-2 1.39-3h.01c.78.78 1.1 1.63 1.1 2.5 0 1.05-.33 2.1-.8 3.01.52-.4 1.1-.73 1.56-1.1.28.9.23 1.83-.15 2.7-.3.7-.7 1.32-1.2 1.86A5 5 0 0 1 7 14.5c0-.9.2-1.74.57-2.5h.06l.87 2.5z"/><path d="M12 2c1 2 2 4 2 7a4 4 0 0 1-7.87 1C5.47 11.41 5 13.15 5 15a7 7 0 0 0 13.14 3.33L19 18a7 7 0 0 0-7-16z"/></svg>
-      <span style="font-size: 11px; letter-spacing: -0.01em;">${streak}d</span>
-    </div>
-  `;
-}
-
-async function renderSubTab(rules: any[], lockedDomains: string[]) {
   if (activeTab === 'shield') {
     const domainRules = rules.filter(
       (r: any) => r.type === 'domain' || !r.type,
@@ -545,23 +434,27 @@ async function renderSubTab(rules: any[], lockedDomains: string[]) {
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
           <div>
             <div style="display: flex; align-items: center; gap: 10px;">
-              <div style="font-weight: 900; color: var(--fg-text); font-size: 1rem; letter-spacing: -0.02em;">Shielded Apps</div>
+              <div style="${UI_TOKENS.TEXT.HEADING}">Shielded Apps</div>
               ${
                 visibleApps.length > 0
                   ? `<span style="font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: 100px; background: rgba(185,28,28,0.12); color: var(--red); border: 1px solid rgba(185,28,28,0.2);">${visibleApps.length}</span>`
                   : ''
               }
             </div>
-            <div style="font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 600;">Configured app perimeters under profile control.</div>
+            <div style="${
+              UI_TOKENS.TEXT.SUBTEXT
+            }">Configured app perimeters under profile control.</div>
           </div>
         </div>
         <div class="service-grid">
           ${
             visibleApps.length
               ? visibleApps
-                  .map((app) => renderServiceCard(app, rules, lockedDomains))
+                  .map((app) =>
+                    renderServiceCard(app, rules, lockedDomains, passes),
+                  )
                   .join('')
-              : '<div style="padding: 28px 20px; border: 1px dashed var(--fg-glass-border); border-radius: 16px; color: var(--fg-muted); font-size: 12px; font-weight: 700; text-align: center; background: var(--fg-glass-bg); width: 100%;">No apps shielded yet — use Quick Add below.</div>'
+              : renderEmptyState('No apps shielded yet — use Quick Add below.')
           }
         </div>
       </div>
@@ -572,21 +465,25 @@ async function renderSubTab(rules: any[], lockedDomains: string[]) {
         <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
           <div>
             <div style="display: flex; align-items: center; gap: 10px;">
-              <div style="font-weight: 900; color: var(--fg-text); font-size: 1rem; letter-spacing: -0.02em;">Custom Domain Blocks</div>
+              <div style="${UI_TOKENS.TEXT.HEADING}">Custom Domain Blocks</div>
               ${
                 visibleDomains.length > 0
                   ? `<span style="font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: 100px; background: rgba(185,28,28,0.12); color: var(--red); border: 1px solid rgba(185,28,28,0.2);">${visibleDomains.length}</span>`
                   : ''
               }
             </div>
-            <div style="font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 600;">Manual domain entries enforced locally or via NextDNS.</div>
+            <div style="${
+              UI_TOKENS.TEXT.SUBTEXT
+            }">Manual domain entries enforced locally or via NextDNS.</div>
           </div>
         </div>
         <div class="service-grid">
           ${
             visibleDomains.length
               ? visibleDomains
-                  .map((rule) => renderDomainRuleCard(rule, lockedDomains))
+                  .map((rule) =>
+                    renderDomainRuleCard(rule, lockedDomains, passes),
+                  )
                   .join('')
               : '<div style="padding: 28px 20px; border: 1px dashed var(--fg-glass-border); border-radius: 16px; color: var(--fg-muted); font-size: 12px; font-weight: 700; text-align: center; background: var(--fg-glass-bg); width: 100%;">No custom domains shielded. Type a domain in the search bar above and press Enter.</div>'
           }
@@ -630,7 +527,7 @@ async function renderSubTab(rules: any[], lockedDomains: string[]) {
       </div>
       <div class="service-grid">
         ${visibleCategories
-          .map((cat) => renderCategoryCard(cat, rules, lockedDomains))
+          .map((cat) => renderCategoryCard(cat, rules, lockedDomains, passes))
           .join('')}
       </div>
     `;
@@ -638,8 +535,12 @@ async function renderSubTab(rules: any[], lockedDomains: string[]) {
   return '';
 }
 
-function renderDomainRuleCard(rule: any, lockedDomains: string[] = []) {
-  const active = getRuleActiveState(rule);
+function renderDomainRuleCard(
+  rule: any,
+  lockedDomains: string[] = [],
+  passes: any = {},
+) {
+  const active = getRuleActiveState(rule, passes);
   const isLocked = lockedDomains.includes(rule.packageName);
 
   return `
@@ -709,12 +610,13 @@ function renderServiceCard(
   service: any,
   rules: any[],
   lockedDomains: string[] = [],
+  passes: any = {},
 ) {
   const localRule = rules.find(
     (rule: any) => rule.packageName === service.id && rule.type === 'service',
   );
   const active =
-    localRule !== undefined ? getRuleActiveState(localRule) : false;
+    localRule !== undefined ? getRuleActiveState(localRule, passes) : false;
   const isLocked = lockedDomains.includes(service.id);
 
   return `
@@ -730,14 +632,16 @@ function renderServiceCard(
         <div style="display:flex; align-items:center; gap: 12px; min-width: 0; flex: 1;">
             ${renderBrandLogo(service.id, service.name, 40)}
             <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
-              <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 800;">${escapeHtml(
-                service.name,
-              )}</div>
+              <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${
+                UI_TOKENS.TEXT.CARD_TITLE
+              }">${escapeHtml(service.name)}</div>
               <div style="display:flex; align-items:center; gap: 6px; margin-top: 3px;">
-                <span class="stat-lbl" style="font-size: 10px;">App</span>
+                <span class="stat-lbl" style="${
+                  UI_TOKENS.TEXT.LABEL
+                } font-size: 10px;">App</span>
                 ${
                   active
-                    ? '<span style="font-size: 9px; font-weight: 800; color: var(--red); letter-spacing: 0.5px; text-transform: uppercase;">Blocked</span>'
+                    ? `<span style="${UI_TOKENS.TEXT.BADGE} color: var(--red);">Blocked</span>`
                     : ''
                 }
               </div>
@@ -785,12 +689,13 @@ function renderCategoryCard(
   category: any,
   rules: any[],
   lockedDomains: string[] = [],
+  passes: any = {},
 ) {
   const localRule = rules.find(
     (rule: any) => rule.packageName === category.id && rule.type === 'category',
   );
   const active =
-    localRule !== undefined ? getRuleActiveState(localRule) : false;
+    localRule !== undefined ? getRuleActiveState(localRule, passes) : false;
   const badge = getCategoryBadge(category);
   const isLocked = lockedDomains.includes(category.id);
 

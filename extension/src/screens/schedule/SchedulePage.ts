@@ -1,6 +1,7 @@
 import { nextDNSApi } from '../../background/platformAdapter';
 import { buildDashboardTabPath } from '@stopaccess/core';
 import { toast } from '../../lib/toast';
+import { renderCloudBanner, renderLoader } from '../../lib/ui';
 
 declare var chrome: any;
 
@@ -34,8 +35,7 @@ export async function renderSchedulePage(
         isLocalMode ? 'fg-opacity-40 fg-pointer-events-none' : ''
       }">
         <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-mt-24">
-          <div class="loader fg-mb-4"></div>
-          <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-80 fg-mt-4 fg-uppercase fg-tracking-[3px] fg-animate-pulse">Contacting Control Hub</div>
+          ${renderLoader('Contacting Control Hub', 'fg-mt-24')}
         </div>
       </div>
     </div>
@@ -266,22 +266,12 @@ function _attachHandlers(container: HTMLElement): void {
 }
 
 function _renderCloudRequiredBanner(): string {
-  return `
-    <div class="glass-card fg-mb-8 fg-p-8 fg-flex fg-items-center fg-justify-between" style="border-color: var(--fg-accent); background: rgba(59, 130, 246, 0.05);">
-      <div class="fg-flex fg-items-center fg-gap-5">
-        <div class="fg-w-12 fg-h-12 fg-rounded-2xl fg-bg-[var(--fg-accent)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-accent)]">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19c.703 0 1.332-.416 1.636-1.042A4 4 0 0 0 18 10h-1.26A6 6 0 0 0 6 11c0 .123.003.246.01.368A4.5 4.5 0 0 0 7.5 20h10v-1z"/><path d="M12 13v8"/><path d="m9 16 3-3 3 3"/></svg>
-        </div>
-        <div>
-          <div class="fg-text-lg fg-font-black fg-text-[var(--fg-text)]">StopAccess Control Hub</div>
-          <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-1">Schedules are synchronized across all your devices via NextDNS. Link your profile to activate automation.</div>
-        </div>
-      </div>
-      <button class="btn-premium fg-px-8" id="btn_upgrade_cloud_schedule" style="background: var(--fg-accent); color: #fff; font-weight: 900;">
-        Sync Cloud
-      </button>
-    </div>
-  `;
+  return renderCloudBanner(
+    'StopAccess Control Hub',
+    'Schedules are synchronized across all your devices via NextDNS. Link your profile to activate automation.',
+    'btn_upgrade_cloud_schedule',
+    'Sync Cloud',
+  );
 }
 
 function _renderError(container: HTMLElement, e: any): void {

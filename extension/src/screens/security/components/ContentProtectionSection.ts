@@ -4,6 +4,11 @@
  */
 
 import type { NextDNSSecuritySettings } from '@stopaccess/types';
+import {
+  renderToggleSwitch,
+  renderSectionBadge,
+  renderSectionTitleRow,
+} from '../../../lib/ui';
 
 const iconLock =
   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
@@ -17,14 +22,12 @@ export function renderContentProtectionSection(
 
   return `
     <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
-      <div class="fg-flex fg-items-center fg-justify-between fg-mb-5">
-        <div class="section-title fg-flex fg-items-center fg-gap-2" style="margin: 0;">
-          <span class="fg-text-[#ef4444]">${iconLock}</span> Content Protection
-        </div>
-        <span class="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: var(--fg-glass-bg); color: var(--fg-text); opacity: 0.8; border: 1px solid var(--fg-glass-border);">${
-          active ? '1 ACTIVE' : '0 ACTIVE'
-        }</span>
-      </div>
+      ${renderSectionTitleRow(
+        iconLock,
+        '#ef4444',
+        'Content Protection',
+        renderSectionBadge(active ? '1 ACTIVE' : '0 ACTIVE'),
+      )}
 
       <div class="fg-grid fg-grid-cols-3 fg-gap-2">
         <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150"
@@ -59,29 +62,8 @@ export function renderContentProtectionSection(
             </div>
           </div>
 
-          <!-- Toggle (Right) -->
           <div class="fg-shrink-0">
-            <button
-              class="security-toggle-btn fg-relative fg-shrink-0 fg-cursor-pointer ${
-                active ? 'active' : ''
-              }"
-              data-key="csam"
-              aria-checked="${active}"
-              role="switch"
-              style="width: 32px; height: 18px; border-radius: 9px; border: none;
-                background: ${active ? 'var(--green)' : 'var(--fg-glass-bg)'};
-                border: 1px solid ${
-                  active ? 'var(--green)' : 'var(--fg-glass-border)'
-                };
-                transition: background 0.2s ease; outline: none;"
-            >
-              <span style="position: absolute; top: 2px; left: ${
-                active ? '16px' : '2px'
-              };
-                width: 14px; height: 14px; border-radius: 50%;
-                background: white; transition: left 0.2s ease;
-                box-shadow: 0 1px 2px rgba(0,0,0,0.3);"></span>
-            </button>
+            ${renderToggleSwitch('csam', active)}
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ import {
 } from '../background/platformAdapter';
 import { toast } from './toast';
 import { checkGuard } from '../background/sessionGuard';
+import { STORAGE_KEYS } from '@stopaccess/state/index';
 
 /**
  * Shared logic controller for Apps/Blocklist features in the extension.
@@ -108,6 +109,19 @@ export const appsController = {
         addedAt: baseRule.addedAt ?? Date.now(),
         updatedAt: Date.now(),
       });
+
+      // Cleanup temp pass if unblocking
+      if (!nextState) {
+        const res = await chrome.storage.local.get([STORAGE_KEYS.TEMP_PASSES]);
+        const passes = res[STORAGE_KEYS.TEMP_PASSES] || {};
+        const domain = baseRule.customDomain || baseRule.packageName;
+        if (passes[domain]) {
+          delete passes[domain];
+          await chrome.storage.local.set({
+            [STORAGE_KEYS.TEMP_PASSES]: passes,
+          });
+        }
+      }
 
       chrome.runtime.sendMessage({ action: 'manualSync' });
       return { ok: true };
@@ -216,6 +230,15 @@ export const appsController = {
 
       // 2. Local Layer (Browser DNR) - Always runs
       await deleteRule(storage, id);
+
+      // 3. Cleanup temp pass for this domain
+      const res = await chrome.storage.local.get([STORAGE_KEYS.TEMP_PASSES]);
+      const passes = res[STORAGE_KEYS.TEMP_PASSES] || {};
+      if (passes[id]) {
+        delete passes[id];
+        await chrome.storage.local.set({ [STORAGE_KEYS.TEMP_PASSES]: passes });
+      }
+
       chrome.runtime.sendMessage({ action: 'manualSync' });
       return { ok: true };
     } catch (err: any) {

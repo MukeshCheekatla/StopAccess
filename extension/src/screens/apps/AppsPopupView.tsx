@@ -48,6 +48,7 @@ async function grantTempPassForDomain(
   domain: string,
   minutes: number,
   maxDailyPasses: number,
+  skipLimit = false,
 ) {
   const storageRes = await chrome.storage.local.get([
     STORAGE_KEYS.TEMP_PASSES,
@@ -63,7 +64,7 @@ async function grantTempPassForDomain(
   }
 
   const currentCount = counts[today][domain] || 0;
-  if (currentCount >= maxDailyPasses) {
+  if (!skipLimit && currentCount >= maxDailyPasses) {
     return { ok: false, error: 'No more passes left today' };
   }
 
@@ -72,7 +73,11 @@ async function grantTempPassForDomain(
     grantedMinutes: minutes,
     grantedAt: Date.now(),
   };
-  counts[today][domain] = currentCount + 1;
+
+  // Only increment the counter for limited passes
+  if (!skipLimit) {
+    counts[today][domain] = currentCount + 1;
+  }
 
   await chrome.storage.local.set({
     [STORAGE_KEYS.TEMP_PASSES]: passes,
@@ -87,6 +92,13 @@ function getPassCountdown(pass: any) {
   const diff = Math.max(0, Number(pass?.expiresAt || 0) - Date.now());
   const mins = Math.floor(diff / 60000);
   const secs = Math.floor((diff % 60000) / 1000);
+
+  if (mins >= 60) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${h}h ${m}m`;
+  }
+
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
@@ -233,10 +245,12 @@ export const AppsPopupView: React.FC = () => {
       return;
     }
     setPauseTarget(null);
+    // Any pass longer than 2 hours (like Turn off for today) skips the limit check
     const result = await grantTempPassForDomain(
       currentDomain,
       minutes,
       Number(pauseTarget.maxDailyPasses ?? 3),
+      minutes > 120,
     );
     if (!result.ok) {
       toast.error(result.error);
@@ -497,36 +511,31 @@ export const AppsPopupView: React.FC = () => {
               </div>
 
               <button
-                className={`fg-relative fg-h-8 fg-w-16 fg-overflow-hidden fg-rounded-full fg-border-0 ${
-                  isTemporarilyOff ? 'fg-bg-white/[0.05]' : 'fg-bg-[var(--red)]'
+                className={`toggle-switch-btn ${
+                  rule.desiredBlockingState === false || isTemporarilyOff
+                    ? ''
+                    : 'active'
                 }`}
                 disabled={lockedDomains.includes(rule.packageName)}
-                onClick={() => handleTemporaryDisable(rule)}
+                onClick={async () => {
+                  if (isTemporarilyOff && currentDomain) {
+                    const newPasses = { ...passes };
+                    delete newPasses[currentDomain];
+                    await chrome.storage.local.set({
+                      [STORAGE_KEYS.TEMP_PASSES]: newPasses,
+                    });
+                    chrome.runtime.sendMessage({ action: 'manualSync' });
+                    toast.success('Block resumed');
+                    refresh();
+                  } else {
+                    handleTemporaryDisable(rule);
+                  }
+                }}
                 type="button"
-                title="Temporary disable only"
+                title={isTemporarilyOff ? 'Resume Block' : 'Temporary disable'}
               >
-                <span
-                  className={`fg-absolute fg-top-1/2 -fg-translate-y-1/2 fg-text-[11px] fg-font-black ${
-                    isTemporarilyOff
-                      ? 'fg-right-[10px] fg-text-[var(--muted)]'
-                      : 'fg-left-[10px]'
-                  }`}
-                  style={{
-                    color: isTemporarilyOff ? 'var(--muted)' : '#fefefe',
-                    opacity: 1,
-                  }}
-                >
-                  {isTemporarilyOff ? 'OFF' : 'ON'}
-                </span>
-                <span
-                  className={`fg-absolute fg-top-1 fg-h-6 fg-w-6 fg-rounded-full fg-bg-white ${
-                    isTemporarilyOff ? '' : 'fg-translate-x-8'
-                  }`}
-                  style={{
-                    left: '4px',
-                    transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                  }}
-                />
+                <span className="on-text">ON</span>
+                <span className="off-text">OFF</span>
               </button>
             </div>
           );

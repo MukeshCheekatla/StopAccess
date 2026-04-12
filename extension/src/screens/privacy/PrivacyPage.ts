@@ -13,6 +13,12 @@ import { renderNativeTrackersSection } from './components/NativeTrackersSection'
 import { renderPrivacyOptionsSection } from './components/PrivacyOptionsSection';
 import { toast } from '../../lib/toast';
 import { buildDashboardTabPath, getRootDomain } from '@stopaccess/core';
+import {
+  renderCloudBanner,
+  renderErrorCard,
+  applyToggleUI,
+  applyCardToggleUI,
+} from '../../lib/ui';
 
 const vm = createPrivacyVM(storage, nextDNSApi);
 
@@ -23,10 +29,6 @@ const iconWifi =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.42 10a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>';
 const iconLayers =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>';
-const iconLock =
-  '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
-const iconAlert =
-  '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
 
 export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
   if (!container) {
@@ -39,7 +41,10 @@ export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
   const isLocalMode = !isConfigured;
 
   if (error) {
-    container.innerHTML = renderError(error ?? 'Unknown error');
+    container.innerHTML = renderErrorCard(
+      error ?? 'Unknown error',
+      'btn_retry_privacy',
+    );
     container
       .querySelector('#btn_retry_privacy')
       ?.addEventListener('click', () => renderPrivacyPage(container));
@@ -291,7 +296,7 @@ function attachHandlers(container: HTMLElement): void {
       const active = btn.getAttribute('data-active') === 'true';
 
       const card = btn.closest('.blocklist-card') as HTMLElement;
-      applyCardUI(card, btn as HTMLElement, !active);
+      applyCardToggleUI(card, btn as HTMLElement, !active);
 
       let result: { ok: boolean; error?: string };
       if (!active) {
@@ -307,7 +312,7 @@ function attachHandlers(container: HTMLElement): void {
       }
 
       if (!result.ok) {
-        applyCardUI(card, btn as HTMLElement, active); // revert
+        applyCardToggleUI(card, btn as HTMLElement, active); // revert
         toast.error(result.error ?? 'Failed');
       } else {
         renderPrivacyPage(container);
@@ -387,73 +392,12 @@ function attachHandlers(container: HTMLElement): void {
   });
 }
 
-function applyCardUI(
-  card: HTMLElement | null,
-  btn: HTMLElement,
-  active: boolean,
-): void {
-  if (card) {
-    card.setAttribute('data-active', String(active));
-  }
-  btn.setAttribute('data-active', String(active));
-  btn.setAttribute('aria-pressed', String(active));
-  btn.style.background = active ? 'rgba(0,196,140,0.12)' : 'var(--fg-glass-bg)';
-  btn.style.borderColor = active
-    ? 'rgba(0,196,140,0.35)'
-    : 'var(--fg-glass-border)';
-  btn.style.color = active ? 'var(--green)' : 'var(--muted)';
-  if (active) {
-    btn.classList.add('active');
-  } else {
-    btn.classList.remove('active');
-  }
-}
-
-function applyToggleUI(btn: HTMLElement, active: boolean): void {
-  if (active) {
-    btn.classList.add('active');
-    btn.style.background = 'var(--green)';
-    btn.setAttribute('data-active', 'true');
-    btn.setAttribute('aria-checked', 'true');
-  } else {
-    btn.classList.remove('active');
-    btn.style.background = 'var(--fg-glass-bg)';
-    btn.style.border = '1px solid var(--fg-glass-border)';
-    btn.setAttribute('data-active', 'false');
-    btn.setAttribute('aria-checked', 'false');
-  }
-  const knob = btn.querySelector('span') as HTMLElement;
-  if (knob) {
-    knob.style.left = active ? '16px' : '2px';
-  }
-}
-
 function renderLocalModeBanner(): string {
-  return `
-    <div class="glass-card fg-mb-8 fg-p-8 fg-flex fg-items-center fg-justify-between" style="border-color: var(--fg-yellow); background: rgba(245, 158, 11, 0.05);">
-      <div class="fg-flex fg-items-center fg-gap-5">
-        <div class="fg-w-12 fg-h-12 fg-rounded-2xl fg-bg-[var(--fg-yellow)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-yellow)]">
-          ${iconLock}
-        </div>
-        <div>
-          <div class="fg-text-lg fg-font-black fg-text-white">Local Privacy Preview</div>
-          <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-1">Multi-layered tracking protection requires cloud synchronization. Connect to enable global blocklists.</div>
-        </div>
-      </div>
-      <button class="btn-premium fg-px-8" id="btn_upgrade_cloud_privacy" style="background: var(--fg-yellow); color: #000; font-weight: 900;">
-        Upgrade to Cloud
-      </button>
-    </div>
-  `;
-}
-
-function renderError(message: string): string {
-  return `
-    <div class="app-card fg-text-center fg-py-10 fg-px-6" style="background: var(--fg-glass-bg); border-color: var(--fg-glass-border);">
-      <div class="fg-mb-4 fg-text-[var(--red)] fg-flex fg-justify-center">${iconAlert}</div>
-      <div class="fg-text-base fg-font-black fg-text-[var(--red)] fg-mb-2">Failed to Load</div>
-      <div class="fg-text-xs fg-text-[var(--muted)] fg-mb-5">${message}</div>
-      <button class="btn btn-outline" id="btn_retry_privacy">Retry</button>
-    </div>
-  `;
+  return renderCloudBanner(
+    'Local Privacy Preview',
+    'Multi-layered tracking protection requires cloud synchronization. Connect to enable global blocklists.',
+    'btn_upgrade_cloud_privacy',
+    'Upgrade to Cloud',
+    'var(--fg-yellow)',
+  );
 }

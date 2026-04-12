@@ -5,6 +5,7 @@
 
 import { escapeHtml } from '@stopaccess/core';
 import type { NextDNSBlocklist } from '@stopaccess/types';
+import { renderSectionBadge, renderSectionTitleRow } from '../../../lib/ui';
 
 // Icons
 const iconList =
@@ -48,16 +49,12 @@ export function renderBlocklistsSection(
 
   return `
     <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
-      <div class="fg-flex fg-items-center fg-justify-between fg-mb-5">
-        <div class="section-title fg-flex fg-items-center fg-gap-2" style="margin: 0;">
-          <span class="fg-text-[#818cf8]">${iconList}</span> Ad &amp; Tracker Blocklists
-        </div>
-        <div class="fg-flex fg-items-center fg-gap-3">
-           <span class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: var(--fg-glass-bg); color: var(--fg-text); opacity: 0.8; border: 1px solid var(--fg-glass-border);">
-            ${activeIds.size} ACTIVE
-          </span>
-        </div>
-      </div>
+      ${renderSectionTitleRow(
+        iconList,
+        '#818cf8',
+        'Ad &amp; Tracker Blocklists',
+        renderSectionBadge(`${activeIds.size} ACTIVE`),
+      )}
 
       <div class="fg-flex fg-items-center fg-gap-3 fg-mb-6">
         <div class="fg-flex-1 fg-relative">

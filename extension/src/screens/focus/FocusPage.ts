@@ -3,6 +3,8 @@ import {
   STORAGE_KEYS,
 } from '../../background/platformAdapter';
 import { FocusSessionRecord } from '@stopaccess/types';
+import { escapeHtml } from '@stopaccess/core';
+import { UI_TOKENS } from '../../lib/ui';
 
 declare var chrome: any;
 declare var window: any;
@@ -31,15 +33,6 @@ function formatMinutes(totalMinutes: number): string {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-}
-
-function escapeHtml(value: string): string {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
 }
 
 function isSameDay(leftTs: number, rightTs: number): boolean {
@@ -226,8 +219,8 @@ function renderPresetButtons(): string {
 function renderIdleStateSummary(): string {
   return `
     <div style="width:min(420px, 100%); margin-bottom:12px; padding:18px 22px; border-radius:22px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); text-align:left; backdrop-filter:blur(12px);">
-      <div style="font-size:12px; font-weight:800; color:var(--fg-muted); letter-spacing:0.12em; text-transform:uppercase; margin-bottom:6px;">Ready</div>
-      <div style="font-size:15px; color:var(--fg-text); line-height:1.6;">Pick a session length and Focus will start a real countdown. Nothing shown here is simulated.</div>
+      <div style="${UI_TOKENS.TEXT.LABEL}">Ready</div>
+      <div style="${UI_TOKENS.TEXT.SUBTEXT}; font-size:13px; line-height:1.6; margin-top:6px;">Pick a session length and Focus will start a real countdown. Nothing shown here is simulated.</div>
     </div>
   `;
 }
@@ -255,8 +248,8 @@ function renderActiveStateSummary(
   return `
     <div style="width:min(440px, 100%); margin-bottom:12px; padding:18px 22px; border-radius:22px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); text-align:left; backdrop-filter:blur(12px);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <div style="font-size:12px; font-weight:800; color:var(--fg-muted); letter-spacing:0.12em; text-transform:uppercase;">Shielding Services</div>
-        <div style="font-size:10px; font-weight:900; background:var(--fg-accent-soft); color:var(--fg-accent); padding:2px 8px; border-radius:6px; border:1px solid var(--fg-glass-border);">${count} ACTIVE</div>
+        <div style="${UI_TOKENS.TEXT.LABEL}">Shielding Services</div>
+        <div style="${UI_TOKENS.TEXT.BADGE}; background:var(--fg-accent-soft); color:var(--fg-accent); padding:2px 8px; border-radius:6px; border:1px solid var(--fg-glass-border);">${count} ACTIVE</div>
       </div>
       <div style="display:flex; align-items:center; gap:10px; min-height:30px;">
         ${currentFocusHtml}
@@ -290,21 +283,35 @@ function renderFocusDetails(
 function renderSidePanels(title: string, body: string): string {
   return `
     <div class="fg-p-6 fg-rounded-[22px]" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); backdrop-filter:blur(16px);">
-      <div class="fg-text-xs fg-font-extrabold fg-tracking-[0.12em] fg-uppercase fg-mb-[14px]" style="color:var(--fg-muted);">Today</div>
-      <div class="fg-text-sm fg-font-bold fg-mb-[10px]" style="color:var(--fg-text);">Focus Time</div>
+      <div style="${UI_TOKENS.TEXT.LABEL}; margin-bottom: 14px;">Today</div>
+      <div style="${
+        UI_TOKENS.TEXT.CARD_TITLE
+      }; margin-bottom: 10px;">Focus Time</div>
       <div style="font-size:42px; font-weight:300; line-height:1; color:var(--fg-text);">${formatMinutes(
         getTodayFocusMinutes(),
       )}</div>
     </div>
     <div class="fg-p-6 fg-rounded-[22px]" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); backdrop-filter:blur(16px);">
-      <div class="fg-text-xs fg-font-extrabold fg-tracking-[0.12em] fg-uppercase fg-mb-[14px]" style="color:var(--fg-muted);">Current State</div>
-      <div class="fg-text-sm fg-font-bold fg-mb-[10px]" style="color:var(--fg-text);">${title}</div>
-      <div style="font-size:15px; line-height:1.7; color:var(--fg-muted);">${body}</div>
+      <div style="${
+        UI_TOKENS.TEXT.LABEL
+      }; margin-bottom: 14px;">Current State</div>
+      <div style="${
+        UI_TOKENS.TEXT.CARD_TITLE
+      }; margin-bottom: 10px;">${title}</div>
+      <div style="${
+        UI_TOKENS.TEXT.SUBTEXT
+      }; font-size: 13px; line-height:1.7;">${body}</div>
     </div>
     <div class="fg-p-6 fg-rounded-[22px] fg-flex-1" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); backdrop-filter:blur(16px);">
-      <div class="fg-text-xs fg-font-extrabold fg-tracking-[0.12em] fg-uppercase fg-mb-[14px]" style="color:var(--fg-muted);">Today Records</div>
-      <div class="fg-text-sm fg-font-bold fg-mb-1" style="color:var(--fg-text);">Session History</div>
-      <div class="fg-text-[13px] fg-mb-[14px]" style="color:var(--fg-muted);">Completed and interrupted sessions from today.</div>
+      <div style="${
+        UI_TOKENS.TEXT.LABEL
+      }; margin-bottom: 14px;">Today Records</div>
+      <div style="${
+        UI_TOKENS.TEXT.CARD_TITLE
+      }; margin-bottom: 4px;">Session History</div>
+      <div style="${
+        UI_TOKENS.TEXT.SUBTEXT
+      }; font-size: 13px; margin-bottom: 14px;">Completed and interrupted sessions from today.</div>
       ${renderTodayRecords()}
     </div>
   `;

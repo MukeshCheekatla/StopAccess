@@ -52,9 +52,16 @@ function resolveInitialTab(): TabId {
 }
 
 function formatCountdown(expiresAt: number) {
-  const diffMs = expiresAt - Date.now();
+  const diffMs = Math.max(0, expiresAt - Date.now());
   const mins = Math.floor(diffMs / 60000);
   const secs = Math.floor((diffMs % 60000) / 1000);
+
+  if (mins >= 60) {
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return `${h}h ${m}m`;
+  }
+
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
@@ -144,14 +151,79 @@ function PopupApp() {
     let cancelled = false;
 
     const updatePassHUD = async () => {
-      const res = await chrome.storage.local.get([STORAGE_KEYS.TEMP_PASSES]);
+      const res = await chrome.storage.local.get([
+        STORAGE_KEYS.TEMP_PASSES,
+        STORAGE_KEYS.RULES,
+      ]);
       const passes = res[STORAGE_KEYS.TEMP_PASSES] || {};
+      const rulesRaw = res[STORAGE_KEYS.RULES] || '[]';
+      let rules: any[] = [];
+      try {
+        rules = typeof rulesRaw === 'string' ? JSON.parse(rulesRaw) : rulesRaw;
+      } catch (e) {
+        rules = [];
+      }
+
+      // Get current tab domain for deduplication
+      const [tab] = await chrome.tabs.query({
+        active: true,
+        currentWindow: true,
+      });
+      const currentHost = tab?.url
+        ? new URL(tab.url).hostname.toLowerCase()
+        : '';
+
       const activeEntries = Object.entries(passes)
         .map(([domain, data]: [string, any]) => ({
           domain,
           expiresAt: data?.expiresAt ?? 0,
         }))
-        .filter((entry) => entry.expiresAt > Date.now())
+        .filter((entry) => {
+          // 1. Must not be expired
+          const diff = entry.expiresAt - Date.now();
+          if (diff <= 0) {
+            return false;
+          }
+
+          // 2. ONLY show short-term passes in the HUD (< 2 hours)
+          // Long passes like "Turned off for today" should NOT clutter the premium HUD.
+          if (diff > 2 * 60 * 60 * 1000) {
+            return false;
+          }
+
+          // 2. Must still have a corresponding active rule
+          const hasActiveRule = rules.some((r) => {
+            const ruleDomainRaw = r.customDomain || r.packageName;
+            if (!ruleDomainRaw) {
+              return false;
+            }
+
+            const ruleDomain = ruleDomainRaw.toLowerCase();
+            const entryDomain = entry.domain.toLowerCase();
+
+            const matches =
+              entryDomain === ruleDomain ||
+              entryDomain.endsWith('.' + ruleDomain);
+
+            if (!matches) {
+              return false;
+            }
+
+            // Rule must be active. If desiredBlockingState is explicitly false, it's OFF.
+            return r.desiredBlockingState !== false;
+          });
+
+          if (!hasActiveRule) {
+            return false;
+          }
+
+          // 3. Deduplication: Don't show in HUD if we are already showing it in the main card
+          const isViewingThisSite =
+            currentHost === entry.domain.toLowerCase() ||
+            currentHost.endsWith('.' + entry.domain.toLowerCase());
+
+          return !isViewingThisSite;
+        })
         .sort((a, b) => a.expiresAt - b.expiresAt);
 
       if (!cancelled) {
@@ -223,12 +295,12 @@ function PopupApp() {
             {passEntries.map((entry) => (
               <div
                 key={entry.domain}
-                className="fg-flex fg-items-center fg-gap-2 fg-px-2 fg-py-1 fg-rounded-lg fg-shrink-0 fg-bg-white/5"
+                className="fg-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-lg fg-shrink-0 fg-bg-white/5 fg-border fg-border-white/[0.03]"
               >
-                <div className="fg-text-[9px] fg-font-black fg-text-slate-400 fg-uppercase fg-tracking-[0.18em]">
+                <div className="fg-text-[10px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40 fg-uppercase fg-tracking-[0.08em] fg-whitespace-nowrap">
                   {entry.domain}
                 </div>
-                <div className="fg-flex fg-items-center fg-gap-1.5 fg-text-[10px] fg-font-black fg-text-sky-200">
+                <div className="fg-flex fg-items-center fg-gap-1.5 fg-text-[11px] fg-font-black fg-text-[var(--fg-accent)] fg-whitespace-nowrap">
                   {clockSvg}
                   {formatCountdown(entry.expiresAt)}
                 </div>

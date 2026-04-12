@@ -7,6 +7,12 @@ import {
 import { nextDNSApi } from '../../background/platformAdapter';
 import { appsController } from '../../lib/appsController';
 import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
+import {
+  UI_TOKENS,
+  renderCloudBanner,
+  renderErrorCard,
+  renderLoader,
+} from '../../lib/ui';
 
 declare var chrome: any;
 
@@ -25,12 +31,10 @@ export async function renderInsightsPage(
   // Prevent blinking by only showing loader if container is empty
   const isInternalUpdate = container.querySelector('.insights-shell');
   if (!isInternalUpdate) {
-    container.innerHTML = `
-      <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-py-20 fg-animate-pulse">
-        <div class="loader fg-mb-4"></div>
-        <div class="fg-text-xs fg-font-bold fg-text-[var(--fg-text)] fg-opacity-80 fg-uppercase fg-tracking-widest">Analyzing denied traffic...</div>
-      </div>
-    `;
+    container.innerHTML = renderLoader(
+      'Analyzing denied traffic...',
+      'fg-py-20',
+    );
   }
 
   try {
@@ -40,13 +44,10 @@ export async function renderInsightsPage(
       await _renderPage(container);
     }
   } catch (e: any) {
-    container.innerHTML = `
-      <div class="app-card fg-text-center fg-py-20">
-        <div class="fg-text-[var(--red)] fg-mb-4"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
-        <div class="fg-text-sm fg-font-black fg-mb-2">Analysis Interrupted</div>
-        <div class="fg-text-xs fg-text-[var(--muted)]">${e.message}</div>
-      </div>
-    `;
+    container.innerHTML = renderErrorCard(e.message, 'retry_insights');
+    container
+      .querySelector('#retry_insights')
+      ?.addEventListener('click', () => renderInsightsPage(container, context));
   }
 }
 
@@ -97,10 +98,14 @@ async function _renderPage(container: HTMLElement): Promise<void> {
         <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden">
           <div class="fg-flex fg-items-center fg-gap-2 fg-mb-3">
             <span class="fg-text-[var(--accent)]">${iconActivity}</span>
-            <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-widest fg-text-[var(--fg-text)] fg-opacity-40">Total Activity</span>
+            <span style="${UI_TOKENS.TEXT.LABEL}">Total Activity</span>
           </div>
-          <div class="fg-text-2xl fg-font-black fg-text-[var(--fg-text)]">${totalQueries.toLocaleString()}</div>
-          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-50 fg-mt-1 fg-font-bold fg-uppercase fg-tracking-wider">All Requests</div>
+          <div style="${
+            UI_TOKENS.TEXT.STAT
+          }">${totalQueries.toLocaleString()}</div>
+          <div style="${
+            UI_TOKENS.TEXT.LABEL
+          }; margin-top: 4px;">All Requests</div>
         </div>
 
         <!-- Blocked Intelligence -->
@@ -108,22 +113,30 @@ async function _renderPage(container: HTMLElement): Promise<void> {
           <div class="fg-flex fg-items-center fg-justify-between fg-mb-3">
             <div class="fg-flex fg-items-center fg-gap-2">
               <span class="fg-text-[var(--red)]"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg></span>
-              <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-widest fg-text-[var(--fg-text)] fg-opacity-40">Denied Requests</span>
+              <span style="${UI_TOKENS.TEXT.LABEL}">Denied Requests</span>
             </div>
             <span class="fg-text-[8px] fg-font-black fg-bg-[var(--green)]/10 fg-text-[var(--green)] fg-px-2 fg-py-0.5 fg-rounded-md">ACTIVE</span>
           </div>
-          <div class="fg-text-2xl fg-font-black fg-text-[var(--fg-text)]">${blockedQueries.toLocaleString()}</div>
-          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-50 fg-mt-1 fg-font-bold fg-uppercase fg-tracking-wider">Stopped Attempts</div>
+          <div style="${
+            UI_TOKENS.TEXT.STAT
+          }">${blockedQueries.toLocaleString()}</div>
+          <div style="${
+            UI_TOKENS.TEXT.LABEL
+          }; margin-top: 4px;">Stopped Attempts</div>
         </div>
 
         <!-- Safety Performance -->
         <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden">
           <div class="fg-flex fg-items-center fg-gap-2 fg-mb-3">
             <span class="fg-text-[var(--green)]">${iconShield}</span>
-            <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-widest fg-text-[var(--fg-text)] fg-opacity-40">Safety Score</span>
+            <span style="${UI_TOKENS.TEXT.LABEL}">Safety Score</span>
           </div>
-          <div class="fg-text-2xl fg-font-black fg-text-[var(--green)]">${protectionRate}%</div>
-          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-50 fg-mt-1 fg-font-bold fg-uppercase fg-tracking-wider">Shield Efficiency</div>
+          <div style="${
+            UI_TOKENS.TEXT.STAT
+          }; color: var(--fg-green);">${protectionRate}%</div>
+          <div style="${
+            UI_TOKENS.TEXT.LABEL
+          }; margin-top: 4px;">Shield Efficiency</div>
         </div>
       </div>
 
@@ -489,20 +502,10 @@ function _formatTimeAgo(ts: string | number): string {
 }
 
 function _renderLocalModeBanner(): string {
-  return `
-    <div class="glass-card fg-mb-8 fg-p-8 fg-flex fg-items-center fg-justify-between" style="border-color: var(--fg-accent); background: rgba(59, 130, 246, 0.05);">
-      <div class="fg-flex fg-items-center fg-gap-5">
-        <div class="fg-w-12 fg-h-12 fg-rounded-2xl fg-bg-[var(--fg-accent)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-accent)]">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        </div>
-        <div>
-          <div class="fg-text-lg fg-font-black fg-text-white">Cloud Logic Inactive</div>
-          <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-1">Deep network intelligence and threat monitoring requires a cloud connection. Activate to see your full history.</div>
-        </div>
-      </div>
-      <button class="btn-premium fg-px-8" id="btn_upgrade_cloud_insights" style="background: var(--fg-accent); color: #fff; font-weight: 900;">
-        Activate Cloud
-      </button>
-    </div>
-  `;
+  return renderCloudBanner(
+    'Cloud Logic Inactive',
+    'Deep network intelligence and threat monitoring requires a cloud connection. Activate to see your full history.',
+    'btn_upgrade_cloud_insights',
+    'Activate Cloud',
+  );
 }

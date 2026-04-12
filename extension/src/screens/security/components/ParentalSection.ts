@@ -1,4 +1,9 @@
 import type { NextDNSParentalControlSettings } from '@stopaccess/types';
+import {
+  renderToggleSwitch,
+  renderSectionBadge,
+  renderSectionTitleRow,
+} from '../../../lib/ui';
 
 const iconSearch =
   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
@@ -48,14 +53,12 @@ export function renderParentalSection(
 
   return `
     <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
-      <div class="fg-flex fg-items-center fg-justify-between fg-mb-5">
-        <div class="section-title fg-flex fg-items-center fg-gap-2" style="margin: 0;">
-          <span class="fg-text-[#3b82f6]">${iconShield}</span> Parental Control
-        </div>
-        <span class="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: var(--fg-glass-bg); color: var(--fg-text); opacity: 0.8; border: 1px solid var(--fg-glass-border);">
-          ${activeCount} ACTIVE
-        </span>
-      </div>
+      ${renderSectionTitleRow(
+        iconShield,
+        '#3b82f6',
+        'Parental Control',
+        renderSectionBadge(`${activeCount} ACTIVE`),
+      )}
 
       <div class="fg-grid fg-grid-cols-3 fg-gap-2">
         ${controls
@@ -89,29 +92,7 @@ export function renderParentalSection(
             </div>
 
             <div class="fg-shrink-0">
-              <button
-                class="security-toggle-btn fg-relative fg-shrink-0 fg-cursor-pointer ${
-                  ctrl.active ? 'active' : ''
-                }"
-                data-key="${ctrl.key}"
-                aria-checked="${ctrl.active}"
-                role="switch"
-                style="width: 32px; height: 18px; border-radius: 9px; border: none;
-                  background: ${
-                    ctrl.active ? 'var(--green)' : 'var(--fg-glass-bg)'
-                  };
-                  border: 1px solid ${
-                    ctrl.active ? 'var(--green)' : 'var(--fg-glass-border)'
-                  };
-                  transition: background 0.2s ease; outline: none;"
-              >
-                <span style="position: absolute; top: 2px; left: ${
-                  ctrl.active ? '16px' : '2px'
-                };
-                  width: 14px; height: 14px; border-radius: 50%;
-                  background: white; transition: left 0.2s ease;
-                  box-shadow: 0 1px 2px rgba(0,0,0,0.3);"></span>
-              </button>
+              ${renderToggleSwitch(ctrl.key, ctrl.active)}
             </div>
           </div>
         `,

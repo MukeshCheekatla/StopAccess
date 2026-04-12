@@ -16,11 +16,12 @@ import { renderTldManager } from './components/TldManager';
 import { toast } from '../../lib/toast';
 import { buildDashboardTabPath } from '@stopaccess/core';
 import type { NextDNSSecuritySettings } from '@stopaccess/types';
-
-const iconLock =
-  '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
-const iconAlert =
-  '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+import {
+  renderCloudBanner,
+  renderErrorCard,
+  applyToggleUI,
+  renderLoader,
+} from '../../lib/ui';
 
 const vm = createSecurityVM(storage, nextDNSApi);
 
@@ -31,11 +32,7 @@ export async function renderSecurityPage(
     return;
   }
 
-  container.innerHTML = `
-    <div class="fg-flex fg-items-center fg-justify-center fg-p-10">
-      <div class="loader"></div>
-    </div>
-  `;
+  container.innerHTML = renderLoader();
 
   const { settings, parental, isConfigured, error } = await vm.load();
 
@@ -95,12 +92,12 @@ function attachHandlers(
       const newValue = !currentActive;
 
       // Optimistic UI
-      updateToggleUI(btn as HTMLElement, newValue);
+      applyToggleUI(btn as HTMLElement, newValue);
 
       const result = await vm.toggleSetting(key, newValue);
       if (!result.ok) {
         // Revert
-        updateToggleUI(btn as HTMLElement, currentActive);
+        applyToggleUI(btn as HTMLElement, currentActive);
         toast.error(result.error ?? 'Failed to update setting');
       }
     });
@@ -178,49 +175,16 @@ function attachHandlers(
   });
 }
 
-function updateToggleUI(btn: HTMLElement, active: boolean): void {
-  btn.setAttribute('aria-checked', String(active));
-  if (active) {
-    btn.classList.add('active');
-    btn.style.background = 'var(--green)';
-    btn.style.border = '1px solid var(--green)';
-  } else {
-    btn.classList.remove('active');
-    btn.style.background = 'var(--fg-glass-bg)';
-    btn.style.border = '1px solid var(--fg-glass-border)';
-  }
-  const knob = btn.querySelector('span') as HTMLElement;
-  if (knob) {
-    knob.style.left = active ? '16px' : '2px';
-  }
-}
-
 function renderLocalModeBanner(): string {
-  return `
-    <div class="glass-card fg-mb-8 fg-p-8 fg-flex fg-items-center fg-justify-between" style="border-color: var(--fg-yellow); background: rgba(245, 158, 11, 0.05);">
-      <div class="fg-flex fg-items-center fg-gap-5">
-        <div class="fg-w-12 fg-h-12 fg-rounded-2xl fg-bg-[var(--fg-yellow)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-yellow)]">
-          ${iconLock}
-        </div>
-        <div>
-          <div class="fg-text-lg fg-font-black fg-text-white">Local Performance Mode</div>
-          <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-1">Cloud-level security layers are currently inactive. Connect your NextDNS account to enable global protection.</div>
-        </div>
-      </div>
-      <button class="btn-premium fg-px-8" id="btn_upgrade_cloud" style="background: var(--fg-yellow); color: #000; font-weight: 900;">
-        Upgrade to Cloud
-      </button>
-    </div>
-  `;
+  return renderCloudBanner(
+    'Local Performance Mode',
+    'Cloud-level security layers are currently inactive. Connect your NextDNS account to enable global protection.',
+    'btn_upgrade_cloud',
+    'Upgrade to Cloud',
+    'var(--fg-yellow)',
+  );
 }
 
 function renderError(message: string): string {
-  return `
-    <div class="app-card fg-text-center fg-py-10 fg-px-6" style="background: var(--fg-glass-bg); border-color: var(--fg-glass-border);">
-      <div class="fg-mb-4 fg-text-[var(--red)] fg-flex fg-justify-center">${iconAlert}</div>
-      <div class="fg-text-base fg-font-black fg-text-[var(--red)] fg-mb-2">Failed to Load</div>
-      <div class="fg-text-xs fg-text-[var(--muted)] fg-mb-5">${message}</div>
-      <button class="btn btn-outline" id="btn_retry_security">Retry</button>
-    </div>
-  `;
+  return renderErrorCard(message, 'btn_retry_security');
 }

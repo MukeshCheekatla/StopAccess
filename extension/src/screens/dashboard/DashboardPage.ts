@@ -7,6 +7,7 @@ import {
 } from '@stopaccess/core';
 import { appsController } from '../../lib/appsController';
 import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
+import { UI_TOKENS, renderLoader } from '../../lib/ui';
 
 // This function opens the extension settings page
 function openSettingsPage() {
@@ -23,7 +24,7 @@ export async function renderDashboardPage(container) {
     !container.innerHTML ||
     container.innerHTML === '<div class="empty-state"></div>'
   ) {
-    container.innerHTML = '<div class="loader">Loading...</div>';
+    container.innerHTML = renderLoader();
   }
 
   try {
@@ -128,11 +129,11 @@ export async function renderDashboardPage(container) {
 
           <div class="fg-grid fg-gap-8" style="grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start;">
             <div>
-              <div class="section-label fg-text-[11px] fg-font-black fg-tracking-[1.5px] fg-mb-5">CURRENT ACTIVITY</div>
+              <div class="section-label" style="${UI_TOKENS.TEXT.LABEL} margin-bottom: 20px;">CURRENT ACTIVITY</div>
               <div class="service-grid fg-gap-3" id="activityGrid" style="grid-template-columns: 1fr;"></div>
             </div>
             <div>
-               <div class="section-label fg-text-[11px] fg-font-black fg-tracking-[1.5px] fg-mb-5">USAGE BREAKDOWN</div>
+               <div class="section-label" style="${UI_TOKENS.TEXT.LABEL} margin-bottom: 20px;">USAGE BREAKDOWN</div>
                <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center" id="chartSlot" style="border-radius: 20px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); height: 260px;">
                   <canvas id="liveUsageChart" style="width: 100% !important; height: 210px !important;"></canvas>
                </div>
@@ -470,11 +471,18 @@ export async function renderDashboardPage(container) {
       });
     }
 
+    (window as any).__dashActiveContainer = container;
+
     if (!window.__dashStorageListener) {
       window.__dashStorageListener = (changes) => {
+        const activeContainer = (window as any).__dashActiveContainer;
         if (changes.usage || changes.focus_mode_end_time || changes.rules) {
-          if (document.querySelector('.nav-item[data-tab="dash"].active')) {
-            renderDashboardPage(container);
+          if (
+            activeContainer &&
+            document.contains(activeContainer) &&
+            document.querySelector('.nav-item[data-tab="dash"].active')
+          ) {
+            renderDashboardPage(activeContainer);
           }
         }
       };

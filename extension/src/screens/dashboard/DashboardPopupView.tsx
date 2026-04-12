@@ -54,15 +54,25 @@ export function DashboardPopupView() {
       setRemaining(Math.max(0, endTime - Date.now()));
     };
 
+    const listener = (changes: any) => {
+      if (changes.usage || changes.rules) {
+        refreshUsage();
+      }
+      if (changes.focus_mode_end_time) {
+        refreshTimer();
+      }
+    };
+
+    chrome.storage.onChanged.addListener(listener);
+
     refreshUsage();
     refreshTimer();
 
-    const usageInterval = window.setInterval(refreshUsage, 15000);
     const timerInterval = window.setInterval(refreshTimer, 1000);
 
     return () => {
       mounted = false;
-      window.clearInterval(usageInterval);
+      chrome.storage.onChanged.removeListener(listener);
       window.clearInterval(timerInterval);
     };
   }, []);

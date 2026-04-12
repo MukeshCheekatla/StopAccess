@@ -5,6 +5,11 @@
 
 import { escapeHtml } from '@stopaccess/core';
 import type { NextDNSSecuritySettings } from '@stopaccess/types';
+import {
+  renderToggleSwitch,
+  renderSectionBadge,
+  renderSectionTitleRow,
+} from '../../../lib/ui';
 
 interface ThreatToggle {
   key: keyof Omit<NextDNSSecuritySettings, 'tlds'>;
@@ -69,12 +74,12 @@ export function renderThreatSection(settings: NextDNSSecuritySettings): string {
 
   return `
     <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
-      <div class="fg-flex fg-items-center fg-justify-between fg-mb-5">
-        <div class="section-title fg-flex fg-items-center fg-gap-2" style="margin: 0;">
-          <span class="fg-text-[#818cf8]">${svgTarget}</span> Threat Protection
-        </div>
-        <span class="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.8px] fg-py-[3px] fg-px-[10px] fg-rounded-full" style="background: var(--fg-glass-bg); color: var(--fg-text); opacity: 0.8; border: 1px solid var(--fg-glass-border);">${activeCount}/${total} ACTIVE</span>
-      </div>
+      ${renderSectionTitleRow(
+        svgTarget,
+        '#818cf8',
+        'Threat Protection',
+        renderSectionBadge(`${activeCount}/${total} ACTIVE`),
+      )}
       <div class="fg-grid fg-grid-cols-3 fg-gap-2">
         ${THREAT_TOGGLES.map((t) =>
           renderToggleRow(t, settings[t.key] as boolean),
@@ -120,29 +125,5 @@ function renderToggleRow(toggle: ThreatToggle, active: boolean): string {
         ${renderToggleSwitch(toggle.key, active)}
       </div>
     </div>
-  `;
-}
-
-function renderToggleSwitch(key: string, active: boolean): string {
-  return `
-    <button
-      class="security-toggle-btn fg-relative fg-shrink-0 fg-cursor-pointer ${
-        active ? 'active' : ''
-      }"
-      data-key="${key}"
-      aria-checked="${active}"
-      role="switch"
-      style="width: 32px; height: 18px; border-radius: 9px; border: none;
-        background: ${active ? 'var(--green)' : 'var(--fg-glass-bg)'};
-        border: 1px solid ${active ? 'var(--green)' : 'var(--fg-glass-border)'};
-        transition: background 0.2s ease; outline: none;"
-    >
-      <span style="position: absolute; top: 2px; left: ${
-        active ? '16px' : '2px'
-      };
-        width: 14px; height: 14px; border-radius: 50%;
-        background: white; transition: left 0.2s ease;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.3);"></span>
-    </button>
   `;
 }
