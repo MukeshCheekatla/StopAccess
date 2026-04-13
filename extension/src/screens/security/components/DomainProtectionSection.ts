@@ -10,6 +10,7 @@ import {
   renderSectionBadge,
   renderSectionTitleRow,
   renderInfoTooltip,
+  UI_TOKENS,
 } from '../../../lib/ui';
 
 interface DomainToggle {
@@ -140,12 +141,14 @@ function renderToggleRow(toggle: DomainToggle, active: boolean): string {
       <!-- Content (Middle) -->
       <div class="fg-flex-1 fg-min-w-0">
         <div class="fg-flex fg-items-center fg-gap-2 fg-mb-[2px]">
-          <div class="fg-text-sm fg-font-bold fg-leading-[1.3] fg-text-[var(--text)] fg-truncate">
+          <div style="${UI_TOKENS.TEXT.CARD_TITLE}" class="fg-truncate">
             ${escapeHtml(toggle.label)}
           </div>
           ${renderInfoTooltip(toggle.tooltip ?? '')}
         </div>
-        <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-[1.4] fg-line-clamp-2">
+        <div style="${
+          UI_TOKENS.TEXT.SUBTEXT
+        }; opacity: 0.6; line-height: 1.4;" class="fg-line-clamp-2">
           ${escapeHtml(toggle.description)}
         </div>
       </div>

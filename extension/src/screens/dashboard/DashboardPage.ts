@@ -176,11 +176,10 @@ export async function renderDashboardPage(container) {
     const setupSlot = container.querySelector('#setupGuardSlot');
     if (setupSlot) {
       const newSetupHtml = isNew
-        ? `
-        <div class="glass-card fg-p-10 fg-text-center fg-mb-8" style="background: var(--fg-glass-bg); border-color: var(--fg-glass-border);">
-          <div class="fg-font-black fg-text-[24px] fg-text-[var(--fg-text)] fg-mb-3" style="opacity: 0.4; letter-spacing: -2px;">FG</div>
-          <div class="fg-text-[20px] fg-font-extrabold fg-text-[var(--fg-text)] fg-mb-3">Setup Required</div>
-          <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-max-w-[400px] fg-leading-relaxed fg-mb-8" style="margin-left: auto; margin-right: auto;">No block rules detected. Add a domain or link a profile to begin.</div>
+        ? `<div class="glass-card fg-p-10 fg-text-center fg-mb-8" style="background: var(--fg-glass-bg); border-color: var(--fg-glass-border);">
+          <div style="${UI_TOKENS.TEXT.STAT_LARGE} opacity: 0.4; letter-spacing: -2px; margin-bottom: 24px;">FG</div>
+          <div style="${UI_TOKENS.TEXT.HERO}; margin-bottom: 8px;">Setup Required</div>
+          <div style="${UI_TOKENS.TEXT.SUBTEXT} max-width: 400px; line-height: 1.6; margin: 0 auto 32px;">No block rules detected. Add a domain or link a profile to begin.</div>
           <div class="fg-flex fg-gap-4 fg-justify-center">
             <button class="btn-premium fg-justify-center" id="wb_settings" style="min-width: 180px;">Link Profile</button>
             <button class="btn-premium fg-justify-center" id="wb_apps" style="background:var(--fg-glass-bg); color:var(--fg-text); border-color: var(--fg-glass-border); box-shadow:none; min-width: 180px;">Add Rules</button>
@@ -203,12 +202,16 @@ export async function renderDashboardPage(container) {
     const engagementW = container.querySelector('#engagementWidget');
     if (engagementW) {
       engagementW.innerHTML = `
-        <div class="widget-title" style="color: var(--fg-text); font-weight: 950; font-size: 11px; letter-spacing: 0.1em; opacity: 1;">TODAY USAGE</div>
+        <div class="widget-title" style="${
+          UI_TOKENS.TEXT.WIDGET_LABEL
+        }">TODAY USAGE</div>
         <div>
-          <div style="font-size:24px; font-weight:900; letter-spacing: -0.5px; color: var(--fg-text);">${fmtTime(
-            allTotalMs as number,
-          )}</div>
-          <div style="font-size:11px; color:var(--fg-text); opacity: 0.6; font-weight:700; text-transform: uppercase; margin-top: 4px;">Recorded today</div>
+          <div style="${UI_TOKENS.TEXT.STAT}">${fmtTime(
+        allTotalMs as number,
+      )}</div>
+          <div style="${
+            UI_TOKENS.TEXT.LABEL
+          } opacity: 0.6; margin-top: 4px;">Recorded today</div>
         </div>
       `;
     }
@@ -216,11 +219,11 @@ export async function renderDashboardPage(container) {
     const timerW = container.querySelector('#timerWidget');
     if (timerW) {
       timerW.innerHTML = `
-        <div class="widget-title" style="color: var(--fg-text); font-weight: 950; font-size: 11px; letter-spacing: 0.1em; opacity: 1;">TIMER STATUS</div>
-        <div class="timer-display" id="timerDisplay" style="font-size: 48px; font-weight: 950; letter-spacing: -3px; color: ${timerTextColor}; font-variant-numeric: tabular-nums;">${timerDisplay}</div>
+        <div class="widget-title" style="${UI_TOKENS.TEXT.WIDGET_LABEL}">TIMER STATUS</div>
+        <div class="timer-display" id="timerDisplay" style="${UI_TOKENS.TEXT.STAT_LARGE} color: ${timerTextColor}; font-variant-numeric: tabular-nums;">${timerDisplay}</div>
         <div class="fg-flex fg-items-center fg-gap-2">
           <div id="timerDot" style="width:10px; height:10px; border-radius:50%; background:${timerDotColor};"></div>
-          <span id="timerStatus" style="font-size: 12px; font-weight: 950; color: var(--fg-text); text-transform: uppercase; letter-spacing: 1.5px;">${timerStatusText}</span>
+          <span id="timerStatus" style="${UI_TOKENS.TEXT.LABEL} color: var(--fg-text);">${timerStatusText}</span>
         </div>
       `;
     }
@@ -228,13 +231,15 @@ export async function renderDashboardPage(container) {
     const connectionW = container.querySelector('#connectionWidget');
     if (connectionW) {
       connectionW.innerHTML = `
-        <div class="widget-title" style="color: var(--fg-text); font-weight: 950; font-size: 11px; letter-spacing: 0.1em; opacity: 1;">CONNECTION</div>
-        <div style="font-size:24px; font-weight:950; color:${
-          syncStatus === 'connected' ? 'var(--fg-text)' : 'var(--fg-muted)'
-        };">
+        <div class="widget-title" style="${
+          UI_TOKENS.TEXT.WIDGET_LABEL
+        }">CONNECTION</div>
+        <div style="${UI_TOKENS.TEXT.STAT} color:${
+        syncStatus === 'connected' ? 'var(--fg-text)' : 'var(--fg-muted)'
+      };">
           ${syncStatus === 'connected' ? 'READY' : 'OFFLINE'}
         </div>
-        <div class="fg-text-[10px] fg-text-[var(--fg-text)] fg-font-black fg-uppercase fg-mt-1">
+        <div style="${UI_TOKENS.TEXT.LABEL} margin-top: 4px;">
           CLOUD SYNC
         </div>
       `;
@@ -243,9 +248,15 @@ export async function renderDashboardPage(container) {
     const blockedW = container.querySelector('#blockedWidget');
     if (blockedW) {
       blockedW.innerHTML = `
-        <div class="widget-title" style="color: var(--fg-text); font-weight: 950; font-size: 11px; letter-spacing: 0.1em; opacity: 1;">DNS BLOCKS</div>
-        <div style="font-size:32px; font-weight:950; color:var(--fg-text);">${cloudBlockedQueries.toLocaleString()}</div>
-        <div style="font-size:11px; color:var(--fg-text); opacity: 0.6; font-weight:700; text-transform: uppercase; margin-top: 4px;">Reported from DNS analytics</div>
+        <div class="widget-title" style="${
+          UI_TOKENS.TEXT.WIDGET_LABEL
+        }">DNS BLOCKS</div>
+        <div style="${
+          UI_TOKENS.TEXT.STAT
+        }">${cloudBlockedQueries.toLocaleString()}</div>
+        <div style="${
+          UI_TOKENS.TEXT.LABEL
+        } opacity: 0.6; margin-top: 4px;">From DNS Analytics</div>
       `;
     }
 
@@ -292,7 +303,6 @@ export async function renderDashboardPage(container) {
           const statusLabelHtml = isBlocked
             ? '<span style="display:inline-flex; align-items:center; gap:4px;"><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" style="color:var(--red);"><circle cx="12" cy="12" r="12"/></svg> BLOCKED</span>'
             : '<span style="color: var(--fg-text); opacity: 0.7;">Monitoring</span>';
-          const timeColor = 'var(--fg-text)';
 
           const cardInner = `
                  <div class="fg-flex fg-items-center fg-gap-3 fg-min-w-0">
@@ -307,19 +317,23 @@ export async function renderDashboardPage(container) {
           }; border-radius: 20%;">
                     </div>
                    <div class="fg-min-w-0 fg-flex-1">
-                     <div class="fg-text-[13px] fg-font-extrabold fg-truncate">${
-                       d.domain
-                     }</div>
-                     <div class="row-status fg-text-[11px] fg-font-bold fg-uppercase fg-mt-[2px]" style="color: ${
-                       isBlocked ? 'var(--red)' : 'var(--fg-text)'
-                     }; opacity: 1;">
+                     <div style="${
+                       UI_TOKENS.TEXT.CARD_TITLE
+                     }; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${
+            d.domain
+          }</div>
+                     <div class="row-status" style="${
+                       UI_TOKENS.TEXT.LABEL
+                     }; color: ${
+            isBlocked ? 'var(--red)' : 'var(--fg-text)'
+          }; margin-top: 4px;">
                        ${statusLabelHtml}
                      </div>
                    </div>
                    <div class="fg-flex fg-items-center fg-gap-[8px] fg-shrink-0">
-                     <div class="row-time fg-text-[12px] fg-font-black" style="color:${timeColor}">${fmtTime(
-            d.timeMs,
-          )}</div>
+                     <div class="row-time" style="${
+                       UI_TOKENS.TEXT.CARD_TITLE
+                     }">${fmtTime(d.timeMs)}</div>
                      <div class="row-action">${badgeHtml}</div>
                    </div>
                  </div>

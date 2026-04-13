@@ -6,44 +6,117 @@ import {
 
 /**
  * UI_TOKENS — single source of truth for all text/colour styles.
- *
- * Every hardcoded font-size / font-weight / color / letter-spacing inside
- * template strings should be replaced with one of these tokens.
- * Edit here → change propagates everywhere.
  */
+const TOKEN_DEFS = {
+  HEADING: {
+    fontSize: '1rem',
+    fontWeight: '700',
+    color: 'var(--fg-text)',
+    letterSpacing: '0',
+  },
+  HERO: {
+    fontSize: '1.25rem',
+    fontWeight: '800',
+    color: 'var(--fg-text)',
+    letterSpacing: '-0.02em',
+  },
+  LABEL: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: 'var(--fg-muted)',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase' as const,
+  },
+  SUBTEXT: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: 'var(--muted)',
+  },
+  CARD_TITLE: {
+    fontSize: '13px',
+    fontWeight: '700',
+    letterSpacing: '0',
+    color: 'var(--fg-text)',
+  },
+  BADGE: {
+    fontSize: '9px',
+    fontWeight: '800',
+    letterSpacing: '0.5px',
+    textTransform: 'uppercase' as const,
+  },
+  STAT: {
+    fontSize: '24px',
+    fontWeight: '700',
+    letterSpacing: '-0.5px',
+    color: 'var(--fg-text)',
+  },
+  STAT_LARGE: {
+    fontSize: '48px',
+    fontWeight: '800',
+    letterSpacing: '-2px',
+    color: 'var(--fg-text)',
+  },
+  WIDGET_LABEL: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: 'var(--fg-muted)',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.08em',
+  },
+  BANNER_HEADING: {
+    fontSize: '1.1rem',
+    fontWeight: '700',
+    color: 'var(--fg-text)',
+    letterSpacing: '0',
+  },
+  BANNER_BODY: {
+    fontSize: '13px',
+    fontWeight: '500',
+    color: 'var(--fg-text)',
+    opacity: '0.7',
+    lineHeight: '1.5',
+  },
+  ERROR: {
+    fontSize: '14px',
+    fontWeight: '700',
+    color: 'var(--red)',
+    letterSpacing: '0',
+  },
+  FOOTNOTE: {
+    fontSize: '11px',
+    fontWeight: '500',
+    color: 'var(--fg-muted)',
+    lineHeight: '1.5',
+  },
+};
+
+/** Helper to convert React style object to CSS string for template literals */
+function toCSS(obj: any): string {
+  return Object.entries(obj)
+    .map(
+      ([k, v]) => `${k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())}: ${v};`,
+    )
+    .join(' ');
+}
+
 export const UI_TOKENS = {
   TEXT: {
-    /** Primary section headings  (e.g. "Shielded Apps") */
-    HEADING:
-      'font-size: 1rem; font-weight: 700; color: var(--fg-text); letter-spacing: 0;',
-    /** Small ALL-CAPS muted labels (e.g. "CURRENT ACTIVITY") */
-    LABEL:
-      'font-size: 11px; font-weight: 600; color: var(--fg-muted); letter-spacing: 0.5px; text-transform: uppercase;',
-    /** Secondary descriptive text beneath headings */
-    SUBTEXT: 'font-size: 11px; font-weight: 600; color: var(--muted);',
-    /** Bold title inside a card row */
-    CARD_TITLE:
-      'font-size: 13px; font-weight: 700; letter-spacing: 0; color: var(--fg-text);',
-    /** Inline status pill / badge text */
-    BADGE:
-      'font-size: 9px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;',
-    /** Widget numeric value  (e.g. "42:00") */
-    STAT: 'font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: var(--fg-text);',
-    /** Widget tiny label above stat */
-    WIDGET_LABEL:
-      'font-size: 11px; font-weight: 600; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.08em;',
-    /** Banner heading inside cloud/local mode banners */
-    BANNER_HEADING:
-      'font-size: 1.1rem; font-weight: 700; color: var(--fg-text); letter-spacing: 0;',
-    /** Banner body copy */
-    BANNER_BODY:
-      'font-size: 13px; font-weight: 500; color: var(--fg-text); opacity: 0.7; line-height: 1.5;',
-    /** Error / empty state message */
-    ERROR:
-      'font-size: 14px; font-weight: 700; color: var(--red); letter-spacing: 0;',
-    /** Small muted footnote */
-    FOOTNOTE:
-      'font-size: 11px; font-weight: 500; color: var(--fg-muted); line-height: 1.5;',
+    HEADING: toCSS(TOKEN_DEFS.HEADING),
+    HERO: toCSS(TOKEN_DEFS.HERO),
+    LABEL: toCSS(TOKEN_DEFS.LABEL),
+    SUBTEXT: toCSS(TOKEN_DEFS.SUBTEXT),
+    CARD_TITLE: toCSS(TOKEN_DEFS.CARD_TITLE),
+    BADGE: toCSS(TOKEN_DEFS.BADGE),
+    STAT: toCSS(TOKEN_DEFS.STAT),
+    STAT_LARGE: toCSS(TOKEN_DEFS.STAT_LARGE),
+    WIDGET_LABEL: toCSS(TOKEN_DEFS.WIDGET_LABEL),
+    BANNER_HEADING: toCSS(TOKEN_DEFS.BANNER_HEADING),
+    BANNER_BODY: toCSS(TOKEN_DEFS.BANNER_BODY),
+    ERROR: toCSS(TOKEN_DEFS.ERROR),
+    FOOTNOTE: toCSS(TOKEN_DEFS.FOOTNOTE),
+
+    // React-compatible objects
+    R: TOKEN_DEFS,
   },
   COLORS: {
     RED: 'var(--red)',

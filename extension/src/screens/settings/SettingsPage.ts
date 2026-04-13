@@ -17,6 +17,7 @@ const iconEdit =
 
 import { toast } from '../../lib/toast';
 import { checkGuard } from '../../background/sessionGuard';
+import { UI_TOKENS } from '../../lib/ui';
 
 export async function renderSettingsPage(container) {
   if (!container) {
@@ -55,8 +56,12 @@ export async function renderSettingsPage(container) {
                   ${iconCloud}
                 </div>
                 <div>
-                  <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">NextDNS Profile Sync</h2>
-                  <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Sync services, denylist domains, privacy lists, security toggles, and diagnostics.</p>
+                  <h2 style="${
+                    UI_TOKENS.TEXT.HEADING
+                  }">NextDNS Profile Sync</h2>
+                  <p style="${
+                    UI_TOKENS.TEXT.SUBTEXT
+                  }; margin-top: 4px;">Sync services, denylist domains, privacy lists, security toggles, and diagnostics.</p>
                 </div>
               </div>
               <button id="btn_edit_credentials" class="fg-flex fg-items-center fg-text-[9px] fg-font-black fg-text-[var(--fg-accent)] hover:fg-opacity-80 fg-uppercase fg-tracking-[0.2em] fg-bg-[var(--fg-accent)]/10 fg-px-3 fg-py-2 fg-rounded-lg fg-transition-opacity ${
@@ -68,7 +73,7 @@ export async function renderSettingsPage(container) {
             </div>
             <div class="fg-flex fg-flex-col fg-gap-8 fg-mt-4">
               <div class="fg-flex fg-flex-col fg-gap-2.5">
-                <label class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-80 fg-uppercase fg-tracking-wider fg-block">Active Profile</label>
+                <label style="${UI_TOKENS.TEXT.LABEL}">Active Profile</label>
                 <div class="fg-flex fg-items-center fg-gap-5">
                   <input type="text" id="cfg_profile" value="${profileId}" placeholder="abc123" class="input-premium fg-w-20 fg-h-12 fg-text-xl fg-font-black fg-text-[var(--fg-accent)] fg-bg-transparent fg-border-0 fg-p-0 ${
     isSetupActive ? 'readonly-input' : ''
@@ -78,7 +83,9 @@ export async function renderSettingsPage(container) {
               </div>
 
               <div class="fg-flex fg-flex-col fg-gap-2.5">
-                <label class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-80 fg-uppercase fg-tracking-wider fg-block">Dedicated API Token</label>
+                <label style="${
+                  UI_TOKENS.TEXT.LABEL
+                }">Dedicated API Token</label>
                 <div class="fg-flex fg-items-center fg-gap-5">
                   <input type="password" id="cfg_apiKey" value="" placeholder="${
                     apiKey ? 'Token saved' : 'Paste dedicated token'
@@ -103,13 +110,17 @@ export async function renderSettingsPage(container) {
                   ${iconGlobe}
                 </div>
                <div>
-                <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Browser DNS Coverage</h2>
-                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Use your private NextDNS endpoint when browser traffic should be covered outside extension rules.</p>
+                <h2 style="${UI_TOKENS.TEXT.HEADING}">Browser DNS Coverage</h2>
+                <p style="${
+                  UI_TOKENS.TEXT.SUBTEXT
+                }; margin-top: 4px;">Use your private NextDNS endpoint when browser traffic should be covered outside extension rules.</p>
               </div>
             </div>
             <div class="fg-space-y-8 fg-mt-6">
               <div class="fg-flex fg-flex-col fg-gap-3">
-                <label class="fg-text-[10px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40 fg-uppercase fg-tracking-[0.2em] fg-block">Private DoH Endpoint</label>
+                <label style="${
+                  UI_TOKENS.TEXT.LABEL
+                }; opacity: 0.5;">Private DoH Endpoint</label>
                 <div class="fg-flex fg-gap-4">
                   <input type="text" id="doh_url_display" value="${dohUrl}" class="input-premium fg-flex-1 fg-h-12 fg-text-xs fg-text-[var(--fg-text)] fg-opacity-80 fg-font-mono fg-bg-transparent fg-border-0 fg-p-0" readonly>
                   <button id="btn_copy_doh_inline" class="btn-premium fg-px-6 fg-h-12 fg-text-[10px] fg-uppercase fg-tracking-widest">Copy URL</button>
@@ -157,8 +168,10 @@ export async function renderSettingsPage(container) {
                 ${iconLock}
               </div>
               <div>
-                <h2 class="fg-text-lg fg-font-bold fg-text-[var(--fg-text)]">Strict Mode</h2>
-                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Add friction before rules, sessions, or sensitive settings can be weakened.</p>
+                <h2 style="${UI_TOKENS.TEXT.HEADING}">Strict Mode</h2>
+                <p style="${
+                  UI_TOKENS.TEXT.SUBTEXT
+                }; margin-top: 4px;">Add friction before rules, sessions, or sensitive settings can be weakened.</p>
               </div>
             </div>
             <label class="switch-toggle">
@@ -175,8 +188,10 @@ export async function renderSettingsPage(container) {
                 ${iconShield}
               </div>
               <div>
-                <h2 class="fg-text-lg fg-font-bold fg-text-[var(--fg-text)]">Guardian PIN</h2>
-                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Require a 4-digit code before protected changes are allowed.</p>
+                <h2 style="${UI_TOKENS.TEXT.HEADING}">Guardian PIN</h2>
+                <p style="${
+                  UI_TOKENS.TEXT.SUBTEXT
+                }; margin-top: 4px;">Require a 4-digit code before protected changes are allowed.</p>
               </div>
             </div>
             <label class="switch-toggle">
@@ -191,8 +206,10 @@ export async function renderSettingsPage(container) {
                 ${iconSearch}
               </div>
               <div>
-                <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Domain Coverage Test</h2>
-                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Check whether a host is covered by local extension rules or synced DNS rules.</p>
+                <h2 style="${UI_TOKENS.TEXT.HEADING}">Domain Coverage Test</h2>
+                <p style="${
+                  UI_TOKENS.TEXT.SUBTEXT
+                }; margin-top: 4px;">Check whether a host is covered by local extension rules or synced DNS rules.</p>
               </div>
             </div>
             <div class="fg-space-y-4">
@@ -211,8 +228,10 @@ export async function renderSettingsPage(container) {
                   ${iconActivity}
                 </div>
                 <div>
-                  <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Sync Health</h2>
-                  <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Recent sync status, pending rule changes, and connection state.</p>
+                  <h2 style="${UI_TOKENS.TEXT.HEADING}">Sync Health</h2>
+                  <p style="${
+                    UI_TOKENS.TEXT.SUBTEXT
+                  }; margin-top: 4px;">Recent sync status, pending rule changes, and connection state.</p>
                 </div>
               </div>
               <div class="fg-flex fg-gap-2">
@@ -229,8 +248,10 @@ export async function renderSettingsPage(container) {
                 ${iconDatabase}
               </div>
               <div>
-                <h2 class="fg-text-xl fg-font-bold fg-text-[var(--fg-text)]">Rules And Logs</h2>
-                <p class="fg-text-xs fg-text-[var(--fg-muted)] fg-mt-1">Review recent actions and import or export local rule state.</p>
+                <h2 style="${UI_TOKENS.TEXT.HEADING}">Rules And Logs</h2>
+                <p style="${
+                  UI_TOKENS.TEXT.SUBTEXT
+                }; margin-top: 4px;">Review recent actions and import or export local rule state.</p>
               </div>
             </div>
             <div class="fg-grid fg-grid-cols-3 fg-gap-3">

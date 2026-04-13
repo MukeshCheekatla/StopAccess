@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { UI_TOKENS } from '../../lib/ui';
 import { extensionAdapter as storage } from '../../background/platformAdapter';
 import {
   fmtTime,
@@ -132,18 +133,11 @@ export function DashboardPopupView() {
     <div className="fg-flex fg-flex-col fg-gap-4 fg-p-4">
       <div className="fg-grid fg-grid-cols-2 fg-gap-3">
         <StatTile label="Daily Activity" value={fmtTime(totalUsageMs)} />
-        <StatTile
-          label="Lock Timer"
-          value={timerLabel}
-          tone={remaining > 0 ? 'active' : 'default'}
-          mono
-        />
+        <StatTile label="Lock Timer" value={timerLabel} mono />
       </div>
 
       <div className="fg-flex fg-items-center fg-justify-between fg-px-1">
-        <div className="fg-text-[11px] fg-font-extrabold fg-uppercase fg-tracking-[1.5px] fg-text-[var(--muted)]">
-          RECOGNIZED ACTIVITY
-        </div>
+        <div style={UI_TOKENS.TEXT.R.LABEL}>RECOGNIZED ACTIVITY</div>
       </div>
 
       <div className="fg-flex fg-min-h-0 fg-flex-1 fg-flex-col fg-gap-3 fg-overflow-y-auto fg-pr-1">
@@ -151,7 +145,7 @@ export function DashboardPopupView() {
           activityRows.map((row) => <ActivityCard key={row.domain} row={row} />)
         ) : !loading ? (
           <div className="fg-panel-muted fg-rounded-[18px] fg-px-4 fg-py-10 fg-text-center">
-            <div className="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.2em] fg-text-[var(--fg-muted)]">
+            <div style={{ ...UI_TOKENS.TEXT.R.LABEL, opacity: 0.6 }}>
               No activity yet
             </div>
             <div className="fg-mt-2 fg-text-xs fg-font-medium fg-leading-relaxed fg-text-slate-500">
@@ -167,30 +161,18 @@ export function DashboardPopupView() {
 function StatTile({
   label,
   value,
-  tone = 'default',
   mono = false,
 }: {
   label: string;
   value: string;
-  tone?: 'active' | 'default' | 'muted';
   mono?: boolean;
 }) {
-  const valueClassName =
-    tone === 'active'
-      ? 'fg-text-[var(--fg-text)]'
-      : tone === 'muted'
-      ? 'fg-text-[var(--fg-muted)]'
-      : 'fg-text-[var(--fg-text)]';
-
   return (
     <div className="fg-rounded-[12px] fg-bg-white/[0.03] fg-p-[14px]">
-      <div className="fg-text-[9px] fg-font-black fg-uppercase fg-tracking-[0.18em] fg-text-[var(--muted)]">
-        {label}
-      </div>
+      <div style={UI_TOKENS.TEXT.R.LABEL}>{label}</div>
       <div
-        className={`fg-mt-2 fg-text-[16px] fg-font-black ${valueClassName} ${
-          mono ? 'fg-tabular-nums' : ''
-        }`}
+        className={`fg-mt-2 ${mono ? 'fg-tabular-nums' : ''}`}
+        style={{ ...UI_TOKENS.TEXT.R.STAT, fontSize: '16px' }}
       >
         {value}
       </div>
@@ -231,20 +213,24 @@ function ActivityCard({ row }: { row: ActivityRow }) {
 
       <div className="fg-min-w-0 fg-flex-1">
         <div
-          className={`fg-truncate fg-text-[14px] fg-font-extrabold ${
-            row.isBlocked
-              ? 'fg-text-[var(--fg-muted)]'
-              : 'fg-text-[var(--fg-text)]'
-          }`}
+          className="fg-truncate"
+          style={{
+            ...UI_TOKENS.TEXT.R.CARD_TITLE,
+            fontSize: '14px',
+            color: row.isBlocked ? 'var(--fg-muted)' : 'var(--fg-text)',
+          }}
         >
           {row.domain}
         </div>
       </div>
 
       <div
-        className={`fg-text-[14px] fg-font-black fg-tabular-nums ${
-          row.isBlocked ? 'fg-text-[var(--fg-red)]' : 'fg-text-[var(--fg-text)]'
-        }`}
+        className="fg-tabular-nums"
+        style={{
+          ...UI_TOKENS.TEXT.R.CARD_TITLE,
+          fontSize: '14px',
+          color: row.isBlocked ? 'var(--fg-red)' : 'var(--fg-text)',
+        }}
       >
         {fmtTime(row.timeMs)}
       </div>

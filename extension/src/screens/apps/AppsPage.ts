@@ -20,6 +20,7 @@ import {
   UI_TOKENS,
   renderLoader,
   renderEmptyState,
+  renderSectionBadge,
 } from '../../lib/ui';
 
 let activeTab = 'shield';
@@ -28,7 +29,6 @@ let availableCategories: any[] = [];
 let isLoadingNextDNS = false;
 let searchTerm = '';
 let globalContainer: HTMLElement | null = null;
-let currentSyncMode = 'browser';
 let currentIsConfigured = false;
 let currentIsAppsDnsHardMode = true;
 
@@ -37,13 +37,12 @@ let currentIsAppsDnsHardMode = true;
 export async function renderAppsPage(container: HTMLElement) {
   globalContainer = container;
   const vmData: any = await loadAppsData();
-  const { isConfigured, rules, syncMode } = vmData;
-  currentSyncMode = syncMode;
+  const { isConfigured, rules } = vmData;
   currentIsConfigured = isConfigured;
   currentIsAppsDnsHardMode =
     (await extensionAdapter.getBoolean('fg_apps_dns_hard_mode')) ?? false;
 
-  if (syncMode === 'profile') {
+  if (currentIsConfigured) {
     await loadNextDNSMetadata();
   }
 
@@ -164,23 +163,18 @@ export async function renderAppsPage(container: HTMLElement) {
 
 async function loadNextDNSMetadata() {
   const vmData: any = await loadAppsData();
-  const { isConfigured, nextDNSApi } = vmData;
-  if (!isConfigured || !nextDNSApi) {
+  const { isConfigured } = vmData;
+  if (!isConfigured) {
     return;
   }
 
   isLoadingNextDNS = true;
   try {
-    const metadata: any = await nextDNSApi.refreshNextDNSMetadata();
+    const metadata: any = await appsController.loadMetadata();
     availableServices = metadata.services || [];
     availableCategories = metadata.categories || [];
     (window as any).availableDenylist = metadata.denylist || [];
   } catch (err) {
-    const res: any = await chrome.storage.local.get(['cached_ndns_metadata']);
-    availableServices = res.cached_ndns_metadata?.services || [];
-    availableCategories = res.cached_ndns_metadata?.categories || [];
-    (window as any).availableDenylist =
-      res.cached_ndns_metadata?.denylist || [];
     console.error('[StopAccess] Metadata Sync Fail:', err);
   } finally {
     isLoadingNextDNS = false;
@@ -437,7 +431,7 @@ async function renderSubTab(
               <div style="${UI_TOKENS.TEXT.HEADING}">Shielded Apps</div>
               ${
                 visibleApps.length > 0
-                  ? `<span style="font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: 100px; background: rgba(185,28,28,0.12); color: var(--red); border: 1px solid rgba(185,28,28,0.2);">${visibleApps.length}</span>`
+                  ? renderSectionBadge(visibleApps.length.toString(), 'red')
                   : ''
               }
             </div>
@@ -468,7 +462,7 @@ async function renderSubTab(
               <div style="${UI_TOKENS.TEXT.HEADING}">Custom Domain Blocks</div>
               ${
                 visibleDomains.length > 0
-                  ? `<span style="font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: 100px; background: rgba(185,28,28,0.12); color: var(--red); border: 1px solid rgba(185,28,28,0.2);">${visibleDomains.length}</span>`
+                  ? renderSectionBadge(visibleDomains.length.toString(), 'red')
                   : ''
               }
             </div>
@@ -502,27 +496,26 @@ async function renderSubTab(
     });
     const visibleCategories = allCategories.filter(matchesSearch);
     const activeCount = visibleCategories.filter((c) => c.active).length;
-    const disabledWarning =
-      currentSyncMode !== 'profile'
-        ? `<div style="padding: 16px; border-radius: 12px; background: rgba(255, 184, 0, 0.1); border: 1px solid rgba(255, 184, 0, 0.2); margin-bottom: 24px; color: #ffeb3b; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+    const disabledWarning = !currentIsConfigured
+      ? `<div style="padding: 16px; border-radius: 12px; background: rgba(255, 184, 0, 0.1); border: 1px solid rgba(255, 184, 0, 0.2); margin-bottom: 24px; color: #ffeb3b; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
            DNS profile required to turn on categories.
          </div>`
-        : '';
+      : '';
 
     return `
       ${disabledWarning}
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid var(--fg-glass-border); padding-bottom: 16px;">
         <div>
           <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="font-weight: 900; color: var(--fg-text); font-size: 1.1rem; letter-spacing: -0.02em;">Add a Category</div>
+            <div style="${UI_TOKENS.TEXT.HEADING}">Add a Category</div>
             ${
-              activeCount > 0
-                ? `<span style="font-size: 11px; font-weight: 800; padding: 2px 10px; border-radius: 100px; background: var(--fg-glass-bg); color: var(--fg-muted); border: 1px solid var(--fg-glass-border);">${activeCount} active</span>`
-                : ''
+              activeCount > 0 ? renderSectionBadge(`${activeCount} active`) : ''
             }
           </div>
-          <div style="font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 600;">Profile-wide blocks for social, streaming, gambling, and more.</div>
+          <div style="${
+            UI_TOKENS.TEXT.SUBTEXT
+          }; margin-top: 4px;">Profile-wide blocks for social, streaming, gambling, and more.</div>
         </div>
       </div>
       <div class="service-grid">
@@ -728,22 +721,24 @@ function renderCategoryCard(
          ${badge}
        </div>
            <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
-             <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; font-weight: 800; letter-spacing: -0.01em;">${escapeHtml(
-               category.name,
-             )}</div>
-             <div style="font-size: 11px; opacity: 0.6; margin-top: 5px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${escapeHtml(
-               category.description || '',
-             )}</div>
-             ${
-               active
-                 ? '<div style="margin-top: 8px;"><span style="font-size: 10px; font-weight: 800; color: var(--red); letter-spacing: 0.5px; text-transform: uppercase;">Blocked</span></div>'
-                 : ''
-             }
+              <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${
+                UI_TOKENS.TEXT.CARD_TITLE
+              }">${escapeHtml(category.name)}</div>
+              <div style="${
+                UI_TOKENS.TEXT.SUBTEXT
+              } line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px;">${escapeHtml(
+    category.description || '',
+  )}</div>
+              ${
+                active
+                  ? `<div style="margin-top: 8px;"><span style="${UI_TOKENS.TEXT.BADGE} color: var(--red);">Blocked</span></div>`
+                  : ''
+              }
            </div>
         </div>
         <div style="display:flex; align-items:center; gap: 8px; flex-shrink: 0;">
           <button class="toggle-switch-btn ${active ? 'active' : ''}" ${
-    isLocked || currentSyncMode !== 'profile' ? 'disabled' : ''
+    isLocked || !currentIsConfigured ? 'disabled' : ''
   } data-kind="category" data-id="${escapeHtml(
     category.id,
   )}" data-name="${escapeHtml(category.name)}">
@@ -757,20 +752,6 @@ function renderCategoryCard(
           }
         </div>
       </div>
-      ${
-        active
-          ? `
-      <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; border-top: 1px solid var(--fg-glass-border); background: var(--fg-glass-bg); border-radius: 0 0 20px 20px;">
-        <div style="display:flex; align-items:center; gap: 8px;">
-          ${localRule ? renderLimitSelector(localRule) : '<span></span>'}
-          ${localRule ? renderPassSelector(localRule) : ''}
-        </div>
-        <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 4px;">
-          ${renderStreakBadge(localRule?.streakDays || 0)}
-        </div>
-      </div>`
-          : ''
-      }
     </div>
   `;
 }

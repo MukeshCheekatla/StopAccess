@@ -1,7 +1,7 @@
 import { nextDNSApi } from '../../background/platformAdapter';
 import { buildDashboardTabPath } from '@stopaccess/core';
 import { toast } from '../../lib/toast';
-import { renderCloudBanner, renderLoader } from '../../lib/ui';
+import { renderCloudBanner, renderLoader, UI_TOKENS } from '../../lib/ui';
 
 declare var chrome: any;
 
@@ -94,8 +94,10 @@ function _renderPage(container: HTMLElement, recreation: any): void {
         <!-- Header -->
         <div class="fg-flex fg-items-start fg-justify-between fg-p-5 fg-border-b fg-border-white/[0.08]">
            <div>
-             <h2 class="fg-text-[22px] fg-font-black fg-text-[var(--fg-text)]">Recreation Time</h2>
-             <p class="fg-text-[13px] fg-text-[var(--fg-text)] fg-opacity-50 fg-mt-1 fg-max-w-[400px]">Schedule your daily "Free Time" when all blocks are automatically paused so you can browse freely.</p>
+             <h2 style="${UI_TOKENS.TEXT.HEADING}">Recreation Time</h2>
+             <p style="${
+               UI_TOKENS.TEXT.SUBTEXT
+             }; margin-top: 4px; max-width: 400px;">Schedule your daily "Free Time" when all blocks are automatically paused so you can browse freely.</p>
            </div>
            <button class="fg-text-white/40 hover:fg-text-white/80 fg-transition-colors fg-mt-1">✕</button>
         </div>
@@ -110,29 +112,33 @@ function _renderPage(container: HTMLElement, recreation: any): void {
              return `
               <div class="day-slot fg-flex fg-items-center fg-justify-between" style="min-height:46px;">
                 <div class="fg-flex fg-items-center fg-gap-4 fg-w-[160px]">
-                  <input type="checkbox" class="day-check custom-check" ${
-                    data.enabled ? 'checked' : ''
-                  } data-day="${day}">
-                  <span class="fg-text-[16px] fg-font-extrabold fg-text-[var(--fg-text)]">${
-                    DAY_LABELS[i]
-                  }</span>
-                </div>
+                   <input type="checkbox" class="day-check custom-check" ${
+                     data.enabled ? 'checked' : ''
+                   } data-day="${day}">
+                   <span style="${UI_TOKENS.TEXT.CARD_TITLE}">${
+               DAY_LABELS[i]
+             }</span>
+                 </div>
 
                 <div class="fg-flex fg-items-center fg-gap-4 ${
                   !data.enabled ? 'fg-opacity-60 fg-pointer-events-none' : ''
                 } slot-inputs">
-                  <input type="time" class="time-input fg-px-3" value="${
-                    data.start
-                  }" data-day="${day}" data-type="start"
-                         style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; color: var(--fg-text); height: 42px; width: 120px; font-size: 15px; font-weight: 800;">
-                  
-                  <span class="fg-text-white/30 fg-font-light fg-text-xl">→</span>
-
-                  <input type="time" class="time-input fg-px-3" value="${
-                    data.end
-                  }" data-day="${day}" data-type="end"
-                         style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; color: var(--fg-text); height: 42px; width: 120px; font-size: 15px; font-weight: 800;">
-                </div>
+                   <input type="time" class="time-input fg-px-3" value="${
+                     data.start
+                   }" data-day="${day}" data-type="start"
+                          style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; color: var(--fg-text); height: 42px; width: 120px; ${
+                            UI_TOKENS.TEXT.CARD_TITLE
+                          }">
+                   
+                   <span class="fg-text-white/30 fg-font-light fg-text-xl">→</span>
+ 
+                   <input type="time" class="time-input fg-px-3" value="${
+                     data.end
+                   }" data-day="${day}" data-type="end"
+                          style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; color: var(--fg-text); height: 42px; width: 120px; ${
+                            UI_TOKENS.TEXT.CARD_TITLE
+                          }">
+                 </div>
               </div>
              `;
            }).join('')}
@@ -145,11 +151,13 @@ function _renderPage(container: HTMLElement, recreation: any): void {
         </div>
       </div>
 
-      <div class="fg-mt-4 fg-px-4 fg-text-center">
-        <p class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-70 fg-leading-relaxed fg-max-w-[500px] fg-mx-auto">
-          Synchronizing these settings will update your NextDNS profile in the cloud. Changes might take a few minutes to reflect across all devices.
-        </p>
-      </div>
+       <div class="fg-mt-4 fg-px-4 fg-text-center">
+         <p style="${
+           UI_TOKENS.TEXT.FOOTNOTE
+         }; max-width: 500px; margin: 0 auto;">
+           Synchronizing these settings will update your NextDNS profile in the cloud. Changes might take a few minutes to reflect across all devices.
+         </p>
+       </div>
 
     </div>
 

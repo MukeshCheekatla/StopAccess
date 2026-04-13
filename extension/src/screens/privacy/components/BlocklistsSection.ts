@@ -5,7 +5,11 @@
 
 import { escapeHtml } from '@stopaccess/core';
 import type { NextDNSBlocklist } from '@stopaccess/types';
-import { renderSectionBadge, renderSectionTitleRow } from '../../../lib/ui';
+import {
+  renderSectionBadge,
+  renderSectionTitleRow,
+  UI_TOKENS,
+} from '../../../lib/ui';
 
 // Icons
 const iconList =
@@ -91,8 +95,12 @@ export function renderBlocklistsSection(
         <!-- Header -->
         <div class="fg-p-8 fg-border-b fg-border-white/[0.05] fg-flex fg-items-center fg-justify-between">
           <div>
-            <div class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-[3px] fg-text-[#818cf8] fg-mb-1">Discovery</div>
-            <div class="fg-text-2xl fg-font-black fg-text-white">Blocklist Library</div>
+            <div style="${
+              UI_TOKENS.TEXT.LABEL
+            }; color: #818cf8; margin-bottom: 4px; letter-spacing: 3px;">Discovery</div>
+            <div style="${
+              UI_TOKENS.TEXT.HERO
+            }; color: white; font-size: 1.5rem;">Blocklist Library</div>
           </div>
           <button id="close-blocklist-drawer" class="fg-p-3 fg-rounded-2xl hover:fg-bg-white/[0.05] fg-text-[var(--muted)] fg-transition-all">
             ${iconClose}
@@ -127,12 +135,12 @@ export function renderBlocklistsSection(
 
         <!-- Footer -->
         <div class="fg-px-8 fg-py-5 fg-bg-[var(--fg-glass-bg)] fg-border-t fg-border-[var(--fg-glass-border)] fg-flex fg-justify-between fg-items-center">
-          <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-tracking-widest">
-            Total Library Score: <span class="fg-text-white">${
+          <div style="${UI_TOKENS.TEXT.LABEL}; opacity: 0.6;">
+            Total Library Score: <span style="color: white;">${
               available.length
             } Lists</span>
           </div>
-          <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-tracking-widest">
+          <div style="${UI_TOKENS.TEXT.LABEL}; opacity: 0.6;">
             Sorted by Popularity
           </div>
         </div>
@@ -281,13 +289,15 @@ function renderBlocklistCard(list: any, active: boolean): string {
         <div class="fg-shrink-0 fg-mt-1">${iconHtml}</div>
         <div class="fg-flex-1 fg-min-w-0">
           <div class="fg-flex fg-items-center fg-gap-1.5 fg-mb-[1px]">
-            <div class="fg-text-[13px] fg-font-bold fg-text-white fg-truncate">${escapeHtml(
-              list.name,
-            )}</div>
+            <div style="${
+              UI_TOKENS.TEXT.CARD_TITLE
+            }; color: white;" class="fg-truncate">${escapeHtml(list.name)}</div>
           </div>
-          <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-70 fg-line-clamp-2">${escapeHtml(
-            list.description || 'Verified Filter',
-          )}</div>
+          <div style="${
+            UI_TOKENS.TEXT.SUBTEXT
+          }; border: none;" class="fg-line-clamp-2">${escapeHtml(
+    list.description || 'Verified Filter',
+  )}</div>
         </div>
         <button class="blocklist-toggle-btn ${
           active ? 'active' : ''
@@ -363,16 +373,20 @@ function renderBlocklistRow(list: any, active: boolean): string {
           </button>
         </div>
 
-        <div class="fg-text-sm fg-text-[var(--fg-text)] fg-opacity-70 fg-mb-2.5 fg-line-clamp-2 fg-leading-relaxed">${escapeHtml(
-          list.description || '',
-        )}</div>
+         <div style="${
+           UI_TOKENS.TEXT.SUBTEXT
+         }; border: none;" class="fg-text-sm fg-mb-2.5 fg-line-clamp-2 fg-leading-relaxed">${escapeHtml(
+    list.description || '',
+  )}</div>
         
-        <div class="fg-flex fg-items-center fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-70 fg-font-medium">
+        <div style="${
+          UI_TOKENS.TEXT.LABEL
+        }; text-transform: none; font-weight: 500; opacity: 0.7;">
           ${websiteHtml}
           ${domain ? '<span class="fg-opacity-40 fg-mx-1.5">•</span>' : ''}
-          <span class="fg-text-white/80">${entriesRaw.toLocaleString()} entries</span>
+          <span style="color: rgba(255,255,255,0.8);">${entriesRaw.toLocaleString()} entries</span>
           <span class="fg-opacity-40 fg-mx-1.5">•</span>
-          <span class="fg-text-white/80">Updated ${updatedStr}</span>
+          <span style="color: rgba(255,255,255,0.8);">Updated ${updatedStr}</span>
         </div>
       </div>
     </div>

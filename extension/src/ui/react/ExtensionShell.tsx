@@ -1,4 +1,5 @@
 import React, { type ReactNode, useMemo } from 'react';
+import { UI_TOKENS } from '../../lib/ui';
 
 export type ShellTab<T extends string> = {
   id: T;
@@ -55,11 +56,12 @@ export function PopupShell<T extends string>({
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            className={`fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-lg fg-text-[10px] fg-font-extrabold fg-tracking-[0.1em] fg-whitespace-nowrap fg-transition-all fg-duration-150 active:fg-scale-95 ${
+            className={`fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-lg fg-whitespace-nowrap fg-transition-all fg-duration-150 active:fg-scale-95 ${
               activeTab === tab.id
                 ? 'fg-bg-[var(--accent)] fg-text-[#fefefe]'
                 : 'fg-bg-[var(--fg-glass-bg)] fg-text-[var(--muted)] hover:fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface)]'
             }`}
+            style={{ ...UI_TOKENS.TEXT.R.LABEL, color: 'inherit' }}
             data-tab={tab.id}
             onClick={() => onTabChange(tab.id)}
             type="button"
@@ -70,7 +72,8 @@ export function PopupShell<T extends string>({
 
         <div className="fg-ml-auto fg-flex fg-items-center fg-gap-3">
           <span
-            className={`fg-inline-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-full fg-text-[10px] fg-font-bold fg-whitespace-nowrap ${statusClassName}`}
+            className={`fg-inline-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-full fg-whitespace-nowrap ${statusClassName}`}
+            style={{ ...UI_TOKENS.TEXT.R.LABEL, color: 'inherit' }}
           >
             <span
               className={`fg-w-1.5 fg-h-1.5 fg-rounded-full ${
@@ -122,12 +125,19 @@ export function DashboardShell<T extends string>({
             className="fg-w-9 fg-h-9 fg-rounded-[10px] fg-border fg-border-[var(--fg-glass-border)] fg-object-contain"
           />
           <div className="fg-flex fg-items-baseline fg-gap-3">
-            <div className="fg-text-[1.15rem] fg-font-black fg-tracking-[-0.03em] fg-text-[var(--fg-text)]">
+            <div
+              style={{
+                ...UI_TOKENS.TEXT.R.HEADING,
+                fontSize: '1.15rem',
+                letterSpacing: '-0.03em',
+              }}
+            >
               StopAccess
             </div>
             <div
               id="statusBadge"
-              className={`fg-inline-flex fg-items-center fg-gap-1.5 fg-px-[10px] fg-py-[3px] fg-rounded-full fg-text-[9px] fg-font-black ${statusClassName}`}
+              className={`fg-inline-flex fg-items-center fg-gap-1.5 fg-px-[10px] fg-py-[3px] fg-rounded-full ${statusClassName}`}
+              style={UI_TOKENS.TEXT.R.BADGE}
             >
               {status.label}
             </div>
@@ -150,7 +160,17 @@ export function DashboardShell<T extends string>({
               <span className="fg-w-5 fg-h-5 fg-flex-shrink-0 fg-flex fg-items-center fg-justify-center fg-opacity-[0.86]">
                 {tab.icon}
               </span>
-              <span className="fg-flex-1">{tab.label}</span>
+              <span
+                className="fg-flex-1"
+                style={{
+                  ...UI_TOKENS.TEXT.R.CARD_TITLE,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  color: 'inherit',
+                }}
+              >
+                {tab.label}
+              </span>
             </button>
           ))}
         </nav>

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { UI_TOKENS } from '../../lib/ui';
 import { appsController } from '../../lib/appsController';
 import { getLockedDomains } from '../../background/sessionGuard';
 import { toast } from '../../lib/toast';
@@ -317,15 +318,10 @@ export const AppsPopupView: React.FC = () => {
                 }}
               />
               <div>
-                <div className="fg-text-[13px] fg-font-black fg-text-white">
+                <div style={{ ...UI_TOKENS.TEXT.R.CARD_TITLE, color: 'white' }}>
                   {pauseTarget.appName || pauseTarget.packageName}
                 </div>
-                <div
-                  className="fg-text-[9px] fg-font-bold fg-uppercase fg-tracking-widest"
-                  style={{ color: 'var(--muted)' }}
-                >
-                  Pause for how long?
-                </div>
+                <div style={UI_TOKENS.TEXT.R.LABEL}>Pause for how long?</div>
               </div>
             </div>
 
@@ -341,15 +337,10 @@ export const AppsPopupView: React.FC = () => {
                   }}
                   onClick={() => handlePauseSelect(mins)}
                 >
-                  <span className="fg-text-[18px] fg-font-black fg-text-white">
+                  <span style={{ ...UI_TOKENS.TEXT.R.STAT, fontSize: '18px' }}>
                     {mins}
                   </span>
-                  <span
-                    className="fg-text-[9px] fg-font-bold fg-uppercase"
-                    style={{ color: 'var(--muted)' }}
-                  >
-                    min
-                  </span>
+                  <span style={UI_TOKENS.TEXT.R.LABEL}>min</span>
                 </button>
               ))}
             </div>
@@ -378,13 +369,15 @@ export const AppsPopupView: React.FC = () => {
         </div>
       )}
       <div className="fg-flex fg-items-center fg-justify-between fg-px-[2px]">
-        <div className="fg-text-[11px] fg-font-extrabold fg-uppercase fg-tracking-[1px] fg-text-[var(--muted)]">
-          BLOCK LIST
-        </div>
-        <div className="fg-inline-flex fg-items-center fg-gap-2 fg-text-[10px] fg-font-extrabold fg-text-[var(--muted)]">
-          <span>{activeRules.length} RULES</span>
+        <div style={UI_TOKENS.TEXT.R.LABEL}>BLOCK LIST</div>
+        <div className="fg-inline-flex fg-items-center fg-gap-2">
+          <span style={{ ...UI_TOKENS.TEXT.R.LABEL, opacity: 0.5 }}>
+            {activeRules.length} RULES
+          </span>
           <span className="fg-text-slate-600">/</span>
-          <span>{recentActivity.length} RECENT</span>
+          <span style={{ ...UI_TOKENS.TEXT.R.LABEL, opacity: 0.5 }}>
+            {recentActivity.length} RECENT
+          </span>
         </div>
       </div>
 
@@ -442,9 +435,7 @@ export const AppsPopupView: React.FC = () => {
       ) : null}
 
       <div className="fg-px-[2px]">
-        <div className="fg-text-[11px] fg-font-extrabold fg-uppercase fg-tracking-[1px] fg-text-[var(--muted)]">
-          Enforcement Rules
-        </div>
+        <div style={UI_TOKENS.TEXT.R.LABEL}>Enforcement Rules</div>
       </div>
 
       <div className="fg-flex fg-min-h-0 fg-flex-1 fg-flex-col fg-gap-2 fg-overflow-y-auto">
@@ -492,18 +483,50 @@ export const AppsPopupView: React.FC = () => {
                 </div>
 
                 <div className="fg-min-w-0 fg-flex-1">
-                  <div className="fg-truncate fg-text-[13px] fg-font-bold fg-text-white">
+                  <div
+                    className="fg-truncate"
+                    style={{ ...UI_TOKENS.TEXT.R.CARD_TITLE, color: 'white' }}
+                  >
                     {rule.appName || rule.packageName}
                   </div>
-                  <div className="fg-mt-0.5 fg-flex fg-items-center fg-gap-[6px] fg-text-[9px] fg-font-semibold fg-uppercase fg-text-[var(--muted)]">
-                    <span>
+                  <div className="fg-mt-0.5 fg-flex fg-items-center fg-gap-[6px]">
+                    <span
+                      style={{
+                        ...UI_TOKENS.TEXT.R.LABEL,
+                        opacity: 0.5,
+                        textTransform: 'none',
+                      }}
+                    >
                       {matchesCurrent ? 'Current Site' : rule.type || 'Rule'}
                     </span>
-                    <span>Streak {Number(rule.streakDays || 0)}</span>
-                    <span>{Number(rule.maxDailyPasses ?? 3)} passes</span>
+                    <span
+                      style={{
+                        ...UI_TOKENS.TEXT.R.LABEL,
+                        opacity: 0.5,
+                        textTransform: 'none',
+                      }}
+                    >
+                      Streak {Number(rule.streakDays || 0)}
+                    </span>
+                    <span
+                      style={{
+                        ...UI_TOKENS.TEXT.R.LABEL,
+                        opacity: 0.5,
+                        textTransform: 'none',
+                      }}
+                    >
+                      {Number(rule.maxDailyPasses ?? 3)} passes
+                    </span>
                   </div>
                   {isTemporarilyOff ? (
-                    <div className="fg-mt-1 fg-text-[10px] fg-font-bold fg-text-[var(--fg-accent)]">
+                    <div
+                      className="fg-mt-1"
+                      style={{
+                        ...UI_TOKENS.TEXT.R.LABEL,
+                        color: 'var(--fg-accent)',
+                        textTransform: 'none',
+                      }}
+                    >
                       Disabled until {getPassCountdown(activePass)}
                     </div>
                   ) : null}

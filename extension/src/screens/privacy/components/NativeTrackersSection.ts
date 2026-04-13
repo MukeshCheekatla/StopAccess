@@ -8,6 +8,7 @@ import {
   renderToggleSwitch,
   renderSectionBadge,
   renderSectionTitleRow,
+  UI_TOKENS,
 } from '../../../lib/ui';
 
 interface VendorMeta {
@@ -85,7 +86,9 @@ export function renderNativeTrackersSection(
         renderSectionBadge(`${activeIds.size} ACTIVE`),
       )}
 
-      <div class="fg-text-[11px] fg-text-[var(--muted)] fg-mb-5 fg-leading-[1.5]">
+      <div style="${
+        UI_TOKENS.TEXT.SUBTEXT
+      }; margin-bottom: 20px; line-height: 1.5;">
         Block tracking built into devices and operating systems —
         even without any apps running.
       </div>
@@ -113,22 +116,25 @@ export function renderNativeTrackersSection(
                 >
               </div>
 
-              <!-- Content in the middle -->
-              <div class="fg-flex-1 fg-min-w-0">
-                <div class="fg-flex fg-items-center fg-gap-2 fg-mb-[2px]">
-                  <div class="fg-text-[13px] fg-font-bold fg-leading-tight fg-text-[var(--text)]">
-                    ${vendor.name}
-                  </div>
-                  ${
-                    active
-                      ? '<span class="fg-shrink-0" style="width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0;"></span>'
-                      : ''
-                  }
-                </div>
-                <div class="fg-text-[10px] fg-text-[var(--muted)] fg-leading-snug fg-line-clamp-1">
-                  ${vendor.description}
-                </div>
-              </div>
+               <div class="fg-flex-1 fg-min-w-0">
+                 <div class="fg-flex fg-items-center fg-gap-2 fg-mb-[2px]">
+                   <div style="${
+                     UI_TOKENS.TEXT.CARD_TITLE
+                   }" class="fg-truncate">
+                     ${vendor.name}
+                   </div>
+                   ${
+                     active
+                       ? '<span class="fg-shrink-0" style="width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0;"></span>'
+                       : ''
+                   }
+                 </div>
+                 <div style="${
+                   UI_TOKENS.TEXT.SUBTEXT
+                 }; opacity: 0.6; line-height: 1.3;" class="fg-line-clamp-1">
+                   ${vendor.description}
+                 </div>
+               </div>
 
               <div class="fg-shrink-0">
                 ${renderToggleSwitch(vendor.id, active, 'native-toggle-btn')}

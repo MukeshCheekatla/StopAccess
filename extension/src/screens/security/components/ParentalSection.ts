@@ -4,6 +4,7 @@ import {
   renderSectionBadge,
   renderSectionTitleRow,
   renderInfoTooltip,
+  UI_TOKENS,
 } from '../../../lib/ui';
 
 const iconSearch =
@@ -75,17 +76,19 @@ export function renderParentalSection(
               <span class="fg-text-[var(--muted)]">${ctrl.icon}</span>
             </div>
 
-            <div class="fg-flex-1 fg-min-w-0">
-              <div class="fg-flex fg-items-center fg-gap-2 fg-mb-[2px]">
-                <div class="fg-text-sm fg-font-bold fg-leading-[1.3] fg-text-[var(--text)]">
-                  ${ctrl.label}
-                </div>
-                ${renderInfoTooltip(ctrl.tooltip || '')}
-              </div>
-              <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-snug">
-                ${ctrl.desc}
-              </div>
-            </div>
+             <div class="fg-flex-1 fg-min-w-0">
+               <div class="fg-flex fg-items-center fg-gap-2 fg-mb-[2px]">
+                 <div style="${UI_TOKENS.TEXT.CARD_TITLE}">
+                   ${ctrl.label}
+                 </div>
+                 ${renderInfoTooltip(ctrl.tooltip || '')}
+               </div>
+               <div style="${
+                 UI_TOKENS.TEXT.SUBTEXT
+               }; border: none; line-height: 1.4; opacity: 0.6;">
+                 ${ctrl.desc}
+               </div>
+             </div>
 
             <div class="fg-shrink-0">
               ${renderToggleSwitch(ctrl.key, ctrl.active)}

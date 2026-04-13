@@ -4,7 +4,11 @@
  */
 
 import type { NextDNSTld } from '@stopaccess/types';
-import { renderInfoTooltip, renderEmptyState } from '../../../lib/ui';
+import {
+  renderInfoTooltip,
+  renderEmptyState,
+  UI_TOKENS,
+} from '../../../lib/ui';
 
 // Common TLDs to suggest
 const COMMON_RISKY_TLDS = [
@@ -40,12 +44,16 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
           </div>
           <div>
             <div class="fg-flex fg-items-center fg-gap-2">
-              <div class="fg-text-sm fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight">Global Shield</div>
+              <div style="${
+                UI_TOKENS.TEXT.HEADING
+              }; letter-spacing: -0.01em;">Global Shield</div>
               ${renderInfoTooltip(
                 'Enhance security by blocking entire top-level domains (TLDs) like .ru, .cn, or .top to prevent access to high-risk regions and malicious extensions.',
               )}
             </div>
-            <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-tracking-widest">TLD Blocker</div>
+            <div style="${
+              UI_TOKENS.TEXT.LABEL
+            }; opacity: 0.6;">TLD Blocker</div>
           </div>
         </div>
         <div class="fg-flex fg-items-center fg-gap-2">
@@ -55,9 +63,11 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
         </div>
       </div>
 
-      <div class="fg-text-[11px] fg-text-[var(--muted)] fg-mb-8 fg-leading-relaxed fg-max-w-[420px]">
+      <div style="${
+        UI_TOKENS.TEXT.SUBTEXT
+      }; margin-bottom: 32px; max-width: 420px; line-height: 1.6;">
         Enhance your network security by blocking entire top-level domains. 
-        <span class="fg-text-[var(--fg-text)] fg-font-bold">Prevents access to high-risk regions and malicious generic extensions.</span>
+        <span style="color: var(--fg-text); font-weight: 700;">Prevents access to high-risk regions and malicious generic extensions.</span>
       </div>
 
       <!-- TLD Creative Input -->

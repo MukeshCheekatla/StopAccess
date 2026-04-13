@@ -12,6 +12,7 @@ import {
   renderErrorCard,
   renderLoader,
   renderStatCard,
+  UI_TOKENS,
 } from '../../lib/ui';
 
 declare var chrome: any;
@@ -107,7 +108,9 @@ async function _renderPage(container: HTMLElement): Promise<void> {
           'var(--red)',
           blockedQueries.toLocaleString(),
           'Stopped Attempts',
-          '<span class="fg-text-[8px] fg-font-black fg-bg-[var(--green)]/10 fg-text-[var(--green)] fg-px-2 fg-py-0.5 fg-rounded-md">ACTIVE</span>',
+          '<span style="' +
+            UI_TOKENS.TEXT.BADGE +
+            ' border: 1px solid var(--fg-green); padding: 2px 8px; border-radius: 6px; color: var(--fg-green);">ACTIVE</span>',
         )}
         ${renderStatCard(
           'Safety Score',
@@ -126,7 +129,9 @@ async function _renderPage(container: HTMLElement): Promise<void> {
             <div class="fg-w-8 fg-h-8 fg-rounded-xl fg-bg-[var(--red)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--red)]">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
             </div>
-            <div class="section-label" style="margin: 0;">Top Denied Threats</div>
+            <div class="section-label" style="${
+              UI_TOKENS.TEXT.HEADING
+            }">Top Denied Threats</div>
           </div>
           <div class="fg-flex fg-flex-col fg-gap-3">
             ${_renderTopBlocked(isConfigured, topBlocked as any[], iconLookup)}
@@ -140,9 +145,13 @@ async function _renderPage(container: HTMLElement): Promise<void> {
               <div class="fg-w-8 fg-h-8 fg-rounded-xl fg-bg-[var(--accent)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--accent)]">
                 ${iconActivity}
               </div>
-              <div class="section-label" style="margin: 0;">Real-Time Denial Feed</div>
+              <div class="section-label" style="${
+                UI_TOKENS.TEXT.HEADING
+              }">Real-Time Denial Feed</div>
             </div>
-            <div class="fg-flex fg-items-center fg-gap-2 fg-text-[11px] fg-font-bold fg-text-[var(--green)] fg-uppercase fg-tracking-widest">
+            <div style="${
+              UI_TOKENS.TEXT.LABEL
+            }; color: var(--green); display: flex; align-items: center; gap: 8px;">
               <span class="fg-w-1.5 fg-h-1.5 fg-bg-[var(--green)] fg-rounded-full fg-animate-pulse"></span> Live Monitoring
             </div>
           </div>
@@ -314,26 +323,30 @@ function _renderLogsList(
                  }; z-index: 2; position: relative;" 
                  class="fg-transition-opacity">
           </div>
-          <div class="fg-flex-1 fg-min-w-0">
-            <div class="fg-font-black fg-text-[13px] fg-text-[var(--fg-text)] fg-truncate">${
-              log.domain
-            }</div>
-            <div class="fg-flex fg-items-center fg-gap-2 fg-mt-1">
-              <span class="fg-text-[11px] fg-px-2 fg-py-0.5 fg-rounded-full fg-bg-[var(--red)]/10 fg-text-[var(--red)] fg-font-black fg-uppercase fg-tracking-wider">BLOCKED</span>
-              <span class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-font-bold">${
-                log.reasons?.[0]?.name || 'NextDNS Firewall'
-              }</span>
-            </div>
-          </div>
+           <div class="fg-flex-1 fg-min-w-0">
+             <div style="${UI_TOKENS.TEXT.CARD_TITLE}" class="fg-truncate">${
+        log.domain
+      }</div>
+             <div class="fg-flex fg-items-center fg-gap-2 fg-mt-1">
+               <span style="${
+                 UI_TOKENS.TEXT.BADGE
+               } color: var(--red); background: var(--red)/10; padding: 2px 8px; border-radius: 6px;">BLOCKED</span>
+               <span style="${
+                 UI_TOKENS.TEXT.SUBTEXT
+               }; border: none; opacity: 0.6;">${
+        log.reasons?.[0]?.name || 'NextDNS Firewall'
+      }</span>
+             </div>
+           </div>
           <div class="fg-flex fg-items-center fg-gap-2 fg-shrink-0">
             <button class="block-log-domain fg-flex fg-h-8 fg-w-8 fg-items-center fg-justify-center fg-rounded-full fg-bg-[var(--fg-accent-soft)] fg-text-[var(--fg-accent)]" data-domain="${
               log.domain
             }" title="Block ${log.domain}">
               +
             </button>
-            <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-font-black" style="font-family: monospace;">${_formatTimeAgo(
-              log.timestamp,
-            )}</div>
+            <div style="${
+              UI_TOKENS.TEXT.LABEL
+            }; opacity: 0.4;">${_formatTimeAgo(log.timestamp)}</div>
           </div>
         </div>`;
     })
@@ -372,12 +385,14 @@ function _renderTopBlocked(
                  }; z-index: 2; position: relative;" 
                  class="fg-transition-opacity">
           </div>
-          <div class="fg-flex-1 fg-min-w-0">
-            <div class="fg-font-black fg-text-[13px] fg-text-[var(--fg-text)] fg-truncate">${label}</div>
-            <div class="fg-text-[11px] fg-font-black fg-mt-1 fg-text-[var(--fg-text)] fg-opacity-50 fg-uppercase fg-tracking-wide">${
-              item.queries
-            } Blocks</div>
-          </div>
+           <div class="fg-flex-1 fg-min-w-0">
+             <div style="${
+               UI_TOKENS.TEXT.CARD_TITLE
+             }" class="fg-truncate">${label}</div>
+             <div style="${
+               UI_TOKENS.TEXT.LABEL
+             }; opacity: 0.5; margin-top: 4px;">${item.queries} Blocks</div>
+           </div>
           <div class="fg-shrink-0 fg-text-right fg-min-w-[50px]">
              <div class="fg-text-[12px] fg-font-black fg-text-[var(--accent)]">${Math.round(
                (item.queries / topBlocked[0].queries) * 100,

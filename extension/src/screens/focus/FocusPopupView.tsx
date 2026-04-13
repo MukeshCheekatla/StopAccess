@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { UI_TOKENS } from '../../lib/ui';
 import {
   extensionAdapter as storage,
   STORAGE_KEYS,
@@ -115,12 +116,9 @@ export function FocusPopupView() {
               style={ringStyles.text}
             >
               {fmt(rem)}
-            </div>
-            <div
-              className="fg-mt-3 fg-text-[10px] fg-font-black fg-uppercase fg-tracking-[0.2em]"
-              style={ringStyles.dim}
-            >
-              {Math.round(prog * 100)}% COMPLETE
+              <div style={{ ...UI_TOKENS.TEXT.R.LABEL, opacity: 0.5 }}>
+                {Math.round(prog * 100)}% COMPLETE
+              </div>
             </div>
           </div>
         </div>
@@ -177,15 +175,10 @@ export function FocusPopupView() {
       style={{ background: ringStyles.bg }}
     >
       <div className="fg-mb-7 fg-text-center">
-        <div
-          className="fg-mb-2 fg-text-xs fg-font-black fg-tracking-[0.2em]"
-          style={{ color: '#84ffe4', opacity: 1 }}
-        >
+        <div style={{ ...UI_TOKENS.TEXT.R.LABEL, color: '#84ffe4' }}>
           IGNITE DEEP FOCUS
         </div>
-        <div className="fg-text-sm fg-font-black" style={ringStyles.text}>
-          READY TO START
-        </div>
+        <div style={UI_TOKENS.TEXT.R.CARD_TITLE}>READY TO START</div>
       </div>
       <div className="fg-relative fg-mb-6 fg-flex fg-h-48 fg-w-48 fg-items-center fg-justify-center fg-opacity-30">
         <svg
@@ -219,12 +212,15 @@ export function FocusPopupView() {
             onClick={() => startFocus(p.m)}
             className="fg-rounded-[24px] fg-border fg-border-white/[0.03] fg-bg-[#18181b] fg-p-5 fg-transition-all hover:fg-bg-[#27272a] hover:fg-scale-[1.02] active:fg-scale-[0.98]"
           >
-            <div className="fg-text-2xl fg-font-black" style={ringStyles.text}>
+            <div style={{ ...UI_TOKENS.TEXT.R.STAT, color: 'white' }}>
               {p.m}M
             </div>
             <div
-              className="fg-text-[10px] fg-font-black fg-tracking-[0.15em] fg-mt-1"
-              style={{ color: '#84ffe4' }}
+              style={{
+                ...UI_TOKENS.TEXT.R.LABEL,
+                color: '#84ffe4',
+                marginTop: '4px',
+              }}
             >
               {p.t.toUpperCase()}
             </div>
