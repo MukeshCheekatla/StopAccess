@@ -166,9 +166,7 @@
     <header>
         <div class="nav-container">
             <div class="logo">
-                <svg viewBox="0 0 100 100" fill="none">
-                    <path d="M20 20 H80 V40 H40 V50 H80 V80 H20 V60 H60 V50 H20 V20 Z" fill="#ef4444"/>
-                </svg>
+                <img src="extension/assets/icon.png" width="28" height="28" style="border-radius: 6px;" alt="StopAccess Icon">
                 StopAccess
             </div>
             <a href="#privacy" style="color: var(--muted-color); text-decoration: none; font-weight: 600; font-size: 0.9rem;">Privacy Policy</a>
@@ -180,10 +178,36 @@
             <div class="container">
                 <h1>Total Access Protection.</h1>
                 <p>Precision site blocking and productivity management powered by strict access denial and secure NextDNS cloud sync.</p>
-                <a href="https://chrome.google.com/webstore" class="cta-button" target="_blank">Get it for Chrome</a>
+                <a href="https://chromewebstore.google.com/detail/dajibamebijnlohkeddaignbneobpjag?utm_source=item-share-cb" class="cta-button" target="_blank">Get it for Chrome</a>
                 
                 <!-- If you commit the screenshot to docs/assets/screenshots/welcome_640x400.png, it will appear here on your live site -->
-                <img src="assets/screenshots/welcome_640x400.png" alt="StopAccess Interface" class="mockup" onerror="this.style.display='none'">
+                <img src="docs/assets/screenshots/welcome_640x400.png" alt="StopAccess Dashboard Interface" class="mockup" onerror="this.style.display='none'">
+            </div>
+        </section>
+
+        <section class="policy-section" style="padding-top: 2rem;">
+            <div class="container">
+                <div class="policy-content" style="text-align: center; border-color: rgba(239, 68, 68, 0.2);">
+                    <h2>Uncompromising Focus Features</h2>
+                    <p style="color: var(--muted-color); max-width: 600px; margin: 0 auto 3rem;">StopAccess blocks intrusive websites, tracks your focus time, and locks down your settings with precision to eliminate digital distractions.</p>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; text-align: left; margin-bottom: 3rem;">
+                        <div style="padding: 1.5rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 16px;">
+                            <h3 style="margin-top: 0;">Unbreakable Local Blocking</h3>
+                            <p style="font-size: 0.9rem; margin-bottom: 0;">Instant DNS-level blocking combined with declarative browser rules stops distractions dead in their tracks before they load.</p>
+                        </div>
+                        <div style="padding: 1.5rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 16px;">
+                            <h3 style="margin-top: 0;">Strict Guardian PIN Lock</h3>
+                            <p style="font-size: 0.9rem; margin-bottom: 0;">Set a 4-digit code to protect your block lists. Protects your rules from being modified during weak moments.</p>
+                        </div>
+                        <div style="padding: 1.5rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 16px;">
+                            <h3 style="margin-top: 0;">NextDNS Cloud Sync</h3>
+                            <p style="font-size: 0.9rem; margin-bottom: 0;">Wire in your NextDNS API credentials to seamlessly sync your denylists and privacy toggles globally.</p>
+                        </div>
+                    </div>
+                    
+                    <img src="docs/assets/screenshots/overlay_640x400.png" alt="Access Denied Overlay" class="mockup" style="margin-top: 0;">
+                </div>
             </div>
         </section>
 

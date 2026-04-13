@@ -445,6 +445,19 @@ export async function renderDashboardPage(container) {
       if (window.__dashPulseChart) {
         window.__dashPulseChart.destroy();
       }
+
+      // Wire directly from main file tokens but resolve them to computed CSS for ChartJS
+      const docStyle = getComputedStyle(document.documentElement);
+      const resolveToken = (token: string) => {
+        const match = token.match(/var\(([^)]+)\)/);
+        return match ? docStyle.getPropertyValue(match[1]).trim() : token;
+      };
+
+      const chartBarColor =
+        docStyle.getPropertyValue('--fg-chart-bar').trim() || '#E2E8F0';
+      const chartTextColor = resolveToken(UI_TOKENS.COLORS.TEXT) || '#111827';
+      const chartMutedColor = resolveToken(UI_TOKENS.COLORS.MUTED) || '#6B7280';
+
       window.__dashPulseChart = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -452,10 +465,7 @@ export async function renderDashboardPage(container) {
           datasets: [
             {
               data: domainList.map((d) => Math.floor(d.timeMs / 60000)),
-              backgroundColor:
-                getComputedStyle(document.documentElement)
-                  .getPropertyValue('--fg-chart-bar')
-                  .trim() || '#E2E8F0',
+              backgroundColor: chartBarColor,
               borderRadius: 6,
               barThickness: 20,
             },
@@ -471,12 +481,12 @@ export async function renderDashboardPage(container) {
             x: {
               beginAtZero: true,
               grid: { display: false },
-              ticks: { color: 'var(--fg-muted)', font: { size: 10 } },
+              ticks: { color: chartMutedColor, font: { size: 10 } },
             },
             y: {
               grid: { display: false },
               ticks: {
-                color: 'var(--fg-text)',
+                color: chartTextColor,
                 font: { size: 12, weight: '800' as any },
               },
             },
@@ -501,6 +511,45 @@ export async function renderDashboardPage(container) {
         }
       };
       chrome.storage.onChanged.addListener(window.__dashStorageListener);
+    }
+
+    if (!(window as any).__dashThemeObserver) {
+      const observer = new MutationObserver((mutations) => {
+        if (mutations.some((m) => m.attributeName === 'class')) {
+          const chart = (window as any).__dashPulseChart;
+          if (chart) {
+            const currentStyle = getComputedStyle(document.documentElement);
+            const freshResolve = (token: string) => {
+              const match = token.match(/var\(([^)]+)\)/);
+              return match
+                ? currentStyle.getPropertyValue(match[1]).trim()
+                : token;
+            };
+            const freshBar =
+              currentStyle.getPropertyValue('--fg-chart-bar').trim() ||
+              '#E2E8F0';
+            const freshText = freshResolve(UI_TOKENS.COLORS.TEXT) || '#111827';
+            const freshMuted =
+              freshResolve(UI_TOKENS.COLORS.MUTED) || '#6B7280';
+
+            if (chart.data.datasets?.[0]) {
+              chart.data.datasets[0].backgroundColor = freshBar;
+            }
+            if (chart.options.scales?.x?.ticks) {
+              chart.options.scales.x.ticks.color = freshMuted;
+            }
+            if (chart.options.scales?.y?.ticks) {
+              chart.options.scales.y.ticks.color = freshText;
+            }
+            chart.update();
+          }
+        }
+      });
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+      (window as any).__dashThemeObserver = observer;
     }
   } catch (e) {
     container.innerHTML = `<div class="empty-state">${e.message}</div>`;

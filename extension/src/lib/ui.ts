@@ -240,16 +240,12 @@ export function renderPassSelector(rule: any) {
 export function renderStreakBadge(streak: number) {
   const isZero = streak <= 0;
   const color = isZero ? 'var(--muted)' : '#f97316';
-  const bg = isZero ? 'rgba(255,255,255,0.05)' : 'rgba(249, 115, 22, 0.1)';
-  const border = isZero ? 'var(--glass-border)' : 'rgba(249, 115, 22, 0.2)';
 
   return `
-    <div style="display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: ${bg}; border: 1px solid ${border}; border-radius: 12px; color: ${color}; font-weight: 700; filter: ${
-    isZero ? 'none' : 'drop-shadow(0 4px 12px rgba(249, 115, 22, 0.15))'
-  };">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: ${
+    <div style="display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 12px; color: ${color}; font-weight: 700;">
+      <svg width="13" height="13" viewBox="0 0 448 512" fill="currentColor" style="opacity: ${
         isZero ? 0.5 : 1
-      };"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3 0-1.03.46-2 1.39-3h.01c.78.78 1.1 1.63 1.1 2.5 0 1.05-.33 2.1-.8 3.01.52-.4 1.1-.73 1.56-1.1.28.9.23 1.83-.15 2.7-.3.7-.7 1.32-1.2 1.86A5 5 0 0 1 7 14.5c0-.9.2-1.74.57-2.5h.06l.87 2.5z"/><path d="M12 2c1 2 2 4 2 7a4 4 0 0 1-7.87 1C5.47 11.41 5 13.15 5 15a7 7 0 0 0 13.14 3.33L19 18a7 7 0 0 0-7-16z"/></svg>
+      };"><path d="M159.3 5.4c7.8-7.3 19.9-7.2 27.7 .1c27.6 25.9 53.5 53.8 77.7 84c11-14.4 23.5-30.1 37-42.9c7.9-7.4 20.1-7.4 28 .1c34.6 33 63.9 76.6 84.5 118c20.3 40.8 33.8 82.5 33.8 111.9C448 404.2 348.2 512 224 512C98.4 512 0 404.1 0 276.5c0-38.4 17.8-85.3 45.4-131.7C73.3 97.7 112.7 48.6 159.3 5.4zM225.7 416c25.3 0 47.7-7 68.8-21c42.1-29.4 53.4-88.2 28.1-134.4c-4.5-9-16-9.6-22.5-2l-25.2 29.3c-6.6 7.6-18.5 7.4-24.7-.5c-16.5-21-46-58.5-62.8-79.8c-6.3-8-18.3-8.1-24.7-.1c-33.8 42.5-50.8 69.3-50.8 99.4C112 375.4 162.6 416 225.7 416z"/></svg>
       <span style="font-size: 11px; letter-spacing: 0;">${streak}d</span>
     </div>
   `;
