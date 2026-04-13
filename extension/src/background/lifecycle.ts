@@ -262,7 +262,7 @@ async function runCycle(forceSync = false) {
       const oldUsage = archiveRes[STORAGE_KEYS.USAGE] || {};
       const usageHistory = archiveRes[STORAGE_KEYS.USAGE_HISTORY] || {};
 
-      usageHistory[todayStr] = oldUsage; // Use canonical reset date
+      usageHistory[lastReset] = oldUsage; // Use the date the usage was actually recorded on
 
       // Prune history to keep only last 3entries
       const historyKeys = Object.keys(usageHistory).sort();

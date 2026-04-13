@@ -11,7 +11,7 @@ export async function recordDailySnapshot(
   totalMinutes: number,
   blockedCount: number,
 ): Promise<void> {
-  const date = new Date().toISOString().split('T')[0];
+  const date = new Date().toLocaleDateString('en-CA');
   const raw = await storage.getString(INSIGHTS_KEY);
   let insights: DailySnapshot[] = raw ? JSON.parse(raw) : [];
 
