@@ -199,7 +199,8 @@ export default function SettingsScreen({ navigation }: any) {
             System Hub
           </Text>
           <Text className="mt-1 text-sm font-semibold text-muted">
-            Manage local blocking, NextDNS sync, privacy, security, and diagnostics
+            Manage local blocking, NextDNS sync, privacy, security, and
+            diagnostics
           </Text>
         </View>
 

@@ -208,8 +208,8 @@ export default function OnboardingScreen({
               ]}
             >
               StopAccess combines Android app blocking, NextDNS rules, focus
-              sessions, schedules, and strict controls so your limits are
-              harder to casually bypass.
+              sessions, schedules, and strict controls so your limits are harder
+              to casually bypass.
             </Text>
 
             <SurfaceCard

@@ -86,7 +86,9 @@ const mobileApi = {
   },
   removeNativeTracking: async (id: string) => {
     const cfg = await nextDNS.getConfig();
-    const { removeNativeTrackingFromProfile } = await import('@stopaccess/core');
+    const { removeNativeTrackingFromProfile } = await import(
+      '@stopaccess/core'
+    );
     return removeNativeTrackingFromProfile(id, cfg, console.warn);
   },
 };
