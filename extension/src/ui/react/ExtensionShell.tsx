@@ -247,7 +247,11 @@ export function DashboardShell<T extends string>({
       </div>
       <div className="fg-flex-1 fg-flex fg-flex-col fg-overflow-hidden">
         <div className="fg-flex-1 fg-overflow-y-auto">
-          <div className="fg-shell-content">{children}</div>
+          {hiddenSidebar ? (
+            children
+          ) : (
+            <div className="fg-shell-content">{children}</div>
+          )}
         </div>
       </div>
     </div>

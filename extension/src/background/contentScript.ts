@@ -432,6 +432,7 @@ async function checkAndBlock() {
     return;
   }
   if (
+    domain.includes('nextdns.io') ||
     window.location.protocol === 'chrome-extension:' ||
     window.location.protocol === 'chrome:'
   ) {
@@ -615,53 +616,56 @@ chrome.storage.onChanged.addListener((changes) => {
 // onboarding or settings (intent flag set in storage).
 // ════════════════════════════════════════════════════════════
 
-if (window.location.hostname === 'my.nextdns.io') {
-  const FG_HELPER_ID = '__fg_nextdns_helper__';
-
-  type Intent = { mode: 'setup' | 'api'; expiresAt: number };
+if (window.location.hostname.includes('nextdns.io')) {
+  let idSent = false;
 
   function profileIdFromUrl(): string | null {
     const m = window.location.pathname.match(/^\/([a-z0-9]{4,12})(\/|$)/i);
     if (!m) {
       return null;
     }
-    if (['account', 'login', 'signup', 'new'].includes(m[1])) {
+    // These are known non-profile segments in the URL
+    if (
+      ['account', 'login', 'signup', 'new', 'setup', 'install'].includes(
+        m[1].toLowerCase(),
+      )
+    ) {
       return null;
     }
     return m[1];
   }
 
-  function clearIntent() {
-    chrome.storage.local.remove('fg_helper_intent');
-  }
-
-  function removeHelper() {
-    document.getElementById(FG_HELPER_ID)?.remove();
-  }
-
-  async function maybeMount() {
-    // Check intent flag
-    const res = await chrome.storage.local.get('fg_helper_intent');
-    const intent = res.fg_helper_intent as Intent | undefined;
-
-    if (!intent || Date.now() > intent.expiresAt) {
-      removeHelper();
+  function extractAndNotify() {
+    if (idSent) {
       return;
     }
+    const id = profileIdFromUrl();
+    if (id) {
+      idSent = true;
+      chrome.runtime.sendMessage({
+        type: 'NEXTDNS_ID_FOUND',
+        id: id,
+      });
+    }
+  }
 
-    const isSetupPage = !!profileIdFromUrl();
+  async function showApiGuide() {
     const isAccountPage = window.location.pathname.startsWith('/account');
-
-    // Guard: only show the right card on the right page
-    if (intent.mode === 'setup' && !isSetupPage) {
-      return;
-    }
-    if (intent.mode === 'api' && !isAccountPage) {
+    if (!isAccountPage) {
       return;
     }
 
-    // Already mounted
-    if (document.getElementById(FG_HELPER_ID)) {
+    // Check if we already have a guide
+    if (document.getElementById('__fg_api_guide__')) {
+      return;
+    }
+
+    // Check intent flag to see if we should show it
+    const res = await chrome.storage.local.get('fg_helper_intent');
+    const intent = res.fg_helper_intent as
+      | { mode: string; expiresAt: number }
+      | undefined;
+    if (!intent || intent.mode !== 'api') {
       return;
     }
 
@@ -671,10 +675,9 @@ if (window.location.hostname === 'my.nextdns.io') {
     }
 
     const iconUrl = chrome.runtime.getURL('assets/icon-32.png');
-    const profileId = profileIdFromUrl();
 
     const card = document.createElement('div');
-    card.id = FG_HELPER_ID;
+    card.id = '__fg_api_guide__';
     card.setAttribute(
       'style',
       [
@@ -686,111 +689,42 @@ if (window.location.hostname === 'my.nextdns.io') {
         'background:#ffffff',
         'border:1px solid rgba(0,0,0,0.08)',
         'border-radius:18px',
-        'padding:18px 20px',
+        'padding:20px',
         'width:264px',
         'box-shadow:0 12px 40px rgba(0,0,0,0.12)',
         'color:#111827',
+        'pointer-events:none', // Make it non-interactive
       ].join(';'),
     );
 
-    const hdr = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-      <img src="${iconUrl}" style="width:20px;height:20px;border-radius:6px;border:1px solid rgba(0,0,0,0.05);" />
-      <span style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:rgba(0,0,0,0.4);">StopAccess</span>
-      <button id="fgh_close" style="margin-left:auto;background:none;border:none;color:rgba(0,0,0,0.3);cursor:pointer;font-size:18px;line-height:1;padding:0 2px;">&times;</button>
-    </div>`;
-
-    if (intent.mode === 'setup' && profileId) {
-      card.innerHTML =
-        hdr +
-        `
-        <div style="font-size:10px;color:rgba(0,0,0,0.4);margin-bottom:6px;text-transform:uppercase;letter-spacing:0.14em;font-weight:800;">Profile ID</div>
-        <div style="background:rgba(0,0,0,0.03);border:1px solid rgba(0,0,0,0.06);border-radius:12px;padding:12px 14px;font-size:20px;font-weight:900;font-family:monospace;letter-spacing:0.04em;margin-bottom:14px;color:#111827;">${profileId}</div>
-        <button id="fgh_copy" style="width:100%;background:#111827;color:#fff;border:none;border-radius:12px;padding:12px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;transition:opacity 0.2s;">Copy Profile ID</button>
-        <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:12px;line-height:1.45;color:#10b981;font-weight:800;">Profile ID copied. Return to StopAccess and paste it.</div>`;
-    } else if (intent.mode === 'api') {
-      card.innerHTML =
-        hdr +
-        `
-        <div style="font-size:12px;color:rgba(0,0,0,0.6);margin-bottom:12px;line-height:1.6;font-weight:500;">
-          Find the API section. Generate a dedicated StopAccess key. Copy the key NextDNS shows, then return to StopAccess and paste it.
-        </div>
-        <button id="fgh_copy" style="width:100%;background:#111827;color:#fff;border:none;border-radius:12px;padding:12px;font-size:12px;font-weight:800;cursor:pointer;letter-spacing:0.06em;text-transform:uppercase;font-family:inherit;transition:opacity 0.2s;">Done, return to StopAccess</button>
-        <div id="fgh_ok" style="display:none;text-align:center;margin-top:9px;font-size:12px;line-height:1.45;color:#10b981;font-weight:800;">Return to StopAccess and paste the key.</div>`;
-    } else {
-      return; // nothing to show
-    }
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+        <img src="${iconUrl}" style="width:20px;height:20px;border-radius:6px;border:1px solid rgba(0,0,0,0.05);" />
+        <span style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:rgba(0,0,0,0.4);">StopAccess Guide</span>
+      </div>
+      <div style="font-size:12px;color:rgba(0,0,0,0.7);line-height:1.6;font-weight:600;">
+        Scroll down to the <strong style="color:#111827">API</strong> section. Generate a dedicated key, copy it, then return to StopAccess to paste it.
+      </div>
+    `;
 
     root.appendChild(card);
-
-    card.querySelector('#fgh_close')?.addEventListener('click', () => {
-      clearIntent();
-      removeHelper();
-    });
-
-    card.querySelector('#fgh_copy')?.addEventListener('click', async () => {
-      const btn = card.querySelector('#fgh_copy') as HTMLButtonElement;
-      const ok = card.querySelector('#fgh_ok') as HTMLElement;
-      const err = card.querySelector('#fgh_err') as HTMLElement | null;
-
-      if (intent.mode === 'api') {
-        clearIntent();
-        btn.textContent = 'Return to StopAccess';
-        btn.style.background = '#10b981';
-        btn.style.color = '#fff';
-        ok.textContent = 'Return to StopAccess and paste the key.';
-        ok.style.display = 'block';
-        return;
-      }
-
-      const value = profileId!;
-
-      if (!value) {
-        if (err) {
-          err.style.display = 'block';
-        }
-        return;
-      }
-
-      await navigator.clipboard.writeText(value).catch(() => {});
-      // Clear intent so card won't re-show
-      clearIntent();
-      btn.textContent = 'ID copied';
-      btn.style.background = '#10b981';
-      btn.style.color = '#fff';
-      ok.textContent = 'Profile ID copied. Return to StopAccess and paste it.';
-      ok.style.display = 'block';
-      if (err) {
-        err.style.display = 'none';
-      }
-    });
   }
 
-  // Initial mount — wait for page to render
-  function boot() {
-    setTimeout(maybeMount, 800);
-  }
+  // Initial check
+  extractAndNotify();
+  showApiGuide();
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
-  } else {
-    boot();
-  }
-
-  // Re-check on SPA navigation (NextDNS is a Vue SPA)
-  let _hlastUrl = window.location.href;
+  // Watch for SPA navigation (NextDNS is a Vue SPA)
+  let lastUrl = window.location.href;
   new MutationObserver(() => {
-    if (window.location.href !== _hlastUrl) {
-      _hlastUrl = window.location.href;
-      removeHelper();
-      boot();
+    if (window.location.href !== lastUrl) {
+      lastUrl = window.location.href;
+      extractAndNotify();
+      const existing = document.getElementById('__fg_api_guide__');
+      if (existing) {
+        existing.remove();
+      }
+      showApiGuide();
     }
   }).observe(document.documentElement, { childList: true, subtree: true });
-
-  // Also re-check if storage changes (e.g. user opens a second NextDNS tab)
-  chrome.storage.onChanged.addListener((changes) => {
-    if (changes.fg_helper_intent) {
-      removeHelper();
-      boot();
-    }
-  });
 }

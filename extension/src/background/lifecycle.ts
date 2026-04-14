@@ -513,12 +513,35 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 });
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === 'NEXTDNS_ID_FOUND') {
+    (async () => {
+      await chrome.storage.local.set({
+        [STORAGE_KEYS.PROFILE_ID]: msg.id,
+      });
+
+      if (_sender.tab?.id) {
+        setTimeout(() => {
+          chrome.tabs.remove(_sender.tab.id).catch(() => {});
+        }, 800);
+      }
+      await runCycle(true);
+    })();
+    return true;
+  }
+
+  if (msg.action === 'openNextDNS') {
+    chrome.tabs.create({ url: 'https://my.nextdns.io' });
+    sendResponse({ ok: true });
+    return true;
+  }
+
   if (msg.action === 'manualSync') {
     runCycle(true)
       .then(() => sendResponse({ ok: true }))
       .catch(() => sendResponse({ ok: false }));
     return true;
   }
+
   if (msg.action === 'startFocus') {
     (async () => {
       try {
@@ -539,6 +562,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     })();
     return true;
   }
+
   if (msg.action === 'stopFocus') {
     (async () => {
       try {
@@ -565,5 +589,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     })();
     return true;
   }
+
   return false;
 });

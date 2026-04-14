@@ -5,6 +5,7 @@ import { OnboardingReact } from '../screens/Onboarding';
 import {
   extensionAdapter as storage,
   nextDNSApi,
+  STORAGE_KEYS,
 } from '../background/platformAdapter';
 import {
   DashboardShell,
@@ -200,16 +201,15 @@ function DashboardApp() {
     let cancelled = false;
 
     const initialize = async () => {
-      const isSet = await nextDNSApi.isConfigured();
       const isOnboardingDone =
-        (await storage.getString('fg_onboarding_done')) === 'true';
+        (await storage.getString(STORAGE_KEYS.ONBOARDING_DONE)) === 'true';
       const settings = await loadSettingsData();
 
       if (cancelled) {
         return;
       }
 
-      setShowOnboarding(!isSet && !isOnboardingDone);
+      setShowOnboarding(!isOnboardingDone);
       setCurrentTheme(settings.theme || 'system');
       setReady(true);
     };
@@ -308,7 +308,7 @@ function DashboardApp() {
       return (
         <OnboardingReact
           onComplete={(targetTab?: string) => {
-            storage.set('fg_onboarding_done', 'true');
+            storage.set(STORAGE_KEYS.ONBOARDING_DONE, 'true');
             setShowOnboarding(false);
             setActiveTab(
               TAB_SET.has(targetTab || '') ? (targetTab as TabId) : 'dash',

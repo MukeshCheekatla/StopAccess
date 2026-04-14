@@ -23,4 +23,5 @@ export const STORAGE_KEYS = {
   STRICT_MODE: 'strict_mode_enabled',
   THEME: 'fg_appearance_theme',
   ICON_CACHE: 'fg_icon_cache',
+  ONBOARDING_DONE: 'fg_onboarding_done',
 };

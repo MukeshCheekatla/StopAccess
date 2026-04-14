@@ -599,6 +599,20 @@ export async function renderSettingsPage(container) {
       }
     });
 
+  const storageListener = (changes: any) => {
+    if (changes.nextdns_profile_id) {
+      const field = container.querySelector('#cfg_profile') as HTMLInputElement;
+      if (field) {
+        field.value = changes.nextdns_profile_id.newValue || '';
+        toast.info('Profile ID detected automatically');
+      }
+    }
+  };
+  chrome.storage.onChanged.addListener(storageListener);
+  // We should ideally return a cleanup function or handle it via a mutation observer when container is removed
+  // but for a simple extension dashboard this is generally fine or we can use a weak reference if needed.
+  // Given "Don't over engineer", I'll keep it simple.
+
   container
     .querySelector('#chk_strict_toggle')
     ?.addEventListener('change', async (e) => {

@@ -53,6 +53,7 @@ function Field({
   type = 'text',
   onButtonClick,
   isShort = false,
+  maxLength,
 }: {
   label: string;
   buttonLabel: string;
@@ -62,43 +63,65 @@ function Field({
   type?: string;
   onButtonClick: () => void;
   isShort?: boolean;
+  maxLength?: number;
 }) {
   const [isFocused, setIsFocused] = useState(false);
-  const hasValue = value.trim().length > 3;
+  const hasValue = isShort
+    ? value.trim().length === 6
+    : value.trim().length > 3;
 
   return (
     <div className="fg-group">
-      <div className="fg-flex fg-justify-between fg-items-center fg-mb-2 fg-px-1">
+      <div className="fg-flex fg-justify-between fg-items-center fg-mb-1.5 fg-px-0.5">
         <label className="fg-text-[12px] fg-font-bold fg-text-[var(--fg-text)]">
           {label}
         </label>
       </div>
-      <div className="fg-flex fg-flex-col sm:fg-flex-row fg-gap-3">
-        <div className="fg-relative fg-flex-1">
-          <input
-            type={type}
-            value={value}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder={placeholder}
-            className={`fg-w-full fg-box-border fg-bg-[var(--fg-glass-bg)] fg-rounded-[14px] fg-px-5 fg-h-[52px] fg-text-[15px] fg-font-medium fg-text-[var(--fg-text)] fg-outline-none fg-transition-all fg-duration-200 ${
-              isShort ? 'fg-max-w-[160px]' : ''
-            }`}
-            style={{
-              border: `2px solid ${
-                isFocused
-                  ? 'var(--fg-text)'
-                  : hasValue
-                  ? 'var(--fg-green)'
-                  : 'var(--fg-glass-border)'
-              }`,
-            }}
-          />
+      <div className="fg-flex fg-items-center fg-gap-5">
+        <div className="fg-flex fg-items-center fg-gap-2.5 fg-w-[305px] fg-shrink-0">
+          <div className="fg-relative">
+            <input
+              type={type}
+              value={value}
+              onFocus={() => setIsFocused(true)}
+              onBlur={() => setIsFocused(false)}
+              onChange={(e) => onChange(e.target.value)}
+              placeholder={placeholder}
+              maxLength={maxLength}
+              className={`fg-box-border fg-bg-[var(--fg-glass-bg)] fg-rounded-[12px] fg-px-4 fg-h-[44px] fg-text-[14px] fg-font-bold fg-text-[var(--fg-text)] fg-outline-none fg-transition-all fg-duration-200 ${
+                isShort ? 'fg-w-[100px] fg-text-center' : 'fg-w-[260px]'
+              }`}
+              style={{
+                border: `1.5px solid ${
+                  isFocused ? 'var(--fg-text)' : 'rgba(128, 128, 128, 0.3)'
+                }`,
+              }}
+            />
+          </div>
+
+          {hasValue && !isFocused && (
+            <div className="fg-shrink-0 fg-animate-in fg-zoom-in fg-duration-300">
+              <div className="fg-w-6 fg-h-6 fg-bg-[var(--fg-green)] fg-rounded-full fg-flex fg-items-center fg-justify-center fg-shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+            </div>
+          )}
         </div>
+
         <button
           onClick={onButtonClick}
-          className="fg-flex fg-items-center fg-justify-center fg-gap-2 fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-text)] fg-text-[13px] fg-font-bold fg-px-5 fg-h-[52px] fg-rounded-[14px] hover:fg-bg-[var(--fg-surface-hover)] fg-transition-all fg-duration-200 active:fg-scale-95"
+          className="fg-flex fg-items-center fg-justify-center fg-gap-1.5 fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-text)] fg-text-[11px] fg-font-black fg-uppercase fg-tracking-wider fg-px-4 fg-h-[44px] fg-rounded-[12px] hover:fg-bg-[var(--fg-surface-hover)] fg-transition-all fg-duration-200 active:fg-scale-95"
         >
           <span>{buttonLabel}</span>
           <svg
@@ -144,8 +167,8 @@ function Alert({ msg, tone }: { msg: string; tone: 'error' | 'success' }) {
 // ── Page shell ───────────────────────────────────────────────────────────────
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div className="fg-h-screen fg-bg-[var(--fg-bg)] fg-flex fg-flex-col fg-items-center fg-justify-center fg-px-5 fg-py-5 fg-relative fg-overflow-hidden">
-      <div className="fg-w-full fg-max-w-[620px] fg-relative fg-z-10">
+    <div className="fg-min-h-screen fg-flex fg-flex-col fg-items-center fg-justify-center fg-px-5 fg-py-12 fg-relative">
+      <div className="fg-w-full fg-max-w-[540px] fg-relative fg-z-10">
         {children}
       </div>
     </div>
@@ -163,6 +186,7 @@ export const OnboardingReact: React.FC<{
   const [apiKey, setApiKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
+  const [copied, setCopied] = useState(false);
 
   // detectBrowser reserved for future platform-specific hints
 
@@ -174,21 +198,29 @@ export const OnboardingReact: React.FC<{
       if (cfg.apiKey) {
         setApiKey(cfg.apiKey);
       }
+
+      // Resume step based on available data
+      if (cfg.profileId && cfg.apiKey) {
+        setStep('done');
+      } else if (cfg.profileId) {
+        setStep('connect');
+      }
     });
+
+    const listener = (changes: any) => {
+      if (changes[STORAGE_KEYS.PROFILE_ID]) {
+        setProfileId(changes[STORAGE_KEYS.PROFILE_ID].newValue || '');
+      }
+    };
+
+    chrome.storage.onChanged.addListener(listener);
+    return () => chrome.storage.onChanged.removeListener(listener);
   }, []);
 
   const openWithIntent = (url: string, mode: 'setup' | 'api') => {
     chrome?.storage?.local?.set({
       fg_helper_intent: { mode, expiresAt: Date.now() + 10 * 60 * 1000 },
     });
-    if (chrome?.tabs?.create) {
-      chrome.tabs.create({ url });
-    } else {
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
-  };
-
-  const openTab = (url: string) => {
     if (chrome?.tabs?.create) {
       chrome.tabs.create({ url });
     } else {
@@ -203,6 +235,8 @@ export const OnboardingReact: React.FC<{
   const copyDohUrl = async () => {
     try {
       await navigator.clipboard.writeText(dohUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch {
       // Clipboard can be unavailable in some extension contexts.
     }
@@ -254,16 +288,16 @@ export const OnboardingReact: React.FC<{
             />
           </div>
 
-          <div className="fg-text-[12px] fg-font-bold fg-tracking-[0.15em] fg-uppercase fg-text-[var(--fg-muted)] fg-mb-3">
+          <div className="fg-text-[11px] fg-font-black fg-tracking-[0.2em] fg-uppercase fg-text-[var(--fg-muted)] fg-mb-3">
             Total Access Control
           </div>
 
-          <h1 className="fg-text-[32px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight fg-leading-[1.1] fg-mb-4">
+          <h1 className="fg-text-[30px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight fg-leading-[1.1] fg-mb-4">
             Block sites, services, <br />
             and bypass loops.
           </h1>
 
-          <p className="fg-text-[15px] fg-text-[var(--fg-muted)] fg-leading-relaxed fg-mb-6 fg-max-w-[440px] fg-mx-auto">
+          <p className="fg-text-[14px] fg-text-[var(--fg-muted)] fg-leading-relaxed fg-mb-6 fg-max-w-[440px] fg-mx-auto">
             StopAccess combines browser blocking with NextDNS sync for
             profile-wide protection across all your devices.
           </p>
@@ -295,7 +329,7 @@ export const OnboardingReact: React.FC<{
           </div>
 
           <OBtn
-            className="fg-w-full fg-h-[54px] fg-text-[15px]"
+            className="fg-w-full fg-h-[48px] fg-text-[14px]"
             onClick={() => setStep('connect')}
           >
             Get Started
@@ -317,13 +351,13 @@ export const OnboardingReact: React.FC<{
     return (
       <Shell>
         <div className="fg-mb-5">
-          <div className="fg-text-[12px] fg-font-bold fg-tracking-[0.15em] fg-uppercase fg-text-[var(--fg-muted)] fg-mb-3">
+          <div className="fg-text-[11px] fg-font-black fg-tracking-[0.2em] fg-uppercase fg-text-[var(--fg-muted)] fg-mb-3">
             Step 2: Integration
           </div>
-          <h1 className="fg-text-[26px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight fg-mb-2">
+          <h1 className="fg-text-[28px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight fg-mb-2">
             Connect NextDNS
           </h1>
-          <p className="fg-text-[15px] fg-text-[var(--fg-muted)] fg-leading-relaxed">
+          <p className="fg-text-[14px] fg-text-[var(--fg-muted)] fg-leading-relaxed">
             Sync your service blocks, custom domains, and privacy settings
             through your NextDNS profile.
           </p>
@@ -337,6 +371,7 @@ export const OnboardingReact: React.FC<{
             onChange={setProfileId}
             placeholder="e.g. abc123"
             isShort={true}
+            maxLength={6}
             onButtonClick={() =>
               openWithIntent('https://my.nextdns.io/setup', 'setup')
             }
@@ -357,7 +392,7 @@ export const OnboardingReact: React.FC<{
 
           <div className="fg-mt-2">
             <OBtn
-              className="fg-w-full fg-h-[56px] fg-text-[14px]"
+              className="fg-w-full fg-h-[48px] fg-text-[14px]"
               onClick={saveAndVerify}
               disabled={isSaving}
             >
@@ -416,115 +451,154 @@ export const OnboardingReact: React.FC<{
   return (
     <Shell>
       <div className="fg-text-center">
-        <div className="fg-mb-4">
-          <div
-            className="fg-w-[58px] fg-h-[58px] fg-rounded-full fg-mx-auto fg-flex fg-items-center fg-justify-center fg-bg-emerald-500/10 fg-border-2 fg-border-emerald-500/30"
-            style={{ boxShadow: '0 0 40px rgba(16,185,129,0.15)' }}
-          >
-            <svg
-              width="26"
-              height="26"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="fg-text-emerald-500"
+        <div className="fg-mb-8">
+          <div className="fg-text-[11px] fg-font-black fg-tracking-[0.2em] fg-uppercase fg-text-emerald-500 fg-mb-3">
+            Last Step to Freedom
+          </div>
+          <h1 className="fg-text-[32px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight fg-mb-3">
+            Enforce Protection.
+          </h1>
+          <p className="fg-text-[14px] fg-text-[var(--fg-muted)] fg-leading-relaxed fg-max-w-[460px] fg-mx-auto">
+            Profile is synced, but this browser is still vulnerable. Follow
+            these 3 steps to lock it down completely.
+          </p>
+        </div>
+
+        <div className="fg-flex fg-flex-col fg-gap-6 fg-text-left fg-max-w-[520px] fg-mx-auto">
+          {/* Step 1: Copy */}
+          <div className="fg-relative fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[24px] fg-p-6 fg-shadow-lg">
+            <div className="fg-absolute -fg-top-3 -fg-left-3 fg-w-8 fg-h-8 fg-bg-[var(--fg-text)] fg-text-[var(--fg-bg)] fg-rounded-full fg-flex fg-items-center fg-justify-center fg-font-black fg-text-[14px]">
+              1
+            </div>
+            <div className="fg-mb-4">
+              <div className="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)] fg-uppercase fg-tracking-wider">
+                Copy Enrollment Link
+              </div>
+              <div className="fg-text-[12px] fg-text-[var(--fg-muted)] fg-mt-0.5">
+                Generic browser filtering relies on this private endpoint.
+              </div>
+            </div>
+            <div className="fg-flex fg-items-center fg-gap-3 fg-bg-[var(--fg-bg)] fg-p-1.5 fg-pl-4 fg-rounded-[14px] fg-border fg-border-[var(--fg-glass-border)]">
+              <code className="fg-flex-1 fg-font-mono fg-text-[12px] fg-text-[var(--fg-text)] fg-truncate fg-opacity-70">
+                {dohUrl}
+              </code>
+              <button
+                onClick={copyDohUrl}
+                className="fg-bg-[var(--fg-text)] fg-text-[var(--fg-bg)] fg-px-5 fg-h-10 fg-rounded-[10px] fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest hover:fg-opacity-90 fg-transition-all active:fg-scale-95"
+              >
+                {copied ? 'Copied' : 'Copy'}
+              </button>
+            </div>
+          </div>
+
+          {/* Step 2: Configure */}
+          <div className="fg-relative fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[24px] fg-p-6 fg-shadow-lg">
+            <div className="fg-absolute -fg-top-3 -fg-left-3 fg-w-8 fg-h-8 fg-bg-[var(--fg-text)] fg-text-[var(--fg-bg)] fg-rounded-full fg-flex fg-items-center fg-justify-center fg-font-black fg-text-[14px]">
+              2
+            </div>
+            <div className="fg-mb-4">
+              <div className="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)] fg-uppercase fg-tracking-wider">
+                Update Browser Settings
+              </div>
+              <div className="fg-text-[12px] fg-text-[var(--fg-muted)] fg-mt-0.5">
+                Choose your platform to open its DNS security panel.
+              </div>
+            </div>
+
+            <div className="fg-grid fg-grid-cols-2 fg-gap-3">
+              <button
+                onClick={() =>
+                  openWithIntent('chrome://settings/security', 'setup')
+                }
+                className="fg-flex fg-items-center fg-gap-3 fg-bg-[var(--fg-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-p-3 fg-rounded-[16px] hover:fg-border-[var(--fg-muted)] fg-transition-all active:fg-scale-[0.98]"
+              >
+                <div className="fg-w-8 fg-h-8 fg-bg-emerald-500/10 fg-rounded-lg fg-flex fg-items-center fg-justify-center fg-text-emerald-500">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <circle cx="12" cy="12" r="10" />
+                    <circle cx="12" cy="12" r="4" />
+                    <line x1="21.17" y1="8" x2="12" y2="8" />
+                    <line x1="3.95" y1="6.06" x2="8.54" y2="14" />
+                    <line x1="10.88" y1="21.94" x2="15.46" y2="14" />
+                  </svg>
+                </div>
+                <div className="fg-text-left">
+                  <div className="fg-text-[12px] fg-font-black fg-text-[var(--fg-text)]">
+                    Chrome / Edge
+                  </div>
+                  <div className="fg-text-[10px] fg-text-[var(--fg-muted)] fg-uppercase fg-font-black fg-tracking-tighter">
+                    Open Settings →
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() =>
+                  openWithIntent('about:preferences#general', 'setup')
+                }
+                className="fg-flex fg-items-center fg-gap-3 fg-bg-[var(--fg-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-p-3 fg-rounded-[16px] hover:fg-border-[var(--fg-muted)] fg-transition-all active:fg-scale-[0.98]"
+              >
+                <div className="fg-w-8 fg-h-8 fg-bg-orange-500/10 fg-rounded-lg fg-flex fg-items-center fg-justify-center fg-text-orange-500">
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 7v5l3 3" />
+                  </svg>
+                </div>
+                <div className="fg-text-left">
+                  <div className="fg-text-[12px] fg-font-black fg-text-[var(--fg-text)]">
+                    Firefox / Other
+                  </div>
+                  <div className="fg-text-[10px] fg-text-[var(--fg-muted)] fg-uppercase fg-font-black fg-tracking-tighter">
+                    Open Settings →
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Step 3: Finish */}
+          <div className="fg-relative fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[24px] fg-p-6 fg-shadow-lg fg-mb-4">
+            <div className="fg-absolute -fg-top-3 -fg-left-3 fg-w-8 fg-h-8 fg-bg-[var(--fg-text)] fg-text-[var(--fg-bg)] fg-rounded-full fg-flex fg-items-center fg-justify-center fg-font-black fg-text-[14px]">
+              3
+            </div>
+            <div className="fg-mb-5">
+              <div className="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)] fg-uppercase fg-tracking-wider">
+                Finalize Setup
+              </div>
+              <div className="fg-text-[12px] fg-text-[var(--fg-muted)] fg-mt-0.5">
+                Once pasted and saved, your browser is 100% armed.
+              </div>
+            </div>
+
+            <OBtn
+              className="fg-w-full fg-h-[52px] fg-text-[14px] fg-font-black fg-uppercase fg-tracking-widest"
+              onClick={() => onComplete('settings')}
             >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
+              Verify & Complete Setup
+            </OBtn>
           </div>
         </div>
 
-        <div className="fg-text-[12px] fg-font-bold fg-tracking-[0.15em] fg-uppercase fg-text-emerald-500 fg-mb-3">
-          Setup Complete
-        </div>
-        <h1 className="fg-text-[28px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight fg-mb-2">
-          StopAccess is live.
-        </h1>
-        <p className="fg-text-[15px] fg-text-[var(--fg-muted)] fg-leading-relaxed fg-mb-5 fg-max-w-[470px] fg-mx-auto">
-          NextDNS sync is active. Add the private DNS endpoint below for browser
-          traffic outside extension rules.
-        </p>
-
-        <div className="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[18px] fg-p-5 fg-text-left fg-mb-5 fg-shadow-lg">
-          <div className="fg-flex fg-items-center fg-justify-between fg-gap-3 fg-mb-4">
-            <div>
-              <div className="fg-text-[12px] fg-font-bold fg-tracking-[0.1em] fg-uppercase fg-text-[var(--fg-muted)]">
-                Browser DNS Coverage
-              </div>
-              <div className="fg-text-[13px] fg-text-[var(--fg-muted)] fg-mt-1">
-                Use this when you want browser DNS covered outside extension
-                rules.
-              </div>
-            </div>
-            <button
-              onClick={copyDohUrl}
-              className="fg-bg-[var(--fg-text)] fg-text-[var(--fg-bg)] fg-rounded-[10px] fg-px-4 fg-h-10 fg-text-[12px] fg-font-bold fg-shrink-0"
-            >
-              Copy URL
-            </button>
-          </div>
-
-          <div className="fg-bg-[var(--fg-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[12px] fg-px-4 fg-py-3 fg-font-mono fg-text-[13px] fg-text-[var(--fg-text)] fg-break-all fg-mb-4">
-            {dohUrl}
-          </div>
-
-          <div className="fg-grid fg-grid-cols-1 sm:fg-grid-cols-3 fg-gap-3">
-            <div className="fg-rounded-[12px] fg-border fg-border-[var(--fg-glass-border)] fg-p-3">
-              <div className="fg-text-[13px] fg-font-bold fg-text-[var(--fg-text)] fg-mb-1">
-                Chrome / Edge
-              </div>
-              <div className="fg-text-[12px] fg-text-[var(--fg-muted)] fg-leading-snug">
-                Open security settings, enable Secure DNS, choose custom, paste
-                the URL.
-              </div>
-            </div>
-            <div className="fg-rounded-[12px] fg-border fg-border-[var(--fg-glass-border)] fg-p-3">
-              <div className="fg-text-[13px] fg-font-bold fg-text-[var(--fg-text)] fg-mb-1">
-                Firefox
-              </div>
-              <div className="fg-text-[12px] fg-text-[var(--fg-muted)] fg-leading-snug">
-                Open network settings, enable DNS over HTTPS, choose custom,
-                paste the URL.
-              </div>
-            </div>
-            <div className="fg-rounded-[12px] fg-border fg-border-[var(--fg-glass-border)] fg-p-3">
-              <div className="fg-text-[13px] fg-font-bold fg-text-[var(--fg-text)] fg-mb-1">
-                System
-              </div>
-              <div className="fg-text-[12px] fg-text-[var(--fg-muted)] fg-leading-snug">
-                Use the NextDNS app or OS DNS settings for all apps on this
-                device.
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="fg-grid fg-grid-cols-1 sm:fg-grid-cols-2 fg-gap-3 fg-mb-4">
-          <OBtn
-            variant="secondary"
-            className="fg-w-full fg-h-[48px] fg-text-[13px]"
-            onClick={() => openTab('chrome://settings/security')}
+        <div className="fg-mt-4">
+          <button
+            onClick={() => onComplete('dash')}
+            className="fg-text-[11px] fg-font-bold fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] fg-transition-all fg-uppercase fg-tracking-widest"
           >
-            Open Chrome DNS Settings
-          </OBtn>
-          <OBtn
-            variant="secondary"
-            className="fg-w-full fg-h-[48px] fg-text-[13px]"
-            onClick={() => openTab('https://my.nextdns.io/setup')}
-          >
-            Open NextDNS Setup
-          </OBtn>
+            I'll figure it out later (Not Secure)
+          </button>
         </div>
-
-        <OBtn
-          className="fg-w-full fg-h-[52px] fg-text-[15px]"
-          onClick={() => onComplete('settings')}
-        >
-          Open Dashboard
-        </OBtn>
       </div>
     </Shell>
   );
