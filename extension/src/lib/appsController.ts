@@ -267,7 +267,7 @@ export const appsController = {
       }
 
       toast.success(
-        enabled ? 'DNS Hard Mode Active' : 'Local Verification Active',
+        enabled ? 'Dns Hard Mode Active' : 'Local Verification Active',
       );
       return { ok: true };
     } catch (err: any) {

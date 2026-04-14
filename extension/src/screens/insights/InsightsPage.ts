@@ -110,7 +110,7 @@ async function _renderPage(container: HTMLElement): Promise<void> {
           'Stopped Attempts',
           '<span style="' +
             UI_TOKENS.TEXT.BADGE +
-            ' border: 1px solid var(--fg-green); padding: 2px 8px; border-radius: 6px; color: var(--fg-green);">ACTIVE</span>',
+            ' border: 1px solid var(--fg-green); padding: 2px 8px; border-radius: 6px; color: var(--fg-green);">Active</span>',
         )}
         ${renderStatCard(
           'Safety Score',
@@ -271,7 +271,7 @@ function _renderFocusChart(
                     ? 'fg-text-[var(--fg-text)]'
                     : 'fg-text-[var(--fg-text)] fg-opacity-60'
                 }">${s.screenTimeMinutes || 0}m</span>
-                <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-wider" style="color: var(--fg-text); opacity: 0.5;">${new Date(
+                <span class="fg-text-[10px] fg-font-bold  fg-tracking-wider" style="color: var(--fg-text); opacity: 0.5;">${new Date(
                   s.date,
                 ).toLocaleDateString([], { weekday: 'short' })}</span>
               </div>
@@ -290,13 +290,13 @@ function _renderLogsList(
     return `
       <div class="glass-card fg-p-10 fg-text-center fg-opacity-90" style="border: 1px dashed var(--fg-glass-border); background: var(--fg-glass-bg);">
         <div class="fg-mb-4 fg-text-[var(--fg-text)] fg-opacity-50 fg-flex fg-justify-center">${iconShield}</div>
-        <div class="fg-text-xs fg-font-extrabold fg-text-[var(--fg-text)] fg-uppercase fg-tracking-wider fg-mb-2">Advanced Protection Locked</div>
+        <div class="fg-text-xs fg-font-extrabold fg-text-[var(--fg-text)]  fg-tracking-wider fg-mb-2">Advanced Protection Locked</div>
         <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-relaxed fg-max-w-[280px] fg-mx-auto">Connect your NextDNS Profile in Settings to enable deep traffic analysis.</div>
       </div>`;
   }
   if (blockedLogs.length === 0) {
     return `<div class="glass-card fg-p-8 fg-text-center fg-text-[var(--fg-text)] fg-opacity-60">
-      <div class="fg-text-[11px] fg-font-bold fg-uppercase fg-tracking-widest">No denials recorded</div>
+      <div class="fg-text-[11px] fg-font-bold  fg-tracking-widest">No denials recorded</div>
     </div>`;
   }
   return blockedLogs
@@ -330,7 +330,7 @@ function _renderLogsList(
              <div class="fg-flex fg-items-center fg-gap-2 fg-mt-1">
                <span style="${
                  UI_TOKENS.TEXT.BADGE
-               } color: var(--red); background: var(--red)/10; padding: 2px 8px; border-radius: 6px;">BLOCKED</span>
+               } color: var(--red); background: var(--red)/10; padding: 2px 8px; border-radius: 6px;">Blocked</span>
                <span style="${
                  UI_TOKENS.TEXT.SUBTEXT
                }; border: none; opacity: 0.6;">${
@@ -360,7 +360,7 @@ function _renderTopBlocked(
 ): string {
   if (!isConfigured || topBlocked.length === 0) {
     return `<div class="glass-card fg-p-8 fg-text-center fg-text-[var(--fg-text)] fg-opacity-60">
-      <div class="fg-text-[11px] fg-font-bold fg-uppercase">Awaiting stats...</div>
+      <div class="fg-text-[11px] fg-font-bold ">Awaiting stats...</div>
     </div>`;
   }
   return topBlocked
@@ -397,7 +397,7 @@ function _renderTopBlocked(
              <div class="fg-text-[12px] fg-font-black fg-text-[var(--accent)]">${Math.round(
                (item.queries / topBlocked[0].queries) * 100,
              )}%</div>
-             <div class="fg-text-[8px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-30 fg-uppercase fg-tracking-tighter">INTENSITY</div>
+             <div class="fg-text-[8px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-30  fg-tracking-tighter">Intensity</div>
           </div>
         </div>`;
     })
@@ -431,20 +431,20 @@ async function _renderPopup(container: HTMLElement): Promise<void> {
     <div class="insights-shell fg-animate-in fg-fade-in fg-duration-300">
       <div class="fg-grid fg-grid-cols-2 fg-gap-3 fg-mb-5">
         <div class="glass-card fg-p-3 fg-text-center">
-          <div class="widget-title" style="font-size: 9px; opacity: 0.6;">AVERAGE</div>
+          <div class="widget-title" style="font-size: 9px; opacity: 0.6;">Average</div>
           <div class="fg-text-sm fg-font-black fg-mt-1">${fmtTime(
             allTotalMs as number,
           )}</div>
         </div>
         <div class="glass-card fg-p-3 fg-text-center">
-          <div class="widget-title" style="font-size: 9px; opacity: 0.6;">GOAL</div>
+          <div class="widget-title" style="font-size: 9px; opacity: 0.6;">Goal</div>
           <div class="fg-text-sm fg-font-black fg-text-[var(--accent)] fg-mt-1">${focusPercent}%</div>
         </div>
       </div>
 
       <div class="fg-flex fg-items-center fg-justify-between fg-mb-4">
-        <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-tracking-widest">Top Denied</div>
-        <div class="fg-text-[10px] fg-font-bold fg-text-[var(--green)] fg-uppercase">Healthy</div>
+        <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-60  fg-tracking-widest">Top Denied</div>
+        <div class="fg-text-[10px] fg-font-bold fg-text-[var(--green)] ">Healthy</div>
       </div>
       <div class="fg-flex fg-flex-col fg-gap-2">
         ${
@@ -469,7 +469,7 @@ async function _renderPopup(container: HTMLElement): Promise<void> {
                 .join('')
         }
       </div>
-      <button class="btn fg-w-full fg-mt-4 fg-text-[11px] fg-font-black fg-py-3" id="btn_full_insights" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text);">VIEW FULL DASHBOARD</button>
+      <button class="btn fg-w-full fg-mt-4 fg-text-[11px] fg-font-black fg-py-3" id="btn_full_insights" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text);">View Full Dashboard</button>
     </div>
   `;
 
@@ -486,7 +486,7 @@ function _formatTimeAgo(ts: string | number): string {
   const time = typeof ts === 'string' ? new Date(ts).getTime() : ts;
   const diff = Date.now() - time;
   if (diff < 60000) {
-    return 'NOW';
+    return 'Now';
   }
   if (diff < 3600000) {
     return `${Math.floor(diff / 60000)}M`;

@@ -51,15 +51,15 @@ export const ServiceCardPanel: React.FC<ServiceCardProps> = ({
         </div>
 
         <div className="fg-min-w-0 fg-flex-1">
-          <div className="fg-truncate fg-text-[13px] fg-font-bold fg-text-white">
+          <div className="fg-truncate fg-text-[13px] fg-font-bold fg-text-[var(--fg-text)]">
             {service.name}
           </div>
           <div className="fg-mt-0.5 fg-flex fg-items-center fg-gap-[6px]">
-            <div className="fg-text-[9px] fg-font-semibold fg-uppercase fg-text-[var(--muted)]">
+            <div className="fg-text-[9px] fg-font-semibold  fg-text-[var(--muted)]">
               Allowance:
             </div>
             <select
-              className="fg-h-6 fg-rounded-[6px] fg-border-0 fg-bg-white/[0.05] fg-px-1.5 fg-text-[10px] fg-font-bold fg-text-white"
+              className="fg-h-6 fg-rounded-[6px] fg-border-0 fg-bg-white/[0.05] fg-px-1.5 fg-text-[10px] fg-font-bold fg-text-[var(--fg-text)]"
               value={0}
               disabled
             >

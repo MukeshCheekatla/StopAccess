@@ -358,7 +358,7 @@ export const AppsPopupView: React.FC = () => {
 
             <button
               type="button"
-              className="fg-w-full fg-rounded-[14px] fg-py-3 fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest"
+              className="fg-w-full fg-rounded-[14px] fg-py-3 fg-text-[11px] fg-font-black  fg-tracking-widest"
               style={{
                 background: 'rgba(239,68,68,0.12)',
                 border: '1px solid rgba(239,68,68,0.2)',
@@ -370,7 +370,7 @@ export const AppsPopupView: React.FC = () => {
             </button>
 
             <div
-              className="fg-mt-3 fg-text-center fg-text-[11px] fg-font-semibold fg-uppercase fg-tracking-wider"
+              className="fg-mt-3 fg-text-center fg-text-[11px] fg-font-semibold  fg-tracking-wider"
               style={{ color: 'var(--muted)' }}
             >
               {Number(pauseTarget.maxDailyPasses ?? 3)} passes/day · tap outside
@@ -380,7 +380,7 @@ export const AppsPopupView: React.FC = () => {
         </div>
       )}
       <div className="fg-flex fg-items-center fg-justify-between fg-px-[2px]">
-        <div style={UI_TOKENS.TEXT.R.LABEL}>BLOCK LIST</div>
+        <div style={UI_TOKENS.TEXT.R.LABEL}>Block LIST</div>
         <div className="fg-inline-flex fg-items-center fg-gap-2">
           <span style={{ ...UI_TOKENS.TEXT.R.LABEL, opacity: 0.5 }}>
             {activeRules.length} RULES
@@ -430,7 +430,7 @@ export const AppsPopupView: React.FC = () => {
               <div className="fg-truncate fg-text-[12px] fg-font-extrabold fg-text-[var(--fg-text)]">
                 {currentDomain}
               </div>
-              <div className="fg-text-[11px] fg-font-semibold fg-uppercase fg-text-[var(--muted)]">
+              <div className="fg-text-[11px] fg-font-semibold  fg-text-[var(--muted)]">
                 Current Site
               </div>
             </div>
@@ -582,7 +582,7 @@ export const AppsPopupView: React.FC = () => {
 
         {activeRules.length === 0 ? (
           <div className="fg-panel-muted fg-rounded-[18px] fg-px-4 fg-py-10 fg-text-center">
-            <div className="fg-text-[12px] fg-font-bold fg-uppercase fg-tracking-[0.12em] fg-text-slate-400">
+            <div className="fg-text-[12px] fg-font-bold  fg-tracking-[0.12em] fg-text-slate-400">
               No active rules
             </div>
             <div className="fg-mt-2 fg-text-[12px] fg-font-medium fg-text-slate-500">
@@ -595,7 +595,7 @@ export const AppsPopupView: React.FC = () => {
       {recentActivity.length > 0 ? (
         <div>
           <div className="fg-mb-[10px] fg-px-[2px]">
-            <div className="fg-text-[11px] fg-font-extrabold fg-uppercase fg-tracking-[1px] fg-text-[var(--muted)]">
+            <div className="fg-text-[11px] fg-font-extrabold  fg-tracking-[1px] fg-text-[var(--muted)]">
               Recent Activity
             </div>
           </div>

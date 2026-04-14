@@ -18,6 +18,7 @@ import {
   renderEmptyState,
   renderSectionBadge,
   renderAppTableRow,
+  renderInfoTooltip,
 } from '../../lib/ui';
 
 let activeTab = 'shield';
@@ -60,17 +61,20 @@ export async function renderAppsPage(container: HTMLElement) {
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px;">
         <div style="display: flex; align-items: center; gap: 24px; position: relative;">
           <div id="appsNavigation" style="display: flex; padding: 4px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px; width: fit-content; min-width: 200px;">
-            <button class="nav-item-tab" data-tab="shield">BLOCKLIST</button>
-            <button class="nav-item-tab" data-tab="categories">CATEGORIES</button>
+            <button class="nav-item-tab" data-tab="shield">Blocklist</button>
+            <button class="nav-item-tab" data-tab="categories">Categories</button>
           </div>
 
-          <button id="btnSetRedirect" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px; font-size: 11px; font-weight: 800; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--fg-surface-hover)'; this.style.color='var(--fg-text)';" onmouseout="this.style.background='var(--fg-glass-bg)'; this.style.color='var(--fg-muted)';">
+          <button id="btnSetRedirect" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px; font-size: 11px; font-weight: 800; color: var(--fg-muted);  letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--fg-surface-hover)'; this.style.color='var(--fg-text)';" onmouseout="this.style.background='var(--fg-glass-bg)'; this.style.color='var(--fg-muted)';">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             Redirect
+            ${renderInfoTooltip(
+              'Set a target URL to automatically redirect users when they attempt to visit a blocked site.',
+            )}
           </button>
           
           <div id="redirectPopover" class="fg-opacity-0 fg-pointer-events-none fg-scale-95 fg-transition-all" style="position: absolute; top: calc(100% + 8px); left: 240px; z-index: 100; background: var(--fg-surface); border: 1px solid var(--fg-glass-border); border-radius: 16px; padding: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); width: 280px; transform-origin: top;">
-             <div style="font-size: 11px; font-weight: 800; color: var(--fg-muted); text-transform: uppercase; margin-bottom: 8px;">Productive Redirect</div>
+             <div style="font-size: 11px; font-weight: 800; color: var(--fg-muted);  margin-bottom: 8px;">Productive Redirect</div>
              <input type="text" id="redirectInput" placeholder="e.g. notion.so" style="width: 100%; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--fg-text); margin-bottom: 12px; outline: none;">
              <div style="display: flex; gap: 8px; justify-content: flex-end;">
                <button id="btnRedirectClear" style="font-size: 11px; font-weight: 800; color: var(--fg-muted); padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--fg-surface-hover)';" onmouseout="this.style.background='transparent';">Clear</button>
@@ -80,7 +84,7 @@ export async function renderAppsPage(container: HTMLElement) {
         </div>
 
         <div style="display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px;" title="Block apps and domains at the router level via NextDNS.">
-          <div style="font-size: 11px; font-weight: 800; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.5px;">DNS Hard Mode</div>
+          <div style="font-size: 11px; font-weight: 800; color: var(--fg-muted);  letter-spacing: 0.5px;">Dns Hard Mode</div>
           <button class="toggle-switch-btn ${
             currentIsAppsDnsHardMode ? 'active' : ''
           }" id="masterDnsToggle" ${
@@ -337,7 +341,7 @@ async function refreshListOnly(passedRules?: any[]) {
     if (searchTerm.trim().length > 1) {
       actionContainer.innerHTML = `
         <button id="btnAddDomainUnified" class="btn-premium" style="height: 60px; padding: 0 32px; border-radius: 20px; font-weight: 900; font-size: 13px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 20px rgba(59,130,246,0.2);">
-          BLOCK
+          Block
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
       `;
@@ -433,7 +437,7 @@ async function handleAddDomain() {
     '#btnAddDomainUnified',
   ) as HTMLButtonElement;
   if (btn) {
-    btn.innerText = 'BLOCKING...';
+    btn.innerText = 'Blocking...';
     btn.disabled = true;
   }
 
@@ -448,9 +452,9 @@ async function handleAddDomain() {
     }
     await refreshListOnly();
   } else if (btn) {
-    btn.innerText = 'FAILED';
+    btn.innerText = 'Failed';
     setTimeout(() => {
-      btn.innerText = 'ADD RULE';
+      btn.innerText = 'Add Rule';
       btn.disabled = false;
     }, 2000);
   }
@@ -516,7 +520,7 @@ async function renderSubTab(
           <!-- Header -->
           <div class="fg-p-8 fg-border-b fg-border-[var(--fg-glass-border)] fg-flex fg-items-center fg-justify-between">
             <div>
-              <div class="fg-text-[10px] fg-font-black fg-uppercase fg-tracking-[3px] fg-text-[#3b82f6] fg-mb-1">App Drawer</div>
+              <div class="fg-text-[10px] fg-font-black  fg-tracking-[3px] fg-text-[#3b82f6] fg-mb-1">App Drawer</div>
               <div class="fg-text-2xl fg-font-black fg-text-[var(--fg-text)]">Add Apps to Shield</div>
             </div>
             <button id="btnCloseTargetDrawer" class="fg-p-3 fg-rounded-2xl hover:fg-bg-[var(--fg-surface-hover)] fg-text-[var(--muted)] fg-transition-all">
@@ -551,12 +555,12 @@ async function renderSubTab(
 
           <!-- Footer -->
           <div class="fg-px-8 fg-py-5 fg-bg-[var(--fg-glass-bg)] fg-border-t fg-border-[var(--fg-glass-border)] fg-flex fg-justify-between fg-items-center">
-            <div class="fg-text-[10px] fg-font-bold fg-text-[var(--muted)] fg-uppercase fg-tracking-widest">
+            <div class="fg-text-[10px] fg-font-bold fg-text-[var(--muted)]  fg-tracking-widest">
               Total Catalog: <span class="fg-text-[var(--fg-text)]">${
                 NEXTDNS_SERVICES.length
               } Services</span>
             </div>
-            <div class="fg-text-[10px] fg-font-bold fg-text-[var(--muted)] fg-uppercase fg-tracking-widest">
+            <div class="fg-text-[10px] fg-font-bold fg-text-[var(--muted)]  fg-tracking-widest">
               Press ESC to Close
             </div>
           </div>
@@ -577,18 +581,22 @@ async function renderSubTab(
         top: 0;
         z-index: 10;
         backdrop-filter: blur(8px);
-        font-size: 11px;
+        font-size: 14px;
         font-weight: 600;
-        color: var(--fg-muted);
+        color: var(--fg-text);
         letter-spacing: 0.06em;
-        text-transform: uppercase;
+        
       ">
         <div></div>
         <div>Platform</div>
         <div>Usage</div>
         <div>Progress</div>
-        <div>Daily Limit</div>
-        <div>Passes</div>
+        <div style="display: flex; align-items: center; gap: 4px;">Daily Limit ${renderInfoTooltip(
+          'The maximum time allowed per day before a service or domain is automatically blocked.',
+        )}</div>
+        <div style="display: flex; align-items: center; gap: 4px;">Passes ${renderInfoTooltip(
+          'The number of temporary access tokens available daily to unblock restricted items.',
+        )}</div>
         <div></div>
         <div></div>
       </div>
@@ -628,7 +636,7 @@ async function renderSubTab(
             if (appRules.length > 0) {
               html += `
                 <div style="padding: 6px 16px 6px 72px; border-top: 1px solid var(--fg-glass-border); border-bottom: 1px solid var(--fg-glass-border); background: var(--fg-glass-bg); display: flex; align-items: center; gap: 8px;">
-                  <div style="font-size: 10px; font-weight: 700; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.1em;">Custom Domains</div>
+                  <div style="font-size: 10px; font-weight: 700; color: var(--fg-muted);  letter-spacing: 0.1em;">Custom Domains</div>
                 </div>
               `;
             }
@@ -758,7 +766,7 @@ function renderCategoryCard(
           </button>
           ${
             isLocked
-              ? '<div style="font-size:10px; opacity:0.5; font-weight:800; letter-spacing:0.6px;">LOCK</div>'
+              ? '<div style="font-size:10px; opacity:0.5; font-weight:800; letter-spacing:0.6px;">Lock</div>'
               : ''
           }
         </div>

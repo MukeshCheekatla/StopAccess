@@ -121,7 +121,7 @@ function Field({
 
         <button
           onClick={onButtonClick}
-          className="fg-flex fg-items-center fg-justify-center fg-gap-1.5 fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-text)] fg-text-[11px] fg-font-black fg-uppercase fg-tracking-wider fg-px-4 fg-h-[44px] fg-rounded-[12px] hover:fg-bg-[var(--fg-surface-hover)] fg-transition-all fg-duration-200 active:fg-scale-95"
+          className="fg-flex fg-items-center fg-justify-center fg-gap-1.5 fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-text)] fg-text-[11px] fg-font-black  fg-tracking-wider fg-px-4 fg-h-[44px] fg-rounded-[12px] hover:fg-bg-[var(--fg-surface-hover)] fg-transition-all fg-duration-200 active:fg-scale-95"
         >
           <span>{buttonLabel}</span>
           <svg
@@ -288,7 +288,7 @@ export const OnboardingReact: React.FC<{
             />
           </div>
 
-          <div className="fg-text-[11px] fg-font-black fg-tracking-[0.2em] fg-uppercase fg-text-[var(--fg-muted)] fg-mb-3">
+          <div className="fg-text-[11px] fg-font-black fg-tracking-[0.2em]  fg-text-[var(--fg-muted)] fg-mb-3">
             Total Access Control
           </div>
 
@@ -337,7 +337,7 @@ export const OnboardingReact: React.FC<{
 
           <button
             onClick={skip}
-            className="fg-bg-transparent fg-border-0 fg-text-[var(--fg-muted)] fg-text-[12px] fg-font-bold fg-tracking-wider fg-uppercase fg-cursor-pointer fg-mt-4 hover:fg-text-[var(--fg-text)] fg-transition-colors"
+            className="fg-bg-transparent fg-border-0 fg-text-[var(--fg-muted)] fg-text-[12px] fg-font-bold fg-tracking-wider  fg-cursor-pointer fg-mt-4 hover:fg-text-[var(--fg-text)] fg-transition-colors"
           >
             Skip for now
           </button>
@@ -351,7 +351,7 @@ export const OnboardingReact: React.FC<{
     return (
       <Shell>
         <div className="fg-mb-5">
-          <div className="fg-text-[11px] fg-font-black fg-tracking-[0.2em] fg-uppercase fg-text-[var(--fg-muted)] fg-mb-3">
+          <div className="fg-text-[11px] fg-font-black fg-tracking-[0.2em]  fg-text-[var(--fg-muted)] fg-mb-3">
             Step 2: Integration
           </div>
           <h1 className="fg-text-[28px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight fg-mb-2">
@@ -452,7 +452,7 @@ export const OnboardingReact: React.FC<{
     <Shell>
       <div className="fg-text-center">
         <div className="fg-mb-8">
-          <div className="fg-text-[11px] fg-font-black fg-tracking-[0.2em] fg-uppercase fg-text-emerald-500 fg-mb-3">
+          <div className="fg-text-[11px] fg-font-black fg-tracking-[0.2em]  fg-text-emerald-500 fg-mb-3">
             Last Step to Freedom
           </div>
           <h1 className="fg-text-[32px] fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight fg-mb-3">
@@ -471,7 +471,7 @@ export const OnboardingReact: React.FC<{
               1
             </div>
             <div className="fg-mb-4">
-              <div className="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)] fg-uppercase fg-tracking-wider">
+              <div className="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)]  fg-tracking-wider">
                 Copy Enrollment Link
               </div>
               <div className="fg-text-[12px] fg-text-[var(--fg-muted)] fg-mt-0.5">
@@ -484,7 +484,7 @@ export const OnboardingReact: React.FC<{
               </code>
               <button
                 onClick={copyDohUrl}
-                className="fg-bg-[var(--fg-text)] fg-text-[var(--fg-bg)] fg-px-5 fg-h-10 fg-rounded-[10px] fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest hover:fg-opacity-90 fg-transition-all active:fg-scale-95"
+                className="fg-bg-[var(--fg-text)] fg-text-[var(--fg-bg)] fg-px-5 fg-h-10 fg-rounded-[10px] fg-text-[11px] fg-font-black  fg-tracking-widest hover:fg-opacity-90 fg-transition-all active:fg-scale-95"
               >
                 {copied ? 'Copied' : 'Copy'}
               </button>
@@ -497,7 +497,7 @@ export const OnboardingReact: React.FC<{
               2
             </div>
             <div className="fg-mb-4">
-              <div className="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)] fg-uppercase fg-tracking-wider">
+              <div className="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)]  fg-tracking-wider">
                 Update Browser Settings
               </div>
               <div className="fg-text-[12px] fg-text-[var(--fg-muted)] fg-mt-0.5">
@@ -532,7 +532,7 @@ export const OnboardingReact: React.FC<{
                   <div className="fg-text-[12px] fg-font-black fg-text-[var(--fg-text)]">
                     Chrome / Edge
                   </div>
-                  <div className="fg-text-[10px] fg-text-[var(--fg-muted)] fg-uppercase fg-font-black fg-tracking-tighter">
+                  <div className="fg-text-[10px] fg-text-[var(--fg-muted)]  fg-font-black fg-tracking-tighter">
                     Open Settings →
                   </div>
                 </div>
@@ -560,7 +560,7 @@ export const OnboardingReact: React.FC<{
                   <div className="fg-text-[12px] fg-font-black fg-text-[var(--fg-text)]">
                     Firefox / Other
                   </div>
-                  <div className="fg-text-[10px] fg-text-[var(--fg-muted)] fg-uppercase fg-font-black fg-tracking-tighter">
+                  <div className="fg-text-[10px] fg-text-[var(--fg-muted)]  fg-font-black fg-tracking-tighter">
                     Open Settings →
                   </div>
                 </div>
@@ -574,7 +574,7 @@ export const OnboardingReact: React.FC<{
               3
             </div>
             <div className="fg-mb-5">
-              <div className="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)] fg-uppercase fg-tracking-wider">
+              <div className="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)]  fg-tracking-wider">
                 Finalize Setup
               </div>
               <div className="fg-text-[12px] fg-text-[var(--fg-muted)] fg-mt-0.5">
@@ -583,7 +583,7 @@ export const OnboardingReact: React.FC<{
             </div>
 
             <OBtn
-              className="fg-w-full fg-h-[52px] fg-text-[14px] fg-font-black fg-uppercase fg-tracking-widest"
+              className="fg-w-full fg-h-[52px] fg-text-[14px] fg-font-black  fg-tracking-widest"
               onClick={() => onComplete('settings')}
             >
               Verify & Complete Setup
@@ -594,7 +594,7 @@ export const OnboardingReact: React.FC<{
         <div className="fg-mt-4">
           <button
             onClick={() => onComplete('dash')}
-            className="fg-text-[11px] fg-font-bold fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] fg-transition-all fg-uppercase fg-tracking-widest"
+            className="fg-text-[11px] fg-font-bold fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] fg-transition-all  fg-tracking-widest"
           >
             I'll figure it out later (Not Secure)
           </button>

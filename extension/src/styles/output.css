@@ -238,7 +238,7 @@ button {
 .fg-kicker {
   font-size: 10px;
   font-weight: 900;
-  text-transform: uppercase;
+  
   letter-spacing: 0.18em;
   color: var(--fg-muted);
 }
@@ -1834,8 +1834,8 @@ button {
   font-weight: 600;
 }
 
-.fg-uppercase {
-  text-transform: uppercase;
+. {
+  
 }
 
 .fg-tabular-nums {

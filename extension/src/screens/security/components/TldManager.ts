@@ -58,7 +58,7 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
         </div>
         <div class="fg-flex fg-items-center fg-gap-2">
            <span class="fg-text-[11px] fg-font-black fg-text-[var(--yellow)] fg-bg-[var(--yellow)]/10 fg-px-3 fg-py-1 fg-rounded-full" style="border: 1px solid rgba(251,191,36,0.15);">
-            ${tlds.length} BLOCKED
+            ${tlds.length} Blocked
            </span>
         </div>
       </div>
@@ -82,7 +82,7 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
             style="text-transform: lowercase;"
             maxlength="20"
           >
-          <button id="btn_add_tld" class="fg-bg-[var(--yellow)]/10 fg-text-[var(--yellow)] fg-text-[11px] fg-font-black fg-px-6 fg-py-3 fg-rounded-xl fg-transition-all hover:fg-bg-[var(--yellow)]/20 fg-uppercase fg-tracking-wider" style="border: 1px solid rgba(251,191,36,0.2);">
+          <button id="btn_add_tld" class="fg-bg-[var(--yellow)]/10 fg-text-[var(--yellow)] fg-text-[11px] fg-font-black fg-px-6 fg-py-3 fg-rounded-xl fg-transition-all hover:fg-bg-[var(--yellow)]/20  fg-tracking-wider" style="border: 1px solid rgba(251,191,36,0.2);">
             Block
           </button>
         </div>
@@ -93,7 +93,7 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
         suggestions.length > 0
           ? `
         <div class="fg-mb-8">
-          <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40 fg-uppercase fg-tracking-[1.5px] fg-mb-4">
+          <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40  fg-tracking-[1.5px] fg-mb-4">
             Suggested Blockpoints
           </div>
           <div class="fg-flex fg-flex-wrap fg-gap-2">
@@ -121,7 +121,7 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
 
       <!-- Active Shield List -->
       <div class="fg-mt-4">
-        <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40 fg-uppercase fg-tracking-[1.5px] fg-mb-4">
+        <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40  fg-tracking-[1.5px] fg-mb-4">
           Currently Shadowed
         </div>
         ${

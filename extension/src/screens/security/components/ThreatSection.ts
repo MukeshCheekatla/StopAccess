@@ -80,7 +80,7 @@ export function renderThreatSection(settings: NextDNSSecuritySettings): string {
         svgTarget,
         '#818cf8',
         'Threat Protection',
-        renderSectionBadge(`${activeCount}/${total} ACTIVE`),
+        renderSectionBadge(`${activeCount}/${total} Active`),
       )}
       <div class="fg-grid fg-grid-cols-3 fg-gap-2">
         ${THREAT_TOGGLES.map((t) =>

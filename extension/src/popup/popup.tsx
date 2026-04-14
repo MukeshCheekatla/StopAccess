@@ -23,9 +23,9 @@ type PassEntry = {
 };
 
 const TABS: Array<ShellTab<TabId>> = [
-  { id: 'dash', label: 'DASHBOARD' },
-  { id: 'apps', label: 'BLOCK LIST' },
-  { id: 'focus', label: 'FOCUS TIMER' },
+  { id: 'dash', label: 'Dashboard' },
+  { id: 'apps', label: 'Block List' },
+  { id: 'focus', label: 'Focus Timer' },
 ];
 
 const TAB_SET = new Set<string>(TABS.map((tab) => tab.id));
@@ -114,7 +114,7 @@ function PopupApp() {
         const isConfigured = await nextDNSApi.isConfigured();
         if (!isConfigured) {
           if (!cancelled) {
-            setStatus({ label: 'LOCAL', tone: 'muted' });
+            setStatus({ label: 'Local', tone: 'muted' });
           }
           return;
         }
@@ -127,11 +127,11 @@ function PopupApp() {
         }
 
         if (nextStatus === 'connected') {
-          setStatus({ label: 'SYNC', tone: 'active' });
+          setStatus({ label: 'Sync', tone: 'active' });
         } else if (nextStatus === 'error') {
-          setStatus({ label: 'ERROR', tone: 'error' });
+          setStatus({ label: 'Error', tone: 'error' });
         } else {
-          setStatus({ label: 'LOCAL', tone: 'muted' });
+          setStatus({ label: 'Local', tone: 'muted' });
         }
       } catch (error) {
         console.error('[StopAccess] Status Check Error:', error);
@@ -297,7 +297,7 @@ function PopupApp() {
                 key={entry.domain}
                 className="fg-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-lg fg-shrink-0 fg-bg-white/5 fg-border fg-border-white/[0.03]"
               >
-                <div className="fg-text-[10px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40 fg-uppercase fg-tracking-[0.08em] fg-whitespace-nowrap">
+                <div className="fg-text-[10px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40  fg-tracking-[0.08em] fg-whitespace-nowrap">
                   {entry.domain}
                 </div>
                 <div className="fg-flex fg-items-center fg-gap-1.5 fg-text-[11px] fg-font-black fg-text-[var(--fg-accent)] fg-whitespace-nowrap">
@@ -316,8 +316,8 @@ function PopupApp() {
           onClick={() =>
             chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') })
           }
-          className="fg-popup-action fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-md fg-transition-all fg-flex fg-items-center fg-justify-center"
-          style={{ color: '#fefefe' }}
+          className="fg-popup-action fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-md fg-transition-all fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-glass-bg)] hover:fg-bg-[var(--fg-surface)]"
+          style={{ color: 'var(--fg-text)' }}
           type="button"
           title="Open Full Dashboard"
         >

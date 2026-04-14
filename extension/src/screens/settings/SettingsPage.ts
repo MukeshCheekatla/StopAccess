@@ -64,11 +64,11 @@ export async function renderSettingsPage(container) {
                   }; margin-top: 4px;">Sync services, denylist domains, privacy lists, security toggles, and diagnostics.</p>
                 </div>
               </div>
-              <button id="btn_edit_credentials" class="fg-flex fg-items-center fg-text-[9px] fg-font-black fg-text-[var(--fg-accent)] hover:fg-opacity-80 fg-uppercase fg-tracking-[0.2em] fg-bg-[var(--fg-accent)]/10 fg-px-3 fg-py-2 fg-rounded-lg fg-transition-opacity ${
+              <button id="btn_edit_credentials" class="fg-flex fg-items-center fg-text-[9px] fg-font-black fg-text-[var(--fg-accent)] hover:fg-opacity-80  fg-tracking-[0.2em] fg-bg-[var(--fg-accent)]/10 fg-px-3 fg-py-2 fg-rounded-lg fg-transition-opacity ${
                 isSetupActive ? '' : 'fg-hidden'
               }">
                 ${iconEdit}
-                <span>MODIFY</span>
+                <span>Modify</span>
               </button>
             </div>
             <div class="fg-flex fg-flex-col fg-gap-8 fg-mt-4">
@@ -98,7 +98,7 @@ export async function renderSettingsPage(container) {
             </div>
             <div id="connection_feedback" class="fg-hidden fg-mt-4 fg-p-4 fg-rounded-2xl fg-text-xs fg-font-bold fg-text-center"></div>
             <div class="fg-mt-6">
-              <button class="btn-premium fg-w-full fg-justify-center fg-h-14 fg-rounded-2xl fg-text-sm fg-font-black fg-uppercase fg-tracking-widest ${
+              <button class="btn-premium fg-w-full fg-justify-center fg-h-14 fg-rounded-2xl fg-text-sm fg-font-black  fg-tracking-widest ${
                 isSetupActive ? 'fg-hidden' : ''
               }" id="btn_save_config">Secure & Initialize Sync</button>
             </div>
@@ -123,17 +123,17 @@ export async function renderSettingsPage(container) {
                 }; opacity: 0.5;">Private DoH Endpoint</label>
                 <div class="fg-flex fg-gap-4">
                   <input type="text" id="doh_url_display" value="${dohUrl}" class="input-premium fg-flex-1 fg-h-12 fg-text-xs fg-text-[var(--fg-text)] fg-opacity-80 fg-font-mono fg-bg-transparent fg-border-0 fg-p-0" readonly>
-                  <button id="btn_copy_doh_inline" class="btn-premium fg-px-6 fg-h-12 fg-text-[10px] fg-uppercase fg-tracking-widest">Copy URL</button>
+                  <button id="btn_copy_doh_inline" class="btn-premium fg-px-6 fg-h-12 fg-text-[10px]  fg-tracking-widest">Copy URL</button>
                 </div>
               </div>
               <div>
                 <div class="fg-grid fg-grid-cols-3 fg-gap-2 fg-mb-4" id="dns_browser_tabs">
-                  <button class="dns-tab-btn fg-rounded-xl fg-px-3 fg-py-2 fg-text-[11px] fg-font-black fg-uppercase fg-tracking-wider fg-border fg-transition-all active" data-tab="chrome">Chrome / Edge</button>
-                  <button class="dns-tab-btn fg-rounded-xl fg-px-3 fg-py-2 fg-text-[11px] fg-font-black fg-uppercase fg-tracking-wider fg-border fg-transition-all" data-tab="firefox">Firefox</button>
-                  <button class="dns-tab-btn fg-rounded-xl fg-px-3 fg-py-2 fg-text-[11px] fg-font-black fg-uppercase fg-tracking-wider fg-border fg-transition-all" data-tab="system">System</button>
+                  <button class="dns-tab-btn fg-rounded-xl fg-px-3 fg-py-2 fg-text-[11px] fg-font-black  fg-tracking-wider fg-border fg-transition-all active" data-tab="chrome">Chrome / Edge</button>
+                  <button class="dns-tab-btn fg-rounded-xl fg-px-3 fg-py-2 fg-text-[11px] fg-font-black  fg-tracking-wider fg-border fg-transition-all" data-tab="firefox">Firefox</button>
+                  <button class="dns-tab-btn fg-rounded-xl fg-px-3 fg-py-2 fg-text-[11px] fg-font-black  fg-tracking-wider fg-border fg-transition-all" data-tab="system">System</button>
                 </div>
                 <div id="dns_steps_chrome" class="dns-steps-panel fg-space-y-4 fg-mt-6">
-                  <button id="btn_open_chrome_dns" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[10px] fg-uppercase fg-tracking-widest fg-w-full fg-justify-center">Open Chrome DNS Settings</button>
+                  <button id="btn_open_chrome_dns" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[10px]  fg-tracking-widest fg-w-full fg-justify-center">Open Chrome DNS Settings</button>
                   <div class="fg-space-y-2 fg-pt-2">
                     <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">1. Open chrome://settings/security</div>
                     <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">2. Go to Advanced and enable Use secure DNS</div>
@@ -142,7 +142,7 @@ export async function renderSettingsPage(container) {
                   </div>
                 </div>
                 <div id="dns_steps_firefox" class="dns-steps-panel fg-hidden fg-space-y-4 fg-mt-6">
-                  <button id="btn_open_firefox_dns" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[10px] fg-uppercase fg-tracking-widest fg-w-full fg-justify-center">Open Firefox Network Settings</button>
+                  <button id="btn_open_firefox_dns" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[10px]  fg-tracking-widest fg-w-full fg-justify-center">Open Firefox Network Settings</button>
                   <div class="fg-space-y-2 fg-pt-2">
                     <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">1. Open about:preferences#general</div>
                     <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">2. Open Network Settings</div>
@@ -151,7 +151,7 @@ export async function renderSettingsPage(container) {
                   </div>
                 </div>
                 <div id="dns_steps_system" class="dns-steps-panel fg-hidden fg-space-y-4 fg-mt-6">
-                  <button id="btn_open_nextdns_download" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[10px] fg-uppercase fg-tracking-widest fg-w-full fg-justify-center">NextDNS Official Site</button>
+                  <button id="btn_open_nextdns_download" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[10px]  fg-tracking-widest fg-w-full fg-justify-center">NextDNS Official Site</button>
                   <div class="fg-space-y-2 fg-pt-2">
                     <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">1. Install the NextDNS desktop app</div>
                     <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">2. Use your Configuration ID</div>
@@ -215,9 +215,9 @@ export async function renderSettingsPage(container) {
             <div class="fg-space-y-4">
               <div class="fg-flex fg-gap-3">
                 <input type="text" id="test_domain" placeholder="domain.com" class="input-premium fg-flex-1 fg-h-12 fg-text-sm fg-text-[var(--fg-text)]">
-                <button class="btn-premium fg-px-8 fg-h-12 fg-text-[10px] fg-uppercase fg-tracking-widest" id="btn_test_domain">Run Scan</button>
+                <button class="btn-premium fg-px-8 fg-h-12 fg-text-[10px]  fg-tracking-widest" id="btn_test_domain">Run Scan</button>
               </div>
-              <div id="test_result" class="fg-hidden fg-p-5 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black fg-uppercase fg-tracking-widest"></div>
+              <div id="test_result" class="fg-hidden fg-p-5 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black  fg-tracking-widest"></div>
             </div>
           </section>
 
@@ -255,9 +255,9 @@ export async function renderSettingsPage(container) {
               </div>
             </div>
             <div class="fg-grid fg-grid-cols-3 fg-gap-3">
-              <button class="btn-secondary-v2 fg-py-5 fg-text-[9px] fg-uppercase fg-tracking-widest" id="btn_view_logs">History</button>
-              <button class="btn-secondary-v2 fg-py-5 fg-text-[9px] fg-uppercase fg-tracking-widest" id="btn_export_rules">Export</button>
-              <button class="btn-secondary-v2 fg-py-5 fg-text-[9px] fg-uppercase fg-tracking-widest" id="btn_import_rules">Import</button>
+              <button class="btn-secondary-v2 fg-py-5 fg-text-[9px]  fg-tracking-widest" id="btn_view_logs">History</button>
+              <button class="btn-secondary-v2 fg-py-5 fg-text-[9px]  fg-tracking-widest" id="btn_export_rules">Export</button>
+              <button class="btn-secondary-v2 fg-py-5 fg-text-[9px]  fg-tracking-widest" id="btn_import_rules">Import</button>
             </div>
           </section>
         </div>
@@ -415,7 +415,7 @@ export async function renderSettingsPage(container) {
         opacity: 1 !important;
         background: var(--fg-accent) !important;
         border-color: var(--fg-accent) !important;
-        color: white !important;
+        color: var(--fg-text) !important;
       }
       .pin-slot {
         display: flex;
@@ -459,7 +459,7 @@ export async function renderSettingsPage(container) {
     if (isEditing) {
       editBtn.classList.remove('active-edit');
       if (editLabel) {
-        editLabel.innerText = 'MODIFY';
+        editLabel.innerText = 'Modify';
       }
       saveBtn?.classList.add('fg-hidden');
       inputs.forEach((input) => {
@@ -469,7 +469,7 @@ export async function renderSettingsPage(container) {
     } else {
       editBtn.classList.add('active-edit');
       if (editLabel) {
-        editLabel.innerText = 'CANCEL';
+        editLabel.innerText = 'Cancel';
       }
       saveBtn?.classList.remove('fg-hidden');
       inputs.forEach((input) => {
@@ -671,7 +671,7 @@ export async function renderSettingsPage(container) {
           <div class="fg-w-16 fg-h-16 fg-rounded-2xl fg-bg-[var(--fg-accent)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-accent)] fg-mx-auto fg-mb-6">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
           </div>
-          <h3 class="fg-text-xl fg-font-black fg-text-white fg-mb-2">${title}</h3>
+          <h3 class="fg-text-xl fg-font-black fg-text-[var(--fg-text)] fg-mb-2">${title}</h3>
           <p class="fg-text-sm fg-text-[var(--fg-muted)]">${subtitle}</p>
         </div>
         
@@ -845,8 +845,8 @@ export async function renderSettingsPage(container) {
         resultDiv.className =
           'fg-p-4 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black fg-bg-[var(--fg-green)]/20 fg-text-[var(--fg-green)] fg-border fg-border-[var(--fg-green)]/20';
         resultDiv.innerText = localMatch
-          ? 'BLOCK EVENT: PERSISTENT'
-          : 'BLOCK EVENT: VIRTUAL';
+          ? 'Block EVENT: PERSISTENT'
+          : 'Block EVENT: VIRTUAL';
       } else {
         resultDiv.className =
           'fg-p-4 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black fg-bg-[var(--fg-red)]/20 fg-text-[var(--fg-red)] fg-border fg-border-[var(--fg-red)]/20';
@@ -905,7 +905,7 @@ export async function renderSettingsPage(container) {
       modal.innerHTML = `
         <div class="fg-bg-[var(--fg-surface)] fg-w-full fg-max-w-xl fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-flex fg-flex-col fg-max-h-[85vh] fg-shadow-2xl">
           <div class="fg-p-8 fg-border-b fg-border-[var(--fg-glass-border)] fg-flex fg-justify-between fg-items-center">
-            <div class="fg-font-black fg-uppercase fg-tracking-widest fg-text-xs fg-opacity-50">Audit Trail History</div>
+            <div class="fg-font-black  fg-tracking-widest fg-text-xs fg-opacity-50">Audit Trail History</div>
             <button id="close_logs" class="fg-opacity-40 hover:fg-opacity-100 transition">×</button>
           </div>
           <div class="fg-flex-1 fg-overflow-y-auto fg-p-6 fg-space-y-4">
@@ -927,7 +927,7 @@ export async function renderSettingsPage(container) {
               `,
                 )
                 .join('') ||
-              '<div class="fg-text-center fg-opacity-30 fg-py-20 fg-font-black fg-uppercase fg-tracking-widest fg-text-[10px]">Vault Unaccessed</div>'
+              '<div class="fg-text-center fg-opacity-30 fg-py-20 fg-font-black  fg-tracking-widest fg-text-[10px]">Vault Unaccessed</div>'
             }
           </div>
           <div class="fg-p-6 fg-flex fg-justify-end">

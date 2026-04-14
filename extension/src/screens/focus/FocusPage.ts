@@ -164,7 +164,7 @@ function renderRingMarkup(
         </svg>
         <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
           <div id="liveTimerDisplay" style="font-size:56px; font-weight:300; line-height:0.95; letter-spacing:-0.05em; color:var(--fg-text); font-variant-numeric:tabular-nums;">${timeDisplay}</div>
-          <div style="margin-top:10px; display:inline-flex; align-items:center; gap:8px; color:var(--fg-muted); font-size:10px; letter-spacing:0.1em; text-transform:uppercase;">
+          <div style="margin-top:10px; display:inline-flex; align-items:center; gap:8px; color:var(--fg-muted); font-size:10px; letter-spacing:0.1em; ">
             <span style="width:6px; height:6px; border-radius:50%; background:var(--fg-accent); box-shadow:0 0 8px var(--fg-accent-soft);"></span>
             ${label}
           </div>
@@ -207,7 +207,7 @@ function renderPresetButtons(): string {
           (preset) => `
         <button class="btn-premium start-focus fg-flex fg-flex-col fg-items-start fg-gap-1 fg-text-left fg-rounded-[18px]" data-mins="${preset.m}" style="padding:16px 18px; min-height:80px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); box-shadow:none;">
           <span style="font-size:22px; font-weight:900; color:var(--fg-text); line-height:1;">${preset.m}m</span>
-          <span class="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-[0.1em]" style="color:var(--fg-muted);">${preset.tag}</span>
+          <span class="fg-text-[10px] fg-font-bold  fg-tracking-[0.1em]" style="color:var(--fg-muted);">${preset.tag}</span>
         </button>
       `,
         )
@@ -249,7 +249,7 @@ function renderActiveStateSummary(
     <div style="width:min(440px, 100%); margin-bottom:12px; padding:18px 22px; border-radius:22px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); text-align:left; backdrop-filter:blur(12px);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <div style="${UI_TOKENS.TEXT.LABEL}">Shielding Services</div>
-        <div style="${UI_TOKENS.TEXT.BADGE}; background:var(--fg-accent-soft); color:var(--fg-accent); padding:2px 8px; border-radius:6px; border:1px solid var(--fg-glass-border);">${count} ACTIVE</div>
+        <div style="${UI_TOKENS.TEXT.BADGE}; background:var(--fg-accent-soft); color:var(--fg-accent); padding:2px 8px; border-radius:6px; border:1px solid var(--fg-glass-border);">${count} Active</div>
       </div>
       <div style="display:flex; align-items:center; gap:10px; min-height:30px;">
         ${currentFocusHtml}
@@ -602,7 +602,7 @@ function _renderIdlePopup(container: HTMLElement): void {
             (p) => `
           <div class="focus-preset-card start-focus" data-mins="${p.m}" style="padding: 14px 10px;">
             <div class="focus-preset-time" style="font-size: 1.1rem;">${p.m}M</div>
-            <div class="focus-preset-tag" style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">${p.tag}</div>
+            <div class="focus-preset-tag" style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; ">${p.tag}</div>
           </div>
         `,
           )

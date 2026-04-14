@@ -59,7 +59,7 @@ export function renderParentalSection(
         iconShield,
         '#3b82f6',
         'Parental Control',
-        renderSectionBadge(`${activeCount} ACTIVE`),
+        renderSectionBadge(`${activeCount} Active`),
       )}
 
       <div class="fg-grid fg-grid-cols-3 fg-gap-2">

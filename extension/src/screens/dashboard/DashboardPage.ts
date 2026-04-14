@@ -50,7 +50,7 @@ export async function renderDashboardPage(container) {
 
     const isFocusing = focusEnd > Date.now();
     let timerDisplay = '25:00';
-    let timerStatusText = 'READY';
+    let timerStatusText = 'Ready';
     let timerDotColor = 'var(--fg-muted)';
     let timerTextColor = 'var(--fg-text)';
 
@@ -61,7 +61,7 @@ export async function renderDashboardPage(container) {
       timerDisplay = `${m.toString().padStart(2, '0')}:${s
         .toString()
         .padStart(2, '0')}`;
-      timerStatusText = 'ACTIVE';
+      timerStatusText = 'Active';
       timerDotColor = 'var(--fg-green)'; // Use a more distinct local color for active state
       timerTextColor = 'var(--fg-text)';
     }
@@ -79,7 +79,7 @@ export async function renderDashboardPage(container) {
       const isActive = focusEnd > now;
       if (!isActive) {
         displayEl.textContent = '25:00';
-        statusEl.textContent = 'READY';
+        statusEl.textContent = 'Ready';
         displayEl.style.color = 'var(--fg-text)';
         statusEl.style.color = 'var(--fg-text)';
         statusEl.style.fontWeight = '900';
@@ -99,7 +99,7 @@ export async function renderDashboardPage(container) {
         .padStart(2, '0')}`;
       displayEl.style.color = 'var(--fg-text)';
       displayEl.style.fontWeight = '950';
-      statusEl.textContent = 'ACTIVE';
+      statusEl.textContent = 'Active';
       statusEl.style.color = 'var(--fg-text)';
       statusEl.style.fontWeight = '950';
       dotEl.style.background = 'var(--fg-green)';
@@ -129,11 +129,11 @@ export async function renderDashboardPage(container) {
 
           <div class="fg-grid fg-gap-8" style="grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start;">
             <div>
-              <div class="section-label" style="${UI_TOKENS.TEXT.LABEL} margin-bottom: 20px;">CURRENT ACTIVITY</div>
+              <div class="section-label" style="${UI_TOKENS.TEXT.LABEL} margin-bottom: 20px;">Current Activity</div>
               <div class="service-grid fg-gap-3" id="activityGrid" style="grid-template-columns: 1fr;"></div>
             </div>
             <div>
-               <div class="section-label" style="${UI_TOKENS.TEXT.LABEL} margin-bottom: 20px;">USAGE BREAKDOWN</div>
+               <div class="section-label" style="${UI_TOKENS.TEXT.LABEL} margin-bottom: 20px;">Usage Breakdown</div>
                <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center" id="chartSlot" style="border-radius: 20px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); height: 260px;">
                   <canvas id="liveUsageChart" style="width: 100% !important; height: 210px !important;"></canvas>
                </div>
@@ -204,7 +204,7 @@ export async function renderDashboardPage(container) {
       engagementW.innerHTML = `
         <div class="widget-title" style="${
           UI_TOKENS.TEXT.WIDGET_LABEL
-        }">TODAY USAGE</div>
+        }">Today Usage</div>
         <div>
           <div style="${UI_TOKENS.TEXT.STAT}">${fmtTime(
         allTotalMs as number,
@@ -219,7 +219,7 @@ export async function renderDashboardPage(container) {
     const timerW = container.querySelector('#timerWidget');
     if (timerW) {
       timerW.innerHTML = `
-        <div class="widget-title" style="${UI_TOKENS.TEXT.WIDGET_LABEL}">TIMER STATUS</div>
+        <div class="widget-title" style="${UI_TOKENS.TEXT.WIDGET_LABEL}">Timer Status</div>
         <div class="timer-display" id="timerDisplay" style="${UI_TOKENS.TEXT.STAT_LARGE} color: ${timerTextColor}; font-variant-numeric: tabular-nums;">${timerDisplay}</div>
         <div class="fg-flex fg-items-center fg-gap-2">
           <div id="timerDot" style="width:10px; height:10px; border-radius:50%; background:${timerDotColor};"></div>
@@ -233,14 +233,14 @@ export async function renderDashboardPage(container) {
       connectionW.innerHTML = `
         <div class="widget-title" style="${
           UI_TOKENS.TEXT.WIDGET_LABEL
-        }">CONNECTION</div>
+        }">Connection</div>
         <div style="${UI_TOKENS.TEXT.STAT} color:${
         syncStatus === 'connected' ? 'var(--fg-text)' : 'var(--fg-muted)'
       };">
-          ${syncStatus === 'connected' ? 'READY' : 'OFFLINE'}
+          ${syncStatus === 'connected' ? 'Ready' : 'Offline'}
         </div>
         <div style="${UI_TOKENS.TEXT.LABEL} margin-top: 4px;">
-          CLOUD SYNC
+          Cloud Sync
         </div>
       `;
     }
@@ -250,7 +250,7 @@ export async function renderDashboardPage(container) {
       blockedW.innerHTML = `
         <div class="widget-title" style="${
           UI_TOKENS.TEXT.WIDGET_LABEL
-        }">DNS BLOCKS</div>
+        }">Dns Blocks</div>
         <div style="${
           UI_TOKENS.TEXT.STAT
         }">${cloudBlockedQueries.toLocaleString()}</div>
@@ -298,7 +298,7 @@ export async function renderDashboardPage(container) {
             `.rule-item[data-domain="${d.domain}"]`,
           ) as HTMLElement;
           const badgeHtml = isBlocked
-            ? '<div style="font-size:9px; font-weight:900; color:var(--red); background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); border-radius:6px; padding:3px 7px; text-transform:uppercase; letter-spacing:0.5px;">BLOCKED</div>'
+            ? '<div style="font-size:9px; font-weight:900; color:var(--red); background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); border-radius:6px; padding:3px 7px; text-transform:uppercase; letter-spacing:0.5px;">Blocked</div>'
             : `<button class="quick-block-btn" data-domain="${d.domain}" title="Block ${d.domain}" style="width:26px; height:26px; border-radius:8px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); color:var(--accent); font-size:16px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0;">+</button>`;
           const statusLabelHtml = `<span style="opacity: 0.7;">${
             d.sessions || 0

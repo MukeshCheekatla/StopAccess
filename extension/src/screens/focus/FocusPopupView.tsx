@@ -178,7 +178,7 @@ export function FocusPopupView() {
         <div style={{ ...UI_TOKENS.TEXT.R.LABEL, color: '#84ffe4' }}>
           IGNITE DEEP FOCUS
         </div>
-        <div style={UI_TOKENS.TEXT.R.CARD_TITLE}>READY TO START</div>
+        <div style={UI_TOKENS.TEXT.R.CARD_TITLE}>Ready TO START</div>
       </div>
       <div className="fg-relative fg-mb-6 fg-flex fg-h-48 fg-w-48 fg-items-center fg-justify-center fg-opacity-30">
         <svg

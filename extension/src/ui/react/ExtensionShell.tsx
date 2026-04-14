@@ -53,22 +53,28 @@ export function PopupShell<T extends string>({
     <div className="fg-main fg-shell-bg fg-flex fg-flex-col fg-h-screen fg-w-screen fg-overflow-hidden fg-text-[var(--text)]">
       {passHud}
       <div className="fg-flex fg-items-center fg-gap-2 fg-px-4 fg-py-3 fg-bg-[rgba(0,0,0,0.1)] fg-overflow-x-auto fg-no-scrollbar fg-z-50">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            className={`fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-lg fg-whitespace-nowrap fg-transition-all fg-duration-150 active:fg-scale-95 ${
-              activeTab === tab.id
-                ? 'fg-bg-[var(--accent)] fg-text-[#fefefe]'
-                : 'fg-bg-[var(--fg-glass-bg)] fg-text-[var(--muted)] hover:fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface)]'
-            }`}
-            style={{ ...UI_TOKENS.TEXT.R.LABEL, color: undefined }}
-            data-tab={tab.id}
-            onClick={() => onTabChange(tab.id)}
-            type="button"
-          >
-            {tab.label}
-          </button>
-        ))}
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          // Omit color from style to let tailwind classes handle it (crucial for theme flipping)
+          const { color, ...styleWithoutColor } = UI_TOKENS.TEXT.R.LABEL;
+
+          return (
+            <button
+              key={tab.id}
+              className={`fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-lg fg-whitespace-nowrap fg-transition-all fg-duration-150 active:fg-scale-95 ${
+                isActive
+                  ? 'fg-bg-[var(--accent)] fg-text-white'
+                  : 'fg-bg-[var(--fg-glass-bg)] fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface)]'
+              }`}
+              style={styleWithoutColor as any}
+              data-tab={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          );
+        })}
 
         <div className="fg-ml-auto fg-flex fg-items-center fg-gap-3">
           <span
@@ -80,8 +86,8 @@ export function PopupShell<T extends string>({
                 status.tone === 'active'
                   ? 'fg-bg-white fg-animate-pulse'
                   : status.tone === 'error'
-                  ? 'fg-bg-[var(--red)]'
-                  : 'fg-bg-[var(--muted)]'
+                  ? 'fg-bg-white'
+                  : 'fg-bg-[var(--fg-muted)]'
               }`}
             />
             {status.label}

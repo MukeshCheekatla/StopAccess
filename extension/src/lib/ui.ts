@@ -48,7 +48,6 @@ const TOKEN_DEFS = {
     fontSize: '10px',
     fontWeight: '800',
     letterSpacing: '0.06em',
-    textTransform: 'uppercase' as const,
   },
   STAT: {
     fontSize: '24px',
@@ -69,7 +68,6 @@ const TOKEN_DEFS = {
     fontSize: '11px',
     fontWeight: '600',
     color: 'var(--fg-muted)',
-    textTransform: 'uppercase' as const,
     letterSpacing: '0.08em',
     lineHeight: '1.4',
   },
@@ -286,7 +284,7 @@ export function renderTableProgress(
     return '<span style="font-size: 10px; font-weight: 700; color: var(--fg-muted); letter-spacing: 0.04em;">—</span>';
   }
   if (limit <= 0) {
-    return '<span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; background: rgba(255,59,48,0.1); color: var(--red);">Instant</span>';
+    return '<span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.08em;  padding: 3px 8px; border-radius: 6px; background: rgba(255,59,48,0.1); color: var(--red);">Instant</span>';
   }
 
   const percent = Math.min(100, Math.max(0, (used / limit) * 100));
@@ -609,7 +607,7 @@ export function applyCardToggleUI(
  */
 export function renderLoader(label = '', padding = 'fg-p-10'): string {
   const text = label
-    ? `<div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-4 fg-uppercase fg-tracking-[2px] fg-animate-pulse">${label}</div>`
+    ? `<div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-4  fg-tracking-[2px] fg-animate-pulse">${label}</div>`
     : '';
   return `
     <div class="fg-flex fg-flex-col fg-items-center fg-justify-center ${padding}">
@@ -642,10 +640,10 @@ export function renderEmptyState(message: string): string {
 // ─────────────────────────────────────────────
 
 /**
- * Render a small pill badge (e.g. "3 ACTIVE", "2/7 ACTIVE").
- * Replaces the repeated `fg-font-black fg-uppercase fg-tracking fg-rounded-full` pattern.
+ * Render a small pill badge (e.g. "3 Active", "2/7 Active").
+ * Replaces the repeated `fg-font-black  fg-tracking fg-rounded-full` pattern.
  *
- * @param label  The badge text, e.g. "${count} ACTIVE"
+ * @param label  The badge text, e.g. "${count} Active"
  * @param color  'default' (glass) | 'red' | 'green' | 'accent'
  */
 export function renderSectionBadge(
@@ -661,7 +659,7 @@ export function renderSectionBadge(
     accent:
       'background: rgba(99,102,241,0.12); color: var(--fg-accent); border: 1px solid rgba(99,102,241,0.2);',
   };
-  return `<span style="font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 10px; border-radius: 100px; ${styles[color]}">${label}</span>`;
+  return `<span style="font-size: 10px; font-weight: 800; letter-spacing: 0.06em;  padding: 3px 10px; border-radius: 100px; ${styles[color]}">${label}</span>`;
 }
 
 // ─────────────────────────────────────────────
@@ -738,6 +736,10 @@ export function renderInfoTooltip(tooltipText: string): string {
     return '';
   }
   return `
-    <div class="fg-tooltip fg-info-icon" data-tooltip="${tooltipText}">i</div>
+    <div class="fg-tooltip fg-inline-flex fg-items-center fg-justify-center fg-rounded-full fg-transition-colors fg-cursor-help" 
+         data-tooltip="${tooltipText}"
+         style="width: 14px; height: 14px; background: rgba(255, 255, 255, 0.05); color: var(--fg-muted); font-size: 0; margin-left: 6px; vertical-align: middle;">
+      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+    </div>
   `;
 }

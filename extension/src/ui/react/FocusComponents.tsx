@@ -19,7 +19,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const base =
-    'fg-inline-flex fg-items-center fg-justify-center fg-gap-2 fg-font-black fg-tracking-[0.14em] fg-uppercase fg-border-0 fg-outline-none fg-shadow-none [appearance:none] disabled:fg-opacity-50 disabled:fg-pointer-events-none';
+    'fg-inline-flex fg-items-center fg-justify-center fg-gap-2 fg-font-black fg-tracking-[0.14em]  fg-border-0 fg-outline-none fg-shadow-none [appearance:none] disabled:fg-opacity-50 disabled:fg-pointer-events-none';
 
   const variants = {
     primary: 'fg-bg-[var(--accent)] fg-text-white hover:fg-bg-[#3b3b43]',
@@ -89,7 +89,7 @@ export function Stat({
 }) {
   return (
     <div className={`fg-flex fg-flex-col fg-gap-1 ${className}`}>
-      <div className="fg-text-[10px] fg-font-black fg-text-slate-400 fg-uppercase fg-tracking-[0.2em]">
+      <div className="fg-text-[10px] fg-font-black fg-text-slate-400  fg-tracking-[0.2em]">
         {label}
       </div>
       <div className="fg-flex fg-items-baseline fg-gap-2">
@@ -133,7 +133,7 @@ export function Modal({
       />
       <div className="fg-panel fg-relative fg-w-full fg-max-w-xl fg-rounded-[16px] fg-p-8">
         <div className="fg-text-center fg-mb-6">
-          <div className="fg-text-sm fg-font-black fg-text-white fg-uppercase fg-tracking-[0.24em] fg-mb-2">
+          <div className="fg-text-sm fg-font-black fg-text-white  fg-tracking-[0.24em] fg-mb-2">
             {title}
           </div>
           {description && (

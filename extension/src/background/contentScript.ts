@@ -197,7 +197,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
           </svg>
           <div class="fg-absolute fg-inset-0 fg-flex fg-flex-col fg-items-center fg-justify-center fg-gap-1">
             <div class="fg-text-2xl sm:fg-text-3xl fg-font-bold fg-tracking-tight fg-tabular-nums" id="__fg_live_time">${timeStr}</div>
-            <div class="fg-text-[10px] fg-font-semibold fg-text-zinc-500 fg-uppercase fg-tracking-widest">
+            <div class="fg-text-[10px] fg-font-semibold fg-text-zinc-500  fg-tracking-widest">
               ${isLimitMode ? 'used today' : 'screen time'}
             </div>
           </div>
@@ -209,17 +209,17 @@ function buildOverlayMarkup(domain, options: any = {}) {
         <div class="fg-grid fg-grid-cols-3 fg-gap-px fg-w-full fg-bg-zinc-800 fg-rounded-2xl fg-overflow-hidden fg-mb-6 sm:fg-mb-8 fg-border fg-border-zinc-800">
           <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
             <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${sessions}</div>
-            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600 fg-uppercase fg-tracking-wider">Sessions</div>
+            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600  fg-tracking-wider">Sessions</div>
           </div>
           <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
             <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${
               isLimitMode ? remaining + 'm' : '—'
             }</div>
-            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600 fg-uppercase fg-tracking-wider">Remaining</div>
+            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600  fg-tracking-wider">Remaining</div>
           </div>
           <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
             <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${extensionCount}/${maxExtensions}</div>
-            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600 fg-uppercase fg-tracking-wider">Passes</div>
+            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600  fg-tracking-wider">Passes</div>
           </div>
         </div>
 
@@ -228,7 +228,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
             ? `
           <div class="fg-w-full fg-p-4 sm:fg-p-5 fg-bg-zinc-900/50 fg-border fg-border-zinc-800 fg-rounded-[20px] fg-mb-4">
             <div class="fg-flex fg-items-center fg-justify-between fg-mb-4">
-              <div class="fg-text-[13px] sm:fg-text-sm fg-font-black fg-text-zinc-300">REQUEST TEMPORARY ACCESS</div>
+              <div class="fg-text-[13px] sm:fg-text-sm fg-font-black fg-text-zinc-300">Request Temporary Access</div>
               <div class="fg-text-[10px] fg-font-bold fg-text-zinc-500 fg-bg-zinc-800/50 fg-px-2 fg-py-0.5 fg-rounded-full">
                 ${maxExtensions - extensionCount} left
               </div>
@@ -250,7 +250,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
         }
 
         <button class="fg-back fg-w-full fg-p-4 fg-border fg-border-zinc-800 fg-rounded-xl fg-bg-transparent fg-text-zinc-400 fg-text-sm fg-font-black fg-transition-all hover:fg-bg-white/5 active:fg-scale-[0.98]">
-          &larr; COMPLY AND RETURN
+          &larr; Comply And Return
         </button>
       </div>
     </div>

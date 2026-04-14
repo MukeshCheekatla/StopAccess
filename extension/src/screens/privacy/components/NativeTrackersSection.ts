@@ -83,7 +83,7 @@ export function renderNativeTrackersSection(
         iconWifi,
         'var(--accent)',
         'Native Tracking Protection',
-        renderSectionBadge(`${activeIds.size} ACTIVE`),
+        renderSectionBadge(`${activeIds.size} Active`),
       )}
 
       <div style="${

@@ -285,11 +285,11 @@ function _renderCloudRequiredBanner(): string {
 function _renderError(container: HTMLElement, e: any): void {
   container.innerHTML = `
     <div class="glass-card fg-p-12 fg-text-center fg-mx-auto fg-mt-12" style="max-width: 440px; background: #1a1c1e; border: 1px solid rgba(255,100,100,0.2); border-radius: 20px;">
-      <div class="fg-text-lg fg-font-black fg-mb-2">ACCESS DENIED</div>
+      <div class="fg-text-lg fg-font-black fg-mb-2">Access Denied</div>
       <div class="fg-text-xs fg-text-[var(--fg-muted)] fg-mb-8">${
         e.message || 'Identity verification failed'
       }</div>
-      <button class="btn-premium fg-mx-auto fg-w-full" onclick="location.reload()" style="height: 56px; border-radius: 12px; background: var(--fg-accent); color: white; font-weight: 900;">RETRY ACCESS</button>
+      <button class="btn-premium fg-mx-auto fg-w-full" onclick="location.reload()" style="height: 56px; border-radius: 12px; background: var(--fg-accent); color: white; font-weight: 900;">Retry Access</button>
     </div>
   `;
 }
@@ -297,12 +297,12 @@ function _renderError(container: HTMLElement, e: any): void {
 function _renderPopup(container: HTMLElement): void {
   container.innerHTML = `
     <div class="fg-flex fg-justify-between fg-items-center fg-mb-4 fg-px-1">
-       <div class="fg-text-[10px] fg-font-black fg-text-[var(--fg-muted)] fg-uppercase fg-tracking-[1.5px]">RECREATION</div>
+       <div class="fg-text-[10px] fg-font-black fg-text-[var(--fg-muted)]  fg-tracking-[1.5px]">Recreation</div>
     </div>
     <div class="glass-card fg-p-5 fg-text-center" style="border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: #1a1c1e;">
        <div class="fg-text-xs fg-font-bold fg-text-white/80">Independent Cloud Scheduling</div>
     </div>
-    <button class="btn-premium fg-w-full fg-mt-6 fg-text-[11px]" id="btn_full_schedule" style="height: 48px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: white; font-weight: 800;">OPEN CLOUD HUB</button>
+    <button class="btn-premium fg-w-full fg-mt-6 fg-text-[11px]" id="btn_full_schedule" style="height: 48px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: white; font-weight: 800;">Open Cloud Hub</button>
   `;
   container
     .querySelector('#btn_full_schedule')

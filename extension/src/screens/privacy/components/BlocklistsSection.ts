@@ -57,7 +57,7 @@ export function renderBlocklistsSection(
         iconList,
         '#818cf8',
         'Ad &amp; Tracker Blocklists',
-        renderSectionBadge(`${activeIds.size} ACTIVE`),
+        renderSectionBadge(`${activeIds.size} Active`),
       )}
 
       <div class="fg-flex fg-items-center fg-gap-3 fg-mb-6">
@@ -73,7 +73,7 @@ export function renderBlocklistsSection(
             style="color: var(--fg-text);"
           >
         </div>
-        <button id="open-blocklist-drawer" class="fg-px-5 fg-py-3 fg-rounded-2xl fg-text-[11px] fg-font-black fg-uppercase fg-tracking-widest fg-transition-all hover:fg-opacity-80"
+        <button id="open-blocklist-drawer" class="fg-px-5 fg-py-3 fg-rounded-2xl fg-text-[11px] fg-font-black  fg-tracking-widest fg-transition-all hover:fg-opacity-80"
           style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text);">
           + Add Filter
         </button>
@@ -100,7 +100,7 @@ export function renderBlocklistsSection(
             }; color: #818cf8; margin-bottom: 4px; letter-spacing: 3px;">Discovery</div>
             <div style="${
               UI_TOKENS.TEXT.HERO
-            }; color: white; font-size: 1.5rem;">Blocklist Library</div>
+            }; color: var(--fg-text); font-size: 1.5rem;">Blocklist Library</div>
           </div>
           <button id="close-blocklist-drawer" class="fg-p-3 fg-rounded-2xl hover:fg-bg-white/[0.05] fg-text-[var(--muted)] fg-transition-all">
             ${iconClose}
@@ -136,7 +136,7 @@ export function renderBlocklistsSection(
         <!-- Footer -->
         <div class="fg-px-8 fg-py-5 fg-bg-[var(--fg-glass-bg)] fg-border-t fg-border-[var(--fg-glass-border)] fg-flex fg-justify-between fg-items-center">
           <div style="${UI_TOKENS.TEXT.LABEL}; opacity: 0.6;">
-            Total Library Score: <span style="color: white;">${
+            Total Library Score: <span style="color: var(--fg-text);">${
               available.length
             } Lists</span>
           </div>
@@ -291,7 +291,9 @@ function renderBlocklistCard(list: any, active: boolean): string {
           <div class="fg-flex fg-items-center fg-gap-1.5 fg-mb-[1px]">
             <div style="${
               UI_TOKENS.TEXT.CARD_TITLE
-            }; color: white;" class="fg-truncate">${escapeHtml(list.name)}</div>
+            }; color: var(--fg-text);" class="fg-truncate">${escapeHtml(
+    list.name,
+  )}</div>
           </div>
           <div style="${
             UI_TOKENS.TEXT.SUBTEXT
@@ -317,11 +319,11 @@ function renderBlocklistCard(list: any, active: boolean): string {
       <div class="fg-mt-auto fg-flex fg-items-center fg-gap-3 fg-pt-2 fg-border-t fg-border-[var(--fg-glass-border)]">
         <div class="fg-flex fg-items-center fg-gap-1">
           <span class="fg-text-[var(--fg-text)] fg-opacity-40">${iconDatabase}</span>
-          <span class="fg-text-[11px] fg-font-black fg-text-white/90">${entriesStr}</span>
+          <span class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-90">${entriesStr}</span>
         </div>
         <div class="fg-flex fg-items-center fg-gap-1">
           <span class="fg-text-[var(--fg-text)] fg-opacity-40">${iconRefresh}</span>
-          <span class="fg-text-[10px] fg-font-bold fg-text-white/70">${updatedStr}</span>
+          <span class="fg-text-[10px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-70">${updatedStr}</span>
         </div>
       </div>
     </div>
@@ -353,19 +355,19 @@ function renderBlocklistRow(list: any, active: boolean): string {
       <div class="fg-flex-1 fg-min-w-0">
         <div class="fg-flex fg-items-center fg-justify-between fg-mb-1.5">
           <div class="fg-flex fg-items-center fg-gap-3">
-             <div class="fg-text-[17px] fg-font-black fg-text-white">${escapeHtml(
+             <div class="fg-text-[17px] fg-font-black fg-text-[var(--fg-text)]">${escapeHtml(
                list.name,
              )}</div>
              ${
                active
-                 ? '<span class="fg-bg-[#4f46e5]/[0.15] fg-text-[#4f46e5] fg-text-[9px] fg-font-black fg-uppercase fg-tracking-widest fg-px-2 fg-py-0.5 fg-rounded-md">Active</span>'
+                 ? '<span class="fg-bg-[#4f46e5]/[0.15] fg-text-[#4f46e5] fg-text-[9px] fg-font-black  fg-tracking-widest fg-px-2 fg-py-0.5 fg-rounded-md">Active</span>'
                  : ''
              }
           </div>
           <button class="blocklist-toggle-btn ${
             active ? 'active' : ''
           }" data-id="${list.id}" data-active="${active}" 
-            style="padding: 6px 16px; border-radius: 8px; font-size: 11px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; 
+            style="padding: 6px 16px; border-radius: 8px; font-size: 11px; font-weight: 900; letter-spacing: 0.1em;  
             background: ${
               active ? '#ef4444' : '#3b82f6'
             }; color: white; border: none; transition: all 0.2s;">
@@ -384,9 +386,9 @@ function renderBlocklistRow(list: any, active: boolean): string {
         }; text-transform: none; font-weight: 500; opacity: 0.7;">
           ${websiteHtml}
           ${domain ? '<span class="fg-opacity-40 fg-mx-1.5">•</span>' : ''}
-          <span style="color: rgba(255,255,255,0.8);">${entriesRaw.toLocaleString()} entries</span>
+          <span style="color: var(--fg-text); opacity: 0.8;">${entriesRaw.toLocaleString()} entries</span>
           <span class="fg-opacity-40 fg-mx-1.5">•</span>
-          <span style="color: rgba(255,255,255,0.8);">Updated ${updatedStr}</span>
+          <span style="color: var(--fg-text); opacity: 0.8;">Updated ${updatedStr}</span>
         </div>
       </div>
     </div>
