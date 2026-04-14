@@ -25,6 +25,20 @@ export function evaluateRules({
 
   for (const r of rules) {
     let shouldBlock = false;
+    let isLimitHit = false;
+
+    if (r.mode === 'limit') {
+      const limit = r.dailyLimitMinutes || 0;
+      const used = r.usedMinutesToday || 0;
+      if (limit > 0 && used >= limit) {
+        shouldBlock = true;
+        isLimitHit = true;
+      }
+      // Preserve already-blocked state (set by saveUsage) across engine cycles
+      if (r.blockedToday === true) {
+        shouldBlock = true;
+      }
+    }
 
     if (focusEndTime && Number(focusEndTime) > now.getTime()) {
       shouldBlock = true;
@@ -34,19 +48,7 @@ export function evaluateRules({
       shouldBlock = true;
     }
 
-    if (r.mode === 'limit') {
-      const limit = r.dailyLimitMinutes || 0;
-      const used = r.usedMinutesToday || 0;
-      if (limit > 0 && used >= limit) {
-        shouldBlock = true;
-      }
-      // Preserve already-blocked state (set by saveUsage) across engine cycles
-      if (r.blockedToday === true) {
-        shouldBlock = true;
-      }
-    }
-
-    const updated = { ...r, blockedToday: shouldBlock };
+    const updated = { ...r, blockedToday: shouldBlock, isLimitHit };
     if (shouldBlock) {
       masterBlockList.set(r.packageName || r.appName, updated);
     }
@@ -59,7 +61,18 @@ export function evaluateRules({
     }
     const [sh, sm] = s.startTime.split(':').map(Number);
     const [eh, em] = s.endTime.split(':').map(Number);
-    if (currentMin >= sh * 60 + sm && currentMin < eh * 60 + em) {
+    const startMins = sh * 60 + sm;
+    const endMins = eh * 60 + em;
+
+    let isActive = false;
+    if (startMins <= endMins) {
+      isActive = currentMin >= startMins && currentMin < endMins;
+    } else {
+      // Schedule spans across midnight
+      isActive = currentMin >= startMins || currentMin < endMins;
+    }
+
+    if (isActive) {
       if (!s.appNames || s.appNames.length === 0) {
         for (const [name, rule] of rulesByPackage.entries()) {
           masterBlockList.set(name, { ...rule, blockedToday: true });
@@ -99,11 +112,7 @@ export async function runFullEngineCycle(ctx: SyncContext, now = new Date()) {
     if (notifications) {
       for (const rule of updatedRules) {
         const original = rules.find((r) => r.packageName === rule.packageName);
-        if (
-          rule.blockedToday &&
-          !original?.blockedToday &&
-          rule.mode === 'limit'
-        ) {
+        if (rule.isLimitHit && !original?.isLimitHit && rule.mode === 'limit') {
           notifications.notifyBlocked(rule.appName);
         }
       }

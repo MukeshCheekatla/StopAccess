@@ -1,5 +1,7 @@
 import { getLockedTargets } from './sessionGuard';
 
+let pendingDNRTimer: ReturnType<typeof setTimeout> | null = null;
+
 export async function syncDNRRules(domains: string[]) {
   if (!Array.isArray(domains)) {
     return { ok: false, error: 'Invalid domains list' };
@@ -62,13 +64,17 @@ export async function syncDNRRules(domains: string[]) {
       },
     }));
 
-    const oldRules = await chrome.declarativeNetRequest.getDynamicRules();
-
     // Delay DNR block by 2 seconds to allow the page and block overlay to load first
-    setTimeout(async () => {
+    if (pendingDNRTimer) {
+      clearTimeout(pendingDNRTimer);
+    }
+
+    pendingDNRTimer = setTimeout(async () => {
       try {
+        const currentRules =
+          await chrome.declarativeNetRequest.getDynamicRules();
         await chrome.declarativeNetRequest.updateDynamicRules({
-          removeRuleIds: oldRules.map((r) => r.id),
+          removeRuleIds: currentRules.map((r) => r.id),
           addRules: netRules as any,
         });
         console.log(

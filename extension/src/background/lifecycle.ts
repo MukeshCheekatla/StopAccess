@@ -26,6 +26,30 @@ import {
 // --- Local-First Tracking State ---
 let sync = null;
 let isRunningCycle = false;
+let isResetting = false;
+
+// Async Mutex to prevent usage storage clobbering during rapid tab switching
+let isStorageLocked = false;
+const storageQueue: (() => void)[] = [];
+
+async function withStorageLock<T>(task: () => Promise<T>): Promise<T> {
+  if (isStorageLocked) {
+    await new Promise<void>((resolve) => storageQueue.push(resolve));
+  }
+  isStorageLocked = true;
+  try {
+    return await task();
+  } finally {
+    if (storageQueue.length > 0) {
+      const next = storageQueue.shift();
+      if (next) {
+        next();
+      }
+    } else {
+      isStorageLocked = false;
+    }
+  }
+}
 
 const ACTIVE_TAB_KEY = 'active_tab_state';
 
@@ -99,16 +123,24 @@ async function saveUsage(domain, durationMs) {
     return;
   }
 
-  // 1. Raw Accumulated Usage
-  const res = await chrome.storage.local.get([STORAGE_KEYS.USAGE]);
-  const usage = res[STORAGE_KEYS.USAGE] || {};
+  // CRITICAL: Ensure day has not changed before saving usage
+  await performDailyReset();
 
-  if (!usage[domain]) {
-    usage[domain] = { time: 0, sessions: 0 };
-  }
+  await performDailyReset();
 
-  usage[domain].time += durationMs;
-  await chrome.storage.local.set({ [STORAGE_KEYS.USAGE]: usage });
+  const usage = await withStorageLock(async () => {
+    // 1. Raw Accumulated Usage
+    const res = await chrome.storage.local.get([STORAGE_KEYS.USAGE]);
+    const u = res[STORAGE_KEYS.USAGE] || {};
+
+    if (!u[domain]) {
+      u[domain] = { time: 0, sessions: 0 };
+    }
+
+    u[domain].time += durationMs;
+    await chrome.storage.local.set({ [STORAGE_KEYS.USAGE]: u });
+    return u;
+  });
 
   // 2. Aggregate Snapshots (Dashboard Parity)
   const totalMs = Object.values(usage).reduce((a, b) => a + (b.time || 0), 0);
@@ -158,13 +190,18 @@ async function incrementSession(domain) {
   if (!domain) {
     return;
   }
-  const res = await chrome.storage.local.get([STORAGE_KEYS.USAGE]);
-  const usage = res[STORAGE_KEYS.USAGE] || {};
-  if (!usage[domain]) {
-    usage[domain] = { time: 0, sessions: 0 };
-  }
-  usage[domain].sessions += 1;
-  await chrome.storage.local.set({ [STORAGE_KEYS.USAGE]: usage });
+  await performDailyReset();
+  await performDailyReset();
+
+  await withStorageLock(async () => {
+    const res = await chrome.storage.local.get([STORAGE_KEYS.USAGE]);
+    const usage = res[STORAGE_KEYS.USAGE] || {};
+    if (!usage[domain]) {
+      usage[domain] = { time: 0, sessions: 0 };
+    }
+    usage[domain].sessions += 1;
+    await chrome.storage.local.set({ [STORAGE_KEYS.USAGE]: usage });
+  });
 }
 
 async function flushActiveTabUsage() {
@@ -240,6 +277,86 @@ async function initActiveTab() {
   }
 }
 
+async function performDailyReset() {
+  if (isResetting) {
+    return;
+  }
+
+  try {
+    const lastReset = await extensionAdapter.getString(STORAGE_KEYS.LAST_RESET);
+    const todayStr = new Date().toLocaleDateString('en-CA');
+
+    if (!lastReset || lastReset === todayStr) {
+      if (!lastReset) {
+        await extensionAdapter.set(STORAGE_KEYS.LAST_RESET, todayStr);
+      }
+      return;
+    }
+
+    isResetting = true;
+    extensionLogger.add('info', `Resetting day: ${lastReset} -> ${todayStr}`);
+
+    // 1. Archive previous day usage before clearing
+    const archiveRes = await chrome.storage.local.get([
+      STORAGE_KEYS.USAGE,
+      STORAGE_KEYS.USAGE_HISTORY,
+    ]);
+    const oldUsage = archiveRes[STORAGE_KEYS.USAGE] || {};
+    const usageHistory = archiveRes[STORAGE_KEYS.USAGE_HISTORY] || {};
+
+    usageHistory[lastReset] = oldUsage;
+
+    // Prune history to keep only last 30 days
+    const historyKeys = Object.keys(usageHistory).sort();
+    if (historyKeys.length > 30) {
+      delete usageHistory[historyKeys[0]];
+    }
+
+    // 2. Clear current day buckets
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.USAGE]: {},
+      [STORAGE_KEYS.USAGE_HISTORY]: usageHistory,
+      [STORAGE_KEYS.TEMP_PASSES]: {},
+      [STORAGE_KEYS.EXTENSION_COUNTS]: {},
+    });
+
+    // 3. Reset Rule State & Update Streaks
+    const currentRules = await getRules(extensionAdapter);
+    const resetRules = currentRules.map((r) => {
+      // Logic: Only increment streak if they kept the rule active (desiredBlockingState)
+      let nextStreak = r.streakDays || 0;
+      if (r.desiredBlockingState !== false) {
+        // Did we already update today? (safeguard)
+        if (r.streakUpdatedOn !== todayStr) {
+          nextStreak += 1;
+        }
+      } else {
+        nextStreak = 0; // Reset streak if protection was disabled
+      }
+
+      return {
+        ...r,
+        usedMinutesToday: 0,
+        blockedToday: false,
+        extensionCountToday: 0,
+        streakDays: nextStreak,
+        streakUpdatedOn: todayStr,
+        desiredBlockingState:
+          r.mode === 'limit' ? true : r.desiredBlockingState,
+      };
+    });
+
+    await saveRules(extensionAdapter, resetRules);
+    await extensionAdapter.set(STORAGE_KEYS.LAST_RESET, todayStr);
+
+    extensionLogger.add('info', `Daily reset complete for ${todayStr}`);
+  } catch (err) {
+    recordRuntimeError('daily_reset', err);
+  } finally {
+    isResetting = false;
+  }
+}
+
 // --- Sync & Engine Orchestration ---
 async function runCycle(forceSync = false) {
   if (isRunningCycle) {
@@ -248,59 +365,8 @@ async function runCycle(forceSync = false) {
   isRunningCycle = true;
 
   try {
+    await performDailyReset();
     await flushActiveTabUsage();
-    const lastReset = await extensionAdapter.getString(STORAGE_KEYS.LAST_RESET);
-    // Use local date string (YYYY-MM-DD) for more natural 12 AM reset
-    const todayStr = new Date().toLocaleDateString('en-CA');
-
-    if (lastReset && lastReset !== todayStr) {
-      // 1. Archive previous day usage before clearing
-      const archiveRes = await chrome.storage.local.get([
-        STORAGE_KEYS.USAGE,
-        STORAGE_KEYS.USAGE_HISTORY,
-      ]);
-      const oldUsage = archiveRes[STORAGE_KEYS.USAGE] || {};
-      const usageHistory = archiveRes[STORAGE_KEYS.USAGE_HISTORY] || {};
-
-      usageHistory[lastReset] = oldUsage; // Use the date the usage was actually recorded on
-
-      // Prune history to keep only last 3entries
-      const historyKeys = Object.keys(usageHistory).sort();
-      if (historyKeys.length > 30) {
-        delete usageHistory[historyKeys[0]];
-      }
-
-      await chrome.storage.local.set({
-        [STORAGE_KEYS.USAGE]: {},
-        [STORAGE_KEYS.USAGE_HISTORY]: usageHistory,
-      });
-
-      const currentRules = await getRules(extensionAdapter);
-      const resetRules = currentRules.map((r) => ({
-        ...r,
-        usedMinutesToday: 0,
-        blockedToday: false,
-        extensionCountToday: 0,
-        streakDays:
-          r.desiredBlockingState === false
-            ? 0
-            : (r.streakUpdatedOn || '') === todayStr
-            ? r.streakDays || 0
-            : (r.streakDays || 0) + 1,
-        streakUpdatedOn:
-          r.desiredBlockingState === false ? undefined : todayStr,
-        desiredBlockingState:
-          r.mode === 'limit' ? true : r.desiredBlockingState,
-      }));
-      await saveRules(extensionAdapter, resetRules);
-      // Clean temp passes and extension counts
-      await chrome.storage.local.set({
-        [STORAGE_KEYS.TEMP_PASSES]: {},
-        [STORAGE_KEYS.EXTENSION_COUNTS]: {},
-      });
-      await extensionAdapter.set(STORAGE_KEYS.LAST_RESET, todayStr);
-      extensionLogger.add('info', `Daily reset performed for ${todayStr}`);
-    }
 
     const cfg = await chrome.storage.local.get([
       STORAGE_KEYS.PROFILE_ID,

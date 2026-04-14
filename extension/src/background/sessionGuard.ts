@@ -71,9 +71,20 @@ export async function getLockedTargets(): Promise<{
     return { denylist: [], services: [], categories: [] };
   }
 
-  return (
-    session.blockedAtStart || { denylist: [], services: [], categories: [] }
-  );
+  const locked = session.blockedAtStart || {
+    denylist: [],
+    services: [],
+    categories: [],
+  };
+
+  // Also lock everything that we are explicitly blocking for THIS session
+  if (session.blockedDomains && Array.isArray(session.blockedDomains)) {
+    locked.denylist = Array.from(
+      new Set([...locked.denylist, ...session.blockedDomains]),
+    );
+  }
+
+  return locked;
 }
 
 /**

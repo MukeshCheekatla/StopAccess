@@ -1,4 +1,4 @@
-import { FocusSessionRecord, NextDNSEntity } from '@stopaccess/types';
+import { FocusSessionRecord } from '@stopaccess/types';
 import { syncDNRRules } from './dnrAdapter';
 import { nextDNSApi } from './platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
@@ -19,26 +19,25 @@ export async function startSession(config: {
   }
 
   // 1. Snapshot current NextDNS state for the guard
-  let blockedAtStart = { denylist: [], services: [], categories: [] };
-  try {
-    const snapshotRes = await nextDNSApi.getRemoteSnapshot();
-    const data = snapshotRes.ok
-      ? snapshotRes.data
-      : { denylist: [], services: [], categories: [] };
-    blockedAtStart = {
-      denylist: (data.denylist || [])
-        .filter((d: NextDNSEntity) => d.active)
-        .map((d: NextDNSEntity) => d.id),
-      services: (data.services || [])
-        .filter((s: NextDNSEntity) => s.active)
-        .map((s: NextDNSEntity) => s.id),
-      categories: (data.categories || [])
-        .filter((c: NextDNSEntity) => c.active)
-        .map((c: NextDNSEntity) => c.id),
-    };
-  } catch (e) {
-    console.warn('[StopAccess] Could not snapshot NextDNS state:', e);
+  const snapshotRes = await nextDNSApi.getRemoteSnapshot();
+  if (!snapshotRes.ok) {
+    throw new Error(
+      'Failed to snapshot NextDNS state. Session aborted for safety.',
+    );
   }
+
+  const data = snapshotRes.data;
+  const blockedAtStart = {
+    denylist: (data.denylist || [])
+      .filter((d: any) => d.active)
+      .map((d: any) => d.id),
+    services: (data.services || [])
+      .filter((s: any) => s.active)
+      .map((s: any) => s.id),
+    categories: (data.categories || [])
+      .filter((c: any) => c.active)
+      .map((c: any) => c.id),
+  };
 
   // 2. Enable NextDNS block bypass if requested
   if (config.enableBlockBypass) {
@@ -138,22 +137,7 @@ export async function endSession(
  */
 async function toggleBlockBypass(enabled: boolean) {
   try {
-    const cfg = await nextDNSApi.getConfig();
-    if (!cfg.profileId || !cfg.apiKey) {
-      return;
-    }
-
-    await fetch(
-      `https://api.nextdns.io/profiles/${cfg.profileId}/parentalControl`,
-      {
-        method: 'PATCH',
-        headers: {
-          'X-Api-Key': cfg.apiKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ blockBypass: enabled }),
-      },
-    );
+    await nextDNSApi.patchParentalControl({ blockBypass: enabled });
     console.log(`[StopAccess] NextDNS blockBypass set to: ${enabled}`);
   } catch (e) {
     console.warn('[StopAccess] Failed to toggle blockBypass:', e);

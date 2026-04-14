@@ -249,6 +249,20 @@ export class NextDNSClient implements NextDNSApiClient {
   }
 
   // --- Composite Block Logic ---
+  async setTargetState(
+    kind: 'service' | 'category' | 'domain',
+    id: string,
+    active: boolean,
+  ) {
+    if (kind === 'service') {
+      return active ? this.addServiceItem(id) : this.removeServiceItem(id);
+    }
+    if (kind === 'category') {
+      return active ? this.addCategoryItem(id) : this.removeCategoryItem(id);
+    }
+    return active ? this.addDenylistItem(id) : this.removeDenylistItem(id);
+  }
+
   async blockApps(
     rulesToBlock: AppRule[],
   ): Promise<{ ok: boolean; error?: string; domains?: string[] }> {

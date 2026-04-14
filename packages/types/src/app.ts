@@ -22,6 +22,7 @@ export interface AppRule {
   maxDailyPasses?: number;
   streakDays?: number;
   streakUpdatedOn?: string;
+  isLimitHit?: boolean;
 }
 
 export interface AppUsageStat {

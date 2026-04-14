@@ -10,7 +10,8 @@ export class SyncOrchestrator {
   adapter: NextDNSSyncAdapter;
   syncTimer: ReturnType<typeof setTimeout> | null = null;
   isSyncing = false;
-  pendingSync = false;
+  pendingSyncRequested = false;
+  pendingSyncForcePush = false;
 
   constructor(engineCtx: SyncContext) {
     this.ctx = engineCtx;
@@ -22,7 +23,10 @@ export class SyncOrchestrator {
       return;
     }
     if (this.isSyncing) {
-      this.pendingSync = true;
+      this.pendingSyncRequested = true;
+      if (forcePush) {
+        this.pendingSyncForcePush = true;
+      }
       return;
     }
     this.isSyncing = true;
@@ -95,9 +99,11 @@ export class SyncOrchestrator {
       await this.recordError({ code: 'unknown', message: e.message });
     } finally {
       this.isSyncing = false;
-      if (this.pendingSync) {
-        this.pendingSync = false;
-        await this.performSync(forcePush, depth + 1);
+      if (this.pendingSyncRequested) {
+        this.pendingSyncRequested = false;
+        const nextForcePush = this.pendingSyncForcePush;
+        this.pendingSyncForcePush = false;
+        await this.performSync(nextForcePush, depth + 1);
       }
     }
   }
