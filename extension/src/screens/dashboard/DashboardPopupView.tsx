@@ -148,7 +148,7 @@ export function DashboardPopupView() {
             <div style={{ ...UI_TOKENS.TEXT.R.LABEL, opacity: 0.6 }}>
               No activity yet
             </div>
-            <div className="fg-mt-2 fg-text-xs fg-font-medium fg-leading-relaxed fg-text-slate-500">
+            <div className="fg-mt-2 fg-text-[12px] fg-font-medium fg-leading-relaxed fg-text-slate-400">
               Open a few sites and the popup will start summarizing your day.
             </div>
           </div>

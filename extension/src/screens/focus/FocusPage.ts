@@ -92,9 +92,9 @@ function renderTodayRecords(): string {
 
       return `
         <div class="fg-grid fg-items-center fg-gap-[14px] fg-py-[14px]" style="grid-template-columns:56px 1fr auto; border-top:1px solid rgba(255,255,255,0.06);">
-          <div class="fg-text-xs" style="color: rgba(255,255,255,0.4);">${start}</div>
+          <div class="fg-text-[12px] fg-font-medium" style="color: rgba(255,255,255,0.5);">${start}</div>
           <div style="height:1px; background:rgba(255,255,255,0.08);"></div>
-          <div class="fg-text-xs fg-font-bold" style="color:${tone};">${duration}</div>
+          <div class="fg-text-[12px] fg-font-bold" style="color:${tone};">${duration}</div>
         </div>
       `;
     })
@@ -588,7 +588,7 @@ function _renderIdlePopup(container: HTMLElement): void {
     <div class="focus-container" style="padding: 10px 0;">
       <div style="text-align: center; margin-bottom: 24px;">
         <div class="widget-title" style="color: rgba(255,255,255,0.9); font-size: 14px;">IGNITE DEEP FOCUS</div>
-        <div style="font-size: 10px; color: rgba(255,255,255,0.5); font-weight: 600; margin-top: 4px;">Blocks synced across devices.</div>
+        <div style="font-size: 12px; color: rgba(255,255,255,0.55); font-weight: 500; margin-top: 4px;">Blocks synced across devices.</div>
       </div>
 
       <div class="focus-presets" style="gap: 10px;">
@@ -602,7 +602,7 @@ function _renderIdlePopup(container: HTMLElement): void {
             (p) => `
           <div class="focus-preset-card start-focus" data-mins="${p.m}" style="padding: 14px 10px;">
             <div class="focus-preset-time" style="font-size: 1.1rem;">${p.m}M</div>
-            <div class="focus-preset-tag" style="font-size: 8px;">${p.tag}</div>
+            <div class="focus-preset-tag" style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;">${p.tag}</div>
           </div>
         `,
           )

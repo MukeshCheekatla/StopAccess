@@ -145,14 +145,23 @@
     padding: 28px 40px 40px;
   }
 
+  /* ── Global Readability Baseline — single source of truth ──────────────────
+     All tiny Tailwind text classes get bumped to a minimum readable floor here.
+     DO NOT scatter font-size overrides across individual components; add them
+     here instead so the whole extension is fixed in one place.
+  ──────────────────────────────────────────────────────────────────────── */
+
+  /* Popup: tiny text bump (8px / 9px → 12px) */
+  .fg-shell-bg .fg-text-\[8px\],
   .fg-shell-bg .fg-text-\[9px\],
   .fg-shell-bg .fg-text-\[10px\],
   .fg-shell-bg .fg-text-\[11px\],
+  .is-full-page .fg-shell-content .fg-text-\[8px\],
   .is-full-page .fg-shell-content .fg-text-\[9px\],
   .is-full-page .fg-shell-content .fg-text-\[10px\],
   .is-full-page .fg-shell-content .fg-text-\[11px\] {
     font-size: 12px !important;
-    line-height: 1.45 !important;
+    line-height: 1.5 !important;
   }
 
   .fg-shell-bg .fg-text-xs,
@@ -161,15 +170,17 @@
     line-height: 1.5 !important;
   }
 
+  /* Opacity: floor low-opacity muted text so it stays legible */
   .fg-shell-bg .fg-opacity-30,
   .fg-shell-bg .fg-opacity-40,
   .fg-shell-bg .fg-opacity-50,
   .is-full-page .fg-shell-content .fg-opacity-30,
   .is-full-page .fg-shell-content .fg-opacity-40,
   .is-full-page .fg-shell-content .fg-opacity-50 {
-    opacity: 0.72 !important;
+    opacity: 0.65 !important;
   }
 
+  /* Muted colour classes: ensure minimum font-weight for legibility */
   .fg-shell-bg .fg-text-\[var\(--fg-muted\)\],
   .fg-shell-bg .fg-text-\[var\(--muted\)\],
   .is-full-page .fg-shell-content .fg-text-\[var\(--fg-muted\)\],

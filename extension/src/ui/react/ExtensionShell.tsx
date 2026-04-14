@@ -61,7 +61,7 @@ export function PopupShell<T extends string>({
                 ? 'fg-bg-[var(--accent)] fg-text-[#fefefe]'
                 : 'fg-bg-[var(--fg-glass-bg)] fg-text-[var(--muted)] hover:fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface)]'
             }`}
-            style={{ ...UI_TOKENS.TEXT.R.LABEL, color: 'inherit' }}
+            style={{ ...UI_TOKENS.TEXT.R.LABEL, color: undefined }}
             data-tab={tab.id}
             onClick={() => onTabChange(tab.id)}
             type="button"
@@ -73,7 +73,7 @@ export function PopupShell<T extends string>({
         <div className="fg-ml-auto fg-flex fg-items-center fg-gap-3">
           <span
             className={`fg-inline-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-full fg-whitespace-nowrap ${statusClassName}`}
-            style={{ ...UI_TOKENS.TEXT.R.LABEL, color: 'inherit' }}
+            style={{ ...UI_TOKENS.TEXT.R.LABEL, color: undefined }}
           >
             <span
               className={`fg-w-1.5 fg-h-1.5 fg-rounded-full ${

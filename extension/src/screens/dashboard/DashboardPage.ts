@@ -300,9 +300,9 @@ export async function renderDashboardPage(container) {
           const badgeHtml = isBlocked
             ? '<div style="font-size:9px; font-weight:900; color:var(--red); background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); border-radius:6px; padding:3px 7px; text-transform:uppercase; letter-spacing:0.5px;">BLOCKED</div>'
             : `<button class="quick-block-btn" data-domain="${d.domain}" title="Block ${d.domain}" style="width:26px; height:26px; border-radius:8px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); color:var(--accent); font-size:16px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0;">+</button>`;
-          const statusLabelHtml = isBlocked
-            ? '<span style="display:inline-flex; align-items:center; gap:4px;"><svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor" style="color:var(--red);"><circle cx="12" cy="12" r="12"/></svg> BLOCKED</span>'
-            : '<span style="color: var(--fg-text); opacity: 0.7;">Monitoring</span>';
+          const statusLabelHtml = `<span style="opacity: 0.7;">${
+            d.sessions || 0
+          } Session${d.sessions !== 1 ? 's' : ''}</span>`;
 
           const cardInner = `
                  <div class="fg-flex fg-items-center fg-gap-3 fg-min-w-0">
@@ -324,9 +324,7 @@ export async function renderDashboardPage(container) {
           }</div>
                      <div class="row-status" style="${
                        UI_TOKENS.TEXT.LABEL
-                     }; color: ${
-            isBlocked ? 'var(--red)' : 'var(--fg-text)'
-          }; margin-top: 4px;">
+                     }; color: var(--fg-muted); margin-top: 4px;">
                        ${statusLabelHtml}
                      </div>
                    </div>

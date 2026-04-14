@@ -13,35 +13,41 @@ const TOKEN_DEFS = {
     fontWeight: '700',
     color: 'var(--fg-text)',
     letterSpacing: '0',
+    lineHeight: '1.4',
   },
   HERO: {
     fontSize: '1.25rem',
     fontWeight: '800',
     color: 'var(--fg-text)',
     letterSpacing: '-0.02em',
+    lineHeight: '1.3',
   },
+  /** Section / widget labels — NOT uppercase by default. Callers add uppercase if needed. */
   LABEL: {
     fontSize: '11px',
     fontWeight: '600',
     color: 'var(--fg-muted)',
-    letterSpacing: '0.5px',
-    textTransform: 'uppercase' as const,
+    letterSpacing: '0.04em',
+    lineHeight: '1.4',
   },
   SUBTEXT: {
-    fontSize: '11px',
-    fontWeight: '600',
-    color: 'var(--muted)',
+    fontSize: '12px',
+    fontWeight: '500',
+    color: 'var(--fg-muted)',
+    lineHeight: '1.55',
   },
   CARD_TITLE: {
     fontSize: '13px',
-    fontWeight: '700',
+    fontWeight: '600',
     letterSpacing: '0',
     color: 'var(--fg-text)',
+    lineHeight: '1.4',
   },
+  /** Pill badges — uppercase is intentional here */
   BADGE: {
-    fontSize: '9px',
+    fontSize: '10px',
     fontWeight: '800',
-    letterSpacing: '0.5px',
+    letterSpacing: '0.06em',
     textTransform: 'uppercase' as const,
   },
   STAT: {
@@ -49,44 +55,50 @@ const TOKEN_DEFS = {
     fontWeight: '700',
     letterSpacing: '-0.5px',
     color: 'var(--fg-text)',
+    lineHeight: '1.1',
   },
   STAT_LARGE: {
     fontSize: '48px',
     fontWeight: '800',
     letterSpacing: '-2px',
     color: 'var(--fg-text)',
+    lineHeight: '1',
   },
+  /** Widget kicker labels — uppercase IS intentional for this specific token */
   WIDGET_LABEL: {
     fontSize: '11px',
     fontWeight: '600',
     color: 'var(--fg-muted)',
     textTransform: 'uppercase' as const,
     letterSpacing: '0.08em',
+    lineHeight: '1.4',
   },
   BANNER_HEADING: {
-    fontSize: '1.1rem',
+    fontSize: '1.05rem',
     fontWeight: '700',
     color: 'var(--fg-text)',
     letterSpacing: '0',
+    lineHeight: '1.4',
   },
   BANNER_BODY: {
     fontSize: '13px',
     fontWeight: '500',
     color: 'var(--fg-text)',
-    opacity: '0.7',
-    lineHeight: '1.5',
+    opacity: '0.8',
+    lineHeight: '1.6',
   },
   ERROR: {
     fontSize: '14px',
     fontWeight: '700',
     color: 'var(--red)',
     letterSpacing: '0',
+    lineHeight: '1.4',
   },
   FOOTNOTE: {
-    fontSize: '11px',
+    fontSize: '12px',
     fontWeight: '500',
     color: 'var(--fg-muted)',
-    lineHeight: '1.5',
+    lineHeight: '1.6',
   },
 };
 
@@ -169,7 +181,7 @@ export function renderCustomSelect(
     options.find((o) => o.value === current)?.label || options[0].label;
   return `
     <div class="fg-custom-select ${className}" data-pkg="${escapeHtml(pkg)}">
-      <div class="fg-select-trigger" style="width: ${width}; height: 32px; padding: 0 12px; font-size: 11px; font-weight: 700;">
+      <div class="fg-select-trigger" style="width: ${width}; height: 32px; padding: 0 12px; font-size: 11px; font-weight: 500;">
         <span>${selectedLabel}</span>
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="m6 9 6 6 6-6"/></svg>
       </div>
@@ -246,7 +258,152 @@ export function renderStreakBadge(streak: number) {
       <svg width="13" height="13" viewBox="0 0 448 512" fill="currentColor" style="opacity: ${
         isZero ? 0.5 : 1
       };"><path d="M159.3 5.4c7.8-7.3 19.9-7.2 27.7 .1c27.6 25.9 53.5 53.8 77.7 84c11-14.4 23.5-30.1 37-42.9c7.9-7.4 20.1-7.4 28 .1c34.6 33 63.9 76.6 84.5 118c20.3 40.8 33.8 82.5 33.8 111.9C448 404.2 348.2 512 224 512C98.4 512 0 404.1 0 276.5c0-38.4 17.8-85.3 45.4-131.7C73.3 97.7 112.7 48.6 159.3 5.4zM225.7 416c25.3 0 47.7-7 68.8-21c42.1-29.4 53.4-88.2 28.1-134.4c-4.5-9-16-9.6-22.5-2l-25.2 29.3c-6.6 7.6-18.5 7.4-24.7-.5c-16.5-21-46-58.5-62.8-79.8c-6.3-8-18.3-8.1-24.7-.1c-33.8 42.5-50.8 69.3-50.8 99.4C112 375.4 162.6 416 225.7 416z"/></svg>
-      <span style="font-size: 11px; letter-spacing: 0;">${streak}d</span>
+      <span style="font-size: 12px; font-weight: 700; letter-spacing: 0;">${streak}d</span>
+    </div>
+  `;
+}
+
+export function renderCompactStreak(streak: number) {
+  const isZero = streak <= 0;
+  const color = isZero ? 'var(--fg-muted)' : '#f97316';
+  return `
+    <div style="display: flex; align-items: center; gap: 4px; color: ${color}; font-weight: 600; font-size: 12px;">
+      <svg width="10" height="10" viewBox="0 0 448 512" fill="currentColor" style="opacity: ${
+        isZero ? 0.3 : 1
+      };"><path d="M159.3 5.4c7.8-7.3 19.9-7.2 27.7 .1c27.6 25.9 53.5 53.8 77.7 84c11-14.4 23.5-30.1 37-42.9c7.9-7.4 20.1-7.4 28 .1c34.6 33 63.9 76.6 84.5 118c20.3 40.8 33.8 82.5 33.8 111.9C448 404.2 348.2 512 224 512C98.4 512 0 404.1 0 276.5c0-38.4 17.8-85.3 45.4-131.7C73.3 97.7 112.7 48.6 159.3 5.4zM225.7 416c25.3 0 47.7-7 68.8-21c42.1-29.4 53.4-88.2 28.1-134.4c-4.5-9-16-9.6-22.5-2l-25.2 29.3c-6.6 7.6-18.5 7.4-24.7-.5c-16.5-21-46-58.5-62.8-79.8c-6.3-8-18.3-8.1-24.7-.1c-33.8 42.5-50.8 69.3-50.8 99.4C112 375.4 162.6 416 225.7 416z"/></svg>
+      <span>${streak}d</span>
+    </div>
+  `;
+}
+
+export function renderTableProgress(
+  used: number,
+  limit: number,
+  active: boolean,
+) {
+  // Instant block — no time limit set; show a status pill instead of empty bar
+  if (!active) {
+    return '<span style="font-size: 10px; font-weight: 700; color: var(--fg-muted); letter-spacing: 0.04em;">—</span>';
+  }
+  if (limit <= 0) {
+    return '<span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; background: rgba(255,59,48,0.1); color: var(--red);">Instant</span>';
+  }
+
+  const percent = Math.min(100, Math.max(0, (used / limit) * 100));
+  let color = '#10b981';
+  if (percent >= 90) {
+    color = 'var(--red)';
+  } else if (percent >= 65) {
+    color = '#facc15';
+  }
+
+  return `
+    <div style="display: flex; flex-direction: column; gap: 4px; width: 100%; padding-right: 16px;">
+      <div style="width: 100%; height: 5px; background: var(--fg-glass-border); border-radius: 3px; overflow: hidden;">
+        <div style="height: 100%; width: ${percent}%; background: ${color}; border-radius: 3px; transition: width 0.4s ease;"></div>
+      </div>
+    </div>
+  `;
+}
+
+export function renderAppTableRow(
+  rule: any,
+  isLocked: boolean,
+  passes: any = {},
+) {
+  const active = getRuleActiveState(rule, passes);
+  const used = rule.usedMinutesToday || 0;
+  const limit = rule.dailyLimitMinutes || 0;
+  const identifier = rule.customDomain || rule.packageName;
+  const type = rule.type || 'domain';
+  const streak = rule.streakDays || 0;
+
+  const usageText =
+    limit > 0
+      ? `<span style="color: var(--fg-text); font-size: 13px; font-weight: 600;">${Math.floor(
+          used,
+        )}m</span><span style="color: var(--fg-muted); font-size: 11px; font-weight: 400; margin-left: 3px;">/ ${limit}m</span>`
+      : `<span style="color: var(--fg-muted); font-size: 13px; font-weight: 500;">${Math.floor(
+          used,
+        )}m</span>`;
+
+  return `
+    <div class="rule-table-row ${
+      active ? 'is-active' : ''
+    }" data-pkg="${escapeHtml(rule.packageName)}" style="
+      display: grid;
+      grid-template-columns: 44px 1.5fr 100px 1fr 140px 110px 80px 44px;
+      column-gap: 12px;
+      align-items: center;
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--fg-glass-border);
+      transition: background 0.15s;
+      cursor: default;
+    "
+    onmouseover="this.style.background='var(--fg-glass-bg)'"
+    onmouseout="this.style.background=''"
+    >
+      <!-- 1. Icon -->
+      <div style="display: flex; align-items: center; justify-content: center;">
+        ${renderBrandLogo(identifier, rule.appName, 32)}
+      </div>
+
+      <!-- 2. Identity -->
+      <div style="display: flex; flex-direction: column; min-width: 0;">
+        <div style="font-size: 14px; font-weight: 600; color: var(--fg-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(
+          rule.appName || identifier,
+        )}</div>
+        <div style="margin-top: 3px; font-size: 11px; font-weight: 500; color: var(--fg-muted);">${
+          streak > 0
+            ? `🔥 ${streak}d streak`
+            : type === 'service'
+            ? 'App'
+            : 'Domain'
+        }</div>
+      </div>
+
+      <!-- 3. Usage -->
+      <div style="display: flex; align-items: center; gap: 3px;">
+        ${usageText}
+      </div>
+
+      <!-- 4. Progress -->
+      <div style="display: flex; align-items: center;">
+        ${renderTableProgress(used, limit, active)}
+      </div>
+
+      <!-- 5. Limit Selector -->
+      <div style="display: flex; align-items: center;">
+        ${renderLimitSelector(rule)}
+      </div>
+
+      <!-- 6. Pass Selector -->
+      <div style="display: flex; align-items: center;">
+        ${renderPassSelector(rule)}
+      </div>
+
+      <!-- 7. Toggle -->
+      <div style="display: flex; align-items: center;">
+        <button class="toggle-switch-btn ${active ? 'active' : ''}" ${
+    isLocked ? 'disabled' : ''
+  }
+          data-kind="${type}" data-id="${escapeHtml(
+    rule.packageName,
+  )}" data-pkg="${escapeHtml(rule.packageName)}"
+          style="transform: scale(0.8); transform-origin: left;">
+          <span class="on-text">On</span>
+          <span class="off-text">Off</span>
+        </button>
+      </div>
+
+      <!-- 8. Delete -->
+      <div style="display: flex; align-items: center; justify-content: flex-end;">
+        <button class="btn-icon delete-rule" ${
+          isLocked ? 'disabled style="opacity:0.3;"' : ''
+        } data-pkg="${escapeHtml(rule.packageName)}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
+        </button>
+      </div>
     </div>
   `;
 }
@@ -474,7 +631,7 @@ export function renderLoader(label = '', padding = 'fg-p-10'): string {
  */
 export function renderEmptyState(message: string): string {
   return `
-    <div style="padding: 28px 20px; border: 1px dashed var(--fg-glass-border); border-radius: 16px; color: var(--fg-muted); font-size: 12px; font-weight: 700; text-align: center; background: var(--fg-glass-bg); width: 100%;">
+    <div style="padding: 28px 20px; border: 1px dashed var(--fg-glass-border); border-radius: 16px; color: var(--fg-muted); font-size: 13px; font-weight: 600; text-align: center; background: var(--fg-glass-bg); width: 100%; line-height: 1.5;">
       ${message}
     </div>
   `;
@@ -504,7 +661,7 @@ export function renderSectionBadge(
     accent:
       'background: rgba(99,102,241,0.12); color: var(--fg-accent); border: 1px solid rgba(99,102,241,0.2);',
   };
-  return `<span style="font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 10px; border-radius: 100px; ${styles[color]}">${label}</span>`;
+  return `<span style="font-size: 10px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; padding: 3px 10px; border-radius: 100px; ${styles[color]}">${label}</span>`;
 }
 
 // ─────────────────────────────────────────────

@@ -295,8 +295,8 @@ export const AppsPopupView: React.FC = () => {
           <div
             className="fg-w-full fg-rounded-t-[24px] fg-p-5 fg-pb-6"
             style={{
-              background: 'var(--fg-surface, #1a1a2e)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--fg-surface)',
+              border: '1px solid var(--fg-glass-border)',
               borderBottom: 'none',
             }}
             onClick={(e) => e.stopPropagation()}
@@ -318,7 +318,12 @@ export const AppsPopupView: React.FC = () => {
                 }}
               />
               <div>
-                <div style={{ ...UI_TOKENS.TEXT.R.CARD_TITLE, color: 'white' }}>
+                <div
+                  style={{
+                    ...UI_TOKENS.TEXT.R.CARD_TITLE,
+                    color: 'var(--fg-text)',
+                  }}
+                >
                   {pauseTarget.appName || pauseTarget.packageName}
                 </div>
                 <div style={UI_TOKENS.TEXT.R.LABEL}>Pause for how long?</div>
@@ -332,12 +337,18 @@ export const AppsPopupView: React.FC = () => {
                   type="button"
                   className="fg-flex fg-flex-col fg-items-center fg-justify-center fg-rounded-[14px] fg-py-3"
                   style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'var(--fg-glass-bg)',
+                    border: '1px solid var(--fg-glass-border)',
                   }}
                   onClick={() => handlePauseSelect(mins)}
                 >
-                  <span style={{ ...UI_TOKENS.TEXT.R.STAT, fontSize: '18px' }}>
+                  <span
+                    style={{
+                      ...UI_TOKENS.TEXT.R.STAT,
+                      fontSize: '18px',
+                      color: 'var(--fg-text)',
+                    }}
+                  >
                     {mins}
                   </span>
                   <span style={UI_TOKENS.TEXT.R.LABEL}>min</span>
@@ -359,7 +370,7 @@ export const AppsPopupView: React.FC = () => {
             </button>
 
             <div
-              className="fg-mt-3 fg-text-center fg-text-[9px] fg-font-bold fg-uppercase fg-tracking-widest"
+              className="fg-mt-3 fg-text-center fg-text-[11px] fg-font-semibold fg-uppercase fg-tracking-wider"
               style={{ color: 'var(--muted)' }}
             >
               {Number(pauseTarget.maxDailyPasses ?? 3)} passes/day · tap outside
@@ -386,7 +397,7 @@ export const AppsPopupView: React.FC = () => {
           <input
             type="text"
             placeholder="Filter active rules..."
-            className="fg-w-full fg-rounded-[12px] fg-border-0 fg-bg-white/[0.04] fg-px-[14px] fg-py-[10px] fg-text-[13px] fg-text-white fg-outline-none placeholder:fg-text-[var(--muted)] focus:fg-bg-white/[0.05]"
+            className="fg-w-full fg-rounded-[12px] fg-border-0 fg-bg-[var(--fg-glass-bg)] fg-px-[14px] fg-py-[10px] fg-text-[13px] fg-text-[var(--fg-text)] fg-outline-none placeholder:fg-text-[var(--muted)] focus:fg-bg-[var(--fg-surface-hover)]"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => {
@@ -398,7 +409,7 @@ export const AppsPopupView: React.FC = () => {
         </div>
         <button
           onClick={() => handleAddDomain()}
-          className="fg-flex fg-h-[38px] fg-w-[38px] fg-shrink-0 fg-items-center fg-justify-center fg-rounded-[12px] fg-bg-white/[0.06] fg-text-[20px] fg-font-normal fg-text-white hover:fg-bg-white/[0.1]"
+          className="fg-flex fg-h-[38px] fg-w-[38px] fg-shrink-0 fg-items-center fg-justify-center fg-rounded-[12px] fg-bg-[var(--fg-glass-bg)] fg-text-[20px] fg-font-normal fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface-hover)]"
           type="button"
         >
           +
@@ -406,7 +417,7 @@ export const AppsPopupView: React.FC = () => {
       </div>
 
       {currentDomain && !currentSiteBlocked ? (
-        <div className="fg-flex fg-items-center fg-justify-between fg-gap-3 fg-rounded-[16px] fg-bg-white/[0.03] fg-px-[14px] fg-py-3">
+        <div className="fg-flex fg-items-center fg-justify-between fg-gap-3 fg-rounded-[16px] fg-bg-[var(--fg-glass-bg)] fg-px-[14px] fg-py-3">
           <div className="fg-flex fg-items-center fg-gap-3">
             <div className="fg-flex fg-h-8 fg-w-8 fg-items-center fg-justify-center">
               <img
@@ -416,16 +427,16 @@ export const AppsPopupView: React.FC = () => {
               />
             </div>
             <div className="fg-min-w-0">
-              <div className="fg-truncate fg-text-[12px] fg-font-extrabold fg-text-white">
+              <div className="fg-truncate fg-text-[12px] fg-font-extrabold fg-text-[var(--fg-text)]">
                 {currentDomain}
               </div>
-              <div className="fg-text-[9px] fg-font-bold fg-uppercase fg-text-[var(--muted)]">
+              <div className="fg-text-[11px] fg-font-semibold fg-uppercase fg-text-[var(--muted)]">
                 Current Site
               </div>
             </div>
           </div>
           <button
-            className="fg-inline-flex fg-items-center fg-rounded-[8px] fg-bg-white/[0.08] fg-px-[10px] fg-py-[6px] fg-text-[10px] fg-font-semibold fg-text-white hover:fg-bg-white/[0.12]"
+            className="fg-inline-flex fg-items-center fg-rounded-[8px] fg-bg-[var(--fg-surface-hover)] fg-px-[10px] fg-py-[6px] fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface)]"
             onClick={() => handleAddDomain(currentDomain)}
             type="button"
           >
@@ -450,7 +461,9 @@ export const AppsPopupView: React.FC = () => {
             <div
               key={rule.packageName}
               className={`fg-flex fg-items-center fg-justify-between fg-gap-[6px] fg-rounded-[12px] fg-px-[14px] fg-py-3 ${
-                matchesCurrent ? 'fg-bg-white/[0.08]' : 'fg-bg-white/[0.03]'
+                matchesCurrent
+                  ? 'fg-bg-[var(--fg-surface-hover)]'
+                  : 'fg-bg-[var(--fg-glass-bg)]'
               }`}
             >
               <div className="fg-flex fg-min-w-0 fg-flex-1 fg-items-center fg-gap-3">
@@ -485,7 +498,10 @@ export const AppsPopupView: React.FC = () => {
                 <div className="fg-min-w-0 fg-flex-1">
                   <div
                     className="fg-truncate"
-                    style={{ ...UI_TOKENS.TEXT.R.CARD_TITLE, color: 'white' }}
+                    style={{
+                      ...UI_TOKENS.TEXT.R.CARD_TITLE,
+                      color: 'var(--fg-text)',
+                    }}
                   >
                     {rule.appName || rule.packageName}
                   </div>
@@ -566,10 +582,10 @@ export const AppsPopupView: React.FC = () => {
 
         {activeRules.length === 0 ? (
           <div className="fg-panel-muted fg-rounded-[18px] fg-px-4 fg-py-10 fg-text-center">
-            <div className="fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.18em] fg-text-slate-400">
+            <div className="fg-text-[12px] fg-font-bold fg-uppercase fg-tracking-[0.12em] fg-text-slate-400">
               No active rules
             </div>
-            <div className="fg-mt-2 fg-text-xs fg-font-medium fg-text-slate-500">
+            <div className="fg-mt-2 fg-text-[12px] fg-font-medium fg-text-slate-500">
               Add a domain above to start blocking.
             </div>
           </div>
@@ -595,12 +611,12 @@ export const AppsPopupView: React.FC = () => {
                     className="fg-h-5 fg-w-5 fg-rounded-[20%]"
                     alt=""
                   />
-                  <div className="fg-truncate fg-text-[13px] fg-font-semibold fg-text-white">
+                  <div className="fg-truncate fg-text-[13px] fg-font-semibold fg-text-[var(--fg-text)]">
                     {item.domain}
                   </div>
                 </div>
                 <button
-                  className="fg-rounded-[6px] fg-bg-white/[0.08] fg-px-[10px] fg-py-1 fg-text-[10px] fg-font-extrabold fg-text-white hover:fg-bg-white/[0.12]"
+                  className="fg-rounded-[6px] fg-bg-[var(--fg-glass-bg)] fg-px-[10px] fg-py-1 fg-text-[10px] fg-font-extrabold fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface-hover)]"
                   onClick={() => handleAddDomain(item.domain)}
                   type="button"
                 >
