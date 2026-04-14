@@ -56,17 +56,23 @@ export function PopupShell<T extends string>({
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           // Omit color from style to let tailwind classes handle it (crucial for theme flipping)
-          const { color, ...styleWithoutColor } = UI_TOKENS.TEXT.R.LABEL;
+          const styleWithoutColor = { ...UI_TOKENS.TEXT.R.LABEL };
+          delete (styleWithoutColor as any).color;
 
           return (
             <button
               key={tab.id}
               className={`fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-lg fg-whitespace-nowrap fg-transition-all fg-duration-150 active:fg-scale-95 ${
                 isActive
-                  ? 'fg-bg-[var(--accent)] fg-text-white'
+                  ? 'fg-bg-[var(--accent)]'
                   : 'fg-bg-[var(--fg-glass-bg)] fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface)]'
               }`}
-              style={styleWithoutColor as any}
+              style={
+                {
+                  ...styleWithoutColor,
+                  color: isActive ? '#ffffff' : undefined,
+                } as any
+              }
               data-tab={tab.id}
               onClick={() => onTabChange(tab.id)}
               type="button"
@@ -79,7 +85,13 @@ export function PopupShell<T extends string>({
         <div className="fg-ml-auto fg-flex fg-items-center fg-gap-3">
           <span
             className={`fg-inline-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-full fg-whitespace-nowrap ${statusClassName}`}
-            style={{ ...UI_TOKENS.TEXT.R.LABEL, color: undefined }}
+            style={{
+              ...UI_TOKENS.TEXT.R.LABEL,
+              color:
+                status.tone === 'active' || status.tone === 'error'
+                  ? '#ffffff'
+                  : undefined,
+            }}
           >
             <span
               className={`fg-w-1.5 fg-h-1.5 fg-rounded-full ${
@@ -269,10 +281,10 @@ function resolveStatusClass(tone: ShellStatusTone) {
     return 'fg-bg-[var(--fg-glass-bg)] fg-text-[var(--fg-muted)]';
   }
   if (tone === 'active') {
-    return 'fg-bg-[var(--fg-green)] fg-text-white';
+    return 'fg-bg-[var(--fg-green)]';
   }
   if (tone === 'error') {
-    return 'fg-bg-[var(--fg-red)] fg-text-white';
+    return 'fg-bg-[var(--fg-red)]';
   }
   return 'fg-bg-[var(--fg-glass-bg)] fg-text-[var(--fg-muted)]';
 }
