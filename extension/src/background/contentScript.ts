@@ -381,7 +381,8 @@ function injectOverlay(domain, options: any = {}) {
 
   // Live timer
   const startMs = options.usedMs || (options.usedMinutes || 0) * 60000;
-  const overlayStartedAt = Date.now();
+  let currentMs = startMs;
+  let lastTick = Date.now();
 
   if (liveTimerInterval) {
     clearInterval(liveTimerInterval);
@@ -392,8 +393,12 @@ function injectOverlay(domain, options: any = {}) {
       clearInterval(liveTimerInterval);
       return;
     }
-    const elapsed = Date.now() - overlayStartedAt;
-    el.textContent = formatTime(startMs + elapsed);
+    const now = Date.now();
+    if (document.visibilityState === 'visible') {
+      currentMs += now - lastTick;
+      el.textContent = formatTime(currentMs);
+    }
+    lastTick = now;
   }, 1000);
 }
 
@@ -462,6 +467,7 @@ async function checkAndBlock() {
     BLOCKED_DOMAINS_KEY,
     RULES_KEY,
     'usage',
+    'fg_redirect_url',
   ]);
   const blockedDomains = Array.isArray(res[BLOCKED_DOMAINS_KEY])
     ? res[BLOCKED_DOMAINS_KEY]
@@ -519,6 +525,26 @@ async function checkAndBlock() {
     .catch(() => {});
 
   if (isBlocked) {
+    const redirectUrl = res.fg_redirect_url as string | undefined;
+    if (redirectUrl) {
+      let finalUrl = redirectUrl;
+      if (!finalUrl.startsWith('http')) {
+        finalUrl = 'https://' + finalUrl;
+      }
+      try {
+        const redirectTargetDomain = new URL(finalUrl).hostname.replace(
+          /^www\./,
+          '',
+        );
+        if (domain !== redirectTargetDomain) {
+          window.location.href = finalUrl;
+          return;
+        }
+      } catch (e) {
+        // invalid URL maybe, ignore and continue to block
+      }
+    }
+
     const usageStore = res.usage || {};
     const domainUsage = usageStore[domain];
     const usageMs = domainUsage ? domainUsage.time : 0;
@@ -604,7 +630,8 @@ chrome.storage.onChanged.addListener((changes) => {
   if (
     changes[BLOCKED_DOMAINS_KEY] ||
     changes[RULES_KEY] ||
-    changes[TEMP_PASSES_KEY]
+    changes[TEMP_PASSES_KEY] ||
+    changes.fg_redirect_url
   ) {
     checkAndBlock();
   }

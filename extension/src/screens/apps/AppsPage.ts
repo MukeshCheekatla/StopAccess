@@ -11,16 +11,13 @@ import { getLockedDomains } from '../../background/sessionGuard';
 import { extensionAdapter } from '../../background/platformAdapter';
 import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
 import {
-  renderBrandLogo,
   renderAppIcon,
   getRuleActiveState,
-  renderLimitSelector,
-  renderPassSelector,
-  renderStreakBadge,
   UI_TOKENS,
   renderLoader,
   renderEmptyState,
   renderSectionBadge,
+  renderAppTableRow,
 } from '../../lib/ui';
 
 let activeTab = 'shield';
@@ -61,9 +58,25 @@ export async function renderAppsPage(container: HTMLElement) {
       </div>
 
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px;">
-        <div id="appsNavigation" style="display: flex; padding: 4px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px; width: fit-content; min-width: 200px;">
-          <button class="nav-item-tab" data-tab="shield">BLOCKLIST</button>
-          <button class="nav-item-tab" data-tab="categories">CATEGORIES</button>
+        <div style="display: flex; align-items: center; gap: 24px; position: relative;">
+          <div id="appsNavigation" style="display: flex; padding: 4px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px; width: fit-content; min-width: 200px;">
+            <button class="nav-item-tab" data-tab="shield">BLOCKLIST</button>
+            <button class="nav-item-tab" data-tab="categories">CATEGORIES</button>
+          </div>
+
+          <button id="btnSetRedirect" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px; font-size: 11px; font-weight: 800; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--fg-surface-hover)'; this.style.color='var(--fg-text)';" onmouseout="this.style.background='var(--fg-glass-bg)'; this.style.color='var(--fg-muted)';">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            Redirect
+          </button>
+          
+          <div id="redirectPopover" class="fg-opacity-0 fg-pointer-events-none fg-scale-95 fg-transition-all" style="position: absolute; top: calc(100% + 8px); left: 240px; z-index: 100; background: var(--fg-surface); border: 1px solid var(--fg-glass-border); border-radius: 16px; padding: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); width: 280px; transform-origin: top;">
+             <div style="font-size: 11px; font-weight: 800; color: var(--fg-muted); text-transform: uppercase; margin-bottom: 8px;">Productive Redirect</div>
+             <input type="text" id="redirectInput" placeholder="e.g. notion.so" style="width: 100%; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--fg-text); margin-bottom: 12px; outline: none;">
+             <div style="display: flex; gap: 8px; justify-content: flex-end;">
+               <button id="btnRedirectClear" style="font-size: 11px; font-weight: 800; color: var(--fg-muted); padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--fg-surface-hover)';" onmouseout="this.style.background='transparent';">Clear</button>
+               <button id="btnRedirectSave" style="font-size: 11px; font-weight: 800; color: white; background: var(--fg-accent); padding: 6px 12px; border-radius: 6px; cursor: pointer;">Save</button>
+             </div>
+          </div>
         </div>
 
         <div style="display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px;" title="Block apps and domains at the router level via NextDNS.">
@@ -154,6 +167,114 @@ export async function renderAppsPage(container: HTMLElement) {
 
         chrome.runtime.sendMessage({ action: 'manualSync' });
         setTimeout(() => refreshListOnly(), 300);
+      });
+    }
+
+    const btnSetRedirect = container.querySelector(
+      '#btnSetRedirect',
+    ) as HTMLElement;
+    const redirectPopover = container.querySelector(
+      '#redirectPopover',
+    ) as HTMLElement;
+    const redirectInput = container.querySelector(
+      '#redirectInput',
+    ) as HTMLInputElement;
+    const btnRedirectClear = container.querySelector(
+      '#btnRedirectClear',
+    ) as HTMLElement;
+    const btnRedirectSave = container.querySelector(
+      '#btnRedirectSave',
+    ) as HTMLElement;
+
+    if (btnSetRedirect && redirectPopover) {
+      btnSetRedirect.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const currentUrl = await extensionAdapter.getString(
+          'fg_redirect_url',
+          '',
+        );
+        redirectInput.value = currentUrl || '';
+
+        const isShowing = redirectPopover.classList.contains('fg-opacity-100');
+        if (isShowing) {
+          redirectPopover.classList.remove(
+            'fg-opacity-100',
+            'fg-pointer-events-auto',
+            'fg-scale-100',
+          );
+          redirectPopover.classList.add(
+            'fg-opacity-0',
+            'fg-pointer-events-none',
+            'fg-scale-95',
+          );
+        } else {
+          redirectPopover.classList.add(
+            'fg-opacity-100',
+            'fg-pointer-events-auto',
+            'fg-scale-100',
+          );
+          redirectPopover.classList.remove(
+            'fg-opacity-0',
+            'fg-pointer-events-none',
+            'fg-scale-95',
+          );
+          redirectInput.focus();
+        }
+      });
+
+      document.addEventListener('click', (e) => {
+        if (
+          !redirectPopover.contains(e.target as Node) &&
+          e.target !== btnSetRedirect
+        ) {
+          redirectPopover.classList.remove(
+            'fg-opacity-100',
+            'fg-pointer-events-auto',
+            'fg-scale-100',
+          );
+          redirectPopover.classList.add(
+            'fg-opacity-0',
+            'fg-pointer-events-none',
+            'fg-scale-95',
+          );
+        }
+      });
+
+      btnRedirectSave.addEventListener('click', async () => {
+        const val = redirectInput.value.trim();
+        if (val) {
+          await extensionAdapter.set('fg_redirect_url', val);
+          toast.success('Redirect URL saved');
+        } else {
+          await extensionAdapter.delete('fg_redirect_url');
+          toast.success('Redirect removed');
+        }
+        redirectPopover.classList.remove(
+          'fg-opacity-100',
+          'fg-pointer-events-auto',
+          'fg-scale-100',
+        );
+        redirectPopover.classList.add(
+          'fg-opacity-0',
+          'fg-pointer-events-none',
+          'fg-scale-95',
+        );
+      });
+
+      btnRedirectClear.addEventListener('click', async () => {
+        await extensionAdapter.delete('fg_redirect_url');
+        redirectInput.value = '';
+        toast.success('Redirect removed');
+        redirectPopover.classList.remove(
+          'fg-opacity-100',
+          'fg-pointer-events-auto',
+          'fg-scale-100',
+        );
+        redirectPopover.classList.add(
+          'fg-opacity-0',
+          'fg-pointer-events-none',
+          'fg-scale-95',
+        );
       });
     }
   }
@@ -358,14 +479,33 @@ async function renderSubTab(
   passes: any = {},
 ) {
   if (activeTab === 'shield') {
-    const domainRules = rules.filter(
-      (r: any) => r.type === 'domain' || !r.type,
-    );
-    const visibleDomains = domainRules.filter(matchesSearch);
-    const activeApps = NEXTDNS_SERVICES.filter((app) =>
-      rules.some((r: any) => r.packageName === app.id && r.type === 'service'),
-    );
-    const visibleApps = activeApps.filter(matchesSearch);
+    const visibleRules = rules
+      .filter((r) => r.type === 'domain' || r.type === 'service' || !r.type)
+      .filter(matchesSearch)
+      .sort((a, b) => {
+        const typeA = (a.type || 'domain').toLowerCase();
+        const typeB = (b.type || 'domain').toLowerCase();
+        if (typeA === 'service' && typeB !== 'service') {
+          return -1;
+        }
+        if (typeA !== 'service' && typeB === 'service') {
+          return 1;
+        }
+        const nameA = (
+          a.appName ||
+          a.customDomain ||
+          a.packageName ||
+          ''
+        ).toLowerCase();
+        const nameB = (
+          b.appName ||
+          b.customDomain ||
+          b.packageName ||
+          ''
+        ).toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+
     return `
       <!-- Centered App Discovery Drawer -->
       <div id="targetDrawerOverlay" class="fg-fixed fg-inset-0 fg-z-[1000] fg-transition-all fg-duration-300 fg-flex fg-items-center fg-justify-center" 
@@ -423,66 +563,87 @@ async function renderSubTab(
         </div>
       </div>
 
-      <!-- Shielded Apps Section -->
-      <div style="margin-bottom: 36px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-          <div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <div style="${UI_TOKENS.TEXT.HEADING}">Shielded Apps</div>
-              ${
-                visibleApps.length > 0
-                  ? renderSectionBadge(visibleApps.length.toString(), 'red')
-                  : ''
-              }
-            </div>
-            <div style="${
-              UI_TOKENS.TEXT.SUBTEXT
-            }">Configured app perimeters under profile control.</div>
-          </div>
-        </div>
-        <div class="service-grid">
-          ${
-            visibleApps.length
-              ? visibleApps
-                  .map((app) =>
-                    renderServiceCard(app, rules, lockedDomains, passes),
-                  )
-                  .join('')
-              : renderEmptyState('No apps shielded yet — use Quick Add below.')
-          }
-        </div>
+      <div class="rule-table-header" style="
+        display: grid; 
+        grid-template-columns: 44px 1.5fr 100px 1fr 140px 110px 80px 44px;
+        column-gap: 12px;
+        align-items: center;
+        padding: 10px 16px;
+        background: var(--fg-glass-bg);
+        border: 1px solid var(--fg-glass-border);
+        border-radius: 12px;
+        margin-bottom: 6px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        backdrop-filter: blur(8px);
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--fg-muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      ">
+        <div></div>
+        <div>Platform</div>
+        <div>Usage</div>
+        <div>Progress</div>
+        <div>Daily Limit</div>
+        <div>Passes</div>
+        <div></div>
+        <div></div>
       </div>
 
-
-      <!-- Custom Domain Blocks -->
-      <div style="border-top: 1px solid var(--glass-border); padding-top: 36px; margin-top: 4px;">
-        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-          <div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <div style="${UI_TOKENS.TEXT.HEADING}">Custom Domain Blocks</div>
-              ${
-                visibleDomains.length > 0
-                  ? renderSectionBadge(visibleDomains.length.toString(), 'red')
-                  : ''
-              }
-            </div>
-            <div style="${
-              UI_TOKENS.TEXT.SUBTEXT
-            }">Manual domain entries enforced locally or via NextDNS.</div>
-          </div>
-        </div>
-        <div class="service-grid">
-          ${
-            visibleDomains.length
-              ? visibleDomains
-                  .map((rule) =>
-                    renderDomainRuleCard(rule, lockedDomains, passes),
-                  )
-                  .join('')
-              : '<div style="padding: 28px 20px; border: 1px dashed var(--fg-glass-border); border-radius: 16px; color: var(--fg-muted); font-size: 12px; font-weight: 700; text-align: center; background: var(--fg-glass-bg); width: 100%;">No custom domains shielded. Type a domain in the search bar above and press Enter.</div>'
+      <!-- Combined Rules Table -->
+      <div class="glass-card" style="padding: 0; overflow: visible; border-radius: 16px; margin-bottom: 40px;">
+        ${(() => {
+          if (!visibleRules.length) {
+            return renderEmptyState(
+              searchTerm
+                ? 'No matching apps or domains found.'
+                : 'Your block list is empty.',
+            );
           }
-        </div>
+
+          const appRules = visibleRules.filter(
+            (r: any) => (r.type || 'domain').toLowerCase() === 'service',
+          );
+          const domainRules = visibleRules.filter(
+            (r: any) => (r.type || 'domain').toLowerCase() !== 'service',
+          );
+
+          let html = '';
+
+          // Render App Rules
+          if (appRules.length > 0) {
+            html += appRules
+              .map((rule) => {
+                const isLocked = lockedDomains.includes(rule.packageName);
+                return renderAppTableRow(rule, isLocked, passes);
+              })
+              .join('');
+          }
+
+          // Separator for Domains
+          if (domainRules.length > 0) {
+            if (appRules.length > 0) {
+              html += `
+                <div style="padding: 6px 16px 6px 72px; border-top: 1px solid var(--fg-glass-border); border-bottom: 1px solid var(--fg-glass-border); background: var(--fg-glass-bg); display: flex; align-items: center; gap: 8px;">
+                  <div style="font-size: 10px; font-weight: 700; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.1em;">Custom Domains</div>
+                </div>
+              `;
+            }
+            html += domainRules
+              .map((rule) => {
+                const isLocked = lockedDomains.includes(rule.packageName);
+                return renderAppTableRow(rule, isLocked, passes);
+              })
+              .join('');
+          }
+
+          return html;
+        })()}
       </div>
+
       <div style="position: fixed; bottom: 32px; right: 32px; z-index: 100;">
         <button class="btn-premium" id="btnOpenTargetDrawer" style="width: 64px; height: 64px; font-size: 28px; display:flex; align-items:center; justify-content:center; border-radius: 20px; padding: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: transform 0.2s; cursor: pointer;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">+</button>
       </div>
@@ -526,156 +687,6 @@ async function renderSubTab(
     `;
   }
   return '';
-}
-
-function renderDomainRuleCard(
-  rule: any,
-  lockedDomains: string[] = [],
-  passes: any = {},
-) {
-  const active = getRuleActiveState(rule, passes);
-  const isLocked = lockedDomains.includes(rule.packageName);
-
-  return `
-    <div class="service-card ${active ? 'active' : ''}" style="
-      display:flex; flex-direction:column; gap: 0; height: auto; padding: 0;
-      ${
-        active
-          ? 'border-color: var(--fg-glass-border); box-shadow: none; background: var(--fg-glass-bg);'
-          : 'border-color: var(--fg-glass-border); box-shadow: none; background: var(--fg-glass-bg);'
-      }
-    ">
-      <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%; padding: 14px 16px;">
-        <div style="display:flex; align-items:center; gap: 12px; min-width: 0; flex: 1;">
-           ${renderBrandLogo(
-             rule.customDomain || rule.packageName,
-             rule.appName,
-             40,
-           )}
-           <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
-             <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 13px; font-weight: 800;">${escapeHtml(
-               rule.appName || rule.packageName,
-             )}</div>
-             <div style="display:flex; align-items:center; gap: 6px; margin-top: 3px;">
-               <span class="stat-lbl" style="font-size: 10px;">Domain</span>
-               ${
-                 active
-                   ? '<span style="font-size: 9px; font-weight: 800; color: var(--red); letter-spacing: 0.5px; text-transform: uppercase;">Blocked</span>'
-                   : ''
-               }
-             </div>
-           </div>
-        </div>
-        <div style="display:flex; align-items:center; gap: 8px; flex-shrink: 0;">
-          <button class="toggle-switch-btn ${active ? 'active' : ''}" ${
-    isLocked ? 'disabled' : ''
-  } data-kind="domain" data-pkg="${escapeHtml(
-    rule.packageName,
-  )}" data-name="${escapeHtml(rule.appName || rule.packageName)}">
-            <span class="on-text">ON</span>
-            <span class="off-text">OFF</span>
-          </button>
-          <button class="btn-icon delete-rule" ${
-            isLocked ? 'disabled style="opacity:0.3;"' : ''
-          } data-pkg="${escapeHtml(rule.packageName)}">
-            ${
-              isLocked
-                ? 'LOCK'
-                : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>'
-            }
-          </button>
-        </div>
-      </div>
-      <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; border-top: 1px solid var(--fg-glass-border); background: var(--fg-glass-bg); border-radius: 0 0 20px 20px;">
-        <div style="display:flex; align-items:center; gap: 8px;">
-          ${renderLimitSelector(rule)}
-          ${renderPassSelector(rule)}
-        </div>
-        <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 4px;">
-          ${renderStreakBadge(rule.streakDays || 0)}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderServiceCard(
-  service: any,
-  rules: any[],
-  lockedDomains: string[] = [],
-  passes: any = {},
-) {
-  const localRule = rules.find(
-    (rule: any) => rule.packageName === service.id && rule.type === 'service',
-  );
-  const active =
-    localRule !== undefined ? getRuleActiveState(localRule, passes) : false;
-  const isLocked = lockedDomains.includes(service.id);
-
-  return `
-    <div class="service-card ${active ? 'active' : ''}" style="
-      display:flex; flex-direction:column; gap: 0; height: auto; padding: 0;
-      ${
-        active
-          ? 'border-color: var(--fg-glass-border); box-shadow: none; background: var(--fg-glass-bg);'
-          : 'border-color: var(--fg-glass-border); box-shadow: none; background: var(--fg-glass-bg);'
-      }
-    ">
-      <div style="display:flex; align-items:center; gap: 12px; justify-content:space-between; width: 100%; padding: 14px 16px;">
-        <div style="display:flex; align-items:center; gap: 12px; min-width: 0; flex: 1;">
-            ${renderBrandLogo(service.id, service.name, 40)}
-            <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
-              <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${
-                UI_TOKENS.TEXT.CARD_TITLE
-              }">${escapeHtml(service.name)}</div>
-              <div style="display:flex; align-items:center; gap: 6px; margin-top: 3px;">
-                <span class="stat-lbl" style="${
-                  UI_TOKENS.TEXT.LABEL
-                } font-size: 10px;">App</span>
-                ${
-                  active
-                    ? `<span style="${UI_TOKENS.TEXT.BADGE} color: var(--red);">Blocked</span>`
-                    : ''
-                }
-              </div>
-            </div>
-        </div>
-        <div style="display:flex; align-items:center; gap: 8px; flex-shrink: 0;">
-          <button class="toggle-switch-btn ${active ? 'active' : ''}" ${
-    isLocked ? 'disabled' : ''
-  } data-kind="service" data-id="${escapeHtml(
-    service.id,
-  )}" data-name="${escapeHtml(service.name)}">
-            <span class="on-text">ON</span>
-            <span class="off-text">OFF</span>
-          </button>
-          <button class="btn-icon delete-rule" ${
-            isLocked ? 'disabled style="opacity:0.3;"' : ''
-          } data-pkg="${escapeHtml(service.id)}">
-            ${
-              isLocked
-                ? 'LOCK'
-                : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>'
-            }
-          </button>
-        </div>
-      </div>
-      ${
-        active
-          ? `
-      <div style="display:flex; align-items:center; justify-content:space-between; padding: 10px 16px; border-top: 1px solid var(--fg-glass-border); background: var(--fg-glass-bg); border-radius: 0 0 20px 20px;">
-        <div style="display:flex; align-items:center; gap: 8px;">
-          ${localRule ? renderLimitSelector(localRule) : ''}
-          ${localRule ? renderPassSelector(localRule) : ''}
-        </div>
-        <div style="display:flex; flex-direction:column; align-items:flex-end; gap: 4px;">
-          ${renderStreakBadge(localRule?.streakDays || 0)}
-        </div>
-      </div>`
-          : ''
-      }
-    </div>
-  `;
 }
 
 function renderCategoryCard(
@@ -885,6 +896,24 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
       menu.classList.toggle('active', nextActive);
       if (card) {
         card.style.zIndex = nextActive ? '100' : '1';
+      }
+
+      if (nextActive) {
+        // Reset custom positioning to calculate natural drop
+        menu.style.top = 'calc(100% + 6px)';
+        menu.style.bottom = 'auto';
+        menu.style.transformOrigin = 'top';
+
+        // Delay 1 frame to let it render its height
+        requestAnimationFrame(() => {
+          const rect = menu.getBoundingClientRect();
+          if (rect.bottom > window.innerHeight - 20) {
+            // Flip it to open upwards
+            menu.style.top = 'auto';
+            menu.style.bottom = 'calc(100% + 6px)';
+            menu.style.transformOrigin = 'bottom';
+          }
+        });
       }
     });
   });
