@@ -44,6 +44,7 @@ export interface NextDNSEntity {
   name?: string;
   active?: boolean;
   recreationTime?: boolean;
+  category?: string;
 }
 
 export interface NextDNSService extends NextDNSEntity {}

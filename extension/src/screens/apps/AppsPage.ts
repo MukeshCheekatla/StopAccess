@@ -65,7 +65,7 @@ export async function renderAppsPage(container: HTMLElement) {
             <button class="nav-item-tab" data-tab="categories">Categories</button>
           </div>
 
-          <button id="btnSetRedirect" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px; font-size: 11px; font-weight: 800; color: var(--fg-muted);  letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--fg-surface-hover)'; this.style.color='var(--fg-text)';" onmouseout="this.style.background='var(--fg-glass-bg)'; this.style.color='var(--fg-muted)';">
+          <button id="btnSetRedirect" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px; font-size: 14px; font-weight: 500; color: var(--fg-muted);  letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--fg-surface-hover)'; this.style.color='var(--fg-text)';" onmouseout="this.style.background='var(--fg-glass-bg)'; this.style.color='var(--fg-muted)';">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             Redirect
             ${renderInfoTooltip(
@@ -74,17 +74,17 @@ export async function renderAppsPage(container: HTMLElement) {
           </button>
           
           <div id="redirectPopover" class="fg-opacity-0 fg-pointer-events-none fg-scale-95 fg-transition-all" style="position: absolute; top: calc(100% + 8px); left: 240px; z-index: 100; background: var(--fg-surface); border: 1px solid var(--fg-glass-border); border-radius: 16px; padding: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); width: 280px; transform-origin: top;">
-             <div style="font-size: 11px; font-weight: 800; color: var(--fg-muted);  margin-bottom: 8px;">Productive Redirect</div>
+             <div style="font-size: 14px; font-weight: 500; color: var(--fg-muted);  margin-bottom: 8px;">Productive Redirect</div>
              <input type="text" id="redirectInput" placeholder="e.g. notion.so" style="width: 100%; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--fg-text); margin-bottom: 12px; outline: none;">
              <div style="display: flex; gap: 8px; justify-content: flex-end;">
-               <button id="btnRedirectClear" style="font-size: 11px; font-weight: 800; color: var(--fg-muted); padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--fg-surface-hover)';" onmouseout="this.style.background='transparent';">Clear</button>
-               <button id="btnRedirectSave" style="font-size: 11px; font-weight: 800; color: white; background: var(--fg-accent); padding: 6px 12px; border-radius: 6px; cursor: pointer;">Save</button>
+               <button id="btnRedirectClear" style="font-size: 12px; font-weight: 500; color: var(--fg-muted); padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--fg-surface-hover)';" onmouseout="this.style.background='transparent';">Clear</button>
+               <button id="btnRedirectSave" style="font-size: 12px; font-weight: 600; color: white; background: var(--fg-accent); padding: 6px 12px; border-radius: 6px; cursor: pointer;">Save</button>
              </div>
           </div>
         </div>
 
         <div style="display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px;" title="Block apps and domains at the router level via NextDNS.">
-          <div style="font-size: 11px; font-weight: 800; color: var(--fg-muted);  letter-spacing: 0.5px;">Dns Hard Mode</div>
+          <div style="font-size: 14px; font-weight: 500; color: var(--fg-muted);  letter-spacing: 0.5px;">Dns Hard Mode</div>
           <button class="toggle-switch-btn ${
             currentIsAppsDnsHardMode ? 'active' : ''
           }" id="masterDnsToggle" ${
@@ -520,8 +520,8 @@ async function renderSubTab(
           <!-- Header -->
           <div class="fg-p-8 fg-border-b fg-border-[var(--fg-glass-border)] fg-flex fg-items-center fg-justify-between">
             <div>
-              <div class="fg-text-[10px] fg-font-black  fg-tracking-[3px] fg-text-[#3b82f6] fg-mb-1">App Drawer</div>
-              <div class="fg-text-2xl fg-font-black fg-text-[var(--fg-text)]">Add Apps to Shield</div>
+              <div class="fg-text-[10px] fg-font-bold fg-tracking-[0.2em] fg-text-[#3b82f6] fg-mb-1 fg-uppercase">App Drawer</div>
+              <div class="fg-text-2xl fg-font-bold fg-tracking-tight fg-text-[var(--fg-text)]">Add Apps to Shield</div>
             </div>
             <button id="btnCloseTargetDrawer" class="fg-p-3 fg-rounded-2xl hover:fg-bg-[var(--fg-surface-hover)] fg-text-[var(--muted)] fg-transition-all">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -530,37 +530,86 @@ async function renderSubTab(
 
           <!-- Scrollable Grid -->
           <div class="fg-flex-1 fg-overflow-y-auto fg-p-8 fg-grid fg-grid-cols-4 fg-gap-3">
-            ${NEXTDNS_SERVICES.filter(
-              (s) =>
-                !rules.some(
-                  (r: any) => (r.customDomain || r.packageName) === s.id,
-                ),
-            )
-              .map(
-                (s) => `
-                <button class="quick-add-service fg-p-5 fg-flex-col fg-items-center fg-flex fg-gap-3 fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[24px] fg-cursor-pointer fg-text-[var(--fg-text)] fg-transition-all hover:fg-bg-[var(--fg-surface-hover)] hover:fg-scale-[1.02] hover:fg-border-[var(--fg-glass-border)] fg-group" data-id="${
-                  s.id
-                }" data-name="${s.name}">
-                  <div class="fg-transition-transform group-hover:fg-scale-110">${renderAppIcon(
-                    s.id,
-                    s.name,
-                  )}</div>
-                  <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-truncate fg-w-full fg-text-center">${
-                    s.name
-                  }</div>
-                </button>`,
-              )
-              .join('')}
+            ${(() => {
+              const drawerServices = NEXTDNS_SERVICES.filter(
+                (s) =>
+                  !rules.some(
+                    (r: any) => (r.customDomain || r.packageName) === s.id,
+                  ),
+              );
+              // Group by category
+              const groups: Record<string, typeof drawerServices> = {};
+              drawerServices.forEach((s) => {
+                const cat = s.category || 'Other';
+                if (!groups[cat]) {
+                  groups[cat] = [];
+                }
+                groups[cat].push(s);
+              });
+
+              // Preferred group order
+              const order = [
+                'Social',
+                'Entertainment',
+                'Gaming',
+                'Productivity',
+                'Lifestyle',
+                'Other',
+              ];
+              const sortedCategories = Object.keys(groups).sort((a, b) => {
+                const idxA = order.indexOf(a);
+                const idxB = order.indexOf(b);
+                if (idxA !== -1 && idxB !== -1) {
+                  return idxA - idxB;
+                }
+                if (idxA !== -1) {
+                  return -1;
+                }
+                if (idxB !== -1) {
+                  return 1;
+                }
+                return a.localeCompare(b);
+              });
+
+              return sortedCategories
+                .map((category) => {
+                  const items = groups[category];
+                  return `
+                  <div class="fg-col-span-4 ${
+                    category === sortedCategories[0] ? '' : 'fg-mt-4'
+                  } fg-mb-2">
+                    <div class="fg-text-[10px] fg-font-bold fg-tracking-[0.15em] fg-text-[var(--fg-muted)] fg-uppercase">${category}</div>
+                  </div>
+                  ${items
+                    .map(
+                      (s) => `
+                    <button class="quick-add-service fg-p-5 fg-flex-col fg-items-center fg-flex fg-gap-3 fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[24px] fg-cursor-pointer fg-text-[var(--fg-text)] fg-transition-all hover:fg-bg-[var(--fg-surface-hover)] hover:fg-scale-[1.02] hover:fg-border-[var(--fg-glass-border)] fg-group" data-id="${
+                      s.id
+                    }" data-name="${s.name}">
+                      <div class="fg-transition-transform group-hover:fg-scale-110">${renderAppIcon(
+                        s.id,
+                        s.name,
+                      )}</div>
+                      <div class="fg-text-[11px] fg-font-medium fg-tracking-wide fg-text-[var(--fg-text)] fg-truncate fg-w-full fg-text-center">${
+                        s.name
+                      }</div>
+                    </button>`,
+                    )
+                    .join('')}
+                `;
+                })
+                .join('');
+            })()}
           </div>
 
           <!-- Footer -->
           <div class="fg-px-8 fg-py-5 fg-bg-[var(--fg-glass-bg)] fg-border-t fg-border-[var(--fg-glass-border)] fg-flex fg-justify-between fg-items-center">
-            <div class="fg-text-[10px] fg-font-bold fg-text-[var(--muted)]  fg-tracking-widest">
+            <div class="fg-text-[10px] fg-font-medium fg-text-[var(--muted)] fg-tracking-[0.1em] fg-uppercase">
               Total Catalog: <span class="fg-text-[var(--fg-text)]">${
                 NEXTDNS_SERVICES.length
               } Services</span>
             </div>
-            <div class="fg-text-[10px] fg-font-bold fg-text-[var(--muted)]  fg-tracking-widest">
+            <div class="fg-text-[10px] fg-font-medium fg-text-[var(--muted)] fg-tracking-[0.1em] fg-uppercase">
               Press ESC to Close
             </div>
           </div>

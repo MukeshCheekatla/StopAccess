@@ -3,7 +3,11 @@ import { UI_TOKENS } from '../../lib/ui';
 import { appsController } from '../../lib/appsController';
 import { getLockedDomains } from '../../background/sessionGuard';
 import { toast } from '../../lib/toast';
-import { findServiceIdByDomain, resolveServiceIcon } from '@stopaccess/core';
+import {
+  findServiceIdByDomain,
+  resolveServiceIcon,
+  getDomainForRule,
+} from '@stopaccess/core';
 import { STORAGE_KEYS } from '@stopaccess/state';
 
 type UsageMap = Record<string, { time?: number }>;
@@ -234,21 +238,33 @@ export const AppsPopupView: React.FC = () => {
   };
 
   const handleTemporaryDisable = (rule: any) => {
-    if (!currentDomain || !ruleMatchesDomain(rule, currentDomain)) {
+    let targetDomain = null;
+    if (currentDomain && ruleMatchesDomain(rule, currentDomain)) {
+      targetDomain = currentDomain;
+    } else {
+      targetDomain = getDomainForRule(rule);
+    }
+
+    if (!targetDomain) {
       toast.info('Open the blocked site first, then pause it here');
       return;
     }
-    setPauseTarget(rule);
+    setPauseTarget({ ...rule, _unblockDomain: targetDomain });
   };
 
   const handlePauseSelect = async (minutes: number) => {
-    if (!pauseTarget || !currentDomain) {
+    if (!pauseTarget) {
       return;
     }
+    const targetDomain = pauseTarget._unblockDomain;
+    if (!targetDomain) {
+      return;
+    }
+
     setPauseTarget(null);
     // Any pass longer than 2 hours (like Turn off for today) skips the limit check
     const result = await grantTempPassForDomain(
-      currentDomain,
+      targetDomain,
       minutes,
       Number(pauseTarget.maxDailyPasses ?? 3),
       minutes > 120,
@@ -451,9 +467,15 @@ export const AppsPopupView: React.FC = () => {
 
       <div className="fg-flex fg-min-h-0 fg-flex-1 fg-flex-col fg-gap-2 fg-overflow-y-auto">
         {activeRules.map((rule: any) => {
+          const primaryDomain = getDomainForRule(rule);
           const matchesCurrent = ruleMatchesDomain(rule, currentDomain);
-          const activePass =
-            currentDomain && matchesCurrent ? passes[currentDomain] : null;
+          const activePassDomain =
+            matchesCurrent && currentDomain && passes[currentDomain]
+              ? currentDomain
+              : primaryDomain && passes[primaryDomain]
+              ? primaryDomain
+              : null;
+          const activePass = activePassDomain ? passes[activePassDomain] : null;
           const isTemporarilyOff =
             activePass && Number(activePass.expiresAt) > Date.now();
 
@@ -557,15 +579,18 @@ export const AppsPopupView: React.FC = () => {
                 }`}
                 disabled={lockedDomains.includes(rule.packageName)}
                 onClick={async () => {
-                  if (isTemporarilyOff && currentDomain) {
-                    const newPasses = { ...passes };
-                    delete newPasses[currentDomain];
-                    await chrome.storage.local.set({
-                      [STORAGE_KEYS.TEMP_PASSES]: newPasses,
-                    });
-                    chrome.runtime.sendMessage({ action: 'manualSync' });
-                    toast.success('Block resumed');
-                    refresh();
+                  if (isTemporarilyOff) {
+                    const targetDomain = activePassDomain;
+                    if (targetDomain) {
+                      const newPasses = { ...passes };
+                      delete newPasses[targetDomain];
+                      await chrome.storage.local.set({
+                        [STORAGE_KEYS.TEMP_PASSES]: newPasses,
+                      });
+                      chrome.runtime.sendMessage({ action: 'manualSync' });
+                      toast.success('Block resumed');
+                      refresh();
+                    }
                   } else {
                     handleTemporaryDisable(rule);
                   }

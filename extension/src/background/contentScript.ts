@@ -64,14 +64,29 @@ function todayKey() {
 async function getActiveTempPass(domain: string) {
   const res = await chrome.storage.local.get([TEMP_PASSES_KEY]);
   const passes = res[TEMP_PASSES_KEY] || {};
-  const pass = passes[domain];
+
+  // Check the domain itself and its parents (e.g., m.facebook.com -> facebook.com)
+  const parts = domain.split('.');
+  let pass = null;
+
+  for (let i = 0; i <= parts.length - 2; i++) {
+    const d = parts.slice(i).join('.');
+    if (passes[d]) {
+      pass = passes[d];
+      break;
+    }
+  }
+
   if (!pass) {
     return null;
   }
+
   if (Date.now() > pass.expiresAt) {
-    // Expired — clean up
-    delete passes[domain];
-    await chrome.storage.local.set({ [TEMP_PASSES_KEY]: passes });
+    // Expired — clean up (only if it was an exact match to avoid side effects)
+    if (passes[domain]) {
+      delete passes[domain];
+      await chrome.storage.local.set({ [TEMP_PASSES_KEY]: passes });
+    }
     return null;
   }
   return pass;
