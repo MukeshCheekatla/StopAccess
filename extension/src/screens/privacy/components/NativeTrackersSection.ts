@@ -9,6 +9,7 @@ import {
   renderSectionBadge,
   renderSectionTitleRow,
   UI_TOKENS,
+  getBrandLogoUrl,
 } from '../../../lib/ui';
 
 interface VendorMeta {
@@ -96,7 +97,7 @@ export function renderNativeTrackersSection(
       <div class="fg-grid fg-grid-cols-3 fg-gap-2">
         ${KNOWN_NATIVE_TRACKERS.map((vendor) => {
           const active = activeIds.has(vendor.id);
-          const faviconUrl = `https://www.google.com/s2/favicons?domain=${vendor.domain}&sz=64`;
+          const faviconUrl = getBrandLogoUrl(vendor.domain, 64);
 
           return `
             <div

@@ -1,18 +1,15 @@
-import {
-  getAppIconUrl as getSmartIcon,
-  fmtTime,
-  buildDashboardTabPath,
-  getRootDomain,
-} from '@stopaccess/core';
+import { fmtTime, buildDashboardTabPath } from '@stopaccess/core';
 import { nextDNSApi } from '../../background/platformAdapter';
 import { appsController } from '../../lib/appsController';
-import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
+import { getCachedIcon } from '../../lib/iconCache';
 import {
   renderCloudBanner,
   renderErrorCard,
   renderLoader,
   renderStatCard,
   UI_TOKENS,
+  renderBrandLogo,
+  attachGlobalIconListeners,
 } from '../../lib/ui';
 
 declare var chrome: any;
@@ -44,6 +41,7 @@ export async function renderInsightsPage(
     } else {
       await _renderPage(container);
     }
+    attachGlobalIconListeners(container);
   } catch (e: any) {
     container.innerHTML = renderErrorCard(e.message, 'retry_insights');
     container
@@ -184,56 +182,6 @@ async function _renderPage(container: HTMLElement): Promise<void> {
       }
     });
   });
-
-  _wireInsightsIcons(container);
-}
-
-function _wireInsightsIcons(container: HTMLElement) {
-  container.querySelectorAll('.insights-logo-container').forEach((wrapper) => {
-    const img = wrapper.querySelector('img');
-    const fallback = wrapper.querySelector('.logo-fallback') as HTMLElement;
-    if (!img || !fallback || img.dataset.fgBound === 'true') {
-      return;
-    }
-
-    img.dataset.fgBound = 'true';
-
-    img.addEventListener('load', () => {
-      // Check if image is valid (not a 1x1 or empty)
-      if (img.naturalWidth > 1) {
-        img.style.opacity = '1';
-        fallback.style.opacity = '0';
-
-        // Save to cache
-        if (img.dataset.domain) {
-          saveIconToCache(img.dataset.domain, img.src);
-        }
-      } else {
-        img.dispatchEvent(new Event('error'));
-      }
-    });
-
-    img.addEventListener('error', () => {
-      const currentUrl = img.src;
-      const domain = img.dataset.domain;
-
-      // If Clearbit fails, try Google as last resort
-      if (currentUrl.includes('logo.clearbit.com') && domain) {
-        img.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-          domain,
-        )}&sz=128`;
-      } else {
-        img.style.display = 'none';
-        fallback.style.opacity = '1';
-      }
-    });
-
-    // Handle cached images
-    if (img.complete && img.naturalHeight > 1) {
-      img.style.opacity = '1';
-      fallback.style.opacity = '0';
-    }
-  });
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -302,27 +250,12 @@ function _renderLogsList(
   return blockedLogs
     .map((log: any) => {
       const label = log.domain;
-      const rootDomain = getRootDomain(label);
-      const cached = iconLookup[label];
 
-      // Use cached URL if available, otherwise primary fallback loop
-      const primaryIconUrl =
-        cached || `https://logo.clearbit.com/${rootDomain}`;
+      const cached = iconLookup[label];
 
       return `
         <div class="glass-card fg-flex fg-items-center fg-gap-5 fg-p-4 fg-rounded-2xl fg-transition-transform fg-duration-200 hover:fg-translate-x-1">
-          <div class="insights-logo-container fg-shrink-0 fg-relative fg-flex fg-items-center fg-justify-center" style="width: 32px; height: 32px;">
-            <div class="logo-fallback fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[10px] fg-font-black fg-text-[var(--muted)] fg-transition-opacity" style="opacity: ${
-              cached ? 0 : 1
-            }">
-              ${label.slice(0, 2).toUpperCase()}
-            </div>
-            <img src="${primaryIconUrl}" data-domain="${rootDomain}"
-                 style="width: 32px; height: 32px; object-fit: contain; opacity: ${
-                   cached ? 1 : 0
-                 }; z-index: 2; position: relative;" 
-                 class="fg-transition-opacity">
-          </div>
+          ${renderBrandLogo(label, label, 32, cached)}
            <div class="fg-flex-1 fg-min-w-0">
              <div style="${UI_TOKENS.TEXT.CARD_TITLE}" class="fg-truncate">${
         log.domain
@@ -366,25 +299,12 @@ function _renderTopBlocked(
   return topBlocked
     .map((item: any) => {
       const label = item.domain || item.id || item.name || 'Unknown Target';
-      const rootDomain = getRootDomain(label);
+
       const cached = iconLookup[label];
-      const primaryIconUrl =
-        cached || `https://logo.clearbit.com/${rootDomain}`;
 
       return `
         <div class="glass-card fg-flex fg-items-center fg-gap-4 fg-p-4 fg-rounded-2xl">
-          <div class="insights-logo-container fg-shrink-0 fg-relative fg-flex fg-items-center fg-justify-center" style="width: 28px; height: 28px;">
-            <div class="logo-fallback fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[8px] fg-font-black fg-text-[var(--muted)] fg-transition-opacity" style="opacity: ${
-              cached ? 0 : 1
-            }">
-              ${label.slice(0, 2).toUpperCase()}
-            </div>
-            <img src="${primaryIconUrl}" data-domain="${rootDomain}"
-                 style="width: 28px; height: 28px; object-fit: contain; opacity: ${
-                   cached ? 1 : 0
-                 }; z-index: 2; position: relative;" 
-                 class="fg-transition-opacity">
-          </div>
+          ${renderBrandLogo(label, label, 28, cached)}
            <div class="fg-flex-1 fg-min-w-0">
              <div style="${
                UI_TOKENS.TEXT.CARD_TITLE
@@ -456,9 +376,7 @@ async function _renderPopup(container: HTMLElement): Promise<void> {
                   return `
                 <div class="glass-card fg-flex fg-items-center fg-justify-between fg-py-3 fg-px-4 fg-rounded-xl">
                   <div class="fg-flex fg-items-center fg-gap-3 fg-min-w-0">
-                    <img src="${getSmartIcon(
-                      label,
-                    )}" class="fg-w-5 fg-h-5 fg-object-contain">
+                    ${renderBrandLogo(label, label, 20)}
                     <div class="fg-text-[11px] fg-font-black fg-truncate">${label}</div>
                   </div>
                   <div class="fg-text-[11px] fg-font-black fg-text-[var(--red)]">${

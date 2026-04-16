@@ -12,13 +12,14 @@ import { renderBlocklistsSection } from './components/BlocklistsSection';
 import { renderNativeTrackersSection } from './components/NativeTrackersSection';
 import { renderPrivacyOptionsSection } from './components/PrivacyOptionsSection';
 import { toast } from '../../lib/toast';
-import { buildDashboardTabPath, getRootDomain } from '@stopaccess/core';
+import { buildDashboardTabPath } from '@stopaccess/core';
 import {
   renderCloudBanner,
   renderErrorCard,
   applyToggleUI,
   applyCardToggleUI,
   renderStatCard,
+  getBrandLogoUrl,
 } from '../../lib/ui';
 
 const vm = createPrivacyVM(storage, nextDNSApi);
@@ -217,9 +218,7 @@ function attachHandlers(container: HTMLElement): void {
             const domain = target.dataset.domain;
             if (domain && !target.dataset.triedFallback) {
               target.dataset.triedFallback = 'true';
-              target.src = `https://www.google.com/s2/favicons?domain=${getRootDomain(
-                domain,
-              )}&sz=64`;
+              target.src = getBrandLogoUrl(domain, 64);
             } else {
               target.style.display = 'none';
               if (target.previousElementSibling) {

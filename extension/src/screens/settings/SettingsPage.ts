@@ -10,8 +10,6 @@ const iconSearch =
   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
 const iconActivity =
   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>';
-const iconDatabase =
-  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>';
 const iconEdit =
   '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="fg-mr-1.5"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
 
@@ -49,10 +47,10 @@ export async function renderSettingsPage(container) {
       <main class="fg-overflow-y-auto fg-p-8 fg-max-w-6xl fg-mx-auto">
         <div class="fg-grid fg-grid-cols-2 fg-gap-6 settings-dual-grid">
 
-          <section class="fg-panel-premium fg-p-8 fg-rounded-[32px]">
-            <div class="fg-flex fg-items-start fg-justify-between fg-mb-8">
-              <div class="fg-flex fg-gap-4">
-                <div class="fg-w-10 fg-h-10 fg-rounded-xl fg-bg-sky-500/10 fg-flex fg-items-center fg-justify-center fg-text-sky-500">
+          <section class="fg-panel-premium fg-p-6 fg-rounded-[28px]">
+            <div class="fg-flex fg-items-start fg-justify-between fg-mb-6">
+              <div class="fg-flex fg-gap-3">
+                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-sky-500/10 fg-flex fg-items-center fg-justify-center fg-text-sky-500">
                   ${iconCloud}
                 </div>
                 <div>
@@ -61,203 +59,186 @@ export async function renderSettingsPage(container) {
                   }">NextDNS Profile Sync</h2>
                   <p style="${
                     UI_TOKENS.TEXT.SUBTEXT
-                  }; margin-top: 4px;">Sync services, denylist domains, privacy lists, security toggles, and diagnostics.</p>
+                  }; margin-top: 2px;">Sync services, denylist domains, and diagnostics.</p>
                 </div>
               </div>
-              <button id="btn_edit_credentials" class="fg-flex fg-items-center fg-text-[9px] fg-font-black fg-text-[var(--fg-accent)] hover:fg-opacity-80  fg-tracking-[0.2em] fg-bg-[var(--fg-accent)]/10 fg-px-3 fg-py-2 fg-rounded-lg fg-transition-opacity ${
+              <button id="btn_edit_credentials" class="fg-flex fg-items-center fg-text-[9px] fg-font-black fg-text-[var(--fg-accent)] hover:fg-opacity-80  fg-tracking-[0.2em] fg-bg-[var(--fg-accent)]/10 fg-px-2.5 fg-py-1.5 fg-rounded-lg fg-transition-opacity ${
                 isSetupActive ? '' : 'fg-hidden'
               }">
                 ${iconEdit}
                 <span>Modify</span>
               </button>
             </div>
-            <div class="fg-flex fg-flex-col fg-gap-8 fg-mt-4">
-              <div class="fg-flex fg-flex-col fg-gap-2.5">
+            <div class="fg-flex fg-flex-col fg-gap-6">
+              <div class="fg-flex fg-flex-col fg-gap-2">
                 <label style="${UI_TOKENS.TEXT.LABEL}">Active Profile</label>
-                <div class="fg-flex fg-items-center fg-gap-5">
-                  <input type="text" id="cfg_profile" value="${profileId}" placeholder="abc123" class="input-premium fg-w-20 fg-h-12 fg-text-xl fg-font-black fg-text-[var(--fg-accent)] fg-bg-transparent fg-border-0 fg-p-0 ${
+                <div class="fg-flex fg-items-center fg-gap-4">
+                  <input type="text" id="cfg_profile" value="${profileId}" placeholder="abc123" class="input-premium fg-w-20 fg-h-11 fg-text-lg fg-font-bold fg-text-[var(--fg-accent)] fg-bg-transparent fg-border-0 fg-p-0 ${
     isSetupActive ? 'readonly-input' : ''
   }" ${isSetupActive ? 'readonly' : ''}>
-                  <button class="btn-secondary-v2 fg-px-5 fg-py-2 fg-h-10 fg-whitespace-nowrap fg-text-[9px]" id="btn_open_nextdns_setup">Locate ID</button>
+                  <button class="btn-secondary-v2 fg-px-4 fg-py-2 fg-h-9 fg-whitespace-nowrap fg-text-[9px]" id="btn_open_nextdns_setup">Locate ID</button>
                 </div>
               </div>
 
-              <div class="fg-flex fg-flex-col fg-gap-2.5">
+              <div class="fg-flex fg-flex-col fg-gap-2">
                 <label style="${
                   UI_TOKENS.TEXT.LABEL
                 }">Dedicated API Token</label>
-                <div class="fg-flex fg-items-center fg-gap-5">
+                <div class="fg-flex fg-items-center fg-gap-4">
                   <input type="password" id="cfg_apiKey" value="" placeholder="${
                     apiKey ? 'Token saved' : 'Paste dedicated token'
-                  }" class="input-premium fg-flex-1 fg-h-12 fg-text-xl fg-font-black fg-text-[var(--fg-text)] fg-bg-transparent fg-border-0 fg-p-0 ${
+                  }" class="input-premium fg-flex-1 fg-h-11 fg-text-lg fg-font-bold fg-text-[var(--fg-text)] fg-bg-transparent fg-border-0 fg-p-0 ${
     isSetupActive ? 'readonly-input' : ''
   }" ${isSetupActive ? 'readonly' : ''}>
-                  <button class="btn-secondary-v2 fg-px-5 fg-py-2 fg-h-10 fg-whitespace-nowrap fg-text-[9px]" id="btn_open_nextdns_account">Generate Token</button>
+                  <button class="btn-secondary-v2 fg-px-4 fg-py-2 fg-h-9 fg-whitespace-nowrap fg-text-[9px]" id="btn_open_nextdns_account">Generate</button>
                 </div>
               </div>
             </div>
             <div id="connection_feedback" class="fg-hidden fg-mt-4 fg-p-4 fg-rounded-2xl fg-text-xs fg-font-bold fg-text-center"></div>
             <div class="fg-mt-6">
-              <button class="btn-premium fg-w-full fg-justify-center fg-h-14 fg-rounded-2xl fg-text-sm fg-font-black  fg-tracking-widest ${
+              <button class="btn-premium fg-w-full fg-justify-center fg-h-12 fg-rounded-xl fg-text-sm fg-font-bold  fg-tracking-widest ${
                 isSetupActive ? 'fg-hidden' : ''
               }" id="btn_save_config">Secure & Initialize Sync</button>
             </div>
           </section>
 
-          <section class="fg-panel-premium fg-p-8 fg-rounded-[32px]">
-            <div class="fg-mb-8 fg-flex fg-gap-4">
-               <div class="fg-w-10 fg-h-10 fg-rounded-xl fg-bg-violet-500/10 fg-flex fg-items-center fg-justify-center fg-text-violet-500">
+          <section class="fg-panel-premium fg-p-6 fg-rounded-[28px]">
+            <div class="fg-mb-6 fg-flex fg-gap-3">
+               <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-violet-500/10 fg-flex fg-items-center fg-justify-center fg-text-violet-500">
                   ${iconGlobe}
                 </div>
                <div>
                 <h2 style="${UI_TOKENS.TEXT.HEADING}">Browser DNS Coverage</h2>
                 <p style="${
                   UI_TOKENS.TEXT.SUBTEXT
-                }; margin-top: 4px;">Use your private NextDNS endpoint when browser traffic should be covered outside extension rules.</p>
+                }; margin-top: 2px;">Use your endpoint for browser traffic outside extension rules.</p>
               </div>
             </div>
-            <div class="fg-space-y-8 fg-mt-6">
-              <div class="fg-flex fg-flex-col fg-gap-3">
+            <div class="fg-space-y-6">
+              <div class="fg-flex fg-flex-col fg-gap-2">
                 <label style="${
                   UI_TOKENS.TEXT.LABEL
                 }; opacity: 0.5;">Private DoH Endpoint</label>
-                <div class="fg-flex fg-gap-4">
-                  <input type="text" id="doh_url_display" value="${dohUrl}" class="input-premium fg-flex-1 fg-h-12 fg-text-xs fg-text-[var(--fg-text)] fg-opacity-80 fg-font-mono fg-bg-transparent fg-border-0 fg-p-0" readonly>
-                  <button id="btn_copy_doh_inline" class="btn-premium fg-px-6 fg-h-12 fg-text-[10px]  fg-tracking-widest">Copy URL</button>
+                <div class="fg-flex fg-gap-3">
+                  <input type="text" id="doh_url_display" value="${dohUrl}" class="input-premium fg-flex-1 fg-h-10 fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-80 fg-font-mono fg-bg-transparent fg-border-0 fg-p-0" readonly>
+                  <button id="btn_copy_doh_inline" class="btn-premium fg-px-5 fg-h-10 fg-text-[9px]  fg-tracking-widest">Copy URL</button>
                 </div>
               </div>
               <div>
-                <div class="fg-grid fg-grid-cols-3 fg-gap-2 fg-mb-4" id="dns_browser_tabs">
-                  <button class="dns-tab-btn fg-rounded-xl fg-px-3 fg-py-2 fg-text-[11px] fg-font-black  fg-tracking-wider fg-border fg-transition-all active" data-tab="chrome">Chrome / Edge</button>
-                  <button class="dns-tab-btn fg-rounded-xl fg-px-3 fg-py-2 fg-text-[11px] fg-font-black  fg-tracking-wider fg-border fg-transition-all" data-tab="firefox">Firefox</button>
-                  <button class="dns-tab-btn fg-rounded-xl fg-px-3 fg-py-2 fg-text-[11px] fg-font-black  fg-tracking-wider fg-border fg-transition-all" data-tab="system">System</button>
+                <div class="fg-grid fg-grid-cols-3 fg-gap-2 fg-mb-3" id="dns_browser_tabs">
+                  <button class="dns-tab-btn fg-rounded-xl fg-px-3 fg-py-1.5 fg-text-[10px] fg-font-bold  fg-tracking-wider fg-border fg-transition-all active" data-tab="chrome">Chrome / Edge</button>
+                  <button class="dns-tab-btn fg-rounded-xl fg-px-3 fg-py-1.5 fg-text-[10px] fg-font-bold  fg-tracking-wider fg-border fg-transition-all" data-tab="firefox">Firefox</button>
+                  <button class="dns-tab-btn fg-rounded-xl fg-px-3 fg-py-1.5 fg-text-[10px] fg-font-bold  fg-tracking-wider fg-border fg-transition-all" data-tab="system">System</button>
                 </div>
-                <div id="dns_steps_chrome" class="dns-steps-panel fg-space-y-4 fg-mt-6">
-                  <button id="btn_open_chrome_dns" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[10px]  fg-tracking-widest fg-w-full fg-justify-center">Open Chrome DNS Settings</button>
-                  <div class="fg-space-y-2 fg-pt-2">
-                    <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">1. Open chrome://settings/security</div>
-                    <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">2. Go to Advanced and enable Use secure DNS</div>
-                    <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">3. Select With Custom Provider</div>
-                    <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">4. Paste your DoH URL and save</div>
+                <div id="dns_steps_chrome" class="dns-steps-panel fg-space-y-2">
+                  <button id="btn_open_chrome_dns" class="btn-secondary-v2 fg-px-4 fg-py-2 fg-text-[9px]  fg-tracking-widest fg-w-full fg-justify-center">Open Chrome DNS Settings</button>
+                  <div class="fg-grid fg-grid-cols-2 fg-gap-x-4 fg-gap-y-1 fg-pt-1">
+                    <div class="fg-text-[11px] fg-font-medium fg-text-[var(--fg-text)] fg-opacity-70">1. chrome://settings/security</div>
+                    <div class="fg-text-[11px] fg-font-medium fg-text-[var(--fg-text)] fg-opacity-70">2. Enable Use secure DNS</div>
+                    <div class="fg-text-[11px] fg-font-medium fg-text-[var(--fg-text)] fg-opacity-70">3. Select Custom Provider</div>
+                    <div class="fg-text-[11px] fg-font-medium fg-text-[var(--fg-text)] fg-opacity-70">4. Paste your DoH URL</div>
                   </div>
                 </div>
-                <div id="dns_steps_firefox" class="dns-steps-panel fg-hidden fg-space-y-4 fg-mt-6">
-                  <button id="btn_open_firefox_dns" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[10px]  fg-tracking-widest fg-w-full fg-justify-center">Open Firefox Network Settings</button>
-                  <div class="fg-space-y-2 fg-pt-2">
-                    <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">1. Open about:preferences#general</div>
-                    <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">2. Open Network Settings</div>
-                    <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">3. Enable DNS over HTTPS and choose Custom</div>
-                    <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">4. Paste your DoH URL and confirm</div>
+                <div id="dns_steps_firefox" class="dns-steps-panel fg-hidden fg-space-y-2">
+                  <button id="btn_open_firefox_dns" class="btn-secondary-v2 fg-px-4 fg-py-2 fg-text-[9px]  fg-tracking-widest fg-w-full fg-justify-center">Open Firefox Network Settings</button>
+                  <div class="fg-grid fg-grid-cols-2 fg-gap-x-4 fg-gap-y-1 fg-pt-1">
+                    <div class="fg-text-[11px] fg-font-medium fg-text-[var(--fg-text)] fg-opacity-70">1. about:preferences#general</div>
+                    <div class="fg-text-[11px] fg-font-medium fg-text-[var(--fg-text)] fg-opacity-70">2. Network Settings</div>
+                    <div class="fg-text-[11px] fg-font-medium fg-text-[var(--fg-text)] fg-opacity-70">3. Enable DNS over HTTPS</div>
+                    <div class="fg-text-[11px] fg-font-medium fg-text-[var(--fg-text)] fg-opacity-70">4. Paste DoH URL</div>
                   </div>
                 </div>
-                <div id="dns_steps_system" class="dns-steps-panel fg-hidden fg-space-y-4 fg-mt-6">
-                  <button id="btn_open_nextdns_download" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[10px]  fg-tracking-widest fg-w-full fg-justify-center">NextDNS Official Site</button>
-                  <div class="fg-space-y-2 fg-pt-2">
-                    <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">1. Install the NextDNS desktop app</div>
-                    <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">2. Use your Configuration ID</div>
-                    <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] fg-opacity-90 fg-leading-relaxed">3. Enable protection for all apps on this device</div>
+                <div id="dns_steps_system" class="dns-steps-panel fg-hidden fg-space-y-2">
+                  <button id="btn_open_nextdns_download" class="btn-secondary-v2 fg-px-4 fg-py-2 fg-text-[9px]  fg-tracking-widest fg-w-full fg-justify-center">NextDNS Official Site</button>
+                  <div class="fg-grid fg-grid-cols-2 fg-gap-x-4 fg-gap-y-1 fg-pt-1">
+                    <div class="fg-text-[11px] fg-font-medium fg-text-[var(--fg-text)] fg-opacity-70">1. Install Desktop App</div>
+                    <div class="fg-text-[11px] fg-font-medium fg-text-[var(--fg-text)] fg-opacity-70">2. Use Config ID</div>
+                    <div class="fg-text-[11px] fg-font-medium fg-text-[var(--fg-text)] fg-opacity-70">3. Global protection</div>
                   </div>
                 </div>
               </div>
             </div>
           </section>
 
-          <section class="fg-panel-premium fg-p-8 fg-rounded-[32px] fg-flex fg-items-center fg-justify-between">
-            <div class="fg-flex fg-gap-4">
-              <div class="fg-w-10 fg-h-10 fg-rounded-xl fg-bg-amber-500/10 fg-flex fg-items-center fg-justify-center fg-text-amber-500">
-                ${iconLock}
+          <div class="fg-col-span-2 fg-grid fg-grid-cols-2 fg-gap-6">
+            <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-items-center fg-justify-between">
+              <div class="fg-flex fg-gap-3">
+                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-amber-500/10 fg-flex fg-items-center fg-justify-center fg-text-amber-500">
+                  ${iconLock}
+                </div>
+                <div>
+                  <h2 style="${UI_TOKENS.TEXT.HEADING}">Strict Mode</h2>
+                  <p style="${
+                    UI_TOKENS.TEXT.SUBTEXT
+                  }; margin-top: 2px;">Add friction before rules can be weakened.</p>
+                </div>
               </div>
-              <div>
-                <h2 style="${UI_TOKENS.TEXT.HEADING}">Strict Mode</h2>
-                <p style="${
-                  UI_TOKENS.TEXT.SUBTEXT
-                }; margin-top: 4px;">Add friction before rules, sessions, or sensitive settings can be weakened.</p>
-              </div>
-            </div>
-            <label class="switch-toggle">
-              <input type="checkbox" id="chk_strict_toggle" ${
-                strict ? 'checked' : ''
-              }>
-              <span class="slider-toggle"></span>
-            </label>
-          </section>
+              <label class="switch-toggle">
+                <input type="checkbox" id="chk_strict_toggle" ${
+                  strict ? 'checked' : ''
+                }>
+                <span class="slider-toggle"></span>
+              </label>
+            </section>
 
-          <section class="fg-panel-premium fg-p-8 fg-rounded-[32px] fg-flex fg-items-center fg-justify-between">
-            <div class="fg-flex fg-gap-4">
-              <div class="fg-w-10 fg-h-10 fg-rounded-xl fg-bg-emerald-500/10 fg-flex fg-items-center fg-justify-center fg-text-emerald-500">
-                ${iconShield}
+            <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-items-center fg-justify-between">
+              <div class="fg-flex fg-gap-3">
+                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-emerald-500/10 fg-flex fg-items-center fg-justify-center fg-text-emerald-500">
+                  ${iconShield}
+                </div>
+                <div>
+                  <h2 style="${UI_TOKENS.TEXT.HEADING}">Guardian PIN</h2>
+                  <p style="${
+                    UI_TOKENS.TEXT.SUBTEXT
+                  }; margin-top: 2px;">Require a code for protected changes.</p>
+                </div>
               </div>
-              <div>
-                <h2 style="${UI_TOKENS.TEXT.HEADING}">Guardian PIN</h2>
-                <p style="${
-                  UI_TOKENS.TEXT.SUBTEXT
-                }; margin-top: 4px;">Require a 4-digit code before protected changes are allowed.</p>
-              </div>
-            </div>
-            <label class="switch-toggle">
-              <input type="checkbox" id="chk_guardian_pin">
-              <span class="slider-toggle"></span>
-            </label>
-          </section>
+              <label class="switch-toggle">
+                <input type="checkbox" id="chk_guardian_pin">
+                <span class="slider-toggle"></span>
+              </label>
+            </section>
+          </div>
 
-          <section class="fg-panel-premium fg-p-8 fg-rounded-[32px]">
-            <div class="fg-mb-8 fg-flex fg-gap-4">
-              <div class="fg-w-10 fg-h-10 fg-rounded-xl fg-bg-blue-500/10 fg-flex fg-items-center fg-justify-center fg-text-blue-500">
+          <section class="fg-panel-premium fg-p-6 fg-rounded-[28px]">
+            <div class="fg-mb-6 fg-flex fg-gap-3">
+              <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-blue-500/10 fg-flex fg-items-center fg-justify-center fg-text-blue-500">
                 ${iconSearch}
               </div>
               <div>
-                <h2 style="${UI_TOKENS.TEXT.HEADING}">Domain Coverage Test</h2>
+                <h2 style="${UI_TOKENS.TEXT.HEADING}">Coverage Test</h2>
                 <p style="${
                   UI_TOKENS.TEXT.SUBTEXT
-                }; margin-top: 4px;">Check whether a host is covered by local extension rules or synced DNS rules.</p>
+                }; margin-top: 2px;">Check if a host is covered by active rules.</p>
               </div>
             </div>
-            <div class="fg-space-y-4">
-              <div class="fg-flex fg-gap-3">
-                <input type="text" id="test_domain" placeholder="domain.com" class="input-premium fg-flex-1 fg-h-12 fg-text-sm fg-text-[var(--fg-text)]">
-                <button class="btn-premium fg-px-8 fg-h-12 fg-text-[10px]  fg-tracking-widest" id="btn_test_domain">Run Scan</button>
-              </div>
-              <div id="test_result" class="fg-hidden fg-p-5 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black  fg-tracking-widest"></div>
+            <div class="fg-flex fg-gap-3">
+              <input type="text" id="test_domain" placeholder="domain.com" class="input-premium fg-flex-1 fg-h-11 fg-text-sm fg-font-medium fg-text-[var(--fg-text)]">
+              <button class="btn-premium fg-px-6 fg-h-11 fg-text-[10px]  fg-tracking-widest" id="btn_test_domain">Run Scan</button>
             </div>
+            <div id="test_result" class="fg-hidden fg-mt-4 fg-p-4 fg-rounded-2xl fg-text-center fg-text-[10px] fg-font-bold  fg-tracking-widest"></div>
           </section>
 
-          <section class="fg-panel-premium fg-p-8 fg-rounded-[32px]">
-            <div class="fg-flex fg-items-center fg-justify-between fg-mb-8">
-              <div class="fg-flex fg-gap-4">
-                <div class="fg-w-10 fg-h-10 fg-rounded-xl fg-bg-rose-500/10 fg-flex fg-items-center fg-justify-center fg-text-rose-500">
+          <section class="fg-panel-premium fg-p-6 fg-rounded-[28px]">
+            <div class="fg-flex fg-items-center fg-justify-between fg-mb-5">
+              <div class="fg-flex fg-gap-3">
+                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-rose-500/10 fg-flex fg-items-center fg-justify-center fg-text-rose-500">
                   ${iconActivity}
                 </div>
                 <div>
-                  <h2 style="${UI_TOKENS.TEXT.HEADING}">Sync Health</h2>
+                  <h2 style="${UI_TOKENS.TEXT.HEADING}">Maintenance</h2>
                   <p style="${
                     UI_TOKENS.TEXT.SUBTEXT
-                  }; margin-top: 4px;">Recent sync status, pending rule changes, and connection state.</p>
+                  }; margin-top: 2px;">Sync health and rule persistence.</p>
                 </div>
               </div>
-              <div class="fg-flex fg-gap-2">
-                <button class="fg-text-[9px] fg-font-black fg-text-[var(--fg-accent)] fg-bg-[var(--fg-accent)]/10 fg-px-3 fg-py-1.5 fg-rounded-lg hover:fg-opacity-70" id="btn_force_sync">Push</button>
-                <button class="fg-text-[9px] fg-font-black fg-opacity-100 fg-text-[var(--fg-text)] fg-bg-white/10 fg-px-3 fg-py-1.5 fg-rounded-lg hover:fg-bg-white/20" id="btn_refresh_sync">Poll</button>
-              </div>
+              <button class="fg-text-[9px] fg-font-black fg-text-[var(--fg-accent)] fg-bg-[var(--fg-accent)]/10 fg-px-3 fg-py-1.5 fg-rounded-lg hover:fg-opacity-70" id="btn_force_sync">Push</button>
             </div>
-            <div id="sync_stats" class="fg-text-[11px] fg-font-mono fg-space-y-3 fg-text-[var(--fg-text)]"></div>
-          </section>
-
-          <section class="fg-panel-premium fg-p-8 fg-rounded-[32px]">
-            <div class="fg-mb-8 fg-flex fg-gap-4">
-              <div class="fg-w-10 fg-h-10 fg-rounded-xl fg-bg-indigo-500/10 fg-flex fg-items-center fg-justify-center fg-text-indigo-500">
-                ${iconDatabase}
-              </div>
-              <div>
-                <h2 style="${UI_TOKENS.TEXT.HEADING}">Rules And Logs</h2>
-                <p style="${
-                  UI_TOKENS.TEXT.SUBTEXT
-                }; margin-top: 4px;">Review recent actions and import or export local rule state.</p>
-              </div>
-            </div>
-            <div class="fg-grid fg-grid-cols-3 fg-gap-3">
-              <button class="btn-secondary-v2 fg-py-5 fg-text-[9px]  fg-tracking-widest" id="btn_view_logs">History</button>
-              <button class="btn-secondary-v2 fg-py-5 fg-text-[9px]  fg-tracking-widest" id="btn_export_rules">Export</button>
-              <button class="btn-secondary-v2 fg-py-5 fg-text-[9px]  fg-tracking-widest" id="btn_import_rules">Import</button>
+            <div id="sync_stats" class="fg-text-[10px] fg-font-mono fg-space-y-2 fg-text-[var(--fg-text)] fg-mb-5"></div>
+            <div class="fg-grid fg-grid-cols-3 fg-gap-3 fg-pt-4 fg-border-t fg-border-[var(--fg-glass-border)]">
+              <button class="btn-secondary-v2 fg-py-3 fg-text-[9px]  fg-tracking-widest" id="btn_view_logs">History</button>
+              <button class="btn-secondary-v2 fg-py-3 fg-text-[9px]  fg-tracking-widest" id="btn_export_rules">Export</button>
+              <button class="btn-secondary-v2 fg-py-3 fg-text-[9px]  fg-tracking-widest" id="btn_import_rules">Import</button>
             </div>
           </section>
         </div>
@@ -287,9 +268,10 @@ export async function renderSettingsPage(container) {
       .input-premium {
         background: var(--fg-bg) !important;
         border: 1px solid var(--fg-glass-border) !important;
-        border-radius: 16px;
-        padding: 14px 18px;
-        font-size: 14px;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 500;
         color: var(--fg-text);
         width: 100%;
         transition: all 0.2s;
@@ -302,7 +284,7 @@ export async function renderSettingsPage(container) {
       .input-premium::placeholder {
         font-size: 11px !important;
         font-weight: 400 !important;
-        opacity: 0.4 !important;
+        opacity: 0.5 !important;
         letter-spacing: 0.02em !important;
         font-family: system-ui, -apple-system, sans-serif !important;
       }
@@ -313,10 +295,10 @@ export async function renderSettingsPage(container) {
         background: var(--fg-glass-bg);
         border: 1px solid var(--fg-glass-border);
         color: var(--fg-text);
-        border-radius: 18px;
+        border-radius: 12px;
         font-size: 11px;
-        font-weight: 900;
-        letter-spacing: 0.08em;
+        font-weight: 600;
+        letter-spacing: 0.04em;
         transition: all 0.2s;
       }
       .btn-secondary-v2:hover {
@@ -325,8 +307,8 @@ export async function renderSettingsPage(container) {
       .switch-toggle {
         position: relative;
         display: inline-block;
-        width: 48px;
-        height: 28px;
+        width: 44px;
+        height: 24px;
       }
       .switch-toggle input {
         opacity: 0;
@@ -340,18 +322,18 @@ export async function renderSettingsPage(container) {
         left: 0;
         right: 0;
         bottom: 0;
-        background-color: rgba(100, 116, 139, 0.15);
+        background-color: var(--fg-toggle-bg);
         transition: .4s;
         border-radius: 34px;
-        border: 1px solid rgba(100, 116, 139, 0.2);
+        border: 1px solid var(--fg-glass-border);
       }
       .slider-toggle:before {
         position: absolute;
         content: "";
-        height: 20px;
-        width: 20px;
-        left: 3px;
-        bottom: 3px;
+        height: 18px;
+        width: 18px;
+        left: 2px;
+        bottom: 2px;
         background-color: white;
         transition: .4s;
         border-radius: 50%;
@@ -365,17 +347,17 @@ export async function renderSettingsPage(container) {
         transform: translateX(20px);
       }
       .pin-digit-slot {
-        width: 48px;
-        height: 62px;
+        width: 44px;
+        height: 56px;
         display: flex;
         align-items: center;
         justify-content: center;
         background: rgba(255,255,255,0.03);
         border: 1px solid var(--fg-glass-border);
-        border-radius: 16px;
-        font-size: 24px;
+        border-radius: 14px;
+        font-size: 20px;
         color: var(--fg-text);
-        font-weight: 900;
+        font-weight: 700;
         transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
       .pin-digit-slot.active {
@@ -395,7 +377,7 @@ export async function renderSettingsPage(container) {
       .pin-digit-slot.focused-slot::after {
         content: "";
         width: 2px;
-        height: 24px;
+        height: 20px;
         background-color: var(--fg-accent);
         animation: fg-blink 1s step-end infinite;
       }
@@ -403,12 +385,12 @@ export async function renderSettingsPage(container) {
         background: transparent;
         border: 1px solid var(--fg-glass-border);
         color: var(--fg-text);
-        opacity: 0.4;
+        opacity: 0.6;
         cursor: pointer;
         transition: all 0.2s;
       }
       .dns-tab-btn:hover {
-        opacity: 0.7;
+        opacity: 0.8;
         background: rgba(255,255,255,0.05);
       }
       .dns-tab-btn.active {
@@ -417,20 +399,7 @@ export async function renderSettingsPage(container) {
         border-color: var(--fg-accent) !important;
         color: var(--fg-text) !important;
       }
-      .pin-slot {
-        display: flex;
-        width: 48px;
-        height: 56px;
-        align-items: center;
-        justify-content: center;
-        border-radius: 16px;
-        border: 1px solid var(--fg-glass-border);
-        background: var(--fg-bg);
-        color: var(--fg-muted);
-        font-size: 22px;
-        font-weight: 900;
-      }
-      @media (max-width: 1024px) {
+      @media (max-width: 1100px) {
         .settings-dual-grid {
           grid-template-columns: 1fr;
         }
