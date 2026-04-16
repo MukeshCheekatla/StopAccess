@@ -9,3 +9,4 @@ export * from './sync';
 export * from './security';
 export * from './privacy';
 export * from './registry';
+export * from './blockingPolicy';

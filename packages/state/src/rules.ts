@@ -74,6 +74,8 @@ export function createRule(
     desiredBlockingState: active,
     usedMinutesToday: 0,
     addedByUser: true,
+    streakDays: 0,
+    streakStartedAt: Date.now(),
     updatedAt: Date.now(),
   };
 }

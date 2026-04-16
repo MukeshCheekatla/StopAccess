@@ -15,3 +15,13 @@ export function fmtTime(ms: number): string {
   }
   return `${s}s`;
 }
+
+export function formatMinutes(m: number): string {
+  const total = Math.floor(m);
+  if (total < 60) {
+    return `${total}m`;
+  }
+  const h = Math.floor(total / 60);
+  const mins = total % 60;
+  return mins > 0 ? `${h}h ${mins}m` : `${h}h`;
+}

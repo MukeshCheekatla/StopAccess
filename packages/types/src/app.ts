@@ -21,6 +21,7 @@ export interface AppRule {
   addedAt?: number;
   maxDailyPasses?: number;
   streakDays?: number;
+  streakStartedAt?: number;
   streakUpdatedOn?: string;
   isLimitHit?: boolean;
 }

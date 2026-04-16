@@ -42,22 +42,110 @@ export class NextDNSSyncAdapter {
       }
 
       const data = (snapshot as any).data || snapshot;
-      const { services = [] } = data;
+      const { services = [], categories = [], denylist = [] } = data;
 
       let changedCount = 0;
       const updatedRules = [...currentRules];
 
-      // Sync services (apps)
-      for (const s of services) {
-        const rule = updatedRules.find(
-          (r) => r.packageName === s.id && r.type === 'service',
+      const upsertRemoteRule = (
+        type: AppRule['type'],
+        id: string,
+        label: string,
+        active: boolean,
+      ) => {
+        const idx = updatedRules.findIndex(
+          (r) => r.packageName === id && r.type === type,
         );
-        if (rule) {
-          if (rule.mode !== (s.active ? 'block' : 'allow')) {
-            rule.mode = s.active ? 'block' : 'allow';
+
+        if (idx >= 0) {
+          const current = updatedRules[idx];
+          const nextMode = active ? 'block' : 'allow';
+          const nextDesired = active;
+          const nextBlockedToday = active;
+          if (
+            current.mode !== nextMode ||
+            current.desiredBlockingState !== nextDesired ||
+            current.blockedToday !== nextBlockedToday
+          ) {
+            updatedRules[idx] = {
+              ...current,
+              appName: current.appName || label,
+              scope: 'profile',
+              mode: nextMode,
+              blockedToday: nextBlockedToday,
+              desiredBlockingState: nextDesired,
+            };
             changedCount++;
           }
+          return;
         }
+
+        if (!active) {
+          return;
+        }
+
+        updatedRules.push({
+          appName: label,
+          packageName: id,
+          type,
+          scope: 'profile',
+          mode: 'block',
+          dailyLimitMinutes: 0,
+          blockedToday: true,
+          usedMinutesToday: 0,
+          customDomain: type === 'domain' ? id : undefined,
+          addedByUser: false,
+          desiredBlockingState: true,
+        });
+        changedCount++;
+      };
+
+      const activeServices = new Set(
+        services.filter((s: any) => s.active).map((s: any) => s.id),
+      );
+      const activeCategories = new Set(
+        categories.filter((c: any) => c.active).map((c: any) => c.id),
+      );
+      const activeDomains = new Set(denylist.map((d: any) => d.id));
+
+      for (const rule of updatedRules.map((r) => ({ ...r }))) {
+        if (rule.scope !== 'profile') {
+          continue;
+        }
+
+        if (rule.type === 'service') {
+          upsertRemoteRule(
+            'service',
+            rule.packageName,
+            rule.appName,
+            activeServices.has(rule.packageName),
+          );
+        } else if (rule.type === 'category') {
+          upsertRemoteRule(
+            'category',
+            rule.packageName,
+            rule.appName,
+            activeCategories.has(rule.packageName),
+          );
+        } else if (rule.type === 'domain') {
+          const domainId = rule.customDomain || rule.packageName;
+          upsertRemoteRule(
+            'domain',
+            rule.packageName,
+            rule.appName || domainId,
+            activeDomains.has(domainId),
+          );
+        }
+      }
+
+      for (const s of services) {
+        upsertRemoteRule('service', s.id, s.name || s.id, Boolean(s.active));
+      }
+      for (const c of categories) {
+        upsertRemoteRule('category', c.id, c.name || c.id, Boolean(c.active));
+      }
+      for (const d of denylist) {
+        upsertRemoteRule('domain', d.id, d.id, true);
       }
 
       return { ok: true, rules: updatedRules, changedCount };
