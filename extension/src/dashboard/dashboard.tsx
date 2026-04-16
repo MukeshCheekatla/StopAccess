@@ -181,7 +181,7 @@ function DashboardApp() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [ready, setReady] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<'dark' | 'light' | 'system'>(
-    'system',
+    () => (localStorage.getItem('sa_theme') as any) || 'system',
   );
 
   useEffect(() => {
@@ -344,7 +344,10 @@ function DashboardApp() {
                 activeTab === tab.id ? 'fg-block' : 'fg-hidden'
               }`}
             >
-              <LegacyBridge renderFn={renderFn} />
+              <LegacyBridge
+                renderFn={renderFn}
+                isVisible={activeTab === tab.id}
+              />
             </div>
           );
         })}

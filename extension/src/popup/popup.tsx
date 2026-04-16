@@ -244,15 +244,15 @@ function PopupApp() {
 
   if (!ready) {
     return (
-      <div className="fg-main fg-shell-bg fg-flex fg-h-screen fg-w-screen fg-items-center fg-justify-center fg-text-[var(--fg-text)]">
-        <div className="fg-h-8 fg-w-8 fg-animate-spin fg-rounded-full fg-border-4 fg-border-white/10 fg-border-t-[var(--accent)]" />
+      <div className="fg-main fg-shell-bg fg-flex fg-h-screen fg-w-full fg-items-center fg-justify-center fg-text-[var(--fg-text)]">
+        <div className="fg-h-8 fg-w-8 fg-animate-spin fg-rounded-full fg-border-4 fg-border-[var(--fg-glass-border)] fg-border-t-[var(--accent)]" />
       </div>
     );
   }
 
   if (needsOnboarding) {
     return (
-      <div className="fg-main fg-shell-bg fg-flex fg-h-screen fg-w-screen fg-items-center fg-justify-center fg-p-5 fg-text-[var(--fg-text)]">
+      <div className="fg-main fg-shell-bg fg-flex fg-h-screen fg-w-full fg-items-center fg-justify-center fg-p-5 fg-text-[var(--fg-text)]">
         <div className="fg-w-full fg-max-w-[320px] fg-rounded-xl fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-surface)] fg-p-5 fg-text-center">
           <img
             src={chrome.runtime.getURL('assets/icon-48.png')}
@@ -295,7 +295,7 @@ function PopupApp() {
             {passEntries.map((entry) => (
               <div
                 key={entry.domain}
-                className="fg-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-lg fg-shrink-0 fg-bg-white/5 fg-border fg-border-white/[0.03]"
+                className="fg-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-lg fg-shrink-0 fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)]"
               >
                 <div className="fg-text-[10px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40  fg-tracking-[0.08em] fg-whitespace-nowrap">
                   {entry.domain}
@@ -317,7 +317,11 @@ function PopupApp() {
             chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') })
           }
           className="fg-popup-action fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-md fg-transition-all fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-glass-bg)] hover:fg-bg-[var(--fg-surface)]"
-          style={{ color: 'var(--fg-text)' }}
+          style={{
+            color: 'var(--fg-text)',
+            background: 'var(--fg-glass-bg)',
+            border: '1px solid var(--fg-glass-border)',
+          }}
           type="button"
           title="Open Full Dashboard"
         >

@@ -50,7 +50,7 @@ export function PopupShell<T extends string>({
   );
 
   return (
-    <div className="fg-main fg-shell-bg fg-flex fg-flex-col fg-h-screen fg-w-screen fg-overflow-hidden fg-text-[var(--text)]">
+    <div className="fg-main fg-shell-bg fg-flex fg-flex-col fg-h-screen fg-w-full fg-overflow-hidden fg-text-[var(--text)]">
       {passHud}
       <div className="fg-flex fg-items-center fg-gap-2 fg-px-4 fg-py-3 fg-bg-[rgba(0,0,0,0.1)] fg-overflow-x-auto fg-no-scrollbar fg-z-50">
         {tabs.map((tab) => {
@@ -124,13 +124,25 @@ export function DashboardShell<T extends string>({
   theme = 'system',
   onThemeChange,
 }: DashboardShellProps<T>) {
+  const [isInitializing, setIsInitializing] = React.useState(true);
+
+  React.useEffect(() => {
+    // Suppress transitions for the first 100ms to allow theme to settle without "sweeping" animations
+    const timer = setTimeout(() => setIsInitializing(false), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   const statusClassName = useMemo(
     () => `fg-status-pill ${resolveStatusClass(status.tone)}`,
     [status.tone],
   );
 
   return (
-    <div className="fg-flex fg-h-screen fg-w-screen fg-overflow-hidden fg-shell-bg fg-text-[var(--fg-text)]">
+    <div
+      className={`fg-flex fg-h-screen fg-w-full fg-overflow-hidden fg-shell-bg fg-text-[var(--fg-text)] ${
+        isInitializing ? 'suppress-transitions' : ''
+      }`}
+    >
       <div
         className={`fg-sidebar fg-w-[272px] fg-bg-[var(--fg-sidebar-bg)] fg-border-r fg-border-[var(--fg-glass-border)] fg-flex fg-flex-col fg-shrink-0 fg-p-[14px] ${
           hiddenSidebar ? 'fg-hidden' : ''
@@ -194,26 +206,48 @@ export function DashboardShell<T extends string>({
         </nav>
 
         <div className="fg-px-2 fg-mb-4">
+          <div className="fg-px-2 fg-mb-2">
+            <div
+              style={{
+                ...UI_TOKENS.TEXT.R.LABEL,
+                fontSize: '10px',
+                letterSpacing: '0.08em',
+                opacity: 0.6,
+              }}
+            >
+              THEME
+            </div>
+          </div>
           <div
-            className="fg-flex fg-items-center fg-rounded-[14px] fg-p-1"
+            className="fg-relative fg-flex fg-items-center fg-rounded-[14px] fg-p-1 fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-h-[42px]"
             style={{
-              background:
-                theme === 'light'
-                  ? 'rgba(0,0,0,0.06)'
-                  : 'rgba(255,255,255,0.04)',
-              border: 'none',
+              backgroundColor:
+                'color-mix(in srgb, var(--fg-sidebar-bg) 90%, black 10%)',
             }}
           >
+            {/* Animated Slider Pill */}
+            <div
+              className="fg-absolute fg-h-[32px] fg-shadow-[0_2px_8px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.06)] fg-rounded-[10px] fg-transition-all fg-duration-300 fg-ease-out fg-z-[1] fg-border fg-border-[var(--fg-glass-border)]"
+              style={{
+                width: 'calc((100% - 8px) / 3)',
+                left:
+                  theme === 'light'
+                    ? '4px'
+                    : theme === 'system'
+                    ? 'calc(4px + (100% - 8px) / 3)'
+                    : 'calc(4px + 2 * (100% - 8px) / 3)',
+                backgroundColor:
+                  theme === 'light' ? '#ffffff' : 'var(--fg-surface)',
+              }}
+            />
+
             <button
               onClick={() => onThemeChange?.('light')}
-              className={`fg-flex-1 fg-flex fg-items-center fg-justify-center fg-py-2 fg-rounded-[10px] fg-transition-all ${
+              className={`fg-relative fg-z-[2] fg-flex-1 fg-flex fg-items-center fg-justify-center fg-h-full fg-rounded-[10px] fg-transition-colors fg-duration-300 ${
                 theme === 'light'
-                  ? 'fg-bg-white fg-shadow-sm'
-                  : 'fg-text-[var(--fg-muted)]'
+                  ? 'fg-text-black'
+                  : 'fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)]'
               }`}
-              style={{
-                color: theme === 'light' ? 'var(--fg-text)' : 'var(--fg-text)',
-              }}
               title="Light Mode"
             >
               <svg
@@ -237,14 +271,39 @@ export function DashboardShell<T extends string>({
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
               </svg>
             </button>
+
+            <button
+              onClick={() => onThemeChange?.('system')}
+              className={`fg-relative fg-z-[2] fg-flex-1 fg-flex fg-items-center fg-justify-center fg-h-full fg-rounded-[10px] fg-transition-colors fg-duration-300 ${
+                theme === 'system'
+                  ? 'fg-text-[var(--fg-text)]'
+                  : 'fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)]'
+              }`}
+              title="System Default"
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                <line x1="8" y1="21" x2="16" y2="21" />
+                <line x1="12" y1="17" x2="12" y2="21" />
+              </svg>
+            </button>
+
             <button
               onClick={() => onThemeChange?.('dark')}
-              className={`fg-flex-1 fg-flex fg-items-center fg-justify-center fg-py-2 fg-rounded-[10px] fg-transition-all ${
+              className={`fg-relative fg-z-[2] fg-flex-1 fg-flex fg-items-center fg-justify-center fg-h-full fg-rounded-[10px] fg-transition-colors fg-duration-300 ${
                 theme === 'dark'
-                  ? 'fg-bg-[#27272a] fg-shadow-sm'
-                  : 'fg-text-[var(--fg-muted)]'
+                  ? 'fg-text-[var(--fg-text)]'
+                  : 'fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)]'
               }`}
-              style={{ color: 'var(--fg-text)' }}
               title="Dark Mode"
             >
               <svg
@@ -264,11 +323,27 @@ export function DashboardShell<T extends string>({
         </div>
       </div>
       <div className="fg-flex-1 fg-flex fg-flex-col fg-overflow-hidden">
-        <div className="fg-flex-1 fg-overflow-y-auto">
+        <div className="fg-flex-1 fg-overflow-y-auto fg-overflow-x-hidden">
           {hiddenSidebar ? (
             children
           ) : (
-            <div className="fg-shell-content">{children}</div>
+            <div
+              className="fg-shell-content"
+              style={
+                activeTab === 'apps'
+                  ? {
+                      display: 'flex',
+                      flexDirection: 'column',
+                      minHeight: 0,
+                      height: '100%',
+                      paddingBottom: 0,
+                      overflowY: 'clip',
+                    }
+                  : undefined
+              }
+            >
+              {children}
+            </div>
           )}
         </div>
       </div>
