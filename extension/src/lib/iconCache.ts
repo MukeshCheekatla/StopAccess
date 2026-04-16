@@ -8,14 +8,38 @@ export interface IconCacheEntry {
 export type IconCache = Record<string, IconCacheEntry>;
 
 let localCache: IconCache | null = null;
+let cachePromise: Promise<IconCache> | null = null;
 
-async function getCache(): Promise<IconCache> {
+export function getCachedIconSync(domain: string): string | null {
+  if (!localCache) {
+    return null;
+  }
+  const entry = localCache[domain];
+  if (entry && Date.now() - entry.ts < 7 * 24 * 60 * 60 * 1000) {
+    return entry.url;
+  }
+  return null;
+}
+
+export async function prefetchIconCache(): Promise<IconCache> {
   if (localCache) {
     return localCache;
   }
-  const res = await chrome.storage.local.get([STORAGE_KEYS.ICON_CACHE]);
-  localCache = (res[STORAGE_KEYS.ICON_CACHE] as IconCache) || {};
-  return localCache;
+  if (cachePromise) {
+    return cachePromise;
+  }
+
+  cachePromise = (async () => {
+    const res = await chrome.storage.local.get([STORAGE_KEYS.ICON_CACHE]);
+    localCache = (res[STORAGE_KEYS.ICON_CACHE] as IconCache) || {};
+    return localCache;
+  })();
+
+  return cachePromise;
+}
+
+async function getCache(): Promise<IconCache> {
+  return prefetchIconCache();
 }
 
 export async function getCachedIcon(domain: string): Promise<string | null> {

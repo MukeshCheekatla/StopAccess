@@ -88,12 +88,13 @@ export async function getLockedTargets(): Promise<{
 }
 
 /**
- * Compatibility wrapper for frontend. Returns list of domains
- * that are currently immutable due to active session.
+ * Returns a normalized (lowercase) list of all targets that are immutable.
+ * Used by the frontend to disable toggles.
  */
 export async function getLockedDomains(): Promise<string[]> {
   const targets = await getLockedTargets();
-  return targets.denylist;
+  const all = [...targets.denylist, ...targets.services, ...targets.categories];
+  return Array.from(new Set(all.map((s) => s.toLowerCase().trim())));
 }
 
 /**
@@ -103,16 +104,8 @@ export async function isTargetLocked(
   kind: 'domain' | 'service' | 'category',
   id: string,
 ): Promise<boolean> {
-  const locked = await getLockedTargets();
-  const normId = id.toLowerCase().trim();
-
-  if (kind === 'service') {
-    return locked.services.some((s) => s.toLowerCase().trim() === normId);
-  }
-  if (kind === 'category') {
-    return locked.categories.some((c) => c.toLowerCase().trim() === normId);
-  }
-  return locked.denylist.some((d) => d.toLowerCase().trim() === normId);
+  const locked = await getLockedDomains();
+  return locked.includes(id.toLowerCase().trim());
 }
 
 /**

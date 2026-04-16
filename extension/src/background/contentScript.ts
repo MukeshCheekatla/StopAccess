@@ -677,13 +677,33 @@ if (window.location.hostname.includes('nextdns.io')) {
     return m[1];
   }
 
-  function extractAndNotify() {
+  async function extractAndNotify() {
     if (idSent) {
       return;
     }
+
+    // Check intent flag to see if we should auto-detect and close
+    const res = await chrome.storage.local.get('fg_helper_intent');
+    const intent = res.fg_helper_intent as
+      | { mode: string; expiresAt: number }
+      | undefined;
+
+    // Only auto-detect if the user came from the extension to "Locate ID"
+    // and the intent hasn't expired.
+    if (
+      !intent ||
+      intent.mode !== 'setup' ||
+      (intent.expiresAt && Date.now() > intent.expiresAt)
+    ) {
+      return;
+    }
+
     const id = profileIdFromUrl();
     if (id) {
       idSent = true;
+      // Clear intent so it doesn't keep closing other NextDNS tabs accidentally
+      await chrome.storage.local.remove('fg_helper_intent');
+
       chrome.runtime.sendMessage({
         type: 'NEXTDNS_ID_FOUND',
         id: id,

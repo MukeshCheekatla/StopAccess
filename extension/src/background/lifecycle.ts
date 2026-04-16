@@ -128,7 +128,7 @@ async function saveUsage(domain, durationMs) {
 
   await performDailyReset();
 
-  const usage = await withStorageLock(async () => {
+  await withStorageLock(async () => {
     // 1. Raw Accumulated Usage
     const res = await chrome.storage.local.get([STORAGE_KEYS.USAGE]);
     const u = res[STORAGE_KEYS.USAGE] || {};
@@ -139,51 +139,70 @@ async function saveUsage(domain, durationMs) {
 
     u[domain].time += durationMs;
     await chrome.storage.local.set({ [STORAGE_KEYS.USAGE]: u });
-    return u;
+
+    // 2. Aggregate Snapshots
+    const totalMs = Object.values(u).reduce(
+      (a: any, b: any) => a + (b.time || 0),
+      0,
+    );
+    const totalMins = Math.round(totalMs / 60000);
+
+    // 3. Update Dashboard Stats
+    const rules = await getRules(extensionAdapter);
+    const blockedCount = rules.filter((r) => r.blockedToday).length;
+
+    await recordDailySnapshot(extensionAdapter, totalMins, blockedCount);
   });
 
-  // 2. Aggregate Snapshots (Dashboard Parity)
-  const totalMs = Object.values(usage).reduce((a, b) => a + (b.time || 0), 0);
-  const totalMins = Math.round(totalMs / 60000);
+  // Re-sync UI with new data
+  runCycle().catch(() => {});
+}
 
-  // 3. Bridge to Focus Engine
-  const rules = await getRules(extensionAdapter);
-  const blockedCount = rules.filter((r) => r.blockedToday).length;
+async function syncRulesWithUsage() {
+  await withStorageLock(async () => {
+    const res = await chrome.storage.local.get([STORAGE_KEYS.USAGE]);
+    const u = res[STORAGE_KEYS.USAGE] || {};
+    const rules = await getRules(extensionAdapter);
 
-  await recordDailySnapshot(extensionAdapter, totalMins, blockedCount);
+    let rulesChanged = false;
+    for (let i = 0; i < rules.length; i++) {
+      let matchedTimeMs = 0;
+      for (const dom of Object.keys(u)) {
+        const mapped = getDomainForRule(rules[i]);
+        if (
+          (mapped && matchesDomain(dom, mapped)) ||
+          matchesDomain(dom, rules[i].packageName) ||
+          (rules[i].customDomain && matchesDomain(dom, rules[i].customDomain))
+        ) {
+          matchedTimeMs += u[dom].time || 0;
+        }
+      }
+      const exactMins = matchedTimeMs / 60000;
 
-  const ruleIdx = rules.findIndex((r) => {
-    if (matchesDomain(domain, r.packageName)) {
-      return true;
-    }
-    if (r.customDomain && matchesDomain(domain, r.customDomain)) {
-      return true;
-    }
-    const mapped = getDomainForRule(r);
-    if (mapped && matchesDomain(domain, mapped)) {
-      return true;
-    }
-    return false;
-  });
-  if (ruleIdx >= 0) {
-    const mins = durationMs / 60000;
-    const rule = rules[ruleIdx];
-    rule.usedMinutesToday = (rule.usedMinutesToday || 0) + mins;
+      if (Math.abs((rules[i].usedMinutesToday || 0) - exactMins) > 0.01) {
+        rules[i].usedMinutesToday = exactMins;
+        rulesChanged = true;
+      }
 
-    // Check for limit hit
-    if (
-      rule.mode === 'limit' &&
-      (rule.usedMinutesToday || 0) >= (rule.dailyLimitMinutes || 0)
-    ) {
-      if (!rule.blockedToday) {
-        rule.blockedToday = true;
-        extensionLogger.add('info', `Limit reached for ${domain}. Blocking.`);
+      if (
+        rules[i].mode === 'limit' &&
+        (rules[i].usedMinutesToday || 0) >= (rules[i].dailyLimitMinutes || 0)
+      ) {
+        if (!rules[i].blockedToday) {
+          rules[i].blockedToday = true;
+          rulesChanged = true;
+          extensionLogger.add(
+            'info',
+            `Limit reached for ${rules[i].packageName}. Blocking.`,
+          );
+        }
       }
     }
 
-    await saveRules(extensionAdapter, rules);
-    runCycle().catch(() => {});
-  }
+    if (rulesChanged) {
+      await saveRules(extensionAdapter, rules);
+    }
+  });
 }
 
 async function incrementSession(domain) {
@@ -328,7 +347,13 @@ async function performDailyReset() {
       if (r.desiredBlockingState !== false) {
         // Did we already update today? (safeguard)
         if (r.streakUpdatedOn !== todayStr) {
-          nextStreak += 1;
+          // Verify they actually survived 24 hours
+          if (
+            !r.streakStartedAt ||
+            Date.now() - r.streakStartedAt >= 86400000
+          ) {
+            nextStreak += 1;
+          }
         }
       } else {
         nextStreak = 0; // Reset streak if protection was disabled
@@ -367,6 +392,7 @@ async function runCycle(forceSync = false) {
   try {
     await performDailyReset();
     await flushActiveTabUsage();
+    await syncRulesWithUsage();
 
     const cfg = await chrome.storage.local.get([
       STORAGE_KEYS.PROFILE_ID,
@@ -496,12 +522,28 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
   }
 });
 
-chrome.idle.setDetectionInterval(60);
+chrome.idle.setDetectionInterval(180);
 chrome.idle.onStateChanged.addListener((state) => {
   if (state !== 'active') {
-    switchTab(-1);
+    (async () => {
+      try {
+        const current = await getActiveTabState();
+        if (current && current.tabId) {
+          const tab = await chrome.tabs.get(current.tabId);
+          if (tab.audible) {
+            // Do not pause tracking if the user is passively watching/listening
+            return;
+          }
+        }
+      } catch (e) {}
+      switchTab(-1);
+    })();
   } else {
-    initActiveTab();
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        switchTab(tabs[0].id);
+      }
+    });
   }
 });
 

@@ -1,7 +1,9 @@
 import {
   resolveServiceIcon,
   escapeHtml,
-  getRootDomain,
+  resolveFaviconUrl,
+  resolveIconUrl,
+  formatMinutes,
 } from '@stopaccess/core';
 
 /**
@@ -10,31 +12,31 @@ import {
 const TOKEN_DEFS = {
   HEADING: {
     fontSize: '1rem',
-    fontWeight: '700',
+    fontWeight: '600',
     color: 'var(--fg-text)',
-    letterSpacing: '0',
+    letterSpacing: '-0.01em',
     lineHeight: '1.4',
   },
   HERO: {
     fontSize: '1.25rem',
-    fontWeight: '800',
+    fontWeight: '700',
     color: 'var(--fg-text)',
     letterSpacing: '-0.02em',
     lineHeight: '1.3',
   },
   /** Section / widget labels — NOT uppercase by default. Callers add uppercase if needed. */
   LABEL: {
-    fontSize: '11px',
+    fontSize: '14px',
     fontWeight: '600',
-    color: 'var(--fg-muted)',
-    letterSpacing: '0.04em',
+    color: 'var(--fg-text)',
+    letterSpacing: '0.02em',
     lineHeight: '1.4',
   },
   SUBTEXT: {
     fontSize: '12px',
     fontWeight: '500',
     color: 'var(--fg-muted)',
-    lineHeight: '1.55',
+    lineHeight: '1.5',
   },
   CARD_TITLE: {
     fontSize: '13px',
@@ -46,8 +48,8 @@ const TOKEN_DEFS = {
   /** Pill badges — uppercase is intentional here */
   BADGE: {
     fontSize: '10px',
-    fontWeight: '800',
-    letterSpacing: '0.06em',
+    fontWeight: '700',
+    letterSpacing: '0.04em',
   },
   STAT: {
     fontSize: '24px',
@@ -65,10 +67,10 @@ const TOKEN_DEFS = {
   },
   /** Widget kicker labels — uppercase IS intentional for this specific token */
   WIDGET_LABEL: {
-    fontSize: '11px',
+    fontSize: '14px',
     fontWeight: '600',
     color: 'var(--fg-muted)',
-    letterSpacing: '0.08em',
+    letterSpacing: '0.06em',
     lineHeight: '1.4',
   },
   BANNER_HEADING: {
@@ -80,21 +82,21 @@ const TOKEN_DEFS = {
   },
   BANNER_BODY: {
     fontSize: '13px',
-    fontWeight: '500',
+    fontWeight: '400',
     color: 'var(--fg-text)',
-    opacity: '0.8',
+    opacity: '0.9',
     lineHeight: '1.6',
   },
   ERROR: {
     fontSize: '14px',
-    fontWeight: '700',
+    fontWeight: '600',
     color: 'var(--red)',
     letterSpacing: '0',
     lineHeight: '1.4',
   },
   FOOTNOTE: {
     fontSize: '12px',
-    fontWeight: '500',
+    fontWeight: '400',
     color: 'var(--fg-muted)',
     lineHeight: '1.6',
   },
@@ -137,35 +139,118 @@ export const UI_TOKENS = {
   },
 };
 
-export function renderBrandLogo(identifier: string, name?: string, size = 44) {
-  const iconInfo = resolveServiceIcon({ id: identifier, name });
-  const targetDomain = iconInfo.domain || identifier;
-  const rootDomain = getRootDomain(targetDomain);
+import { saveIconToCache, getCachedIconSync } from './iconCache';
 
-  const primaryIconUrl = `https://logo.clearbit.com/${rootDomain}`;
+/** Resolves any domain/identifier to a favicon URL via the core iconography engine. */
+export function getBrandLogoUrl(domain: string, _sz = 128): string {
+  return resolveFaviconUrl(domain);
+}
+
+/** Resolves a service ID or domain to its canonical icon domain. */
+export function resolveIconDomain(id: string, name?: string): string {
+  if (id.includes('.')) {
+    return id; // Already a domain — preserve subdomains like mail.google.com
+  }
+  const info = resolveServiceIcon({ id, name });
+  return info.domain || resolveIconUrl(id) || id;
+}
+
+export function renderBrandLogo(
+  identifier: string,
+  name?: string,
+  size = 44,
+  cachedUrl?: string,
+) {
+  const targetDomain = resolveIconDomain(identifier, name);
+  const iconFromCache = getCachedIconSync(targetDomain);
+  const primaryIconUrl =
+    cachedUrl || iconFromCache || getBrandLogoUrl(targetDomain, 128);
+  const hasCache = !!(cachedUrl || iconFromCache);
   const iconSize = Math.floor(size * 0.9);
 
   return `
-    <div class="brand-logo-container insights-logo-container" 
-         data-domain="${rootDomain}"
-         style="position: relative; width: ${size}px; height: ${size}px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-       <div class="logo-fallback" style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: ${Math.floor(
-         size * 0.45,
-       )}px; font-weight: 700; color: var(--fg-text); opacity: 0.3; z-index: 1;">${(
-    name || identifier
-  )
-    .slice(0, 2)
-    .toUpperCase()}</div>
+    <div class="global-brand-logo fg-shrink-0 fg-relative fg-flex fg-items-center fg-justify-center" 
+         data-domain="${targetDomain}"
+         style="width: ${size}px; height: ${size}px;">
+       <div class="logo-fallback fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center" 
+            style="font-size: ${Math.floor(
+              size * 0.45,
+            )}px; font-weight: 700; color: var(--fg-text); opacity: ${
+    hasCache ? '0' : '0.3'
+  }; z-index: 1;">
+         ${(name || identifier).slice(0, 2).toUpperCase()}
+       </div>
        <img src="${primaryIconUrl}" 
+            data-domain="${targetDomain}"
             class="brand-logo-image"
-            style="position: relative; width: ${iconSize}px; height: ${iconSize}px; object-fit: contain; z-index: 2; border-radius: 20%; opacity: 0;" 
+            style="width: ${iconSize}px; height: ${iconSize}px; object-fit: contain; z-index: 2; border-radius: 20%; opacity: ${
+    hasCache ? '1' : '0'
+  }; position: relative;" 
             alt="">
     </div>
   `;
 }
 
-export function renderAppIcon(domain: string, name?: string) {
-  return renderBrandLogo(domain, name, 44);
+export function attachGlobalIconListeners(container: HTMLElement) {
+  if ((container as any).__iconListenersAttached) {
+    return;
+  }
+
+  container.addEventListener(
+    'load',
+    (e) => {
+      const target = e.target as HTMLImageElement;
+      if (
+        target.tagName === 'IMG' &&
+        target.classList.contains('brand-logo-image')
+      ) {
+        const fallback = target.previousElementSibling as HTMLElement;
+        if (target.naturalWidth > 1) {
+          target.style.opacity = '1';
+          target.style.display = 'block';
+          if (fallback) {
+            fallback.style.opacity = '0';
+          }
+
+          const domain = target.dataset.domain;
+          if (domain) {
+            saveIconToCache(domain, target.src);
+          }
+        } else {
+          target.dispatchEvent(new Event('error'));
+        }
+      }
+    },
+    true,
+  );
+
+  container.addEventListener(
+    'error',
+    (e) => {
+      const target = e.target as HTMLImageElement;
+      if (
+        target.tagName === 'IMG' &&
+        target.classList.contains('brand-logo-image')
+      ) {
+        const fallback = target.previousElementSibling as HTMLElement;
+        target.style.display = 'none';
+        if (fallback) {
+          fallback.style.opacity = '1';
+        }
+      }
+    },
+    true,
+  );
+
+  (container as any).__iconListenersAttached = true;
+}
+
+export function renderAppIcon(
+  domain: string,
+  name?: string,
+  cachedUrl?: string,
+) {
+  return renderBrandLogo(domain, name, 44, cachedUrl);
 }
 
 export function renderCustomSelect(
@@ -179,7 +264,7 @@ export function renderCustomSelect(
     options.find((o) => o.value === current)?.label || options[0].label;
   return `
     <div class="fg-custom-select ${className}" data-pkg="${escapeHtml(pkg)}">
-      <div class="fg-select-trigger" style="width: ${width}; height: 32px; padding: 0 12px; font-size: 11px; font-weight: 500;">
+      <div class="fg-select-trigger" style="width: ${width}; height: 32px; padding: 0 12px; font-size: 12px; font-weight: 500;">
         <span>${selectedLabel}</span>
         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="m6 9 6 6 6-6"/></svg>
       </div>
@@ -200,9 +285,28 @@ export function renderCustomSelect(
   `;
 }
 
+import { findServiceIdByDomain } from '@stopaccess/core';
+
 export function getRuleActiveState(rule: any, passes: any = {}) {
-  const domain = rule.customDomain || rule.packageName;
-  const pass = passes[domain];
+  // 1. Check exact package/domain direct match
+  const ruleDomain = rule.customDomain || rule.packageName;
+  let pass = passes[ruleDomain];
+
+  // 2. If no exact match, scan all active passes to see if they apply to this rule
+  if (!pass) {
+    for (const key of Object.keys(passes)) {
+      if (
+        ruleDomain === key ||
+        (ruleDomain && key.endsWith(`.${ruleDomain}`)) ||
+        (rule.type === 'service' &&
+          findServiceIdByDomain(key) === rule.packageName)
+      ) {
+        pass = passes[key];
+        break;
+      }
+    }
+  }
+
   if (pass && pass.expiresAt > Date.now()) {
     return false;
   }
@@ -279,27 +383,35 @@ export function renderTableProgress(
   limit: number,
   active: boolean,
 ) {
-  // Instant block — no time limit set; show a status pill instead of empty bar
   if (!active) {
-    return '<span style="font-size: 10px; font-weight: 700; color: var(--fg-muted); letter-spacing: 0.04em;">—</span>';
-  }
-  if (limit <= 0) {
-    return '<span style="display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.08em;  padding: 3px 8px; border-radius: 6px; background: rgba(255,59,48,0.1); color: var(--red);">Instant</span>';
+    return `
+      <div style="width: 100%; height: 4px; background: var(--fg-glass-border); border-radius: 3px; overflow: hidden; opacity: 0.3;">
+        <div style="height: 100%; width: 0%; background: var(--fg-muted); border-radius: 3px;"></div>
+      </div>
+    `;
   }
 
-  const percent = Math.min(100, Math.max(0, (used / limit) * 100));
-  let color = '#10b981';
-  if (percent >= 90) {
+  let percent = 0;
+  let color = '#10b981'; // Green
+
+  if (used <= 0) {
+    percent = 0;
+    color = 'var(--green)';
+  } else if (limit <= 0) {
+    percent = 100;
     color = 'var(--red)';
-  } else if (percent >= 65) {
-    color = '#facc15';
+  } else {
+    percent = Math.min(100, Math.max(0, (used / limit) * 100));
+    if (percent >= 80) {
+      color = 'var(--red)';
+    } else if (percent >= 50) {
+      color = '#facc15'; // Yellow
+    }
   }
 
   return `
-    <div style="display: flex; flex-direction: column; gap: 4px; width: 100%; padding-right: 16px;">
-      <div style="width: 100%; height: 5px; background: var(--fg-glass-border); border-radius: 3px; overflow: hidden;">
-        <div style="height: 100%; width: ${percent}%; background: ${color}; border-radius: 3px; transition: width 0.4s ease;"></div>
-      </div>
+    <div style="width: 100%; height: 4px; background: var(--fg-glass-border); border-radius: 3px; overflow: hidden;">
+      <div style="height: 100%; width: ${percent}%; background: ${color}; border-radius: 3px; transition: width 0.4s ease, background-color 0.4s ease;"></div>
     </div>
   `;
 }
@@ -318,25 +430,29 @@ export function renderAppTableRow(
 
   const usageText =
     limit > 0
-      ? `<span style="color: var(--fg-text); font-size: 13px; font-weight: 600;">${Math.floor(
+      ? `<span style="color: var(--fg-text); font-size: 13px; font-weight: 600;">${formatMinutes(
           used,
-        )}m</span><span style="color: var(--fg-muted); font-size: 11px; font-weight: 400; margin-left: 3px;">/ ${limit}m</span>`
-      : `<span style="color: var(--fg-muted); font-size: 13px; font-weight: 500;">${Math.floor(
+        )}</span><span style="color: var(--fg-muted); font-size: 12px; font-weight: 400; margin-left: 3px;">/ ${formatMinutes(
+          limit,
+        )}</span>`
+      : `<span style="color: var(--fg-muted); font-size: 13px; font-weight: 500;">${formatMinutes(
           used,
-        )}m</span>`;
+        )}</span>`;
 
   return `
     <div class="rule-table-row ${
       active ? 'is-active' : ''
     }" data-pkg="${escapeHtml(rule.packageName)}" style="
       display: grid;
-      grid-template-columns: 44px 1.5fr 100px 1fr 140px 110px 80px 44px;
+      grid-template-columns: 32px minmax(160px, 1fr) 150px 140px 120px 80px 40px;
       column-gap: 12px;
       align-items: center;
-      padding: 14px 16px;
+      padding: 14px 20px;
       border-bottom: 1px solid var(--fg-glass-border);
       transition: background 0.15s;
       cursor: default;
+      width: 100%;
+      scroll-snap-align: start;
     "
     onmouseover="this.style.background='var(--fg-glass-bg)'"
     onmouseout="this.style.background=''"
@@ -348,10 +464,10 @@ export function renderAppTableRow(
 
       <!-- 2. Identity -->
       <div style="display: flex; flex-direction: column; min-width: 0;">
-        <div style="font-size: 14px; font-weight: 600; color: var(--fg-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(
+        <div style="font-size: 15px; font-weight: 600; color: var(--fg-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(
           rule.appName || identifier,
         )}</div>
-        <div style="margin-top: 3px; font-size: 11px; font-weight: 500; color: var(--fg-muted);">${
+        <div style="margin-top: 3px; font-size: 12px; font-weight: 500; color: var(--fg-muted);">${
           streak > 0
             ? `🔥 ${streak}d streak`
             : type === 'service'
@@ -360,13 +476,11 @@ export function renderAppTableRow(
         }</div>
       </div>
 
-      <!-- 3. Usage -->
-      <div style="display: flex; align-items: center; gap: 3px;">
-        ${usageText}
-      </div>
-
-      <!-- 4. Progress -->
-      <div style="display: flex; align-items: center;">
+      <!-- 3. Usage & Progress -->
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: center; gap: 3px;">
+          ${usageText}
+        </div>
         ${renderTableProgress(used, limit, active)}
       </div>
 
@@ -381,14 +495,14 @@ export function renderAppTableRow(
       </div>
 
       <!-- 7. Toggle -->
-      <div style="display: flex; align-items: center;">
+      <div style="display: flex; align-items: center; justify-content: flex-end;">
         <button class="toggle-switch-btn ${active ? 'active' : ''}" ${
     isLocked ? 'disabled' : ''
   }
           data-kind="${type}" data-id="${escapeHtml(
     rule.packageName,
   )}" data-pkg="${escapeHtml(rule.packageName)}"
-          style="transform: scale(0.8); transform-origin: left;">
+          style="transform: scale(0.8); transform-origin: right;">
           <span class="on-text">On</span>
           <span class="off-text">Off</span>
         </button>
@@ -499,7 +613,7 @@ export function renderToggleSwitch(
       aria-checked="${active}"
       role="switch"
       style="width: 32px; height: 18px; border-radius: 9px; border: none;
-        background: ${active ? 'var(--green)' : 'var(--fg-glass-bg)'};
+        background: ${active ? 'var(--green)' : 'var(--fg-toggle-bg)'};
         border: 1px solid ${active ? 'var(--green)' : 'var(--fg-glass-border)'};
         transition: background 0.2s ease; outline: none;"
     >
@@ -534,7 +648,8 @@ export function renderPillToggle(
       aria-checked="${active}"
       role="switch"
       style="width: 36px; height: 20px; border-radius: 10px; border: none;
-        background: ${active ? 'var(--green)' : 'rgba(255,255,255,0.1)'};
+        background: ${active ? 'var(--green)' : 'var(--fg-toggle-bg)'};
+        border: 1px solid ${active ? 'var(--green)' : 'var(--fg-glass-border)'};
         transition: background 0.2s; outline: none;"
     >
       <span style="position: absolute; top: 2px; left: ${
@@ -560,7 +675,7 @@ export function applyToggleUI(btn: HTMLElement, active: boolean): void {
     btn.style.border = '1px solid var(--green)';
   } else {
     btn.classList.remove('active');
-    btn.style.background = 'var(--fg-glass-bg)';
+    btn.style.background = 'var(--fg-toggle-bg)';
     btn.style.border = '1px solid var(--fg-glass-border)';
   }
   const knob = btn.querySelector('span') as HTMLElement;
@@ -725,18 +840,112 @@ export function renderStatCard(
 }
 
 // ─────────────────────────────────────────────
+// Confirmation Dialog — high friction actions
+// ─────────────────────────────────────────────
+
+export interface DialogOptions {
+  title: string;
+  body: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  isDestructive?: boolean;
+}
+
+/**
+ * Show a professional modal dialog.
+ * Returns a promise that resolves to true if confirmed, false otherwise.
+ */
+export async function showConfirmDialog(
+  options: DialogOptions,
+): Promise<boolean> {
+  const {
+    title,
+    body,
+    confirmLabel = 'Confirm',
+    cancelLabel = 'Cancel',
+    isDestructive = false,
+  } = options;
+
+  return new Promise((resolve) => {
+    const dialogId = `__fg_dialog_${Date.now()}`;
+    const overlay = document.createElement('div');
+    overlay.id = dialogId;
+    overlay.className =
+      'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-black/60 fg-backdrop-blur-sm fg-opacity-0 fg-scale-105 fg-transition-all fg-duration-300';
+
+    overlay.innerHTML = `
+      <div class="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[32px] fg-p-8 fg-max-w-[420px] fg-w-full fg-shadow-2xl">
+        <div style="${UI_TOKENS.TEXT.HERO}; margin-bottom: 12px;">${title}</div>
+        <div style="${
+          UI_TOKENS.TEXT.SUBTEXT
+        }; font-size: 14px; margin-bottom: 32px; opacity: 0.8; line-height: 1.6;">${body}</div>
+        
+        <div class="fg-flex fg-gap-3 fg-justify-end">
+          <button class="dialog-cancel-btn fg-px-6 fg-py-3 fg-rounded-2xl fg-text-sm fg-font-bold fg-text-[var(--fg-muted)] hover:fg-bg-[var(--fg-surface-hover)] fg-transition-all">${cancelLabel}</button>
+          <button class="dialog-confirm-btn btn-premium fg-px-6 fg-py-3 fg-rounded-2xl fg-text-sm" 
+                  style="font-weight: 800; background: ${
+                    isDestructive ? 'var(--red)' : 'var(--fg-text)'
+                  }; color: ${isDestructive ? '#fff' : 'var(--fg-bg)'};">
+            ${confirmLabel}
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Force reflow for animation
+    setTimeout(() => {
+      overlay.classList.remove('fg-opacity-0', 'fg-scale-105');
+      overlay.classList.add('fg-opacity-100', 'fg-scale-100');
+    }, 10);
+
+    const cleanup = (result: boolean) => {
+      overlay.classList.add('fg-opacity-0', 'fg-scale-[0.98]');
+      overlay.style.pointerEvents = 'none';
+      setTimeout(() => {
+        overlay.remove();
+        resolve(result);
+      }, 250);
+    };
+
+    overlay
+      .querySelector('.dialog-cancel-btn')
+      ?.addEventListener('click', () => {
+        cleanup(false);
+      });
+
+    overlay
+      .querySelector('.dialog-confirm-btn')
+      ?.addEventListener('click', () => {
+        cleanup(true);
+      });
+
+    // Close on backdrop click
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        cleanup(false);
+      }
+    });
+  });
+}
+
+// ─────────────────────────────────────────────
 // Info Tooltip — write once, use everywhere
 // ─────────────────────────────────────────────
 
-/**
- * Render the info 'i' circle tooltip icon used on toggle rows.
- */
-export function renderInfoTooltip(tooltipText: string): string {
+export function renderInfoTooltip(
+  tooltipText: string,
+  direction: 'up' | 'down' = 'up',
+  align: 'center' | 'left' | 'right' = 'center',
+): string {
   if (!tooltipText) {
     return '';
   }
+  const directionClass = direction === 'down' ? 'fg-tooltip-down' : '';
+  const alignClass = align !== 'center' ? `fg-tooltip-${align}` : '';
   return `
-    <div class="fg-tooltip fg-inline-flex fg-items-center fg-justify-center fg-rounded-full fg-transition-colors fg-cursor-help" 
+    <div class="fg-tooltip ${directionClass} ${alignClass} fg-inline-flex fg-items-center fg-justify-center fg-rounded-full fg-transition-colors fg-cursor-help" 
          data-tooltip="${tooltipText}"
          style="width: 14px; height: 14px; background: rgba(255, 255, 255, 0.05); color: var(--fg-muted); font-size: 0; margin-left: 6px; vertical-align: middle;">
       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>

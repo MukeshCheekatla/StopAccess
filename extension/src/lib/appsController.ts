@@ -3,9 +3,11 @@ import {
   nextDNSApi,
   extensionAdapter as storage,
 } from '../background/platformAdapter';
+import { getBlockingPolicy } from '@stopaccess/state';
 import { toast } from './toast';
 import { checkGuard } from '../background/sessionGuard';
 import { STORAGE_KEYS } from '@stopaccess/state/index';
+import { findServiceIdByDomain } from '@stopaccess/core';
 
 /**
  * Shared logic controller for Apps/Blocklist features in the extension.
@@ -31,11 +33,16 @@ export const appsController = {
     if (isConfigured) {
       const result = await action();
       if (result && result.ok === false) {
-        const errorMsg =
-          typeof result.error === 'object'
-            ? result.error.message
-            : result.error;
-        throw new Error(errorMsg || 'NextDNS Sync Failed');
+        const status = result.error?.status;
+        // Ignore 400 (Already Exists) and 404 (Not Found) which happen when
+        // our local temporary pass overrides drifted from the external cloud state
+        if (status !== 400 && status !== 404) {
+          const errorMsg =
+            typeof result.error === 'object'
+              ? result.error.message
+              : result.error;
+          throw new Error(errorMsg || 'NextDNS Sync Failed');
+        }
       }
       await nextDNSApi.refreshNextDNSMetadata();
     }
@@ -81,10 +88,9 @@ export const appsController = {
             });
 
       // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode and if rule scope permits
-      const appsHardMode =
-        (await storage.getBoolean('fg_apps_dns_hard_mode')) ?? false;
+      const policy = await getBlockingPolicy(storage);
       if (
-        appsHardMode &&
+        policy.enforcesCloudBlocking &&
         (baseRule.scope === 'profile' || baseRule.scope === 'both')
       ) {
         await this._runCloudSync(() =>
@@ -105,22 +111,38 @@ export const appsController = {
         desiredBlockingState: nextState,
         maxDailyPasses: baseRule.maxDailyPasses ?? 3,
         streakDays: nextState ? baseRule.streakDays ?? 0 : 0,
+        streakStartedAt:
+          !nextState || !baseRule.streakDays
+            ? Date.now()
+            : baseRule.streakStartedAt,
         streakUpdatedOn: nextState ? baseRule.streakUpdatedOn : undefined,
         addedAt: baseRule.addedAt ?? Date.now(),
         updatedAt: Date.now(),
       });
 
-      // Cleanup temp pass if unblocking
-      if (!nextState) {
-        const res = await chrome.storage.local.get([STORAGE_KEYS.TEMP_PASSES]);
-        const passes = res[STORAGE_KEYS.TEMP_PASSES] || {};
-        const domain = baseRule.customDomain || baseRule.packageName;
-        if (passes[domain]) {
-          delete passes[domain];
-          await chrome.storage.local.set({
-            [STORAGE_KEYS.TEMP_PASSES]: passes,
-          });
+      // Always cleanup ANY temp pass when toggling the master rule to prevent conflicts
+      const res = await chrome.storage.local.get([STORAGE_KEYS.TEMP_PASSES]);
+      const passes = res[STORAGE_KEYS.TEMP_PASSES] || {};
+      const ruleKey = baseRule.customDomain || baseRule.packageName;
+      let passesModified = false;
+
+      // Clean up direct matches or subdomains attached to this rule
+      for (const passKey of Object.keys(passes)) {
+        if (
+          passKey === ruleKey ||
+          (ruleKey && passKey.endsWith(`.${ruleKey}`)) ||
+          (baseRule.type === 'service' &&
+            findServiceIdByDomain(passKey) === baseRule.packageName)
+        ) {
+          delete passes[passKey];
+          passesModified = true;
         }
+      }
+
+      if (passesModified) {
+        await chrome.storage.local.set({
+          [STORAGE_KEYS.TEMP_PASSES]: passes,
+        });
       }
 
       chrome.runtime.sendMessage({ action: 'manualSync' });
@@ -144,9 +166,8 @@ export const appsController = {
       );
 
       // Apply immediate state to NextDNS
-      const appsHardMode =
-        (await storage.getBoolean('fg_apps_dns_hard_mode')) ?? false;
-      if (appsHardMode) {
+      const policy = await getBlockingPolicy(storage);
+      if (policy.enforcesCloudBlocking) {
         await this._runCloudSync(() =>
           nextDNSApi.setTargetState(kind, id, enabled && actualState),
         );
@@ -171,9 +192,8 @@ export const appsController = {
       const resolved = await nextDNSApi.resolveTargetInput(domain);
 
       // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode if apps hard mode is ON
-      const appsHardMode =
-        (await storage.getBoolean('fg_apps_dns_hard_mode')) ?? false;
-      if (appsHardMode) {
+      const policy = await getBlockingPolicy(storage);
+      if (policy.enforcesCloudBlocking) {
         await this._runCloudSync(() => nextDNSApi.addResolvedTarget(resolved));
       }
 
@@ -191,6 +211,7 @@ export const appsController = {
         desiredBlockingState: true,
         maxDailyPasses: 3,
         streakDays: 0,
+        streakStartedAt: Date.now(),
         streakUpdatedOn: undefined,
         addedAt: Date.now(),
         updatedAt: Date.now(),
@@ -219,9 +240,8 @@ export const appsController = {
     try {
       // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode
       if (rule) {
-        const appsHardMode =
-          (await storage.getBoolean('fg_apps_dns_hard_mode')) ?? false;
-        if (appsHardMode) {
+        const policy = await getBlockingPolicy(storage);
+        if (policy.enforcesCloudBlocking) {
           await this._runCloudSync(() =>
             nextDNSApi.setTargetState(rule.type || 'domain', id, false),
           );

@@ -6,14 +6,19 @@ export async function applyTheme(manualTheme?: string) {
     manualTheme || (await storage.getString(STORAGE_KEYS.THEME)) || 'system';
   const doc = document.documentElement;
 
+  let resolved: 'dark' | 'light';
   if (theme === 'system') {
     const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    doc.classList.toggle('dark-theme', isDark);
-    doc.classList.toggle('light-theme', !isDark);
+    resolved = isDark ? 'dark' : 'light';
   } else {
-    doc.classList.toggle('dark-theme', theme === 'dark');
-    doc.classList.toggle('light-theme', theme === 'light');
+    resolved = theme === 'dark' ? 'dark' : 'light';
   }
+
+  doc.classList.toggle('dark-theme', resolved === 'dark');
+  doc.classList.toggle('light-theme', resolved === 'light');
+
+  // Sync with localStorage for synchronous head-script access (prevents flash)
+  localStorage.setItem('sa_theme', theme);
 }
 
 export function setupThemeListener() {

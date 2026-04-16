@@ -118,7 +118,13 @@ export async function endSession(
     ...session,
     status: reason,
     endedAt,
-    actualMinutes: Math.round((endedAt - session.startedAt) / 60000),
+    actualMinutes:
+      reason === 'completed'
+        ? session.duration
+        : Math.min(
+            session.duration,
+            Math.round((endedAt - session.startedAt) / 60000),
+          ),
   });
 
   await chrome.storage.local.set({
