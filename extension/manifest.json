@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "StopAccess - Website & App Blocker",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Block distracting sites with browser rules, NextDNS sync, schedules, focus sessions, strict mode, privacy, and diagnostics.",
   "permissions": [
     "declarativeNetRequest",
@@ -27,7 +27,7 @@
     "type": "module"
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' https://api.nextdns.io https://www.google.com https://cdn.simpleicons.org https://icons.duckduckgo.com https://logo.clearbit.com;"
+    "extension_pages": "script-src 'self'; object-src 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src 'self' https://api.nextdns.io https://www.google.com https://cdn.simpleicons.org https://icons.duckduckgo.com;"
   },
   "action": {
     "default_popup": "dist/popup/popup.html",
