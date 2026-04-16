@@ -1,3 +1,4 @@
+import { setStrictModePolicy } from '@stopaccess/state';
 declare var chrome: any;
 import {
   extensionAdapter as storage,
@@ -73,7 +74,7 @@ export async function connectNextDNSAction(pid: string, key: string) {
 }
 
 export async function setStrictModeAction(val: boolean) {
-  await storage.set('strict_mode_enabled', val);
+  await setStrictModePolicy(storage, val);
   chrome.runtime.sendMessage({ action: 'manualSync' });
 }
 

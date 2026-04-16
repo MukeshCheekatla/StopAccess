@@ -11,6 +11,8 @@ export interface AppsScreenData {
   isConfigured: boolean;
   availableServices: any[];
   availableCategories: any[];
+  passes: any;
+  usage: any;
 }
 
 /**
@@ -18,7 +20,7 @@ export interface AppsScreenData {
  * Fetches everything in a single pass to avoid multiple UI flickers.
  */
 export async function loadAppsData(): Promise<AppsScreenData> {
-  const [rules, isConfigured, cached] = await Promise.all([
+  const [rules, isConfigured, cached, storageRes] = await Promise.all([
     getRules(storage),
     nextDNSApi.isConfigured(),
     (async () => {
@@ -27,6 +29,7 @@ export async function loadAppsData(): Promise<AppsScreenData> {
       ])) as any;
       return res.cached_ndns_metadata || {};
     })(),
+    chrome.storage.local.get(['fg_temp_passes', 'fg_usage_map']),
   ]);
 
   return {
@@ -34,5 +37,7 @@ export async function loadAppsData(): Promise<AppsScreenData> {
     isConfigured,
     availableServices: cached.services || [],
     availableCategories: cached.categories || [],
+    passes: storageRes.fg_temp_passes || {},
+    usage: storageRes.fg_usage_map || {},
   };
 }
