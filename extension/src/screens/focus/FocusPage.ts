@@ -4,7 +4,7 @@ import {
 } from '../../background/platformAdapter';
 import { FocusSessionRecord } from '@stopaccess/types';
 import { escapeHtml } from '@stopaccess/core';
-import { UI_TOKENS } from '../../lib/ui';
+import { UI_TOKENS, getBrandLogoUrl } from '../../lib/ui';
 
 declare var chrome: any;
 declare var window: any;
@@ -58,7 +58,12 @@ function getTodayFocusMinutes(): number {
   return getTodayHistory()
     .filter((session) => session.status === 'completed')
     .reduce(
-      (sum, session) => sum + (session.actualMinutes || session.duration || 0),
+      (sum, session) =>
+        sum +
+        Math.min(
+          session.actualMinutes || session.duration || 0,
+          session.duration || 0,
+        ),
       0,
     );
 }
@@ -68,8 +73,8 @@ function renderTodayRecords(): string {
 
   if (records.length === 0) {
     return `
-      <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-text-center fg-text-[var(--muted)]" style="min-height:220px;">
-        <div style="font-size:16px; color:rgba(255,255,255,0.72);">No records yet</div>
+      <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-text-center fg-text-[var(--fg-muted)]" style="min-height:220px;">
+        <div style="font-size:16px; color:var(--fg-muted);">No records yet</div>
       </div>
     `;
   }
@@ -81,19 +86,22 @@ function renderTodayRecords(): string {
         minute: '2-digit',
       });
       const duration = formatMinutes(
-        session.actualMinutes || session.duration || 0,
+        Math.min(
+          session.actualMinutes || session.duration || 0,
+          session.duration || 0,
+        ),
       );
       const tone =
         session.status === 'completed'
-          ? 'rgba(255,255,255,0.88)'
+          ? 'var(--fg-text)'
           : session.status === 'cancelled'
-          ? 'var(--red)'
-          : 'var(--muted)';
+          ? 'var(--fg-red)'
+          : 'var(--fg-muted)';
 
       return `
-        <div class="fg-grid fg-items-center fg-gap-[14px] fg-py-[14px]" style="grid-template-columns:56px 1fr auto; border-top:1px solid rgba(255,255,255,0.06);">
-          <div class="fg-text-[12px] fg-font-medium" style="color: rgba(255,255,255,0.5);">${start}</div>
-          <div style="height:1px; background:rgba(255,255,255,0.08);"></div>
+        <div class="fg-grid fg-items-center fg-gap-[14px] fg-py-[14px]" style="grid-template-columns:56px 1fr auto; border-top:1px solid var(--fg-glass-border);">
+          <div class="fg-text-[12px] fg-font-medium" style="color: var(--fg-muted);">${start}</div>
+          <div style="height:1px; background:var(--fg-glass-border); opacity: 0.5;"></div>
           <div class="fg-text-[12px] fg-font-bold" style="color:${tone};">${duration}</div>
         </div>
       `;
@@ -116,7 +124,7 @@ function renderAmbientShell(
       linear-gradient(160deg, var(--fg-surface), var(--fg-bg));
       border:1px solid var(--fg-glass-border); display: flex; flex-direction: column;
       box-shadow: 0 18px 48px rgba(15,23,42,0.12);">
-      <div style="position:absolute; inset:0; background: linear-gradient(135deg, transparent, var(--fg-accent-soft));"></div>
+
       <div style="position:relative; z-index:1; display:grid; grid-template-columns:${gridTemplate}; gap:16px; flex: 1; padding:${padding};">
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0;">
           ${centerContent}
@@ -226,10 +234,7 @@ function renderIdleStateSummary(): string {
 }
 
 function renderDomainIcon(domain: string, size = 32): string {
-  const root = domain.includes('.')
-    ? domain.split('.').slice(-2).join('.')
-    : domain;
-  const iconUrl = `https://www.google.com/s2/favicons?domain=${root}&sz=128`;
+  const iconUrl = getBrandLogoUrl(domain, 128);
   return `
     <div style="width:${size}px; height:${size}px; border-radius:10px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); display:flex; align-items:center; justify-content:center; overflow:hidden;">
       <img src="${iconUrl}" style="width:${Math.round(
@@ -357,6 +362,26 @@ export async function renderFocusPage(
     _renderActive(container, context, focusEnd, focusStart, activeSession);
   } else {
     _renderIdle(container, context);
+  }
+
+  (window as any).__focusActiveContainer = container;
+
+  if (!window.__focusStorageListener) {
+    window.__focusStorageListener = (changes: any) => {
+      const activeContainer = (window as any).__focusActiveContainer;
+      // Re-render when active session changes
+      if (changes.fg_active_session || changes.focus_mode_end_time) {
+        if (activeContainer && document.contains(activeContainer)) {
+          const isFocusActive = !!document.querySelector(
+            '.nav-item[data-tab="focus"].active',
+          );
+          if (isFocusActive) {
+            renderFocusPage(activeContainer, context);
+          }
+        }
+      }
+    };
+    chrome.storage.onChanged.addListener(window.__focusStorageListener);
   }
 }
 
@@ -573,12 +598,50 @@ function _renderIdlePage(container: HTMLElement): void {
     const btn = el as HTMLButtonElement;
     btn.addEventListener('click', () => {
       const mins = btn.dataset.mins || '0';
-      btn.innerText = 'STARTING...';
-      btn.classList.add('loading');
-      chrome.runtime.sendMessage(
-        { action: 'startFocus', minutes: parseInt(mins, 10) },
-        () => renderFocusPage(container, 'page'),
-      );
+
+      // 1. Visual Ignition sequence
+      btn.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+      btn.style.transform = 'scale(0.95)';
+      btn.style.background = 'var(--fg-accent)';
+      btn.style.borderColor = 'var(--fg-accent)';
+      const label = btn.querySelector('span:last-child') as HTMLElement;
+      if (label) {
+        label.style.color = 'rgba(255,255,255,0.7)';
+      }
+      const timeVal = btn.querySelector('span:first-child') as HTMLElement;
+      if (timeVal) {
+        timeVal.style.color = '#fff';
+      }
+
+      // 2. Animate the ring ticks rapidly
+      const ticks = container.querySelectorAll('line[data-tick-index]');
+      ticks.forEach((tick, i) => {
+        setTimeout(() => {
+          (tick as SVGLineElement).setAttribute('stroke', 'var(--fg-accent)');
+          (tick as SVGLineElement).setAttribute('stroke-width', '4');
+        }, i * 3); // Fast sweep animation
+      });
+
+      // 3. Pulse the timer display
+      const timerDisplay = container.querySelector(
+        '#liveTimerDisplay',
+      ) as HTMLElement;
+      if (timerDisplay) {
+        timerDisplay.style.transition = 'all 0.4s ease';
+        timerDisplay.style.transform = 'scale(1.1)';
+        timerDisplay.style.color = 'var(--fg-accent)';
+        timerDisplay.textContent = 'GO!';
+      }
+
+      // 4. Finalise and start session
+      setTimeout(() => {
+        chrome.runtime.sendMessage(
+          { action: 'startFocus', minutes: parseInt(mins, 10) },
+          () => {
+            renderFocusPage(container, 'page');
+          },
+        );
+      }, 600);
     });
   });
 }
@@ -587,8 +650,8 @@ function _renderIdlePopup(container: HTMLElement): void {
   container.innerHTML = `
     <div class="focus-container" style="padding: 10px 0;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <div class="widget-title" style="color: rgba(255,255,255,0.9); font-size: 14px;">IGNITE DEEP FOCUS</div>
-        <div style="font-size: 12px; color: rgba(255,255,255,0.55); font-weight: 500; margin-top: 4px;">Blocks synced across devices.</div>
+        <div class="widget-title" style="color: var(--fg-text); font-size: 14px;">IGNITE DEEP FOCUS</div>
+        <div style="font-size: 12px; color: var(--fg-muted); font-weight: 500; margin-top: 4px;">Blocks synced across devices.</div>
       </div>
 
       <div class="focus-presets" style="gap: 10px;">
@@ -639,13 +702,13 @@ function _showAbortModal(
 
   const modalContainer = document.createElement('div');
   modalContainer.innerHTML = `
-    <div style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:${width}; z-index:10000; padding:${padding}; text-align:center; background:rgba(20,20,20,0.98); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.1); border-radius: ${
+    <div style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:${width}; z-index:10000; padding:${padding}; text-align:center; background:var(--fg-surface); backdrop-filter:blur(20px); border:1px solid var(--fg-glass-border); border-radius: ${
     isPopup ? '20px' : '24px'
-  }; box-shadow: 0 20px 50px rgba(0,0,0,0.5); color: white;">
-      <div style="font-size:${titleSize}; font-weight:900; color:rgba(255,255,255,0.98); margin-bottom:${
+  }; box-shadow: 0 20px 50px rgba(0,0,0,0.5); color: var(--fg-text);">
+      <div style="font-size:${titleSize}; font-weight:900; color:var(--fg-text); margin-bottom:${
     isPopup ? '8px' : '12px'
   }; letter-spacing:1px;">ABORT SESSION?</div>
-      <div style="font-size:${bodySize}; color:rgba(255,255,255,0.6); line-height:1.6; margin-bottom:${
+      <div style="font-size:${bodySize}; color:var(--fg-muted); line-height:1.6; margin-bottom:${
     isPopup ? '20px' : '24px'
   };">${
     isPopup
@@ -655,14 +718,14 @@ function _showAbortModal(
       <div style="display:flex; gap:${
         isPopup ? '10px' : '12px'
       }; justify-content:center;">
-        <button class="btn-cancel-abort" style="flex:1; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.9); padding:${
+        <button class="btn-cancel-abort" style="flex:1; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); color:var(--fg-text); padding:${
           isPopup ? '8px' : '10px'
         }; border-radius:${
     isPopup ? '10px' : '12px'
   }; cursor:pointer; font-weight:800; font-size:${
     isPopup ? '10px' : '11px'
   };">CANCEL</button>
-        <button class="btn-confirm-abort" style="flex:1; background:var(--red); border:none; color:white; padding:${
+        <button class="btn-confirm-abort" style="flex:1; background:var(--fg-red); border:none; color:white; padding:${
           isPopup ? '8px' : '10px'
         }; border-radius:${
     isPopup ? '10px' : '12px'
@@ -671,7 +734,7 @@ function _showAbortModal(
   };">ABORT</button>
       </div>
     </div>
-    <div style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.85); z-index:9999; backdrop-filter:blur(${
+    <div style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:9999; backdrop-filter:blur(${
       isPopup ? '4px' : '8px'
     });"></div>
   `;

@@ -168,7 +168,7 @@ function StatTile({
   mono?: boolean;
 }) {
   return (
-    <div className="fg-rounded-[12px] fg-bg-white/[0.03] fg-p-[14px]">
+    <div className="fg-rounded-[12px] fg-bg-[var(--fg-glass-bg)] fg-p-[14px] fg-border fg-border-[var(--fg-glass-border)]">
       <div style={UI_TOKENS.TEXT.R.LABEL}>{label}</div>
       <div
         className={`fg-mt-2 ${mono ? 'fg-tabular-nums' : ''}`}
@@ -186,10 +186,10 @@ function ActivityCard({ row }: { row: ActivityRow }) {
     row.domain.split('.')[0].slice(0, 2).toUpperCase() || '?';
 
   return (
-    <div className="fg-flex fg-items-center fg-gap-4 fg-rounded-[12px] fg-bg-white/[0.03] fg-p-3">
+    <div className="fg-flex fg-items-center fg-gap-4 fg-rounded-[12px] fg-bg-[var(--fg-glass-bg)] fg-p-3 fg-border fg-border-[var(--fg-glass-border)]">
       <div className="fg-relative fg-flex fg-h-9 fg-w-9 fg-shrink-0 fg-items-center fg-justify-center">
         {row.isBlocked ? (
-          <div className="fg-absolute -fg-bottom-0.5 -fg-right-0.5 fg-z-10 fg-flex fg-h-3.5 fg-w-3.5 fg-items-center fg-justify-center fg-rounded-full fg-border-2 fg-border-[var(--bg-dark)] fg-bg-[var(--red)] fg-text-[8px] fg-font-black fg-text-white">
+          <div className="fg-absolute -fg-bottom-0.5 -fg-right-0.5 fg-z-10 fg-flex fg-h-3.5 fg-w-3.5 fg-items-center fg-justify-center fg-rounded-full fg-border-2 fg-border-[var(--fg-surface)] fg-bg-[var(--fg-red)] fg-text-[8px] fg-font-black fg-text-white">
             x
           </div>
         ) : null}

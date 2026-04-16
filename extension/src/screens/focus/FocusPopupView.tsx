@@ -74,9 +74,11 @@ export function FocusPopupView() {
   };
 
   const ringStyles = {
-    bg: 'linear-gradient(180deg, #070708, #0c0d12)',
-    text: { color: '#fefefe', opacity: 1 },
-    dim: { color: 'rgba(255,255,255,0.5)', opacity: 1 },
+    bg: 'linear-gradient(180deg, var(--fg-surface), var(--fg-bg))',
+    text: { color: 'var(--fg-text)', opacity: 1 },
+    dim: { color: 'var(--fg-muted)', opacity: 1 },
+    accent: 'var(--fg-accent)',
+    tickBase: 'var(--fg-glass-border)',
   };
 
   if (rem > 0) {
@@ -104,7 +106,7 @@ export function FocusPopupView() {
                   y1={y1}
                   x2={x2}
                   y2={y2}
-                  stroke={active ? '#84ffe4' : 'rgba(255,255,255,0.08)'}
+                  stroke={active ? ringStyles.accent : ringStyles.tickBase}
                   strokeWidth={active ? 2.5 : 1.5}
                 />
               );
@@ -116,7 +118,13 @@ export function FocusPopupView() {
               style={ringStyles.text}
             >
               {fmt(rem)}
-              <div style={{ ...UI_TOKENS.TEXT.R.LABEL, opacity: 0.5 }}>
+              <div
+                style={{
+                  ...UI_TOKENS.TEXT.R.LABEL,
+                  color: 'var(--fg-muted)',
+                  opacity: 0.8,
+                }}
+              >
                 {Math.round(prog * 100)}% COMPLETE
               </div>
             </div>
@@ -125,7 +133,7 @@ export function FocusPopupView() {
         <button
           onClick={() => setAbortModal(true)}
           disabled={wait !== null}
-          className="fg-mt-6 fg-rounded-full fg-border fg-border-white/40 fg-bg-transparent fg-px-6 fg-py-2.5 fg-text-xs fg-font-bold disabled:fg-opacity-50"
+          className="fg-mt-6 fg-rounded-full fg-border fg-border-[var(--fg-glass-border)] fg-bg-transparent fg-px-6 fg-py-2.5 fg-text-xs fg-font-bold disabled:fg-opacity-50"
           style={ringStyles.text}
         >
           {wait !== null ? `WAIT ${wait}S` : 'ABORT SESSION'}
@@ -134,9 +142,9 @@ export function FocusPopupView() {
           <div className="fg-fixed fg-inset-0 fg-z-[1000] fg-flex fg-items-center fg-justify-center fg-backdrop-blur-sm">
             <div
               onClick={() => setAbortModal(false)}
-              className="fg-absolute fg-inset-0 fg-bg-black/80"
+              className="fg-absolute fg-inset-0 fg-bg-black/60"
             />
-            <div className="fg-relative fg-w-72 fg-rounded-3xl fg-border fg-border-white/10 fg-bg-[#0c0d12] fg-p-7 fg-text-center fg-shadow-2xl">
+            <div className="fg-relative fg-w-72 fg-rounded-3xl fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-surface)] fg-p-7 fg-text-center fg-shadow-2xl">
               <div
                 className="fg-mb-3 fg-text-lg fg-font-black"
                 style={ringStyles.text}
@@ -149,14 +157,14 @@ export function FocusPopupView() {
               <div className="fg-flex fg-gap-3">
                 <button
                   onClick={() => setAbortModal(false)}
-                  className="fg-flex-1 fg-rounded-xl fg-bg-white/5 fg-py-2.5 fg-text-[11px] fg-font-bold fg-border fg-border-white/10"
+                  className="fg-flex-1 fg-rounded-xl fg-bg-[var(--fg-glass-bg)] fg-py-2.5 fg-text-[11px] fg-font-bold fg-border fg-border-[var(--fg-glass-border)]"
                   style={ringStyles.text}
                 >
                   CANCEL
                 </button>
                 <button
                   onClick={stopFocus}
-                  className="fg-flex-1 fg-rounded-xl fg-bg-red-500 fg-py-2.5 fg-text-[11px] fg-font-bold"
+                  className="fg-flex-1 fg-rounded-xl fg-bg-[var(--fg-red)] fg-py-2.5 fg-text-[11px] fg-font-bold"
                   style={{ color: 'white' }}
                 >
                   ABORT
@@ -175,12 +183,16 @@ export function FocusPopupView() {
       style={{ background: ringStyles.bg }}
     >
       <div className="fg-mb-7 fg-text-center">
-        <div style={{ ...UI_TOKENS.TEXT.R.LABEL, color: '#84ffe4' }}>
+        <div style={{ ...UI_TOKENS.TEXT.R.LABEL, color: 'var(--fg-accent)' }}>
           IGNITE DEEP FOCUS
         </div>
-        <div style={UI_TOKENS.TEXT.R.CARD_TITLE}>Ready TO START</div>
+        <div
+          style={{ ...UI_TOKENS.TEXT.R.CARD_TITLE, color: 'var(--fg-text)' }}
+        >
+          Ready TO START
+        </div>
       </div>
-      <div className="fg-relative fg-mb-6 fg-flex fg-h-48 fg-w-48 fg-items-center fg-justify-center fg-opacity-30">
+      <div className="fg-relative fg-mb-6 fg-flex fg-h-48 fg-w-48 fg-items-center fg-justify-center">
         <svg
           className="fg-absolute fg-inset-0 fg-h-full fg-w-full"
           viewBox="0 0 320 320"
@@ -192,15 +204,15 @@ export function FocusPopupView() {
               y1="20"
               x2="160"
               y2="35"
-              stroke="rgba(255,255,255,0.15)"
-              strokeWidth="1.5"
+              stroke="var(--fg-glass-border)"
+              strokeWidth="2"
               transform={`rotate(${i * 6} 160 160)`}
             />
           ))}
         </svg>
         <div
           className="fg-text-4xl fg-font-black"
-          style={{ color: 'rgba(255,255,255,0.2)' }}
+          style={{ color: 'var(--fg-muted)', opacity: 0.4 }}
         >
           --:--
         </div>
@@ -210,15 +222,15 @@ export function FocusPopupView() {
           <button
             key={p.m}
             onClick={() => startFocus(p.m)}
-            className="fg-rounded-[24px] fg-border fg-border-white/[0.03] fg-bg-[#18181b] fg-p-5 fg-transition-all hover:fg-bg-[#27272a] hover:fg-scale-[1.02] active:fg-scale-[0.98]"
+            className="fg-rounded-[24px] fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-glass-bg)] fg-p-5 fg-transition-all hover:fg-bg-[var(--fg-surface-hover)] hover:fg-scale-[1.02] active:fg-scale-[0.98]"
           >
-            <div style={{ ...UI_TOKENS.TEXT.R.STAT, color: 'white' }}>
+            <div style={{ ...UI_TOKENS.TEXT.R.STAT, color: 'var(--fg-text)' }}>
               {p.m}M
             </div>
             <div
               style={{
                 ...UI_TOKENS.TEXT.R.LABEL,
-                color: '#84ffe4',
+                color: 'var(--fg-accent)',
                 marginTop: '4px',
               }}
             >

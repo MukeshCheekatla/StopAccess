@@ -1,13 +1,19 @@
 import Chart from 'chart.js/auto';
 import {
   fmtTime,
+  formatMinutes,
   buildDashboardTabPath,
   findServiceIdByDomain,
-  getRootDomain,
 } from '@stopaccess/core';
 import { appsController } from '../../lib/appsController';
-import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
-import { UI_TOKENS, renderLoader } from '../../lib/ui';
+import { getCachedIcon } from '../../lib/iconCache';
+import {
+  UI_TOKENS,
+  renderLoader,
+  renderBrandLogo,
+  attachGlobalIconListeners,
+} from '../../lib/ui';
+import { attachCalendarWidget } from './CalendarWidget';
 
 // This function opens the extension settings page
 function openSettingsPage() {
@@ -16,7 +22,10 @@ function openSettingsPage() {
 }
 
 // Key rendering function for the Dashboard (Overview) page
-export async function renderDashboardPage(container) {
+export async function renderDashboardPage(
+  container: HTMLElement,
+  selectedDate?: string,
+) {
   if (!container) {
     return;
   }
@@ -31,16 +40,9 @@ export async function renderDashboardPage(container) {
     const { loadDashboardData } = await import(
       '../../../../packages/viewmodels/src/useDashboardVM'
     );
-    const data = await loadDashboardData();
-    const {
-      rules,
-      allTotalMs,
-      domainList,
-      syncStatus,
-      isNew,
-      cloudBlockedQueries,
-      focusEnd,
-    } = data;
+    const data = await loadDashboardData(selectedDate);
+    const { rules, allTotalMs, domainList, isNew } = data;
+    const { focusEnd } = data;
 
     // Load icon cache for instant render
     const iconLookup: Record<string, string> = {};
@@ -68,9 +70,9 @@ export async function renderDashboardPage(container) {
 
     // Live update helper
     const updateTimer = () => {
-      const displayEl = container.querySelector('#timerDisplay');
-      const statusEl = container.querySelector('#timerStatus');
-      const dotEl = container.querySelector('#timerDot');
+      const displayEl = container.querySelector('#timerDisplay') as HTMLElement;
+      const statusEl = container.querySelector('#timerStatus') as HTMLElement;
+      const dotEl = container.querySelector('#timerDot') as HTMLElement;
       if (!displayEl || !statusEl || !dotEl) {
         return;
       }
@@ -84,6 +86,7 @@ export async function renderDashboardPage(container) {
         statusEl.style.color = 'var(--fg-text)';
         statusEl.style.fontWeight = '900';
         dotEl.style.background = 'var(--fg-muted)';
+        dotEl.style.boxShadow = 'none';
         if ((window as any).__dashTimerInterval) {
           clearInterval((window as any).__dashTimerInterval);
           (window as any).__dashTimerInterval = null;
@@ -103,6 +106,7 @@ export async function renderDashboardPage(container) {
       statusEl.style.color = 'var(--fg-text)';
       statusEl.style.fontWeight = '950';
       dotEl.style.background = 'var(--fg-green)';
+      dotEl.style.boxShadow = '0 0 10px var(--fg-green)';
     };
 
     if (isFocusing && !(window as any).__dashTimerInterval) {
@@ -120,25 +124,31 @@ export async function renderDashboardPage(container) {
         <div id="dashboardShell">
           <div id="setupGuardSlot"></div>
 
-          <div class="widget-grid">
-            <div class="glass-card widget-card" id="engagementWidget"></div>
-            <div class="glass-card widget-card fg-relative fg-overflow-hidden" id="timerWidget"></div>
-            <div class="glass-card widget-card" id="connectionWidget"></div>
-            <div class="glass-card widget-card" id="blockedWidget"></div>
+          <div class="fg-flex fg-items-center fg-justify-between fg-mb-6 fg-px-1">
+             <div class="section-label" style="${UI_TOKENS.TEXT.LABEL} margin: 0; font-size: 16px; letter-spacing: -0.01em;">Overview</div>
+             <div id="dateSelectorWidget" style="padding: 2px; display: flex; align-items: center; gap: 4px; border-radius: 10px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"></div>
           </div>
 
-          <div class="fg-grid fg-gap-8" style="grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start;">
+          <div class="widget-grid" style="grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
+            <div class="glass-card widget-card" id="avgUsageWidget"></div>
+            <div class="glass-card widget-card" id="engagementWidget"></div>
+            <div class="glass-card widget-card" id="sessionsWidget"></div>
+            <div class="glass-card widget-card" id="timerWidget"></div>
+          </div>
+
+          <div class="fg-grid fg-gap-8" style="grid-template-columns: 1fr 1fr; align-items: start;">
             <div>
-              <div class="section-label" style="${UI_TOKENS.TEXT.LABEL} margin-bottom: 20px;">Current Activity</div>
+              <div class="section-label" style="${UI_TOKENS.TEXT.LABEL} margin-bottom: 6px;">Current Activity</div>
+              <div id="sa-current-activity-subtitle" style="${UI_TOKENS.TEXT.LABEL} opacity: 0.55; margin-bottom: 20px;">${data.focusSummary.completedSessions} focus sessions completed, ${data.focusSummary.totalMinutes} focus minutes on ${data.targetDate}</div>
               <div class="service-grid fg-gap-3" id="activityGrid" style="grid-template-columns: 1fr;"></div>
             </div>
             <div>
                <div class="section-label" style="${UI_TOKENS.TEXT.LABEL} margin-bottom: 20px;">Usage Breakdown</div>
-               <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center" id="chartSlot" style="border-radius: 20px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); height: 260px;">
-                  <canvas id="liveUsageChart" style="width: 100% !important; height: 210px !important;"></canvas>
+               <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center" id="chartSlot" style="border-radius: 20px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); height: 280px; transition: opacity 0.2s;">
+                  <canvas id="liveUsageChart" style="width: 100% !important; height: 230px !important;"></canvas>
                </div>
                <div class="fg-mt-5 fg-text-xs fg-text-[var(--fg-text)] fg-opacity-80 fg-leading-normal fg-font-semibold">
-                 Real-time monitoring enabled. Data represents actual time recorded by the browser gate.
+                 Data reflects time recorded by the browser gate for the selected period.
                </div>
             </div>
           </div>
@@ -199,65 +209,202 @@ export async function renderDashboardPage(container) {
       }
     }
 
+    const avgW = container.querySelector('#avgUsageWidget');
+    if (avgW) {
+      const { globalAvgMs, globalAvgSessions } = data;
+      avgW.innerHTML = `
+        <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+          <div class="widget-title" style="${
+            UI_TOKENS.TEXT.WIDGET_LABEL
+          }">Daily Average</div>
+          <div style="margin-top: 12px;">
+            <div style="${UI_TOKENS.TEXT.STAT}">${fmtTime(
+        globalAvgMs || 0,
+      )}</div>
+            <div style="${
+              UI_TOKENS.TEXT.LABEL
+            } opacity: 0.5; font-size: 11px; margin-top: 4px;">GLOBAL BASELINE</div>
+          </div>
+          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);">
+             <div style="${
+               UI_TOKENS.TEXT.LABEL
+             } opacity: 0.8; font-size: 12px;">${Math.round(
+        globalAvgSessions || 0,
+      )} <span style="opacity: 0.5; font-weight: 400;">sessions/day</span></div>
+          </div>
+        </div>
+      `;
+    }
+
     const engagementW = container.querySelector('#engagementWidget');
     if (engagementW) {
+      const usageTone =
+        data.usageDeltaPct > 0
+          ? `+${data.usageDeltaPct}%`
+          : `${data.usageDeltaPct}%`;
+      const isPositive = data.usageDeltaPct <= 0;
+      const deltaColor = isPositive ? 'var(--fg-green)' : 'var(--fg-red)';
+
       engagementW.innerHTML = `
-        <div class="widget-title" style="${
-          UI_TOKENS.TEXT.WIDGET_LABEL
-        }">Today Usage</div>
-        <div>
-          <div style="${UI_TOKENS.TEXT.STAT}">${fmtTime(
+        <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+          <div class="widget-title" style="${UI_TOKENS.TEXT.WIDGET_LABEL}">${
+        data.isToday ? 'Today Usage' : 'Selected Day'
+      }</div>
+          <div style="margin-top: 12px;">
+            <div style="${UI_TOKENS.TEXT.STAT}">${fmtTime(
         allTotalMs as number,
       )}</div>
-          <div style="${
-            UI_TOKENS.TEXT.LABEL
-          } opacity: 0.6; margin-top: 4px;">Recorded today</div>
+            <div style="${
+              UI_TOKENS.TEXT.LABEL
+            } color: ${deltaColor}; font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+              ${isPositive ? '↓' : '↑'} ${usageTone.replace(/[-+]/, '')} 
+              <span style="opacity: 0.5; color: var(--fg-text); font-weight: 400;">vs yesterday</span>
+            </div>
+          </div>
+          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);">
+             <div style="${
+               UI_TOKENS.TEXT.LABEL
+             } opacity: 0.8; font-size: 11px; letter-spacing: 0.05em;">TRACKING ACTIVE</div>
+          </div>
         </div>
       `;
     }
 
+    const sessionsW = container.querySelector('#sessionsWidget');
+    if (sessionsW) {
+      sessionsW.innerHTML = `
+        <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+          <div class="widget-title" style="${
+            UI_TOKENS.TEXT.WIDGET_LABEL
+          }">Sessions</div>
+          <div style="margin-top: 12px;">
+            <div style="${UI_TOKENS.TEXT.STAT}">${data.totalSessions}</div>
+            <div style="${
+              UI_TOKENS.TEXT.LABEL
+            } opacity: 0.5; font-size: 11px; margin-top: 4px;">INTERACTIONS TODAY</div>
+          </div>
+          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);">
+             <div style="${
+               UI_TOKENS.TEXT.LABEL
+             } opacity: 0.8; font-size: 12px;">avg ${fmtTime(
+        data.averageSessionMs || 0,
+      )} <span style="opacity: 0.5; font-weight: 400;">per session</span></div>
+          </div>
+        </div>
+      `;
+    }
     const timerW = container.querySelector('#timerWidget');
     if (timerW) {
+      const sessionTone =
+        data.sessionsDeltaPct > 0
+          ? `+${data.sessionsDeltaPct}%`
+          : `${data.sessionsDeltaPct}%`;
       timerW.innerHTML = `
-        <div class="widget-title" style="${UI_TOKENS.TEXT.WIDGET_LABEL}">Timer Status</div>
-        <div class="timer-display" id="timerDisplay" style="${UI_TOKENS.TEXT.STAT_LARGE} color: ${timerTextColor}; font-variant-numeric: tabular-nums;">${timerDisplay}</div>
-        <div class="fg-flex fg-items-center fg-gap-2">
-          <div id="timerDot" style="width:10px; height:10px; border-radius:50%; background:${timerDotColor};"></div>
-          <span id="timerStatus" style="${UI_TOKENS.TEXT.LABEL} color: var(--fg-text);">${timerStatusText}</span>
+        <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+          <div class="widget-title" style="${
+            UI_TOKENS.TEXT.WIDGET_LABEL
+          }">Focus Status</div>
+          <div style="margin-top: 12px;">
+            <div id="timerDisplay" style="${
+              UI_TOKENS.TEXT.STAT
+            }; font-variant-numeric: tabular-nums; color: ${timerTextColor}; transition: color 0.3s;">${timerDisplay}</div>
+            <div style="display: flex; align-items: center; gap: 6px; margin-top: 4px;">
+               <div id="timerDot" style="width: 8px; height: 8px; border-radius: 50%; background: ${timerDotColor}; box-shadow: ${
+        isFocusing ? `0 0 10px ${timerDotColor}` : 'none'
+      }; transition: background 0.3s, box-shadow 0.3s;"></div>
+               <span id="timerStatus" style="${
+                 UI_TOKENS.TEXT.LABEL
+               }; font-size: 11px; color: var(--fg-text); font-weight: 700;">${timerStatusText.toUpperCase()}</span>
+            </div>
+          </div>
+          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);">
+             <div style="${
+               UI_TOKENS.TEXT.LABEL
+             } opacity: 0.5; font-size: 11px;">${sessionTone} sessions vs yest.</div>
+          </div>
         </div>
       `;
     }
+    const dateW = container.querySelector('#dateSelectorWidget');
+    if (dateW) {
+      const { targetDate, isToday } = data;
+      const date = new Date(targetDate);
+      const friendly = isToday
+        ? 'Today'
+        : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
-    const connectionW = container.querySelector('#connectionWidget');
-    if (connectionW) {
-      connectionW.innerHTML = `
-        <div class="widget-title" style="${
-          UI_TOKENS.TEXT.WIDGET_LABEL
-        }">Connection</div>
-        <div style="${UI_TOKENS.TEXT.STAT} color:${
-        syncStatus === 'connected' ? 'var(--fg-text)' : 'var(--fg-muted)'
-      };">
-          ${syncStatus === 'connected' ? 'Ready' : 'Offline'}
-        </div>
-        <div style="${UI_TOKENS.TEXT.LABEL} margin-top: 4px;">
-          Cloud Sync
+      dateW.innerHTML = `
+        <div class="fg-flex fg-items-center fg-gap-1">
+          <button class="date-nav-prev" style="width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:var(--fg-muted); cursor:pointer; transition:all 0.2s;">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          
+          <div style="display: flex; flex-direction: column; align-items: center; min-width: 80px; cursor:pointer;" class="date-picker-trigger" id="sa-date-trigger">
+            <div style="${
+              UI_TOKENS.TEXT.CARD_TITLE
+            }; color:var(--fg-text); font-weight:800; font-size: 12px;">${friendly}</div>
+            <div style="font-size:9px; color:var(--fg-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-top: -1px;">${targetDate}</div>
+          </div>
+
+          <button class="date-nav-next" ${
+            isToday ? 'disabled' : ''
+          } style="width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:var(--fg-muted); cursor:${
+        isToday ? 'default' : 'pointer'
+      }; opacity:${isToday ? '0.2' : '1'}; transition:all 0.2s;">
+             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
         </div>
       `;
+
+      (dateW as any).__dashTargetDate = targetDate;
+
+      if (!(dateW as any).__dateListenerAttached) {
+        dateW.addEventListener('click', (e: MouseEvent) => {
+          const currentTargetDate = (dateW as any).__dashTargetDate;
+          const prevBtn = (e.target as HTMLElement).closest('.date-nav-prev');
+          const nextBtn = (e.target as HTMLElement).closest('.date-nav-next');
+
+          if (prevBtn && !prevBtn.hasAttribute('disabled')) {
+            (prevBtn as HTMLElement).style.opacity = '0.5';
+            const d = new Date(currentTargetDate);
+            d.setDate(d.getDate() - 1);
+            if (document.getElementById('chartSlot')) {
+              (
+                document.getElementById('chartSlot') as HTMLElement
+              ).style.opacity = '0.4';
+            }
+            renderDashboardPage(container, d.toLocaleDateString('en-CA'));
+          }
+          if (nextBtn && !nextBtn.hasAttribute('disabled')) {
+            (nextBtn as HTMLElement).style.opacity = '0.5';
+            const d = new Date(currentTargetDate);
+            d.setDate(d.getDate() + 1);
+            if (document.getElementById('chartSlot')) {
+              (
+                document.getElementById('chartSlot') as HTMLElement
+              ).style.opacity = '0.4';
+            }
+            renderDashboardPage(container, d.toLocaleDateString('en-CA'));
+          }
+          if ((e.target as HTMLElement).closest('#sa-date-trigger')) {
+            attachCalendarWidget(
+              dateW.querySelector('#sa-date-trigger') as HTMLElement,
+              container,
+              currentTargetDate,
+              (newDateStr: string) =>
+                renderDashboardPage(container, newDateStr),
+            );
+          }
+        });
+        (dateW as any).__dateListenerAttached = true;
+      }
     }
 
-    const blockedW = container.querySelector('#blockedWidget');
-    if (blockedW) {
-      blockedW.innerHTML = `
-        <div class="widget-title" style="${
-          UI_TOKENS.TEXT.WIDGET_LABEL
-        }">Dns Blocks</div>
-        <div style="${
-          UI_TOKENS.TEXT.STAT
-        }">${cloudBlockedQueries.toLocaleString()}</div>
-        <div style="${
-          UI_TOKENS.TEXT.LABEL
-        } opacity: 0.6; margin-top: 4px;">From DNS Analytics</div>
-      `;
+    const activitySubtitle = container.querySelector(
+      '#sa-current-activity-subtitle',
+    );
+    if (activitySubtitle) {
+      activitySubtitle.textContent = `${data.focusSummary.completedSessions} focus sessions completed, ${data.focusSummary.totalMinutes} focus minutes on ${data.targetDate}`;
     }
 
     const activityG = container.querySelector('#activityGrid');
@@ -290,9 +437,7 @@ export async function renderDashboardPage(container) {
             return false;
           });
 
-          const rootDomain = getRootDomain(d.domain);
           const cached = iconLookup[d.domain];
-          const iconUrl = cached || `https://logo.clearbit.com/${rootDomain}`;
 
           const existingItem = activityG.querySelector(
             `.rule-item[data-domain="${d.domain}"]`,
@@ -306,16 +451,7 @@ export async function renderDashboardPage(container) {
 
           const cardInner = `
                  <div class="fg-flex fg-items-center fg-gap-3 fg-min-w-0">
-                    <div class="fg-shrink-0 fg-relative fg-flex fg-items-center fg-justify-center" style="width: 38px; height: 38px;">
-                       <div class="placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-text)]" style="opacity: 0.5;">
-                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-                       </div>
-                       <img src="${iconUrl}" data-domain="${
-            d.domain
-          }" style="width: 30px; height:30px; object-fit: contain; z-index: 2; position: relative; display: ${
-            cached ? 'block' : 'none'
-          }; border-radius: 20%;">
-                    </div>
+                    ${renderBrandLogo(d.domain, d.domain, 38, cached)}
                    <div class="fg-min-w-0 fg-flex-1">
                      <div style="${
                        UI_TOKENS.TEXT.CARD_TITLE
@@ -388,55 +524,7 @@ export async function renderDashboardPage(container) {
     const canvas = container.querySelector(
       '#liveUsageChart',
     ) as HTMLCanvasElement;
-    if (!container.__iconListenersAttached) {
-      container.addEventListener(
-        'load',
-        async (e) => {
-          const target = e.target as HTMLImageElement;
-          if (
-            target.tagName === 'IMG' &&
-            target.parentElement?.classList.contains('fg-shrink-0')
-          ) {
-            if (target.naturalWidth > 1) {
-              target.style.display = 'block';
-              (target.previousElementSibling as HTMLElement).style.display =
-                'none';
-              const domain = target.dataset.domain;
-              if (domain) {
-                saveIconToCache(domain, target.src);
-              }
-            } else {
-              target.dispatchEvent(new Event('error'));
-            }
-          }
-        },
-        true,
-      );
-      container.addEventListener(
-        'error',
-        (e) => {
-          const target = e.target as HTMLImageElement;
-          if (
-            target.tagName === 'IMG' &&
-            target.parentElement?.classList.contains('fg-shrink-0')
-          ) {
-            const domain = target.dataset.domain;
-            const currentUrl = target.src;
-            if (currentUrl.includes('logo.clearbit.com') && domain) {
-              target.src = `https://www.google.com/s2/favicons?domain=${getRootDomain(
-                domain,
-              )}&sz=128`;
-            } else {
-              target.style.display = 'none';
-              (target.previousElementSibling as HTMLElement).style.display =
-                'flex';
-            }
-          }
-        },
-        true,
-      );
-      container.__iconListenersAttached = true;
-    }
+    attachGlobalIconListeners(container);
 
     const ctx = canvas?.getContext('2d');
     if (ctx && domainList.length > 0) {
@@ -451,41 +539,62 @@ export async function renderDashboardPage(container) {
         return match ? docStyle.getPropertyValue(match[1]).trim() : token;
       };
 
-      const chartBarColor =
-        docStyle.getPropertyValue('--fg-chart-bar').trim() || '#E2E8F0';
       const chartTextColor = resolveToken(UI_TOKENS.COLORS.TEXT) || '#111827';
-      const chartMutedColor = resolveToken(UI_TOKENS.COLORS.MUTED) || '#6B7280';
+
+      const pastelColors = [
+        '#A0C4FF', // blue
+        '#CAFFBF', // green
+        '#9BF6FF', // cyan
+        '#FDFFB6', // yellow
+        '#FFD6A5', // orange
+        '#FFADAD', // red
+        '#BDB2FF', // purple
+        '#FFC6FF', // pink
+      ];
+      const bgColors = domainList.map(
+        (_, i) => pastelColors[i % pastelColors.length],
+      );
+      const borderColor =
+        docStyle.getPropertyValue('--fg-glass-bg').trim() || '#111827';
 
       window.__dashPulseChart = new Chart(ctx, {
-        type: 'bar',
+        type: 'pie',
         data: {
           labels: domainList.map((d) => d.domain),
           datasets: [
             {
               data: domainList.map((d) => Math.floor(d.timeMs / 60000)),
-              backgroundColor: chartBarColor,
-              borderRadius: 6,
-              barThickness: 20,
+              backgroundColor: bgColors,
+              borderColor: borderColor,
+              borderWidth: 2,
             },
           ],
         },
         options: {
-          indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
           animation: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: {
-              beginAtZero: true,
-              grid: { display: false },
-              ticks: { color: chartMutedColor, font: { size: 10 } },
-            },
-            y: {
-              grid: { display: false },
-              ticks: {
+          layout: {
+            padding: 10,
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'left',
+              labels: {
                 color: chartTextColor,
-                font: { size: 12, weight: '800' as any },
+                usePointStyle: true,
+                padding: 16,
+                font: { size: 12, weight: '600' as any },
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context: any) {
+                  const label = context.label || '';
+                  const value = context.raw as number;
+                  return ` ${label}: ${formatMinutes(value)}`;
+                },
               },
             },
           },
@@ -496,15 +605,27 @@ export async function renderDashboardPage(container) {
     (window as any).__dashActiveContainer = container;
 
     if (!window.__dashStorageListener) {
-      window.__dashStorageListener = (changes) => {
+      window.__dashStorageListener = (changes: any) => {
         const activeContainer = (window as any).__dashActiveContainer;
-        if (changes.usage || changes.focus_mode_end_time || changes.rules) {
-          if (
-            activeContainer &&
-            document.contains(activeContainer) &&
-            document.querySelector('.nav-item[data-tab="dash"].active')
-          ) {
-            renderDashboardPage(activeContainer);
+
+        // Listen to relevant keys including rules aliases
+        const rulesChanged = !!(changes.rules || changes.fg_rules);
+        const usageChanged = !!changes.usage;
+        const focusChanged = !!(
+          changes.focus_mode_end_time || changes.fg_active_session
+        );
+        const configChanged = !!(
+          changes.nextdns_api_key || changes.nextdns_profile_id
+        );
+
+        if (rulesChanged || usageChanged || focusChanged || configChanged) {
+          if (activeContainer && document.contains(activeContainer)) {
+            const isDashActive = !!document.querySelector(
+              '.nav-item[data-tab="dash"].active',
+            );
+            if (isDashActive) {
+              renderDashboardPage(activeContainer);
+            }
           }
         }
       };
@@ -523,21 +644,16 @@ export async function renderDashboardPage(container) {
                 ? currentStyle.getPropertyValue(match[1]).trim()
                 : token;
             };
-            const freshBar =
-              currentStyle.getPropertyValue('--fg-chart-bar').trim() ||
-              '#E2E8F0';
             const freshText = freshResolve(UI_TOKENS.COLORS.TEXT) || '#111827';
-            const freshMuted =
-              freshResolve(UI_TOKENS.COLORS.MUTED) || '#6B7280';
 
             if (chart.data.datasets?.[0]) {
-              chart.data.datasets[0].backgroundColor = freshBar;
+              const borderCol =
+                currentStyle.getPropertyValue('--fg-glass-bg').trim() ||
+                '#111827';
+              chart.data.datasets[0].borderColor = borderCol;
             }
-            if (chart.options.scales?.x?.ticks) {
-              chart.options.scales.x.ticks.color = freshMuted;
-            }
-            if (chart.options.scales?.y?.ticks) {
-              chart.options.scales.y.ticks.color = freshText;
+            if (chart.options.plugins?.legend?.labels) {
+              chart.options.plugins.legend.labels.color = freshText;
             }
             chart.update();
           }
