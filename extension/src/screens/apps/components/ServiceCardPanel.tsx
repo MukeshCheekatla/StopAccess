@@ -1,5 +1,5 @@
 import React from 'react';
-import { resolveServiceIcon } from '@stopaccess/core';
+import { getBrandLogoUrl, resolveIconDomain } from '../../../lib/ui';
 
 interface ServiceCardProps {
   service: any;
@@ -15,14 +15,8 @@ export const ServiceCardPanel: React.FC<ServiceCardProps> = ({
   onDelete,
 }) => {
   const active = service.active ?? false;
-  const iconInfo = resolveServiceIcon({
-    id: service.id,
-    name: service.name,
-  });
-  const iconDomain = iconInfo.domain || service.id;
-  const faviconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-    iconDomain,
-  )}&sz=128`;
+  const iconDomain = resolveIconDomain(service.id, service.name);
+  const faviconUrl = getBrandLogoUrl(iconDomain, 128);
 
   return (
     <div

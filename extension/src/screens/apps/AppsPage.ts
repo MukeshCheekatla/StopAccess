@@ -4,12 +4,14 @@ import {
   NEXTDNS_CATEGORIES,
   NEXTDNS_SERVICES,
 } from '@stopaccess/core';
+import { setAppsDnsHardMode } from '@stopaccess/state';
 import { getCategoryBadge, escapeHtml } from '@stopaccess/core';
 import { toast } from '../../lib/toast';
 import { appsController } from '../../lib/appsController';
 import { getLockedDomains } from '../../background/sessionGuard';
 import { extensionAdapter } from '../../background/platformAdapter';
-import { getCachedIcon, saveIconToCache } from '../../lib/iconCache';
+import { prefetchIconCache } from '../../lib/iconCache';
+
 import {
   renderAppIcon,
   getRuleActiveState,
@@ -19,6 +21,8 @@ import {
   renderSectionBadge,
   renderAppTableRow,
   renderInfoTooltip,
+  showConfirmDialog,
+  attachGlobalIconListeners,
 } from '../../lib/ui';
 
 let activeTab = 'shield';
@@ -34,11 +38,28 @@ let currentIsAppsDnsHardMode = true;
 
 export async function renderAppsPage(container: HTMLElement) {
   globalContainer = container;
-  const vmData: any = await loadAppsData();
+  (window as any).appsCurrentContainer = container;
+  container.style.display = 'flex';
+  container.style.flexDirection = 'column';
+  container.style.minHeight = '0';
+  container.style.height = '100%';
+
+  // The layout constraints for .fg-shell-content are now handled by ExtensionShell React component conditionally.
+
+  // Prefetch icon cache for flicker-free rendering
+  await prefetchIconCache();
+
+  const vmData = await loadAppsData();
   const { isConfigured, rules } = vmData;
   currentIsConfigured = isConfigured;
   currentIsAppsDnsHardMode =
     (await extensionAdapter.getBoolean('fg_apps_dns_hard_mode')) ?? false;
+
+  const currentRedirectUrl =
+    (await extensionAdapter.getString('fg_redirect_url', '')) || '';
+  const initialIsEditing = !currentRedirectUrl;
+  const editIcon =
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
 
   if (currentIsConfigured) {
     await loadNextDNSMetadata();
@@ -58,45 +79,80 @@ export async function renderAppsPage(container: HTMLElement) {
         <div id="searchActionContainer"></div>
       </div>
 
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 40px;">
-        <div style="display: flex; align-items: center; gap: 24px; position: relative;">
-          <div id="appsNavigation" style="display: flex; padding: 4px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px; width: fit-content; min-width: 200px;">
-            <button class="nav-item-tab" data-tab="shield">Blocklist</button>
-            <button class="nav-item-tab" data-tab="categories">Categories</button>
+      <div class="apps-layout-container" style="flex: 1; min-height: 0; align-items: stretch; padding-bottom: 48px;">
+        <div id="tabContent" style="flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column;"></div>
+        
+        <div class="apps-side-controls">
+          <!-- Navigation -->
+          <div class="glass-card" style="padding: 20px;">
+            <div class="apps-layout-header">Selection</div>
+            <div id="appsNavigation" style="display: flex; gap: 6px; padding: 4px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 12px;">
+              <button class="nav-item-tab ${
+                activeTab === 'shield' ? 'is-active' : ''
+              }" data-tab="shield">Blocklist</button>
+              <button class="nav-item-tab ${
+                activeTab === 'categories' ? 'is-active' : ''
+              }" data-tab="categories">Categories</button>
+            </div>
           </div>
 
-          <button id="btnSetRedirect" style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px; font-size: 14px; font-weight: 500; color: var(--fg-muted);  letter-spacing: 0.5px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='var(--fg-surface-hover)'; this.style.color='var(--fg-text)';" onmouseout="this.style.background='var(--fg-glass-bg)'; this.style.color='var(--fg-muted)';">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            Redirect
-            ${renderInfoTooltip(
-              'Set a target URL to automatically redirect users when they attempt to visit a blocked site.',
-            )}
-          </button>
-          
-          <div id="redirectPopover" class="fg-opacity-0 fg-pointer-events-none fg-scale-95 fg-transition-all" style="position: absolute; top: calc(100% + 8px); left: 240px; z-index: 100; background: var(--fg-surface); border: 1px solid var(--fg-glass-border); border-radius: 16px; padding: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); width: 280px; transform-origin: top;">
-             <div style="font-size: 14px; font-weight: 500; color: var(--fg-muted);  margin-bottom: 8px;">Productive Redirect</div>
-             <input type="text" id="redirectInput" placeholder="e.g. notion.so" style="width: 100%; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; padding: 8px 12px; font-size: 13px; color: var(--fg-text); margin-bottom: 12px; outline: none;">
-             <div style="display: flex; gap: 8px; justify-content: flex-end;">
-               <button id="btnRedirectClear" style="font-size: 12px; font-weight: 500; color: var(--fg-muted); padding: 6px 12px; border-radius: 6px; cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--fg-surface-hover)';" onmouseout="this.style.background='transparent';">Clear</button>
-               <button id="btnRedirectSave" style="font-size: 12px; font-weight: 600; color: white; background: var(--fg-accent); padding: 6px 12px; border-radius: 6px; cursor: pointer;">Save</button>
-             </div>
+          <!-- Productive Redirect -->
+          <div class="glass-card" style="padding: 20px;">
+            <div class="apps-layout-header">
+              Redirect ${renderInfoTooltip(
+                'Set a target URL to automatically redirect users when they attempt to visit a blocked site.',
+              )}
+            </div>
+            <input type="text" id="redirectInput" placeholder="e.g. notion.so" value="${escapeHtml(
+              initialIsEditing
+                ? currentRedirectUrl
+                : currentRedirectUrl
+                    .replace(/^https?:\/\//, '')
+                    .replace(/\/$/, ''),
+            )}" ${
+      !initialIsEditing ? 'disabled' : ''
+    } style="width: 100%; height: 42px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 12px; padding: 0 14px; font-size: 13px; font-weight: 500; color: var(--fg-text); margin-bottom: 12px; outline: none; transition: border-color 0.2s; opacity: ${
+      initialIsEditing ? '1' : '0.8'
+    };">
+            <div style="display: flex; justify-content: flex-end; gap: 8px;">
+              <button id="btnRedirectClear" style="height: 30px; font-size: 11px; font-weight: 600; color: var(--fg-muted); background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; cursor: pointer; transition: all 0.2s; padding: 0 14px; visibility: ${
+                initialIsEditing ? 'visible' : 'hidden'
+              }; display: ${
+      initialIsEditing ? 'block' : 'none'
+    };">Clear</button>
+              <button id="btnRedirectSave" class="${
+                !initialIsEditing ? 'btn-premium' : ''
+              }" style="${
+      initialIsEditing ? 'flex: 1;' : 'width: auto; padding: 0 16px;'
+    } height: 30px; font-size: 11px; font-weight: 700; color: #fff; background: ${
+      initialIsEditing ? 'var(--fg-accent)' : 'var(--accent)'
+    }; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; border: none;">
+                ${initialIsEditing ? 'Save' : editIcon + ' &nbsp; Edit'}
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div style="display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 14px;" title="Block apps and domains at the router level via NextDNS.">
-          <div style="font-size: 14px; font-weight: 500; color: var(--fg-muted);  letter-spacing: 0.5px;">Dns Hard Mode</div>
-          <button class="toggle-switch-btn ${
-            currentIsAppsDnsHardMode ? 'active' : ''
-          }" id="masterDnsToggle" ${
+          <!-- DNS Hard Mode -->
+          <div class="glass-card" style="padding: 20px;">
+            <div class="apps-layout-header">
+              DNS Shield ${renderInfoTooltip(
+                'Forces blocking at the network protocol layer via NextDNS, preventing browser-level bypasses.',
+              )}
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 12px; padding: 10px 14px;">
+              <span style="font-size: 13px; font-weight: 500; color: var(--fg-text);">Hard Block</span>
+              <button class="toggle-switch-btn ${
+                currentIsAppsDnsHardMode ? 'active' : ''
+              }" id="masterDnsToggle" ${
       !currentIsConfigured ? 'disabled style="opacity:0.3"' : ''
     } style="transform: scale(0.8); transform-origin: right;">
-            <span class="on-text">ON</span>
-            <span class="off-text">OFF</span>
-          </button>
+                <span class="on-text">ON</span>
+                <span class="off-text">OFF</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
-
-      <div id="tabContent"></div>
     `;
 
     container.querySelector('#appSearch')?.addEventListener('input', (e) => {
@@ -146,6 +202,10 @@ export async function renderAppsPage(container: HTMLElement) {
     container.querySelectorAll('.nav-item-tab').forEach((btn) => {
       btn.addEventListener('click', () => {
         activeTab = btn.getAttribute('data-tab') || 'shield';
+        container
+          .querySelectorAll('.nav-item-tab')
+          .forEach((b) => b.classList.remove('is-active'));
+        btn.classList.add('is-active');
         refreshListOnly();
       });
     });
@@ -162,11 +222,26 @@ export async function renderAppsPage(container: HTMLElement) {
 
         const wasActive = masterToggle.classList.contains('active');
         const targetState = !wasActive;
-        currentIsAppsDnsHardMode = targetState;
 
+        const confirmed = await showConfirmDialog({
+          title: targetState
+            ? 'Enable DNS Hard Mode?'
+            : 'Disable DNS Hard Mode?',
+          body: targetState
+            ? 'This activates protocol-level protection via NextDNS. Websites will be blocked at the DNS layer, making bypasses much harder.'
+            : 'Warning: DNS changes are not instant. Due to system and browser DNS caching, sites may remain blocked for several minutes even after turning this off. Clearing your browser cache or restarting may be required.',
+          confirmLabel: targetState ? 'Enable Mode' : 'Disable Mode',
+          isDestructive: !targetState,
+        });
+
+        if (!confirmed) {
+          return;
+        }
+
+        currentIsAppsDnsHardMode = targetState;
         masterToggle.classList.toggle('active', targetState);
 
-        await extensionAdapter.set('fg_apps_dns_hard_mode', targetState);
+        await setAppsDnsHardMode(extensionAdapter, targetState);
         await appsController.reconcileAppsDnsMode(targetState, rules);
 
         chrome.runtime.sendMessage({ action: 'manualSync' });
@@ -174,12 +249,6 @@ export async function renderAppsPage(container: HTMLElement) {
       });
     }
 
-    const btnSetRedirect = container.querySelector(
-      '#btnSetRedirect',
-    ) as HTMLElement;
-    const redirectPopover = container.querySelector(
-      '#redirectPopover',
-    ) as HTMLElement;
     const redirectInput = container.querySelector(
       '#redirectInput',
     ) as HTMLInputElement;
@@ -190,100 +259,96 @@ export async function renderAppsPage(container: HTMLElement) {
       '#btnRedirectSave',
     ) as HTMLElement;
 
-    if (btnSetRedirect && redirectPopover) {
-      btnSetRedirect.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const currentUrl = await extensionAdapter.getString(
-          'fg_redirect_url',
-          '',
-        );
-        redirectInput.value = currentUrl || '';
+    if (redirectInput) {
+      const editIconArr =
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+      let isEditing = initialIsEditing;
 
-        const isShowing = redirectPopover.classList.contains('fg-opacity-100');
-        if (isShowing) {
-          redirectPopover.classList.remove(
-            'fg-opacity-100',
-            'fg-pointer-events-auto',
-            'fg-scale-100',
-          );
-          redirectPopover.classList.add(
-            'fg-opacity-0',
-            'fg-pointer-events-none',
-            'fg-scale-95',
-          );
+      const refreshUI = () => {
+        if (isEditing) {
+          redirectInput.disabled = false;
+          redirectInput.style.opacity = '1';
+          btnRedirectSave.innerHTML = 'Save';
+          btnRedirectSave.style.background = 'var(--fg-accent)';
+          btnRedirectSave.style.color = '#fff';
+          btnRedirectSave.style.border = 'none';
+          btnRedirectClear.style.visibility = 'visible';
+          btnRedirectClear.style.pointerEvents = 'auto';
         } else {
-          redirectPopover.classList.add(
-            'fg-opacity-100',
-            'fg-pointer-events-auto',
-            'fg-scale-100',
-          );
-          redirectPopover.classList.remove(
-            'fg-opacity-0',
-            'fg-pointer-events-none',
-            'fg-scale-95',
-          );
-          redirectInput.focus();
+          redirectInput.disabled = true;
+          redirectInput.style.opacity = '0.8';
+          btnRedirectSave.innerHTML = `${editIconArr} Edit`;
+          btnRedirectSave.style.background = 'var(--fg-accent)';
+          btnRedirectSave.style.color = '#fff';
+          btnRedirectSave.style.border = 'none';
+          btnRedirectClear.style.visibility = 'hidden';
+          btnRedirectClear.style.pointerEvents = 'none';
         }
-      });
+      };
 
-      document.addEventListener('click', (e) => {
-        if (
-          !redirectPopover.contains(e.target as Node) &&
-          e.target !== btnSetRedirect
-        ) {
-          redirectPopover.classList.remove(
-            'fg-opacity-100',
-            'fg-pointer-events-auto',
-            'fg-scale-100',
-          );
-          redirectPopover.classList.add(
-            'fg-opacity-0',
-            'fg-pointer-events-none',
-            'fg-scale-95',
-          );
-        }
-      });
+      // No longer need extensionAdapter.getString here as we pre-fetched it
+      // Initial value already set in HTML template
+      refreshUI();
 
       btnRedirectSave.addEventListener('click', async () => {
+        if (!isEditing) {
+          isEditing = true;
+          refreshUI();
+          redirectInput.focus();
+          return;
+        }
+
         const val = redirectInput.value.trim();
         if (val) {
           await extensionAdapter.set('fg_redirect_url', val);
           toast.success('Redirect URL saved');
+          isEditing = false;
+          refreshUI();
         } else {
           await extensionAdapter.delete('fg_redirect_url');
           toast.success('Redirect removed');
+          redirectInput.value = '';
+          isEditing = true;
+          refreshUI();
         }
-        redirectPopover.classList.remove(
-          'fg-opacity-100',
-          'fg-pointer-events-auto',
-          'fg-scale-100',
-        );
-        redirectPopover.classList.add(
-          'fg-opacity-0',
-          'fg-pointer-events-none',
-          'fg-scale-95',
-        );
       });
 
       btnRedirectClear.addEventListener('click', async () => {
         await extensionAdapter.delete('fg_redirect_url');
         redirectInput.value = '';
         toast.success('Redirect removed');
-        redirectPopover.classList.remove(
-          'fg-opacity-100',
-          'fg-pointer-events-auto',
-          'fg-scale-100',
-        );
-        redirectPopover.classList.add(
-          'fg-opacity-0',
-          'fg-pointer-events-none',
-          'fg-scale-95',
-        );
+        isEditing = true;
+        refreshUI();
       });
     }
   }
 
   await refreshListOnly(rules);
+
+  if (!(window as any).__appsStorageListener) {
+    (window as any).__appsStorageListener = (changes: any) => {
+      // Monitor rules and temporary passes
+      const rulesChanged = !!(changes.rules || changes.fg_rules);
+      const passesChanged = !!(changes.fg_temp_passes || changes.temp_passes);
+      const configChanged = !!(
+        changes.nextdns_api_key || changes.nextdns_profile_id
+      );
+
+      if (rulesChanged || passesChanged || configChanged) {
+        const activeContainer =
+          (window as any).appsCurrentContainer || globalContainer;
+        if (activeContainer && document.contains(activeContainer)) {
+          const isAppsActive = !!document.querySelector(
+            '.nav-item[data-tab="apps"].active',
+          );
+          if (isAppsActive) {
+            renderAppsPage(activeContainer);
+          }
+        }
+      }
+    };
+    chrome.storage.onChanged.addListener((window as any).__appsStorageListener);
+  }
 }
 
 async function loadNextDNSMetadata() {
@@ -311,8 +376,8 @@ async function refreshListOnly(passedRules?: any[]) {
     return;
   }
 
-  const vmData: any = await loadAppsData();
-  const { rules } = vmData;
+  const vmData = await loadAppsData();
+  const { rules, passes } = vmData;
   const rulesToUse = passedRules || rules;
   const lockedDomains = await getLockedDomains();
   const tabContent = globalContainer.querySelector(
@@ -327,7 +392,10 @@ async function refreshListOnly(passedRules?: any[]) {
   }
 
   globalContainer.querySelectorAll('.nav-item-tab').forEach((btn) => {
-    btn.classList.toggle('active', btn.getAttribute('data-tab') === activeTab);
+    btn.classList.toggle(
+      'is-active',
+      btn.getAttribute('data-tab') === activeTab,
+    );
   });
 
   if (searchBadge) {
@@ -351,77 +419,35 @@ async function refreshListOnly(passedRules?: any[]) {
   }
 
   if (tabContent) {
+    tabContent.style.display = 'flex';
+    tabContent.style.flexDirection = 'column';
+    tabContent.style.minHeight = '0';
+    tabContent.style.overflowY = activeTab === 'shield' ? 'clip' : 'auto';
+    tabContent.style.scrollSnapType =
+      activeTab === 'shield' ? 'none' : 'y mandatory';
+    tabContent.style.scrollPaddingTop = '10px';
+    tabContent.style.paddingBottom = '0';
+
     if (!tabContent.querySelector('#tabRuleList')) {
       tabContent.innerHTML =
-        '<div id="tabRuleList" style="animation: fadeIn 0.3s ease;"></div>';
+        '<div id="tabRuleList" style="flex: 1; min-height: 0; display: flex; flex-direction: column;"></div>';
     }
 
     const ruleList = tabContent.querySelector('#tabRuleList');
     if (ruleList) {
-      const html = await renderSubTab(rulesToUse, lockedDomains);
+      (ruleList as HTMLElement).style.flex = '1';
+      (ruleList as HTMLElement).style.minHeight = '0';
+      (ruleList as HTMLElement).style.display = 'flex';
+      (ruleList as HTMLElement).style.flexDirection = 'column';
+      const html = await renderSubTab(rulesToUse, lockedDomains, passes);
       if (ruleList.innerHTML !== html) {
         ruleList.innerHTML = html;
         await setupHandlers(globalContainer, rulesToUse);
       }
     }
 
-    wireBrandLogoFallbacks(globalContainer);
+    attachGlobalIconListeners(globalContainer);
   }
-}
-
-function wireBrandLogoFallbacks(container: HTMLElement) {
-  container
-    .querySelectorAll('.insights-logo-container')
-    .forEach(async (wrapper) => {
-      const img = wrapper.querySelector('img');
-      const fallback = wrapper.querySelector('.logo-fallback') as HTMLElement;
-      if (!img || !fallback || img.dataset.fgBound === 'true') {
-        return;
-      }
-
-      img.dataset.fgBound = 'true';
-      const domain = (wrapper as HTMLElement).dataset.domain || '';
-
-      // 1. Instant load from cache if available
-      if (domain) {
-        const cached = await getCachedIcon(domain);
-        if (cached) {
-          img.src = cached;
-          img.style.opacity = '1';
-          fallback.style.opacity = '0';
-        }
-      }
-
-      img.addEventListener('load', () => {
-        if (img.naturalWidth > 1) {
-          img.style.opacity = '1';
-          fallback.style.opacity = '0';
-          if (domain) {
-            saveIconToCache(domain, img.src);
-          }
-        } else {
-          img.dispatchEvent(new Event('error'));
-        }
-      });
-
-      img.addEventListener('error', () => {
-        const currentUrl = img.src;
-        if (currentUrl.includes('logo.clearbit.com') && domain) {
-          img.src = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-            domain,
-          )}&sz=128`;
-        } else {
-          img.style.display = 'none';
-          fallback.style.opacity = '1';
-        }
-      });
-
-      // Handle cached images that are already complete
-      if (img.complete && img.naturalHeight > 1) {
-        img.style.opacity = '1';
-        fallback.style.opacity = '0';
-      }
-    });
 }
 
 async function handleAddDomain() {
@@ -511,6 +537,7 @@ async function renderSubTab(
       });
 
     return `
+      <div style="display: flex; flex: 1; min-height: 0; flex-direction: column;">
       <!-- Centered App Discovery Drawer -->
       <div id="targetDrawerOverlay" class="fg-fixed fg-inset-0 fg-z-[1000] fg-transition-all fg-duration-300 fg-flex fg-items-center fg-justify-center" 
         style="display: none; background: rgba(5,5,10,0.85); backdrop-filter: blur(12px);">
@@ -616,89 +643,146 @@ async function renderSubTab(
         </div>
       </div>
 
-      <div class="rule-table-header" style="
-        display: grid; 
-        grid-template-columns: 44px 1.5fr 100px 1fr 140px 110px 80px 44px;
-        column-gap: 12px;
-        align-items: center;
-        padding: 10px 16px;
-        background: var(--fg-glass-bg);
-        border: 1px solid var(--fg-glass-border);
-        border-radius: 12px;
-        margin-bottom: 6px;
-        position: sticky;
-        top: 0;
-        z-index: 10;
-        backdrop-filter: blur(8px);
-        font-size: 14px;
-        font-weight: 600;
-        color: var(--fg-text);
-        letter-spacing: 0.06em;
-        
+      <!-- Scrollable Table Section -->
+      <div class="rule-table-scroll-container" style="
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        scrollbar-gutter: stable;
       ">
-        <div></div>
-        <div>Platform</div>
-        <div>Usage</div>
-        <div>Progress</div>
-        <div style="display: flex; align-items: center; gap: 4px;">Daily Limit ${renderInfoTooltip(
-          'The maximum time allowed per day before a service or domain is automatically blocked.',
-        )}</div>
-        <div style="display: flex; align-items: center; gap: 4px;">Passes ${renderInfoTooltip(
-          'The number of temporary access tokens available daily to unblock restricted items.',
-        )}</div>
-        <div></div>
-        <div></div>
+        <style>
+          .rule-table-scroll-container::-webkit-scrollbar {
+            width: 6px;
+          }
+          .rule-table-scroll-container::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .rule-table-scroll-container::-webkit-scrollbar-thumb {
+            background: var(--fg-glass-border);
+            border-radius: 10px;
+          }
+          .rule-table-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: var(--fg-muted);
+          }
+          .rule-table-body-scroll::-webkit-scrollbar {
+            width: 6px;
+          }
+          .rule-table-body-scroll::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .rule-table-body-scroll::-webkit-scrollbar-thumb {
+            background: var(--fg-glass-border);
+            border-radius: 10px;
+          }
+          .rule-table-body-scroll::-webkit-scrollbar-thumb:hover {
+            background: var(--fg-muted);
+          }
+        </style>
+
+        <div class="rule-table-header" style="
+          display: grid; 
+          grid-template-columns: 32px minmax(160px, 1fr) 150px 140px 120px 80px 40px;
+          column-gap: 12px;
+          align-items: center;
+          padding: 10px 20px;
+          background: var(--fg-glass-bg);
+          border: 1px solid var(--fg-glass-border);
+          border-radius: 12px;
+          flex-shrink: 0;
+          backdrop-filter: blur(20px);
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--fg-text);
+          letter-spacing: 0.06em;
+          width: 100%;
+          position: relative;
+          z-index: 10;
+        ">
+          <div style="grid-column: span 2; display: flex; align-items: center; justify-content: flex-start;">Platform</div>
+          <div style="display: flex; align-items: center; justify-content: center;">Usage</div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">Daily Limit ${renderInfoTooltip(
+            'The maximum time allowed per day before a service or domain is automatically blocked.',
+            'down',
+          )}</div>
+          <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">Passes ${renderInfoTooltip(
+            'The number of temporary access tokens available daily to unblock restricted items.',
+            'down',
+          )}</div>
+          <div style="display: flex; align-items: center; justify-content: flex-end;"></div>
+          <div style="display: flex; align-items: center; justify-content: flex-end;"></div>
+        </div>
+
+        <div class="rule-table-body-scroll" style="
+          flex: 1;
+          min-height: 0;
+          overflow-y: auto;
+          scroll-behavior: smooth;
+          scroll-snap-type: y mandatory;
+          scroll-padding-top: 10px;
+          padding-top: 10px;
+          background: var(--fg-glass-bg);
+          border: 1px solid var(--fg-glass-border);
+          border-radius: 16px;
+          margin-top: 12px;
+        ">
+          <!-- Combined Rules Table -->
+          <div style="width: 100%; padding: 0;">
+            ${(() => {
+              if (!visibleRules.length) {
+                return renderEmptyState(
+                  searchTerm
+                    ? 'No matching apps or domains found.'
+                    : 'Your block list is empty.',
+                );
+              }
+
+              const appRules = visibleRules.filter(
+                (r: any) => (r.type || 'domain').toLowerCase() === 'service',
+              );
+              const domainRules = visibleRules.filter(
+                (r: any) => (r.type || 'domain').toLowerCase() !== 'service',
+              );
+
+              let html = '';
+
+              // Render App Rules
+              if (appRules.length > 0) {
+                html += appRules
+                  .map((rule) => {
+                    const isLocked = lockedDomains.includes(
+                      rule.packageName.toLowerCase(),
+                    );
+                    return renderAppTableRow(rule, isLocked, passes);
+                  })
+                  .join('');
+              }
+
+              // Separator for Domains
+              if (domainRules.length > 0) {
+                if (appRules.length > 0) {
+                  html += `
+                    <div style="padding: 6px 16px 6px 20px; border-top: 1px solid var(--fg-glass-border); border-bottom: 1px solid var(--fg-glass-border); background: var(--fg-glass-bg); display: flex; align-items: center; gap: 8px; scroll-snap-align: start;">
+                      <div style="font-size: 12px; font-weight: 700; color: var(--fg-muted);  letter-spacing: 0.1em;">Custom Domains</div>
+                    </div>
+                  `;
+                }
+                html += domainRules
+                  .map((rule) => {
+                    const isLocked = lockedDomains.includes(
+                      rule.packageName.toLowerCase(),
+                    );
+                    return renderAppTableRow(rule, isLocked, passes);
+                  })
+                  .join('');
+              }
+
+              return html;
+            })()}
+          </div>
+        </div>
       </div>
-
-      <!-- Combined Rules Table -->
-      <div class="glass-card" style="padding: 0; overflow: visible; border-radius: 16px; margin-bottom: 40px;">
-        ${(() => {
-          if (!visibleRules.length) {
-            return renderEmptyState(
-              searchTerm
-                ? 'No matching apps or domains found.'
-                : 'Your block list is empty.',
-            );
-          }
-
-          const appRules = visibleRules.filter(
-            (r: any) => (r.type || 'domain').toLowerCase() === 'service',
-          );
-          const domainRules = visibleRules.filter(
-            (r: any) => (r.type || 'domain').toLowerCase() !== 'service',
-          );
-
-          let html = '';
-
-          // Render App Rules
-          if (appRules.length > 0) {
-            html += appRules
-              .map((rule) => {
-                const isLocked = lockedDomains.includes(rule.packageName);
-                return renderAppTableRow(rule, isLocked, passes);
-              })
-              .join('');
-          }
-
-          // Separator for Domains
-          if (domainRules.length > 0) {
-            if (appRules.length > 0) {
-              html += `
-                <div style="padding: 6px 16px 6px 72px; border-top: 1px solid var(--fg-glass-border); border-bottom: 1px solid var(--fg-glass-border); background: var(--fg-glass-bg); display: flex; align-items: center; gap: 8px;">
-                  <div style="font-size: 10px; font-weight: 700; color: var(--fg-muted);  letter-spacing: 0.1em;">Custom Domains</div>
-                </div>
-              `;
-            }
-            html += domainRules
-              .map((rule) => {
-                const isLocked = lockedDomains.includes(rule.packageName);
-                return renderAppTableRow(rule, isLocked, passes);
-              })
-              .join('');
-          }
-
-          return html;
-        })()}
       </div>
 
       <div style="position: fixed; bottom: 32px; right: 32px; z-index: 100;">
@@ -758,13 +842,13 @@ function renderCategoryCard(
   const active =
     localRule !== undefined ? getRuleActiveState(localRule, passes) : false;
   const badge = getCategoryBadge(category);
-  const isLocked = lockedDomains.includes(category.id);
+  const isLocked = lockedDomains.includes(category.id.toLowerCase());
 
   const themeMap: any = {
-    social: '#6366f1',
-    video: '#f43f5e',
+    'social-networks': '#6366f1',
+    'video-streaming': '#f43f5e',
     gambling: '#f59e0b',
-    gaming: '#10b981',
+    games: '#10b981',
     dating: '#ec4899',
     news: '#06b6d4',
     shopping: '#8b5cf6',
@@ -774,14 +858,44 @@ function renderCategoryCard(
   };
   const theme = themeMap[category.id] || '#64748b';
 
+  const descMap: Record<string, { full: string; short: string }> = {
+    porn: {
+      full: 'Blocks adult and pornographic content. It includes escort sites, pornhub.com and similar domains.',
+      short: 'Blocks adult and pornographic content.',
+    },
+    gambling: {
+      full: 'Blocks gambling content.',
+      short: 'Blocks gambling content.',
+    },
+    dating: {
+      full: 'Blocks all dating websites & apps.',
+      short: 'Blocks all dating websites & apps.',
+    },
+    piracy: {
+      full: 'Blocks P2P websites, protocols, copyright-infringing streaming websites and generic video hosting websites used mainly for illegally distributing copyrighted content.',
+      short: 'Blocks P2P and copyright-infringing sites.',
+    },
+    'social-networks': {
+      full: 'Blocks all social networks sites and apps (Facebook, Instagram, TikTok, Reddit, etc.). Does not block messaging apps.',
+      short: 'Blocks social networks and apps (FB, Instagram, TikTok, etc).',
+    },
+    games: {
+      full: 'Blocks online gaming websites, online gaming apps and online gaming networks (Xbox Live, PlayStation Network, etc.).',
+      short: 'Blocks online gaming apps and networks (Xbox, PSN, etc).',
+    },
+    'video-streaming': {
+      full: 'Blocks video streaming services (YouTube, Netflix, Disney+, illegal streaming websites, video porn websites, etc.) and video-based social networks (TikTok, etc.). This can also help in reducing bandwidth usage on any network.',
+      short: 'Blocks video services (YouTube, Netflix, TikTok, etc).',
+    },
+  };
+  const categoryInfo = descMap[category.id] || {
+    full: category.description || '',
+    short: category.description || '',
+  };
+
   return `
     <div class="service-card ${active ? 'active' : ''}" style="
-      display:flex; flex-direction:column; gap: 0; height: auto; padding: 0;
-      ${
-        active
-          ? 'border-color: var(--fg-glass-border); box-shadow: none; background: var(--fg-glass-bg);'
-          : 'border-color: var(--fg-glass-border); box-shadow: none; background: var(--fg-glass-bg);'
-      }
+      display:flex; flex-direction:column; gap: 0; height: auto; padding: 0; box-shadow: none; scroll-snap-align: start;
     ">
       <div style="display:flex; align-items:center; gap: 10px; justify-content:space-between; width: 100%; padding: 14px 16px;">
         <div style="display:flex; align-items:center; gap: 10px; min-width: 0; flex: 1;">
@@ -789,19 +903,18 @@ function renderCategoryCard(
          ${badge}
        </div>
            <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
-              <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${
-                UI_TOKENS.TEXT.CARD_TITLE
-              }">${escapeHtml(category.name)}</div>
+              <div style="display: flex; align-items: center; gap: 0;">
+                <div class="name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; ${
+                  UI_TOKENS.TEXT.CARD_TITLE
+                }">${escapeHtml(category.name)}</div>
+                ${renderInfoTooltip(categoryInfo.full, 'up', 'left')}
+              </div>
               <div style="${
                 UI_TOKENS.TEXT.SUBTEXT
               } line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-top: 4px;">${escapeHtml(
-    category.description || '',
+    categoryInfo.short,
   )}</div>
-              ${
-                active
-                  ? `<div style="margin-top: 8px;"><span style="${UI_TOKENS.TEXT.BADGE} color: var(--red);">Blocked</span></div>`
-                  : ''
-              }
+              ${'' /* Blocked badge removed for cleaner UI */}
            </div>
         </div>
         <div style="display:flex; align-items:center; gap: 8px; flex-shrink: 0;">
@@ -922,10 +1035,38 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
     btn.addEventListener('click', async () => {
       const pkg = btn.getAttribute('data-pkg');
       if (pkg) {
-        const result = await appsController.removeRule(pkg, rules);
-        if (result.ok) {
-          await refreshListOnly();
+        const row = btn.closest('.rule-table-row') as HTMLElement;
+        if (row) {
+          row.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+          row.style.opacity = '0';
+          row.style.transform = 'scale(0.95) translateX(-10px)';
+          row.style.pointerEvents = 'none';
+
+          // Smoothly collapse height
+          const height = row.offsetHeight;
+          row.style.height = height + 'px';
+          requestAnimationFrame(() => {
+            row.style.height = '0px';
+            row.style.paddingTop = '0px';
+            row.style.paddingBottom = '0px';
+            row.style.borderBottomWidth = '0px';
+            row.style.marginTop = '0px';
+            row.style.marginBottom = '0px';
+          });
         }
+
+        // Run background removal quietly
+        appsController.removeRule(pkg, rules).then(async (result) => {
+          if (!result.ok && row) {
+            // Restore if failed
+            row.style.height = '';
+            row.style.paddingTop = '';
+            row.style.paddingBottom = '';
+            row.style.opacity = '1';
+            row.style.transform = '';
+            row.style.pointerEvents = '';
+          }
+        });
       }
     });
   });
@@ -1016,6 +1157,8 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
         const isEnabled =
           rule.desiredBlockingState !== false && rule.mode !== 'allow';
         const newMode = !isEnabled ? 'allow' : val > 0 ? 'limit' : 'block';
+        const isIncreasingLimit = val > (rule.dailyLimitMinutes || 0);
+
         const { extensionAdapter: storage } = await import(
           '../../background/platformAdapter'
         );
@@ -1024,8 +1167,10 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
           ...(rule as any),
           dailyLimitMinutes: val,
           mode: newMode as any,
-          // Reset tracking when changing the limit so timer starts fresh
-          usedMinutesToday: 0,
+          streakDays: isIncreasingLimit ? 0 : rule.streakDays,
+          streakStartedAt: isIncreasingLimit
+            ? Date.now()
+            : rule.streakStartedAt,
           blockedToday: newMode === 'block',
           updatedAt: Date.now(),
         });

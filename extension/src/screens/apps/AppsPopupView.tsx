@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { UI_TOKENS } from '../../lib/ui';
+import { UI_TOKENS, getBrandLogoUrl, resolveIconDomain } from '../../lib/ui';
 import { appsController } from '../../lib/appsController';
-import { getLockedDomains } from '../../background/sessionGuard';
 import { toast } from '../../lib/toast';
-import {
-  findServiceIdByDomain,
-  resolveServiceIcon,
-  getDomainForRule,
-} from '@stopaccess/core';
+import { findServiceIdByDomain, getDomainForRule } from '@stopaccess/core';
 import { STORAGE_KEYS } from '@stopaccess/state';
+import {
+  loadAppsRuntimeState,
+  subscribeAppsRuntimeState,
+} from '../../lib/appsRuntimeState';
+import { checkGuard } from '../../background/sessionGuard';
 
 type UsageMap = Record<string, { time?: number }>;
 
@@ -55,6 +55,11 @@ async function grantTempPassForDomain(
   maxDailyPasses: number,
   skipLimit = false,
 ) {
+  const guard = await checkGuard('disable_blocking');
+  if (!guard.allowed) {
+    return { ok: false, error: (guard as any).reason };
+  }
+
   const storageRes = await chrome.storage.local.get([
     STORAGE_KEYS.TEMP_PASSES,
     STORAGE_KEYS.EXTENSION_COUNTS,
@@ -119,24 +124,15 @@ export const AppsPopupView: React.FC = () => {
 
   const refresh = async () => {
     try {
-      const [
-        {
-          rules: storedRules = '[]',
-          usage: usageMap = {},
-          fg_temp_passes = {},
-        },
-        locked,
-        activeDomain,
-      ] = await Promise.all([
-        chrome.storage.local.get(['rules', 'usage', STORAGE_KEYS.TEMP_PASSES]),
-        getLockedDomains(),
+      const [runtimeState, activeDomain] = await Promise.all([
+        loadAppsRuntimeState(),
         getCurrentTabDomain(),
       ]);
 
-      setRules(JSON.parse(storedRules as string));
-      setUsage(usageMap as UsageMap);
-      setPasses(fg_temp_passes as Record<string, any>);
-      setLockedDomains(locked);
+      setRules(runtimeState.rules);
+      setUsage(runtimeState.usage as UsageMap);
+      setPasses(runtimeState.passes);
+      setLockedDomains(runtimeState.lockedDomains);
       setCurrentDomain(activeDomain);
     } finally {
       setLoading(false);
@@ -145,8 +141,16 @@ export const AppsPopupView: React.FC = () => {
 
   useEffect(() => {
     refresh();
-    const interval = setInterval(refresh, 1000);
-    return () => clearInterval(interval);
+    const unsubscribe = subscribeAppsRuntimeState(() => {
+      refresh();
+    });
+    const interval = setInterval(async () => {
+      setCurrentDomain(await getCurrentTabDomain());
+    }, 1000);
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
   }, []);
 
   const query = searchTerm.trim().toLowerCase();
@@ -273,6 +277,19 @@ export const AppsPopupView: React.FC = () => {
       toast.error(result.error);
       return;
     }
+
+    if (minutes >= 1440) {
+      const { updateRule } = await import('@stopaccess/state/rules');
+      const { extensionAdapter } = await import(
+        '../../background/platformAdapter'
+      );
+      await updateRule(extensionAdapter, {
+        ...(pauseTarget as any),
+        streakDays: 0,
+        streakStartedAt: Date.now(),
+      });
+    }
+
     const label =
       minutes >= 1440
         ? 'rest of today'
@@ -291,7 +308,7 @@ export const AppsPopupView: React.FC = () => {
   if (loading) {
     return (
       <div className="fg-flex fg-h-64 fg-w-full fg-items-center fg-justify-center">
-        <div className="fg-h-6 fg-w-6 fg-animate-spin fg-rounded-full fg-border-2 fg-border-white/5 fg-border-t-[var(--accent)]" />
+        <div className="fg-h-6 fg-w-6 fg-animate-spin fg-rounded-full fg-border-2 fg-border-[var(--fg-glass-border)] fg-border-t-[var(--accent)]" />
       </div>
     );
   }
@@ -303,7 +320,7 @@ export const AppsPopupView: React.FC = () => {
         <div
           className="fg-fixed fg-inset-0 fg-z-50 fg-flex fg-items-end fg-justify-center"
           style={{
-            background: 'rgba(0,0,0,0.75)',
+            background: 'rgba(0,0,0,0.5)',
             backdropFilter: 'blur(8px)',
           }}
           onClick={() => setPauseTarget(null)}
@@ -319,14 +336,13 @@ export const AppsPopupView: React.FC = () => {
           >
             <div className="fg-mb-4 fg-flex fg-items-center fg-gap-3">
               <img
-                src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-                  resolveServiceIcon({
-                    id: pauseTarget.packageName,
-                    name: pauseTarget.appName,
-                  }).domain ||
-                    pauseTarget.customDomain ||
-                    pauseTarget.packageName,
-                )}&sz=64`}
+                src={getBrandLogoUrl(
+                  resolveIconDomain(
+                    pauseTarget.customDomain || pauseTarget.packageName,
+                    pauseTarget.appName,
+                  ),
+                  64,
+                )}
                 className="fg-h-7 fg-w-7 fg-rounded-[20%]"
                 alt=""
                 onError={(e) => {
@@ -376,9 +392,9 @@ export const AppsPopupView: React.FC = () => {
               type="button"
               className="fg-w-full fg-rounded-[14px] fg-py-3 fg-text-[11px] fg-font-black  fg-tracking-widest"
               style={{
-                background: 'rgba(239,68,68,0.12)',
-                border: '1px solid rgba(239,68,68,0.2)',
-                color: '#f87171',
+                background: 'var(--accent-soft)',
+                border: '1px solid var(--fg-glass-border)',
+                color: 'var(--fg-red)',
               }}
               onClick={() => handlePauseSelect(minutesTillMidnight())}
             >
@@ -395,18 +411,6 @@ export const AppsPopupView: React.FC = () => {
           </div>
         </div>
       )}
-      <div className="fg-flex fg-items-center fg-justify-between fg-px-[2px]">
-        <div style={UI_TOKENS.TEXT.R.LABEL}>Block LIST</div>
-        <div className="fg-inline-flex fg-items-center fg-gap-2">
-          <span style={{ ...UI_TOKENS.TEXT.R.LABEL, opacity: 0.5 }}>
-            {activeRules.length} RULES
-          </span>
-          <span className="fg-text-slate-600">/</span>
-          <span style={{ ...UI_TOKENS.TEXT.R.LABEL, opacity: 0.5 }}>
-            {recentActivity.length} RECENT
-          </span>
-        </div>
-      </div>
 
       <div className="fg-flex fg-gap-2">
         <div className="fg-relative fg-flex-1">
@@ -437,13 +441,13 @@ export const AppsPopupView: React.FC = () => {
           <div className="fg-flex fg-items-center fg-gap-3">
             <div className="fg-flex fg-h-8 fg-w-8 fg-items-center fg-justify-center">
               <img
-                src={`https://www.google.com/s2/favicons?domain=${currentDomain}&sz=64`}
+                src={getBrandLogoUrl(currentDomain || '', 64)}
                 className="fg-h-6 fg-w-6 fg-rounded-[20%]"
                 alt=""
               />
             </div>
             <div className="fg-min-w-0">
-              <div className="fg-truncate fg-text-[12px] fg-font-extrabold fg-text-[var(--fg-text)]">
+              <div className="fg-truncate fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)]">
                 {currentDomain}
               </div>
               <div className="fg-text-[11px] fg-font-semibold  fg-text-[var(--muted)]">
@@ -489,23 +493,22 @@ export const AppsPopupView: React.FC = () => {
               }`}
             >
               <div className="fg-flex fg-min-w-0 fg-flex-1 fg-items-center fg-gap-3">
-                <div className="fg-relative fg-flex fg-h-7 fg-w-7 fg-shrink-0 fg-items-center fg-justify-center">
+                <div className="fg-relative fg-flex fg-h-8 fg-w-8 fg-shrink-0 fg-items-center fg-justify-center">
                   <div className="fg-absolute fg-inset-0 fg-hidden fg-items-center fg-justify-center fg-text-[11px] fg-font-black fg-text-[var(--muted)]">
                     {(rule.appName || rule.packageName)
                       .slice(0, 2)
                       .toUpperCase()}
                   </div>
                   <img
-                    src={`https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-                      resolveServiceIcon({
-                        id: rule.packageName,
-                        name: rule.appName,
-                      }).domain ||
-                        rule.customDomain ||
-                        rule.packageName,
-                    )}&sz=128`}
+                    src={getBrandLogoUrl(
+                      resolveIconDomain(
+                        rule.customDomain || rule.packageName,
+                        rule.appName,
+                      ),
+                      128,
+                    )}
                     alt=""
-                    className="fg-relative fg-z-[1] fg-h-6 fg-w-6 fg-object-contain fg-rounded-[20%]"
+                    className="fg-relative fg-z-[1] fg-h-7 fg-w-7 fg-object-contain fg-rounded-[20%]"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                       const fallback = e.currentTarget
@@ -518,66 +521,48 @@ export const AppsPopupView: React.FC = () => {
                 </div>
 
                 <div className="fg-min-w-0 fg-flex-1">
-                  <div
-                    className="fg-truncate"
-                    style={{
-                      ...UI_TOKENS.TEXT.R.CARD_TITLE,
-                      color: 'var(--fg-text)',
-                    }}
-                  >
-                    {rule.appName || rule.packageName}
+                  <div className="fg-flex fg-items-center fg-gap-2 fg-truncate">
+                    <span
+                      className="fg-truncate"
+                      style={{
+                        ...UI_TOKENS.TEXT.R.CARD_TITLE,
+                        fontSize: '14px',
+                        color: 'var(--fg-text)',
+                      }}
+                    >
+                      {rule.appName || rule.packageName}
+                    </span>
+                    {isTemporarilyOff ? (
+                      <span
+                        className="fg-shrink-0"
+                        style={{
+                          ...UI_TOKENS.TEXT.R.LABEL,
+                          fontSize: '11px',
+                          color: 'var(--fg-accent)',
+                          textTransform: 'none',
+                        }}
+                      >
+                        Disabled until {getPassCountdown(activePass)}
+                      </span>
+                    ) : null}
                   </div>
-                  <div className="fg-mt-0.5 fg-flex fg-items-center fg-gap-[6px]">
-                    <span
-                      style={{
-                        ...UI_TOKENS.TEXT.R.LABEL,
-                        opacity: 0.5,
-                        textTransform: 'none',
-                      }}
-                    >
-                      {matchesCurrent ? 'Current Site' : rule.type || 'Rule'}
-                    </span>
-                    <span
-                      style={{
-                        ...UI_TOKENS.TEXT.R.LABEL,
-                        opacity: 0.5,
-                        textTransform: 'none',
-                      }}
-                    >
-                      Streak {Number(rule.streakDays || 0)}
-                    </span>
-                    <span
-                      style={{
-                        ...UI_TOKENS.TEXT.R.LABEL,
-                        opacity: 0.5,
-                        textTransform: 'none',
-                      }}
-                    >
-                      {Number(rule.maxDailyPasses ?? 3)} passes
-                    </span>
-                  </div>
-                  {isTemporarilyOff ? (
-                    <div
-                      className="fg-mt-1"
-                      style={{
-                        ...UI_TOKENS.TEXT.R.LABEL,
-                        color: 'var(--fg-accent)',
-                        textTransform: 'none',
-                      }}
-                    >
-                      Disabled until {getPassCountdown(activePass)}
-                    </div>
-                  ) : null}
                 </div>
               </div>
 
               <button
+                style={{
+                  transform: 'scale(0.8)',
+                  transformOrigin: 'right center',
+                }}
                 className={`toggle-switch-btn ${
                   rule.desiredBlockingState === false || isTemporarilyOff
                     ? ''
                     : 'active'
                 }`}
-                disabled={lockedDomains.includes(rule.packageName)}
+                data-kind={rule.type || 'domain'}
+                disabled={lockedDomains.includes(
+                  rule.packageName.toLowerCase(),
+                )}
                 onClick={async () => {
                   if (isTemporarilyOff) {
                     const targetDomain = activePassDomain;
@@ -607,10 +592,10 @@ export const AppsPopupView: React.FC = () => {
 
         {activeRules.length === 0 ? (
           <div className="fg-panel-muted fg-rounded-[18px] fg-px-4 fg-py-10 fg-text-center">
-            <div className="fg-text-[12px] fg-font-bold  fg-tracking-[0.12em] fg-text-slate-400">
+            <div className="fg-text-[12px] fg-font-bold  fg-tracking-[0.12em] fg-text-[var(--fg-muted)]">
               No active rules
             </div>
-            <div className="fg-mt-2 fg-text-[12px] fg-font-medium fg-text-slate-500">
+            <div className="fg-mt-2 fg-text-[12px] fg-font-medium fg-text-[var(--fg-muted)]">
               Add a domain above to start blocking.
             </div>
           </div>
@@ -632,7 +617,7 @@ export const AppsPopupView: React.FC = () => {
               >
                 <div className="fg-flex fg-min-w-0 fg-flex-1 fg-items-center fg-gap-[10px]">
                   <img
-                    src={`https://www.google.com/s2/favicons?domain=${item.domain}&sz=64`}
+                    src={getBrandLogoUrl(item.domain, 64)}
                     className="fg-h-5 fg-w-5 fg-rounded-[20%]"
                     alt=""
                   />

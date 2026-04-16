@@ -1,5 +1,5 @@
 import React from 'react';
-import { resolveServiceIcon } from '@stopaccess/core';
+import { getBrandLogoUrl, resolveIconDomain } from '../../../lib/ui';
 
 interface DomainRuleCardProps {
   rule: any;
@@ -21,14 +21,10 @@ export const DomainRuleCard: React.FC<DomainRuleCardProps> = ({
     rule.blockedToday || rule.mode === 'block' || rule.mode === 'limit',
   );
   const isLocked = lockedDomains.includes(rule.packageName);
-  const iconInfo = resolveServiceIcon({
-    id: rule.type === 'service' ? domain : undefined,
-    name: rule.appName,
-  });
-  const iconDomain = iconInfo.domain || domain;
-  const faviconUrl = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(
-    iconDomain,
-  )}&sz=128`;
+  // For service rules, use the service ID to resolve; for domain rules use the domain directly.
+  const iconKey = rule.type === 'service' ? rule.packageName || domain : domain;
+  const iconDomain = resolveIconDomain(iconKey, rule.appName);
+  const faviconUrl = getBrandLogoUrl(iconDomain, 128);
   const limitValue = rule.dailyLimitMinutes || 0;
 
   const limitOptions = [
