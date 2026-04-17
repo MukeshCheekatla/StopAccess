@@ -39,7 +39,45 @@ export async function loadSettingsData() {
     dnrRules,
     healthOk,
     syncState,
+    pinResetStatus: await checkPinResetStatus(),
+    challengeEnabled: await storage.getBoolean('challenge_enabled'),
+    challengeText:
+      (await storage.getString('challenge_text')) ||
+      'Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions.',
   };
+}
+
+export async function checkPinResetStatus() {
+  const resetAtStr = await storage.getString('guardian_pin_reset_at');
+  if (!resetAtStr) {
+    return { pending: false };
+  }
+
+  const resetAt = parseInt(resetAtStr, 10);
+  const now = Date.now();
+  const delay = 12 * 3600 * 1000;
+  const elapsed = now - resetAt;
+
+  if (elapsed >= delay) {
+    // Timer expired, clear PIN
+    await storage.delete('guardian_pin');
+    await storage.delete('guardian_pin_reset_at');
+    return { pending: false, cleared: true };
+  }
+
+  return {
+    pending: true,
+    remainingMs: delay - elapsed,
+    availableAt: resetAt + delay,
+  };
+}
+
+export async function requestPinResetAction() {
+  await storage.set('guardian_pin_reset_at', Date.now().toString());
+}
+
+export async function cancelPinResetAction() {
+  await storage.delete('guardian_pin_reset_at');
 }
 
 export async function saveProfileAction(profile: {
@@ -117,11 +155,17 @@ export async function importRulesAction(text: string) {
 
 export async function setGuardianPinAction(pin: string) {
   await storage.set('guardian_pin', pin);
+  await storage.delete('guardian_pin_reset_at'); // Cancel any pending reset if a new PIN is set (unlikely scenario but good to have)
+}
+
+export async function removeGuardianPinAction() {
+  await storage.delete('guardian_pin');
+  return true;
 }
 
 export async function verifyAndRemoveGuardianPinAction(enteredPin: string) {
-  const currentPin = await storage.getString('guardian_pin');
-  if (enteredPin === currentPin) {
+  const current = await storage.getString('guardian_pin');
+  if (current === enteredPin) {
     await storage.delete('guardian_pin');
     return true;
   }
@@ -178,4 +222,11 @@ export async function updatePrivacySettingsAction(nextSettings: any) {
   } catch (e: any) {
     return { ok: false, error: e.message };
   }
+}
+export async function toggleChallengeAction(enabled: boolean) {
+  await storage.set('challenge_enabled', enabled);
+}
+
+export async function updateChallengeTextAction(text: string) {
+  await storage.set('challenge_text', text);
 }

@@ -948,3 +948,434 @@ export function renderInfoTooltip(
     </div>
   `;
 }
+
+/**
+ * Premium Guardian PIN Modal
+ * Challenges the user for their 4-digit pin before proceeding.
+ */
+export function showPinModal(
+  title: string,
+  body: string,
+  onVerify: (pin: string) => Promise<boolean>,
+  onCancel?: () => void,
+) {
+  const overlay = document.createElement('div');
+  overlay.className =
+    'fg-fixed fg-inset-0 fg-z-[2000] fg-flex fg-items-center fg-justify-center fg-bg-black/80 fg-backdrop-blur-xl fg-transition-all fg-duration-300 fg-opacity-0';
+
+  overlay.innerHTML = `
+    <div class="pin-modal-card fg-bg-[var(--fg-surface)] fg-w-[340px] fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-shadow-2xl fg-p-8 fg-text-center fg-transition-transform fg-duration-300 fg-scale-105">
+      <div class="fg-mb-6 fg-mx-auto fg-w-12 fg-h-12 fg-rounded-2xl fg-bg-[var(--fg-accent-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-accent)]">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <div style="${UI_TOKENS.TEXT.HEADING}; font-size: 18px; margin-bottom: 8px;">${title}</div>
+      <div style="${UI_TOKENS.TEXT.SUBTEXT}; margin-bottom: 24px;">${body}</div>
+      
+      <div class="fg-flex fg-justify-center fg-gap-3 fg-mb-8">
+        <input type="password" maxlength="1" class="pin-digit-input" autofocus>
+        <input type="password" maxlength="1" class="pin-digit-input">
+        <input type="password" maxlength="1" class="pin-digit-input">
+        <input type="password" maxlength="1" class="pin-digit-input">
+      </div>
+
+      <style>
+        .pin-digit-input {
+          width: 50px;
+          height: 60px;
+          background: var(--fg-surface-hover);
+          border: 1px solid var(--fg-glass-border);
+          border-radius: 16px;
+          text-align: center;
+          font-size: 24px;
+          font-weight: 800;
+          color: var(--fg-text);
+          outline: none;
+          transition: all 0.2s;
+          box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .pin-digit-input:focus {
+          border-color: var(--fg-accent);
+          background: var(--fg-surface);
+          box-shadow: 0 0 0 4px var(--fg-accent-soft);
+          transform: translateY(-2px);
+        }
+        .pin-digit-input.error {
+          border-color: var(--red);
+          animation: shake 0.4s;
+        }
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          75% { transform: translateX(5px); }
+        }
+      </style>
+
+      <div class="fg-flex fg-flex-col fg-gap-3">
+        <div class="fg-flex fg-gap-3">
+          <button class="fg-flex-1 fg-rounded-2xl fg-py-3.5 fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-50 fg-uppercase fg-tracking-[0.15em] hover:fg-bg-black/5 fg-transition-all" id="pin_cancel_btn">Cancel</button>
+          <button class="btn-premium fg-flex-1 fg-py-3.5 fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.15em]" id="pin_verify_btn">Verify</button>
+        </div>
+        <button id="pin_forgot_link" class="fg-text-[9px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-40 hover:fg-opacity-80 fg-uppercase fg-tracking-widest fg-transition-all fg-mt-2">Forgot PIN?</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const inputs = Array.from(
+    overlay.querySelectorAll('.pin-digit-input'),
+  ) as HTMLInputElement[];
+
+  // Animation
+  requestAnimationFrame(() => {
+    overlay.classList.remove('fg-opacity-0');
+    overlay.classList.add('fg-opacity-100');
+    overlay.querySelector('.pin-modal-card')?.classList.remove('fg-scale-105');
+    overlay.querySelector('.pin-modal-card')?.classList.add('fg-scale-100');
+
+    // Force focus on first digit for optimal UX
+    if (inputs.length > 0) {
+      inputs[0].focus();
+    }
+  });
+  const verifyBtn = overlay.querySelector(
+    '#pin_verify_btn',
+  ) as HTMLButtonElement;
+  const cancelBtn = overlay.querySelector('#pin_cancel_btn') as HTMLElement;
+
+  const getPin = () => inputs.map((i) => i.value).join('');
+
+  const close = () => {
+    overlay.classList.remove('fg-opacity-100');
+    overlay.classList.add('fg-opacity-0');
+    overlay.querySelector('.pin-modal-card')?.classList.add('fg-scale-95');
+    setTimeout(() => overlay.remove(), 300);
+  };
+
+  inputs.forEach((input, idx) => {
+    input.addEventListener('input', (e) => {
+      const val = (e.target as HTMLInputElement).value;
+      if (val && idx < 3) {
+        inputs[idx + 1].focus();
+      }
+      if (getPin().length === 4) {
+        verifyBtn.focus();
+      }
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Backspace' && !input.value && idx > 0) {
+        inputs[idx - 1].focus();
+      }
+      if (e.key === 'Enter' && getPin().length === 4) {
+        verifyBtn.click();
+      }
+    });
+  });
+
+  verifyBtn.addEventListener('click', async () => {
+    const pin = getPin();
+    if (pin.length < 4) {
+      return;
+    }
+
+    verifyBtn.disabled = true;
+    verifyBtn.innerText = 'Verifying...';
+
+    const ok = await onVerify(pin);
+    if (ok) {
+      close();
+    } else {
+      verifyBtn.disabled = false;
+      verifyBtn.innerText = 'Verify';
+      inputs.forEach((i) => {
+        i.value = '';
+        i.classList.add('error');
+        setTimeout(() => i.classList.remove('error'), 500);
+      });
+      inputs[0].focus();
+    }
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    close();
+    if (onCancel) {
+      onCancel();
+    }
+  });
+
+  overlay
+    .querySelector('#pin_forgot_link')
+    ?.addEventListener('click', async () => {
+      await showConfirmDialog({
+        title: 'PIN Recovery',
+        body: 'If you have forgotten your PIN, you can initiate a 12-hour delayed reset from the "Guardian PIN" section in Settings. This delay ensures consistency in your focus goals.',
+        confirmLabel: 'Understood',
+        cancelLabel: '',
+      });
+    });
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      close();
+    }
+  });
+}
+
+/**
+ * Show a 'What's New' discovery modal for recent updates.
+ */
+export async function showWhatsNew(version: string, features: any[]) {
+  const overlay = document.createElement('div');
+  overlay.className =
+    'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-black/60 fg-backdrop-blur-xl fg-opacity-0 fg-transition-all fg-duration-500';
+
+  const featureList = features
+    .map(
+      (f) => `
+    <div class="fg-flex fg-gap-5 fg-p-5 fg-rounded-[24px] fg-bg-white/5 fg-border fg-border-white/5">
+      <div class="fg-text-3xl">${f.icon}</div>
+      <div>
+        <div class="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)] fg-uppercase fg-tracking-widest">${f.label}</div>
+        <div class="fg-text-[12px] fg-text-[var(--fg-muted)] fg-mt-1 fg-line-height-1.4">${f.desc}</div>
+      </div>
+    </div>
+  `,
+    )
+    .join('');
+
+  overlay.innerHTML = `
+    <div class="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[40px] fg-p-10 fg-max-w-[500px] fg-w-full fg-shadow-2xl fg-scale-95 fg-transition-all fg-duration-500">
+      <div class="fg-text-center fg-mb-10">
+        <div class="fg-text-[10px] fg-font-black fg-text-[var(--fg-accent)] fg-uppercase fg-tracking-[0.3em] fg-mb-3">Update Discovery</div>
+        <h2 class="fg-text-3xl fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight">What's New in v${version}</h2>
+      </div>
+      
+      <div class="fg-flex fg-flex-col fg-gap-4 fg-mb-10">
+        ${featureList}
+      </div>
+      
+      <button id="btn_close_whats_new" class="btn-premium fg-w-full fg-h-16 fg-rounded-3xl fg-font-black fg-uppercase fg-tracking-[0.2em] fg-text-sm">Explore Features</button>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  // Animate in
+  setTimeout(() => {
+    overlay.classList.remove('fg-opacity-0');
+    overlay.firstElementChild?.classList.remove('fg-scale-95');
+  }, 10);
+
+  return new Promise<void>((resolve) => {
+    overlay
+      .querySelector('#btn_close_whats_new')
+      ?.addEventListener('click', () => {
+        overlay.classList.add('fg-opacity-0');
+        overlay.firstElementChild?.classList.add('fg-scale-95');
+        setTimeout(() => {
+          overlay.remove();
+          resolve();
+        }, 500);
+      });
+  });
+}
+
+/**
+ * Show a 'Patience Challenge' typing modal.
+ * User must type the target text perfectly to proceed.
+ */
+export async function showTypingChallenge(
+  targetText: string = 'Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions.',
+): Promise<boolean> {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className =
+      'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-black/80 fg-backdrop-blur-2xl fg-opacity-0 fg-transition-all fg-duration-500';
+
+    overlay.innerHTML = `
+      <div class="fg-bg-[var(--fg-surface)] fg-border fg-border-white/5 fg-rounded-[48px] fg-p-14 fg-max-w-[750px] fg-w-full fg-shadow-2xl fg-scale-95 fg-transition-all fg-duration-500">
+        <div class="fg-text-center fg-mb-10">
+          <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-accent)] fg-uppercase fg-tracking-[0.4em] fg-mb-3">Mastery Challenge</div>
+          <h2 class="fg-text-3xl fg-font-black fg-text-[var(--fg-text)]">Patience Check</h2>
+          <p class="fg-text-[13px] fg-text-[var(--fg-muted)] fg-mt-1">Prove your focus by typing the paragraph below.</p>
+        </div>
+        
+        <div id="challenge_display" class="fg-text-[22px] fg-line-height-1.6 fg-mb-12 fg-text-left fg-select-none" style="font-family: 'JetBrains Mono', monospace; word-break: break-word; letter-spacing: 0.02em;">
+          ${targetText
+            .split('')
+            .map((char) => `<span class="char-unit">${char}</span>`)
+            .join('')}
+        </div>
+        
+        <input type="text" id="challenge_input" class="fg-absolute fg-opacity-0 fg-pointer-events-none" />
+        
+        <div class="fg-flex fg-gap-5">
+          <button id="btn_cancel_challenge" class="fg-flex-1 fg-h-16 fg-rounded-[24px] fg-text-[12px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-40 fg-uppercase fg-tracking-widest hover:fg-bg-white/5 hover:fg-opacity-80 fg-transition-all">I'll Wait</button>
+          <div class="fg-flex-[2] fg-relative fg-h-16 fg-rounded-[24px] fg-bg-[var(--fg-surface-hover)] fg-flex fg-items-center fg-px-8">
+            <div id="challenge_progress_bar" class="fg-absolute fg-inset-0 fg-bg-[var(--fg-accent)]/10 fg-rounded-[24px] fg-w-0 fg-transition-all"></div>
+            <div class="fg-relative fg-text-[12px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-tracking-widest">Progress: <span id="progress_percent">0</span>%</div>
+          </div>
+        </div>
+      </div>
+      
+      <style>
+        .char-unit {
+          color: var(--fg-text);
+          opacity: 0.15;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          border-bottom: 2px solid transparent;
+          padding: 0 1px;
+        }
+        .char-unit.current { 
+          opacity: 1; 
+          color: var(--fg-text); 
+          border-bottom: 2.5px solid var(--fg-accent);
+          background: rgba(59, 130, 246, 0.1);
+        }
+        .char-unit.typed { color: var(--fg-green); opacity: 1; }
+        .char-unit.error { color: var(--red); opacity: 1; background: rgba(239, 68, 68, 0.1); border-radius: 4px; }
+      </style>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('#challenge_input') as HTMLInputElement;
+    const chars = overlay.querySelectorAll('.char-unit');
+    const progressBar = overlay.querySelector(
+      '#challenge_progress_bar',
+    ) as HTMLElement;
+    const progressText = overlay.querySelector(
+      '#progress_percent',
+    ) as HTMLElement;
+
+    let currentIndex = 0;
+
+    const updateUI = () => {
+      chars.forEach((c, i) => {
+        c.classList.remove('current');
+        if (i === currentIndex) {
+          c.classList.add('current');
+        }
+      });
+      const percent = Math.floor((currentIndex / targetText.length) * 100);
+      progressBar.style.width = `${percent}%`;
+      progressText.textContent = percent.toString();
+    };
+
+    updateUI();
+
+    // Trigger input focus on any click
+    overlay.addEventListener('click', () => input.focus());
+
+    input.addEventListener('input', () => {
+      const val = input.value;
+      if (!val) {
+        return;
+      }
+
+      const typedChar = val[val.length - 1];
+      const targetChar = targetText[currentIndex];
+
+      if (typedChar === targetChar) {
+        chars[currentIndex].classList.remove('error');
+        chars[currentIndex].classList.add('typed');
+        currentIndex++;
+        updateUI();
+
+        if (currentIndex === targetText.length) {
+          overlay.classList.add('fg-opacity-0');
+          setTimeout(() => {
+            overlay.remove();
+            resolve(true);
+          }, 500);
+        }
+      } else {
+        chars[currentIndex].classList.add('error');
+        // Shake animation
+        overlay.firstElementChild?.animate(
+          [
+            { transform: 'translateX(-2px)' },
+            { transform: 'translateX(2px)' },
+            { transform: 'translateX(0)' },
+          ],
+          { duration: 100, iterations: 2 },
+        );
+      }
+      input.value = '';
+    });
+
+    overlay
+      .querySelector('#btn_cancel_challenge')
+      ?.addEventListener('click', () => {
+        overlay.classList.add('fg-opacity-0');
+        setTimeout(() => {
+          overlay.remove();
+          resolve(false);
+        }, 500);
+      });
+
+    // Animate in
+    setTimeout(() => {
+      overlay.classList.remove('fg-opacity-0');
+      overlay.firstElementChild?.classList.remove('fg-scale-95');
+      input.focus();
+    }, 10);
+  });
+}
+
+/**
+ * Unified verification wrapper for sensitive actions.
+ * Chains all enabled protections (PIN & Patience Challenge).
+ */
+export async function confirmGuardianAction(options: {
+  title: string;
+  body: string;
+  isDestructive?: boolean;
+}): Promise<boolean> {
+  const { extensionAdapter: storage } = await import(
+    '../background/platformAdapter'
+  );
+
+  // 1. Patience Challenge
+  const challengeEnabled = await storage.getBoolean('challenge_enabled');
+  if (challengeEnabled) {
+    const challengeText =
+      (await storage.getString('challenge_text')) ||
+      'Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions.';
+    const passed = await showTypingChallenge(challengeText);
+    if (!passed) {
+      return false;
+    }
+  }
+
+  // 2. PIN Lock
+  const currentPin = await storage.getString('guardian_pin');
+  if (currentPin) {
+    const { toast } = (await import('./toast')) as any;
+    return new Promise((resolve) => {
+      showPinModal(
+        options.title,
+        options.body,
+        async (entered) => {
+          if (entered === currentPin) {
+            resolve(true);
+            return true;
+          } else {
+            toast.error('Incorrect PIN');
+            return false;
+          }
+        },
+        () => resolve(false),
+      );
+    });
+  }
+
+  // 3. Fallback to Simple Confirm if no advanced security is set
+  return await showConfirmDialog({
+    title: options.title,
+    body: options.body,
+    confirmLabel: options.isDestructive ? 'Delete' : 'Confirm',
+    isDestructive: options.isDestructive,
+  });
+}
