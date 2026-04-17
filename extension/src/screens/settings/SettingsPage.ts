@@ -15,7 +15,7 @@ const iconEdit =
 
 import { toast } from '../../lib/toast';
 import { checkGuard } from '../../background/sessionGuard';
-import { UI_TOKENS } from '../../lib/ui';
+import { UI_TOKENS, renderInfoTooltip } from '../../lib/ui';
 
 export async function renderSettingsPage(container) {
   if (!container) {
@@ -29,12 +29,28 @@ export async function renderSettingsPage(container) {
     exportRulesAction,
     importRulesAction,
     setGuardianPinAction,
-    verifyAndRemoveGuardianPinAction,
     testDomainCoverageAction,
+    requestPinResetAction,
+    cancelPinResetAction,
+    checkPinResetStatus,
+    toggleChallengeAction,
+    updateChallengeTextAction,
   } = await import('../../../../packages/viewmodels/src/useSettingsVM');
 
-  const { profileId, apiKey, strict, dnrRules, syncState } =
-    await loadSettingsData();
+  const {
+    profileId,
+    apiKey,
+    strict,
+    dnrRules,
+    syncState,
+    challengeEnabled,
+    challengeText,
+  } = await loadSettingsData();
+
+  // Clear any existing intervals to prevent 'increasing' accumulation
+  if ((window as any).__pinResetInterval) {
+    clearInterval((window as any).__pinResetInterval);
+  }
 
   const dohUrl = profileId
     ? `https://dns.nextdns.io/${profileId}`
@@ -161,43 +177,99 @@ export async function renderSettingsPage(container) {
           </section>
 
           <div class="fg-col-span-2 fg-grid fg-grid-cols-2 fg-gap-6">
-            <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-items-center fg-justify-between">
-              <div class="fg-flex fg-gap-3">
-                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-amber-500/10 fg-flex fg-items-center fg-justify-center fg-text-amber-500">
-                  ${iconLock}
+            <!-- Left Column: Security Toggles -->
+            <div class="fg-flex fg-flex-col fg-gap-6">
+              <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-items-center fg-justify-between">
+                <div class="fg-flex fg-gap-3">
+                  <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-amber-500/10 fg-flex fg-items-center fg-justify-center fg-text-amber-500">
+                    ${iconLock}
+                  </div>
+                  <div>
+                    <h2 style="${
+                      UI_TOKENS.TEXT.HEADING
+                    }">Strict Mode ${renderInfoTooltip(
+    'Prevents disabling rules or changing security settings immediately while a focus session is active.',
+  )}</h2>
+                    <p style="${
+                      UI_TOKENS.TEXT.SUBTEXT
+                    }; margin-top: 2px;">Add friction before rules can be weakened.</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 style="${UI_TOKENS.TEXT.HEADING}">Strict Mode</h2>
-                  <p style="${
-                    UI_TOKENS.TEXT.SUBTEXT
-                  }; margin-top: 2px;">Add friction before rules can be weakened.</p>
-                </div>
-              </div>
-              <label class="switch-toggle">
-                <input type="checkbox" id="chk_strict_toggle" ${
-                  strict ? 'checked' : ''
-                }>
-                <span class="slider-toggle"></span>
-              </label>
-            </section>
+                <label class="switch-toggle">
+                  <input type="checkbox" id="chk_strict_toggle" ${
+                    strict ? 'checked' : ''
+                  }>
+                  <span class="slider-toggle"></span>
+                </label>
+              </section>
 
-            <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-items-center fg-justify-between">
-              <div class="fg-flex fg-gap-3">
-                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-emerald-500/10 fg-flex fg-items-center fg-justify-center fg-text-emerald-500">
-                  ${iconShield}
+              <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-flex-col fg-gap-4">
+                <div class="fg-flex fg-items-center fg-justify-between">
+                  <div class="fg-flex fg-gap-3">
+                    <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-emerald-500/10 fg-flex fg-items-center fg-justify-center fg-text-emerald-500">
+                      ${iconShield}
+                    </div>
+                    <div>
+                      <h2 style="${
+                        UI_TOKENS.TEXT.HEADING
+                      }">Lock PIN ${renderInfoTooltip(
+    'Requires a 4-digit code to access or modify any security settings.',
+  )}</h2>
+                      <p style="${
+                        UI_TOKENS.TEXT.SUBTEXT
+                      }; margin-top: 2px;">Require a code to change settings.</p>
+                    </div>
+                  </div>
+                  <label class="switch-toggle" id="guard_toggle_label">
+                    <input type="checkbox" id="chk_guardian_pin">
+                    <span class="slider-toggle"></span>
+                  </label>
                 </div>
-                <div>
-                  <h2 style="${UI_TOKENS.TEXT.HEADING}">Guardian PIN</h2>
-                  <p style="${
-                    UI_TOKENS.TEXT.SUBTEXT
-                  }; margin-top: 2px;">Require a code for protected changes.</p>
+                <div id="pin_reset_container"></div>
+              </section>
+            </div>
+
+            <!-- Right Column: Friction Challenge -->
+            <div class="fg-flex fg-flex-col">
+              <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-flex-col fg-gap-6 fg-h-full">
+                <div class="fg-flex fg-items-center fg-justify-between">
+                  <div class="fg-flex fg-gap-3">
+                    <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-orange-500/10 fg-flex fg-items-center fg-justify-center fg-text-orange-500">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    </div>
+                    <div>
+                      <h2 style="${
+                        UI_TOKENS.TEXT.HEADING
+                      }">Patience Check ${renderInfoTooltip(
+    'Requires you to type a specific paragraph perfectly before settings can be unlocked. Adds mental friction to prevent impulsive changes.',
+  )}</h2>
+                      <p style="${
+                        UI_TOKENS.TEXT.SUBTEXT
+                      }; margin-top: 2px;">Type a paragraph perfectly to unlock settings.</p>
+                    </div>
+                  </div>
+                  <label class="switch-toggle">
+                    <input type="checkbox" id="chk_patience_challenge" ${
+                      challengeEnabled ? 'checked' : ''
+                    }>
+                    <span class="slider-toggle"></span>
+                  </label>
                 </div>
-              </div>
-              <label class="switch-toggle">
-                <input type="checkbox" id="chk_guardian_pin">
-                <span class="slider-toggle"></span>
-              </label>
-            </section>
+                
+                <div id="challenge_settings_box" class="${
+                  challengeEnabled ? '' : 'fg-hidden'
+                } fg-flex-1 fg-flex fg-flex-col">
+                  <div style="${
+                    UI_TOKENS.TEXT.LABEL
+                  }; font-size: 11px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Custom Challenge Text (Min. 100 chars)</div>
+                  <textarea id="txt_challenge_body" class="fg-flex-1 fg-w-full fg-bg-[var(--fg-surface-hover)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-2xl fg-p-4 fg-text-[13px] fg-text-[var(--fg-text)] fg-min-h-[120px] fg-outline-none focus:fg-border-[var(--fg-accent)] fg-transition-all" placeholder="Enter custom text for the challenge...">${challengeText}</textarea>
+                  <div class="fg-flex fg-justify-between fg-mt-3 fg-items-center">
+                    <button id="btn_reset_challenge_text" class="fg-text-[10px] fg-font-bold fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] fg-uppercase fg-tracking-widest fg-transition-all">Restore Default</button>
+                    <button id="btn_save_challenge_text" class="btn-premium fg-px-6 fg-py-2.5 fg-rounded-xl fg-text-[10px] fg-font-black fg-uppercase fg-tracking-widest">Update Challenge</button>
+                  </div>
+                </div>
+              </section>
+            </div>
           </div>
 
           <section class="fg-panel-premium fg-p-6 fg-rounded-[28px]">
@@ -587,6 +659,7 @@ export async function renderSettingsPage(container) {
     ?.addEventListener('change', async (e) => {
       const checkbox = e.target as HTMLInputElement;
       const isChecked = checkbox.checked;
+
       const guard = await checkGuard('change_settings');
       if (!guard.allowed) {
         toast.error((guard as any).reason);
@@ -594,23 +667,27 @@ export async function renderSettingsPage(container) {
         return;
       }
 
+      const performToggle = async () => {
+        await setStrictModeAction(isChecked);
+        toast.info(`Strict Mode ${isChecked ? 'Enabled' : 'Disabled'}`);
+      };
+
       if (!isChecked) {
-        const { extensionAdapter: storage } = await import(
-          '../../background/platformAdapter'
-        );
-        const currentPin = await storage.getString('guardian_pin');
-        if (currentPin) {
-          const challenge = prompt('Verification Required');
-          if (challenge !== currentPin) {
-            toast.error('Identity Conflict');
-            checkbox.checked = true;
-            return;
-          }
+        checkbox.checked = true; // Revert until verified
+        const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
+        const confirmed = await confirmGuardianAction({
+          title: 'Disable Strict Mode',
+          body: 'Verify your security to weaken your protection.',
+        });
+
+        if (confirmed) {
+          await performToggle();
+          checkbox.checked = false;
         }
+        return;
       }
 
-      await setStrictModeAction(isChecked);
-      toast.info(`Shield Lock ${isChecked ? 'ENGAGED' : 'RELEASED'}`);
+      await performToggle();
     });
 
   const { extensionAdapter: storage } = await import(
@@ -623,140 +700,183 @@ export async function renderSettingsPage(container) {
   const updateGuardianCheck = async () => {
     const pin = await storage.getString('guardian_pin');
     chkGuardian.checked = !!pin;
+
+    // PIN Reset UI Logic
+    const resetContainer = container.querySelector('#pin_reset_container');
+    if (resetContainer) {
+      const status = await checkPinResetStatus();
+
+      if (status.pending) {
+        // Disable toggle while reset is pending to avoid state confusion
+        chkGuardian.parentElement!.classList.add(
+          'fg-opacity-30',
+          'fg-pointer-events-none',
+        );
+
+        const { fmtTime } = await import(
+          '../../../../packages/core/src/utils/time'
+        );
+        resetContainer.innerHTML = `
+          <div class="fg-bg-[var(--red)]/10 fg-border fg-border-[var(--red)]/20 fg-rounded-2xl fg-px-4 fg-py-3 fg-flex fg-items-center fg-justify-between">
+            <div class="fg-flex fg-items-center fg-gap-4">
+              <div class="fg-text-[10px] fg-font-black fg-text-[var(--red)] fg-uppercase fg-tracking-widest">Active Recovery</div>
+              <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-text)] countdown-timer">${fmtTime(
+                status.remainingMs!,
+              )}</div>
+            </div>
+            <button id="btn_cancel_pin_reset" class="fg-text-[9px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40 hover:fg-opacity-100 fg-uppercase fg-tracking-widest fg-transition-all">Cancel Request</button>
+          </div>
+        `;
+
+        const interval = setInterval(() => {
+          const timerEl = resetContainer.querySelector('.countdown-timer');
+          if (timerEl) {
+            const now = Date.now();
+            const remaining = status.availableAt! - now;
+            if (remaining <= 0) {
+              clearInterval(interval);
+              renderSettingsPage(container); // Refresh to clear PIN
+            } else {
+              timerEl.textContent = fmtTime(remaining);
+            }
+          } else {
+            clearInterval(interval);
+          }
+        }, 1000);
+
+        // Store interval ID to prevent leak/accumulation
+        (window as any).__pinResetInterval = interval;
+
+        resetContainer
+          .querySelector('#btn_cancel_pin_reset')
+          ?.addEventListener('click', async () => {
+            await cancelPinResetAction();
+            toast.info('Security Override CANCELLED');
+            renderSettingsPage(container);
+          });
+      } else {
+        chkGuardian.parentElement!.classList.remove(
+          'fg-opacity-30',
+          'fg-pointer-events-none',
+        );
+        if (pin) {
+          resetContainer.innerHTML = `
+            <button id="btn_request_pin_reset" class="fg-text-[10px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-30 hover:fg-opacity-100 fg-uppercase fg-tracking-widest fg-transition-all">Forgot PIN?</button>
+          `;
+          resetContainer
+            .querySelector('#btn_request_pin_reset')
+            ?.addEventListener('click', async () => {
+              const { showConfirmDialog: showConfirm } = (await import(
+                '../../lib/ui'
+              )) as any;
+              const confirmed = await showConfirm({
+                title: 'Reset PIN',
+                body: 'Forgot your PIN? Start a 12-hour reset timer. You cannot change settings or disable rules until the time is up.',
+                confirmLabel: 'Start 12h Timer',
+                isDestructive: true,
+              });
+              if (confirmed) {
+                await requestPinResetAction();
+                toast.info('12-Hour Reset Started');
+                renderSettingsPage(container);
+              }
+            });
+        } else {
+          resetContainer.innerHTML = '';
+        }
+      }
+    }
   };
   updateGuardianCheck();
 
-  const showPinModal = (
-    title: string,
-    subtitle: string,
-    onConfirm: (pin: string) => Promise<boolean>,
-  ) => {
-    const modal = document.createElement('div');
-    modal.className =
-      'fg-fixed fg-inset-0 fg-bg-black/80 fg-backdrop-blur-xl fg-flex fg-items-center fg-justify-center fg-z-[100] fg-p-8 fg-animate-in fg-fade-in fg-duration-300';
-    modal.innerHTML = `
-      <div class="fg-bg-[var(--fg-surface)] fg-w-full fg-max-w-md fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-p-10 fg-shadow-2xl fg-animate-in fg-zoom-in-95 fg-duration-300">
-        <div class="fg-text-center fg-mb-8">
-          <div class="fg-w-16 fg-h-16 fg-rounded-2xl fg-bg-[var(--fg-accent)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-accent)] fg-mx-auto fg-mb-6">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </div>
-          <h3 class="fg-text-xl fg-font-black fg-text-[var(--fg-text)] fg-mb-2">${title}</h3>
-          <p class="fg-text-sm fg-text-[var(--fg-muted)]">${subtitle}</p>
-        </div>
-        
-        <div class="fg-relative fg-flex fg-justify-center fg-mb-8">
-          <input type="password" id="modal_pin_input" autofocus maxlength="4" inputmode="numeric" class="fg-absolute fg-inset-0 fg-opacity-0 fg-cursor-pointer fg-z-10">
-          <div class="fg-flex fg-gap-3">
-            <div class="pin-digit-slot modal-slot"></div>
-            <div class="pin-digit-slot modal-slot"></div>
-            <div class="pin-digit-slot modal-slot"></div>
-            <div class="pin-digit-slot modal-slot"></div>
-          </div>
-        </div>
-        
-        <div class="fg-flex fg-gap-3">
-          <button id="modal_cancel" class="btn-secondary-v2 fg-flex-1 fg-h-14">CANCEL</button>
-          <button id="modal_confirm" class="btn-premium fg-flex-1 fg-h-14 fg-opacity-50 fg-pointer-events-none">CONTINUE</button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-
-    const input = modal.querySelector('#modal_pin_input') as HTMLInputElement;
-    const slots = modal.querySelectorAll('.modal-slot');
-    const confirmBtn = modal.querySelector(
-      '#modal_confirm',
-    ) as HTMLButtonElement;
-    const cancelBtn = modal.querySelector('#modal_cancel') as HTMLButtonElement;
-
-    const close = () => {
-      modal.classList.add('fg-fade-out');
-      setTimeout(() => modal.remove(), 300);
-    };
-
-    input.focus();
-    input.addEventListener('input', () => {
-      const val = input.value.replace(/\D/g, '').slice(0, 4);
-      input.value = val;
-      slots.forEach((s, i) => {
-        s.classList.remove('active', 'focused-slot');
-        if (i < val.length) {
-          s.textContent = '•';
-          s.classList.add('active');
-        } else {
-          s.textContent = '';
-          if (i === val.length) {
-            s.classList.add('focused-slot');
-          }
-        }
-      });
-      if (val.length === 4) {
-        confirmBtn.classList.remove('fg-opacity-50', 'fg-pointer-events-none');
-      } else {
-        confirmBtn.classList.add('fg-opacity-50', 'fg-pointer-events-none');
-      }
-    });
-
-    // Initial focus state
-    slots[0].classList.add('focused-slot');
-
-    cancelBtn.addEventListener('click', () => {
-      close();
-      updateGuardianCheck();
-    });
-
-    confirmBtn.addEventListener('click', async () => {
-      const success = await onConfirm(input.value);
-      if (success) {
-        close();
-        updateGuardianCheck();
-      } else {
-        input.value = '';
-        slots.forEach((s) => {
-          s.textContent = '';
-          s.classList.remove('active');
-        });
-        confirmBtn.classList.add('fg-opacity-50', 'fg-pointer-events-none');
-      }
-    });
-  };
-
-  chkGuardian.addEventListener('change', async (_e) => {
+  chkGuardian.addEventListener('change', async () => {
     const isChecking = chkGuardian.checked;
     const existingPin = await storage.getString('guardian_pin');
 
-    if (isChecking) {
-      if (existingPin) {
-        return;
-      } // Should not happen
-      showPinModal(
-        'Establish Security',
-        'Create a 4-digit code to lock your shield.',
-        async (newPin) => {
-          await setGuardianPinAction(newPin);
-          toast.success('Identity Shield Active');
-          return true;
-        },
-      );
-    } else {
-      if (!existingPin) {
-        return;
-      } // Should not happen
-      showPinModal(
-        'Shield Verification',
-        'Enter your code to dissolve protection.',
-        async (enteredPin) => {
-          if (await verifyAndRemoveGuardianPinAction(enteredPin)) {
-            toast.info('Security Shield Offline');
+    const { showPinModal: openPinChallenge } = (await import(
+      '../../lib/ui'
+    )) as any;
+
+    const performPinToggle = async () => {
+      if (isChecking) {
+        if (existingPin) {
+          return;
+        }
+        openPinChallenge(
+          'Set PIN',
+          'Create a 4-digit code to lock your settings.',
+          async (newPin: string) => {
+            await setGuardianPinAction(newPin);
+            toast.success('PIN Set Successfully');
+            updateGuardianCheck();
             return true;
-          } else {
-            toast.error('Identity Conflict');
-            return false;
-          }
-        },
-      );
+          },
+        );
+      } else {
+        if (!existingPin) {
+          return;
+        }
+        chkGuardian.checked = true; // Revert until verified
+        const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
+        const confirmed = await confirmGuardianAction({
+          title: 'Disable PIN',
+          body: 'Verify your identity to remove rule protection.',
+        });
+        if (confirmed) {
+          const { removeGuardianPinAction } = await import(
+            '../../../../packages/viewmodels/src/useSettingsVM'
+          );
+          await removeGuardianPinAction();
+          toast.info('PIN Removed');
+          updateGuardianCheck();
+        }
+      }
+    };
+
+    await performPinToggle();
+  });
+
+  // Patience Challenge Listeners
+  const chkChallenge = container.querySelector(
+    '#chk_patience_challenge',
+  ) as HTMLInputElement;
+  const challengeBox = container.querySelector('#challenge_settings_box');
+  const txtChallenge = container.querySelector(
+    '#txt_challenge_body',
+  ) as HTMLTextAreaElement;
+  const btnSaveChallenge = container.querySelector('#btn_save_challenge_text');
+
+  chkChallenge?.addEventListener('change', async () => {
+    const enabled = chkChallenge.checked;
+    await toggleChallengeAction(enabled);
+    if (enabled) {
+      challengeBox?.classList.remove('fg-hidden');
+      toast.info('Patience Check Enabled');
+    } else {
+      challengeBox?.classList.add('fg-hidden');
+      toast.info('Patience Check Disabled');
     }
   });
+
+  btnSaveChallenge?.addEventListener('click', async () => {
+    const text = txtChallenge.value.trim();
+    if (text.length < 100) {
+      toast.error('Min. 100 characters required');
+      return;
+    }
+    await updateChallengeTextAction(text);
+    toast.success('Challenge Updated');
+  });
+
+  container
+    .querySelector('#btn_reset_challenge_text')
+    ?.addEventListener('click', async () => {
+      const defaultText =
+        'Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions. This challenge is here to remind me that my time is valuable and I must use it wisely.';
+      txtChallenge.value = defaultText;
+      await updateChallengeTextAction(defaultText);
+      toast.info('Restored Default Quote');
+    });
 
   const renderStats = () => {
     const statsDiv = container.querySelector('#sync_stats');

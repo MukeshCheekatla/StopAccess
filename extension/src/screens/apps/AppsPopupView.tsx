@@ -241,7 +241,7 @@ export const AppsPopupView: React.FC = () => {
     }
   };
 
-  const handleTemporaryDisable = (rule: any) => {
+  const handleTemporaryDisable = async (rule: any) => {
     let targetDomain = null;
     if (currentDomain && ruleMatchesDomain(rule, currentDomain)) {
       targetDomain = currentDomain;
@@ -253,7 +253,16 @@ export const AppsPopupView: React.FC = () => {
       toast.info('Open the blocked site first, then pause it here');
       return;
     }
-    setPauseTarget({ ...rule, _unblockDomain: targetDomain });
+
+    const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
+    const confirmed = await confirmGuardianAction({
+      title: 'Pause Protection',
+      body: `Verify your security to pause ${rule.appName || targetDomain}.`,
+    });
+
+    if (confirmed) {
+      setPauseTarget({ ...rule, _unblockDomain: targetDomain });
+    }
   };
 
   const handlePauseSelect = async (minutes: number) => {

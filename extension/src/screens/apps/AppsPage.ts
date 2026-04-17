@@ -135,7 +135,7 @@ export async function renderAppsPage(container: HTMLElement) {
           <!-- DNS Hard Mode -->
           <div class="glass-card" style="padding: 20px;">
             <div class="apps-layout-header">
-              DNS Shield ${renderInfoTooltip(
+              Full Protection ${renderInfoTooltip(
                 'Forces blocking at the network protocol layer via NextDNS, preventing browser-level bypasses.',
               )}
             </div>
@@ -222,6 +222,15 @@ export async function renderAppsPage(container: HTMLElement) {
 
         const wasActive = masterToggle.classList.contains('active');
         const targetState = !wasActive;
+
+        if (!targetState) {
+          const { checkGuard } = await import('../../background/sessionGuard');
+          const guard = await checkGuard('disable_blocking');
+          if (!guard.allowed) {
+            toast.error((guard as any).reason);
+            return;
+          }
+        }
 
         const confirmed = await showConfirmDialog({
           title: targetState
@@ -547,8 +556,8 @@ async function renderSubTab(
           <!-- Header -->
           <div class="fg-p-8 fg-border-b fg-border-[var(--fg-glass-border)] fg-flex fg-items-center fg-justify-between">
             <div>
-              <div class="fg-text-[10px] fg-font-bold fg-tracking-[0.2em] fg-text-[#3b82f6] fg-mb-1 fg-uppercase">App Drawer</div>
-              <div class="fg-text-2xl fg-font-bold fg-tracking-tight fg-text-[var(--fg-text)]">Add Apps to Shield</div>
+              <div class="fg-text-[10px] fg-font-bold fg-tracking-[0.2em] fg-text-[#3b82f6] fg-mb-1 fg-uppercase">App List</div>
+              <div class="fg-text-2xl fg-font-bold fg-tracking-tight fg-text-[var(--fg-text)]">Add to Blocklist</div>
             </div>
             <button id="btnCloseTargetDrawer" class="fg-p-3 fg-rounded-2xl hover:fg-bg-[var(--fg-surface-hover)] fg-text-[var(--muted)] fg-transition-all">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1009,25 +1018,46 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
       btnEl.classList.toggle('active', targetState);
       btnEl.style.opacity = '0.5';
 
-      try {
-        const result = await appsController.toggleRule(
-          kind,
-          id,
-          name || id,
-          targetState,
-          rules,
-        );
-        if (result.ok) {
-          btnEl.style.opacity = '1';
-        } else {
+      const performAction = async () => {
+        try {
+          const result = await appsController.toggleRule(
+            kind,
+            id,
+            name || id,
+            targetState,
+            rules,
+          );
+          if (result.ok) {
+            btnEl.style.opacity = '1';
+          } else {
+            btnEl.classList.toggle('active', wasActive);
+            btnEl.style.opacity = '1';
+          }
+        } catch (err: any) {
+          toast.error(`Sync Error: ${err.message}`);
           btnEl.classList.toggle('active', wasActive);
           btnEl.style.opacity = '1';
         }
-      } catch (err: any) {
-        toast.error(`Sync Error: ${err.message}`);
-        btnEl.classList.toggle('active', wasActive);
+      };
+
+      // Unified Guard for unblocking
+      if (!targetState) {
+        btnEl.classList.toggle('active', wasActive); // Revert UI until challenged
         btnEl.style.opacity = '1';
+
+        const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
+        const confirmed = await confirmGuardianAction({
+          title: 'Unlock Block',
+          body: `Verify your security to unblock ${name || id}.`,
+        });
+
+        if (confirmed) {
+          await performAction();
+        }
+        return;
       }
+
+      await performAction();
     });
   });
 
@@ -1036,27 +1066,28 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
       const pkg = btn.getAttribute('data-pkg');
       if (pkg) {
         const row = btn.closest('.rule-table-row') as HTMLElement;
-        if (row) {
-          row.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-          row.style.opacity = '0';
-          row.style.transform = 'scale(0.95) translateX(-10px)';
-          row.style.pointerEvents = 'none';
+        const performRemoval = async () => {
+          if (row) {
+            row.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            row.style.opacity = '0';
+            row.style.transform = 'scale(0.95) translateX(-10px)';
+            row.style.pointerEvents = 'none';
 
-          // Smoothly collapse height
-          const height = row.offsetHeight;
-          row.style.height = height + 'px';
-          requestAnimationFrame(() => {
-            row.style.height = '0px';
-            row.style.paddingTop = '0px';
-            row.style.paddingBottom = '0px';
-            row.style.borderBottomWidth = '0px';
-            row.style.marginTop = '0px';
-            row.style.marginBottom = '0px';
-          });
-        }
+            // Smoothly collapse height
+            const height = row.offsetHeight;
+            row.style.height = height + 'px';
+            requestAnimationFrame(() => {
+              row.style.height = '0px';
+              row.style.paddingTop = '0px';
+              row.style.paddingBottom = '0px';
+              row.style.borderBottomWidth = '0px';
+              row.style.marginTop = '0px';
+              row.style.marginBottom = '0px';
+            });
+          }
 
-        // Run background removal quietly
-        appsController.removeRule(pkg, rules).then(async (result) => {
+          // Run background removal quietly
+          const result = await appsController.removeRule(pkg, rules);
           if (!result.ok && row) {
             // Restore if failed
             row.style.height = '';
@@ -1066,7 +1097,18 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
             row.style.transform = '';
             row.style.pointerEvents = '';
           }
+        };
+
+        const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
+        const confirmed = await confirmGuardianAction({
+          title: 'Delete Rule?',
+          body: 'Verify your security to remove this block permanently.',
+          isDestructive: true,
         });
+
+        if (confirmed) {
+          await performRemoval();
+        }
       }
     });
   });
@@ -1149,6 +1191,13 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
         (r: any) => (r.customDomain || r.packageName) === pkg,
       );
       if (!rule || !pkg) {
+        return;
+      }
+
+      const { checkGuard } = await import('../../background/sessionGuard');
+      const guard = await checkGuard('modify_blocklist');
+      if (!guard.allowed) {
+        toast.error((guard as any).reason);
         return;
       }
 
