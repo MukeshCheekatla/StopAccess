@@ -289,9 +289,15 @@ function _renderError(container: HTMLElement, e: any): void {
       <div class="fg-text-xs fg-text-[var(--fg-muted)] fg-mb-8">${
         e.message || 'Identity verification failed'
       }</div>
-      <button class="btn-premium fg-mx-auto fg-w-full" onclick="location.reload()" style="height: 56px; border-radius: 12px; background: var(--fg-accent); color: white; font-weight: 900;">Retry Access</button>
+      <button id="btn_retry_access" class="btn-premium fg-mx-auto fg-w-full" style="height: 56px; border-radius: 12px; background: var(--fg-accent); color: white; font-weight: 900;">Retry Access</button>
     </div>
   `;
+
+  container
+    .querySelector('#btn_retry_access')
+    ?.addEventListener('click', () => {
+      window.location.reload();
+    });
 }
 
 function _renderPopup(container: HTMLElement): void {

@@ -1,10 +1,10 @@
-/**
- * StopAccess Content Script - Overlay Enforcer
- * Blocks sites via full-screen overlay. Supports temporary passes.
- */
-
 import { getDomainForRule } from '@stopaccess/core';
 import { AppRule } from '@stopaccess/types';
+
+// Bail out immediately if this is a zombie script (context already invalidated)
+if (typeof chrome === 'undefined' || !chrome.runtime?.id) {
+  throw new Error('[StopAccess] Context invalidated - Early bailout.');
+}
 
 const BLOCKED_DOMAINS_KEY = 'blocked_domains';
 const RULES_KEY = 'rules';
@@ -447,149 +447,164 @@ function removeOverlay() {
 // ── Core Check ────────────────────────────────────
 
 async function checkAndBlock() {
-  const domain = currentDomain();
-  if (!domain) {
-    return;
-  }
-  if (
-    domain.includes('nextdns.io') ||
-    window.location.protocol === 'chrome-extension:' ||
-    window.location.protocol === 'chrome:'
-  ) {
-    return;
-  }
-
-  // Check for active temp pass FIRST
-  const activePass = await getActiveTempPass(domain);
-  if (activePass) {
-    // Pass is active — don't block, remove overlay if showing
-    removeOverlay();
-
-    // Start a countdown to re-check when pass expires
-    if (passCountdownInterval) {
-      clearInterval(passCountdownInterval);
-    }
-    const remainingMs = activePass.expiresAt - Date.now();
-    if (remainingMs > 0) {
-      passCountdownInterval = setTimeout(() => {
-        checkAndBlock(); // Re-check — pass will be expired
-      }, remainingMs + 500); // +500ms buffer
-    }
-    return;
-  }
-
-  const res = await chrome.storage.local.get([
-    BLOCKED_DOMAINS_KEY,
-    RULES_KEY,
-    'usage',
-    'fg_redirect_url',
-  ]);
-  const blockedDomains = Array.isArray(res[BLOCKED_DOMAINS_KEY])
-    ? res[BLOCKED_DOMAINS_KEY]
-    : [];
-
-  let rules: AppRule[] = [];
-  let derivedBlockedDomains = [];
   try {
-    rules = JSON.parse((res[RULES_KEY] as string) || '[]');
-    derivedBlockedDomains = rules
-      .filter((rule) => {
-        const isManuallyBlocked = rule.mode === 'block';
-        const isLimitReached =
-          rule.blockedToday === true ||
-          (rule.dailyLimitMinutes > 0 &&
-            (rule.usedMinutesToday || 0) >= rule.dailyLimitMinutes);
-        return isManuallyBlocked || isLimitReached;
-      })
-      .map((rule) => getDomainForRule(rule))
-      .filter(Boolean);
-  } catch (error) {
-    console.warn(
-      '[StopAccess] Failed to derive blocked domains from rules',
-      error,
-    );
-  }
-
-  const effectiveBlockedDomains = Array.from(
-    new Set([...blockedDomains, ...derivedBlockedDomains]),
-  );
-  const isBlocked = effectiveBlockedDomains.some((bd) =>
-    matchesBlockedDomain(domain, bd),
-  );
-
-  const matchingRule = findMatchingRule(rules, domain);
-  const extensionCount = await getExtensionCount(domain);
-  const maxDailyPasses = getMaxPasses(matchingRule);
-  const canExtend =
-    matchingRule &&
-    (matchingRule.mode === 'limit' || matchingRule.mode === 'block') &&
-    extensionCount < maxDailyPasses;
-
-  chrome.storage.local
-    .set({
-      [CONTENT_DEBUG_KEY]: JSON.stringify({
-        at: new Date().toISOString(),
-        href: window.location.href,
-        domain,
-        isBlocked,
-        overlayActive,
-        hasActivePass: false,
-        extensionCount,
-      }),
-    })
-    .catch(() => {});
-
-  if (isBlocked) {
-    const redirectUrl = res.fg_redirect_url as string | undefined;
-    if (redirectUrl) {
-      let finalUrl = redirectUrl;
-      if (!finalUrl.startsWith('http')) {
-        finalUrl = 'https://' + finalUrl;
-      }
-      try {
-        const redirectTargetDomain = new URL(finalUrl).hostname.replace(
-          /^www\./,
-          '',
-        );
-        if (domain !== redirectTargetDomain) {
-          window.location.href = finalUrl;
-          return;
-        }
-      } catch (e) {
-        // invalid URL maybe, ignore and continue to block
-      }
+    if (!chrome.runtime?.id) {
+      return;
+    }
+    const domain = currentDomain();
+    if (!domain) {
+      return;
+    }
+    if (
+      domain.includes('nextdns.io') ||
+      window.location.protocol === 'chrome-extension:' ||
+      window.location.protocol === 'chrome:'
+    ) {
+      return;
     }
 
-    const usageStore = res.usage || {};
-    const domainUsage = usageStore[domain];
-    const usageMs = domainUsage ? domainUsage.time : 0;
-    const usageMinutes = Math.round(usageMs / 60000);
-    const ruleUsedMinutes = Math.round(matchingRule?.usedMinutesToday || 0);
-    const effectiveUsed = Math.max(ruleUsedMinutes, usageMinutes);
-    const effectiveMs = Math.max(
-      (matchingRule?.usedMinutesToday || 0) * 60000,
-      usageMs,
-    );
-    const sessions = domainUsage?.sessions || 0;
+    // Check for active temp pass FIRST
+    const activePass = await getActiveTempPass(domain);
+    if (activePass) {
+      // Pass is active — don't block, remove overlay if showing
+      removeOverlay();
 
-    if (!overlayActive && !pendingOverlayTimer) {
-      showPreBlockSignal();
-      pendingOverlayTimer = setTimeout(() => {
-        pendingOverlayTimer = null;
-        injectOverlay(domain, {
-          canExtend,
+      // Start a countdown to re-check when pass expires
+      if (passCountdownInterval) {
+        clearInterval(passCountdownInterval);
+      }
+      const remainingMs = activePass.expiresAt - Date.now();
+      if (remainingMs > 0) {
+        passCountdownInterval = setTimeout(() => {
+          checkAndBlock(); // Re-check — pass will be expired
+        }, remainingMs + 500); // +500ms buffer
+      }
+      return;
+    }
+
+    const res = await chrome.storage.local.get([
+      BLOCKED_DOMAINS_KEY,
+      RULES_KEY,
+      'usage',
+      'fg_redirect_url',
+      'strict_mode_enabled',
+    ]);
+    const blockedDomains = Array.isArray(res[BLOCKED_DOMAINS_KEY])
+      ? res[BLOCKED_DOMAINS_KEY]
+      : [];
+
+    const strictEnabled = res.strict_mode_enabled === true;
+
+    let rules: AppRule[] = [];
+    let derivedBlockedDomains = [];
+    try {
+      rules = JSON.parse((res[RULES_KEY] as string) || '[]');
+      derivedBlockedDomains = rules
+        .filter((rule) => {
+          const isManuallyBlocked = rule.mode === 'block';
+          const isLimitReached =
+            rule.blockedToday === true ||
+            (rule.dailyLimitMinutes > 0 &&
+              (rule.usedMinutesToday || 0) >= rule.dailyLimitMinutes);
+          return isManuallyBlocked || isLimitReached;
+        })
+        .map((rule) => getDomainForRule(rule))
+        .filter(Boolean);
+    } catch (error) {
+      console.warn(
+        '[StopAccess] Failed to derive blocked domains from rules',
+        error,
+      );
+    }
+
+    const effectiveBlockedDomains = Array.from(
+      new Set([...blockedDomains, ...derivedBlockedDomains]),
+    );
+    const isBlocked = effectiveBlockedDomains.some((bd) =>
+      matchesBlockedDomain(domain, bd),
+    );
+
+    const matchingRule = findMatchingRule(rules, domain);
+    const extensionCount = await getExtensionCount(domain);
+    const maxDailyPasses = getMaxPasses(matchingRule);
+    const canExtend =
+      !strictEnabled &&
+      matchingRule &&
+      (matchingRule.mode === 'limit' || matchingRule.mode === 'block') &&
+      extensionCount < maxDailyPasses;
+
+    chrome.storage.local
+      .set({
+        [CONTENT_DEBUG_KEY]: JSON.stringify({
+          at: new Date().toISOString(),
+          href: window.location.href,
+          domain,
+          isBlocked,
+          overlayActive,
+          hasActivePass: false,
           extensionCount,
-          maxExtensions: maxDailyPasses,
-          ruleMode: matchingRule?.mode || 'block',
-          usedMinutes: effectiveUsed,
-          usedMs: effectiveMs,
-          limitMinutes: matchingRule?.dailyLimitMinutes || 0,
-          sessions,
-        });
-      }, OVERLAY_DELAY_MS);
+        }),
+      })
+      .catch(() => {});
+
+    if (isBlocked) {
+      const redirectUrl = res.fg_redirect_url as string | undefined;
+      if (redirectUrl) {
+        let finalUrl = redirectUrl;
+        if (!finalUrl.startsWith('http')) {
+          finalUrl = 'https://' + finalUrl;
+        }
+        try {
+          const redirectTargetDomain = new URL(finalUrl).hostname.replace(
+            /^www\./,
+            '',
+          );
+          if (domain !== redirectTargetDomain) {
+            window.location.href = finalUrl;
+            return;
+          }
+        } catch (e) {
+          // invalid URL maybe, ignore and continue to block
+        }
+      }
+
+      const usageStore = res.usage || {};
+      const domainUsage = usageStore[domain];
+      const usageMs = domainUsage ? domainUsage.time : 0;
+      const usageMinutes = Math.round(usageMs / 60000);
+      const ruleUsedMinutes = Math.round(matchingRule?.usedMinutesToday || 0);
+      const effectiveUsed = Math.max(ruleUsedMinutes, usageMinutes);
+      const effectiveMs = Math.max(
+        (matchingRule?.usedMinutesToday || 0) * 60000,
+        usageMs,
+      );
+      const sessions = domainUsage?.sessions || 0;
+
+      if (!overlayActive && !pendingOverlayTimer) {
+        showPreBlockSignal();
+        pendingOverlayTimer = setTimeout(() => {
+          pendingOverlayTimer = null;
+          injectOverlay(domain, {
+            canExtend,
+            extensionCount,
+            maxExtensions: maxDailyPasses,
+            ruleMode: matchingRule?.mode || 'block',
+            usedMinutes: effectiveUsed,
+            usedMs: effectiveMs,
+            limitMinutes: matchingRule?.dailyLimitMinutes || 0,
+            sessions,
+          });
+        }, OVERLAY_DELAY_MS);
+      }
+    } else {
+      removeOverlay();
     }
-  } else {
-    removeOverlay();
+  } catch (error: any) {
+    if (error.message?.includes('Extension context invalidated')) {
+      persistenceObserver.disconnect();
+      return;
+    }
+    console.error('[StopAccess] checkAndBlock error:', error);
   }
 }
 
@@ -597,6 +612,10 @@ async function checkAndBlock() {
 
 // Watch for DOM changes to ensure overlay isn't removed
 const persistenceObserver = new MutationObserver((_mutations) => {
+  if (!chrome.runtime?.id) {
+    persistenceObserver.disconnect();
+    return;
+  }
   if (!overlayActive) {
     return;
   }
@@ -607,6 +626,9 @@ const persistenceObserver = new MutationObserver((_mutations) => {
 });
 
 function startPersistence() {
+  if (!chrome.runtime?.id) {
+    return;
+  }
   persistenceObserver.observe(document.documentElement, {
     childList: true,
     subtree: true,
@@ -642,6 +664,9 @@ document.addEventListener('visibilitychange', () => {
 });
 
 chrome.storage.onChanged.addListener((changes) => {
+  if (!chrome.runtime?.id) {
+    return;
+  }
   if (
     changes[BLOCKED_DOMAINS_KEY] ||
     changes[RULES_KEY] ||
@@ -683,83 +708,95 @@ if (window.location.hostname.includes('nextdns.io')) {
     }
 
     // Check intent flag to see if we should auto-detect and close
-    const res = await chrome.storage.local.get('fg_helper_intent');
-    const intent = res.fg_helper_intent as
-      | { mode: string; expiresAt: number }
-      | undefined;
+    try {
+      if (!chrome.runtime?.id) {
+        return;
+      }
+      const intent = (await chrome.storage.local.get('fg_helper_intent'))
+        .fg_helper_intent as
+        | { mode: string; expiresAt?: number; nextDnsId?: string }
+        | undefined;
 
-    // Only auto-detect if the user came from the extension to "Locate ID"
-    // and the intent hasn't expired.
-    if (
-      !intent ||
-      intent.mode !== 'setup' ||
-      (intent.expiresAt && Date.now() > intent.expiresAt)
-    ) {
-      return;
-    }
+      // Only auto-detect if the user came from the extension to "Locate ID"
+      // and the intent hasn't expired.
+      if (
+        !intent ||
+        intent.mode !== 'setup' ||
+        (intent.expiresAt && Date.now() > intent.expiresAt)
+      ) {
+        return;
+      }
 
-    const id = profileIdFromUrl();
-    if (id) {
-      idSent = true;
-      // Clear intent so it doesn't keep closing other NextDNS tabs accidentally
-      await chrome.storage.local.remove('fg_helper_intent');
+      const id = profileIdFromUrl();
+      if (id) {
+        idSent = true;
+        // Clear intent so it doesn't keep closing other NextDNS tabs accidentally
+        await chrome.storage.local.remove('fg_helper_intent');
 
-      chrome.runtime.sendMessage({
-        type: 'NEXTDNS_ID_FOUND',
-        id: id,
-      });
+        chrome.runtime.sendMessage({
+          type: 'NEXTDNS_ID_FOUND',
+          id: id,
+        });
+      }
+    } catch (e) {
+      // suppress context invalidated errors
     }
   }
 
   async function showApiGuide() {
-    const isAccountPage = window.location.pathname.startsWith('/account');
-    if (!isAccountPage) {
-      return;
-    }
+    try {
+      if (!chrome.runtime?.id) {
+        return;
+      }
 
-    // Check if we already have a guide
-    if (document.getElementById('__fg_api_guide__')) {
-      return;
-    }
+      const isAccountPage = window.location.pathname.startsWith('/account');
+      if (!isAccountPage) {
+        return;
+      }
 
-    // Check intent flag to see if we should show it
-    const res = await chrome.storage.local.get('fg_helper_intent');
-    const intent = res.fg_helper_intent as
-      | { mode: string; expiresAt: number }
-      | undefined;
-    if (!intent || intent.mode !== 'api') {
-      return;
-    }
+      // Check if we already have a guide
+      if (document.getElementById('__fg_api_guide__')) {
+        return;
+      }
 
-    const root = document.body || document.documentElement;
-    if (!root) {
-      return;
-    }
+      // Check intent flag to see if we should show it
+      const res = await chrome.storage.local.get('fg_helper_intent');
+      const intent = res.fg_helper_intent as
+        | { mode: string; expiresAt: number }
+        | undefined;
+      if (!intent || intent.mode !== 'api') {
+        return;
+      }
 
-    const iconUrl = chrome.runtime.getURL('assets/icon-32.png');
+      const root = document.body || document.documentElement;
+      if (!root) {
+        return;
+      }
 
-    const card = document.createElement('div');
-    card.id = '__fg_api_guide__';
-    card.setAttribute(
-      'style',
-      [
-        'position:fixed',
-        'bottom:24px',
-        'right:24px',
-        'z-index:2147483646',
-        'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
-        'background:#ffffff',
-        'border:1px solid rgba(0,0,0,0.08)',
-        'border-radius:18px',
-        'padding:20px',
-        'width:264px',
-        'box-shadow:0 12px 40px rgba(0,0,0,0.12)',
-        'color:#111827',
-        'pointer-events:none', // Make it non-interactive
-      ].join(';'),
-    );
+      const iconUrl = chrome.runtime.getURL('assets/icon-32.png');
 
-    card.innerHTML = `
+      const card = document.createElement('div');
+      card.id = '__fg_api_guide__';
+      card.setAttribute(
+        'style',
+        [
+          'position:fixed',
+          'bottom:24px',
+          'right:24px',
+          'z-index:2147483646',
+          'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+          'background:#ffffff',
+          'border:1px solid rgba(0,0,0,0.08)',
+          'border-radius:18px',
+          'padding:20px',
+          'width:264px',
+          'box-shadow:0 12px 40px rgba(0,0,0,0.12)',
+          'color:#111827',
+          'pointer-events:none', // Make it non-interactive
+        ].join(';'),
+      );
+
+      card.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
         <img src="${iconUrl}" style="width:20px;height:20px;border-radius:6px;border:1px solid rgba(0,0,0,0.05);" />
         <span style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:rgba(0,0,0,0.4);">StopAccess Guide</span>
@@ -769,7 +806,10 @@ if (window.location.hostname.includes('nextdns.io')) {
       </div>
     `;
 
-    root.appendChild(card);
+      root.appendChild(card);
+    } catch (e) {
+      // suppress
+    }
   }
 
   // Initial check

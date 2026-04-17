@@ -210,6 +210,33 @@ function DashboardApp() {
       }
 
       setShowOnboarding(!isOnboardingDone);
+
+      // Discovery Logic: Handle version updates
+      if (isOnboardingDone) {
+        const manifest = chrome.runtime.getManifest();
+        const currentVer = manifest.version;
+        const lastSeen = await storage.getString('last_seen_version');
+
+        if (!lastSeen) {
+          // Initial transition to this system, just mark version
+          await storage.set('last_seen_version', currentVer);
+        } else if (currentVer !== lastSeen) {
+          const { CHANGELOG } = await import(
+            '../../../packages/core/src/changelog'
+          );
+          const release = CHANGELOG.find((c) => c.version === currentVer);
+          if (release) {
+            const { showWhatsNew } = await import('../lib/ui');
+            // Delay slightly for smooth transition after load
+            setTimeout(
+              () => showWhatsNew(release.version, release.features),
+              800,
+            );
+          }
+          await storage.set('last_seen_version', currentVer);
+        }
+      }
+
       setCurrentTheme(settings.theme || 'system');
       setReady(true);
     };

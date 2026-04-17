@@ -111,7 +111,6 @@ export function renderNativeTrackersSection(
                   src="${faviconUrl}"
                   alt="${vendor.name}"
                   style="width: 32px; height: 32px; object-fit: contain;"
-                  onerror="this.style.display='none'"
                 >
               </div>
 
