@@ -1,181 +1,63 @@
-# StopAccess
+# StopAccess Extension
 
-StopAccess is a cross-device blocking and protection tool for people who want their limits to actually hold. It combines Android app enforcement, browser website blocking, NextDNS profile-wide rules, schedules, focus sessions, privacy/security controls, and diagnostics in one product.
+[![Available on Chrome Web Store](https://img.shields.io/badge/Available_on-Chrome_Web_Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/dajibamebijnlohkeddaignbneobpjag?utm_source=item-share-cb)
 
----
+StopAccess is a precision site blocking and productivity extension. It combines rigorous browser website blocking via Declarative Net Request, local active tab tracking, strict schedules, Guardian PIN lockdowns, and optional NextDNS cloud synchronization.
+
+![StopAccess Feature Graphic](docs/assets/feature_graphic.png)
 
 ## What It Does
 
-| Area | What StopAccess does |
+| Feature | How it works |
 | --- | --- |
-| **Android app blocking** | Tracks foreground app usage, applies daily limits, and uses accessibility plus overlay protection to stop blocked apps from being used. |
-| **Browser website blocking** | Blocks selected domains and services inside the extension, with quick controls for common distractions. |
-| **NextDNS enforcement** | Syncs services, denylist entries, security settings, privacy blocklists, TLD rules, and profile-wide controls through the NextDNS API. |
-| **Focus sessions** | Starts timed sessions that temporarily enforce selected app and site rules. |
-| **Schedules** | Runs recurring rules for work, school, sleep, or custom time windows. |
-| **Strict Mode and Guardian PIN** | Adds friction before sensitive settings, blocks, or active sessions can be weakened. |
-| **Security and privacy controls** | Exposes NextDNS security toggles, tracker blocking, native tracking protections, blocklists, and domain coverage checks. |
-| **Diagnostics and sync health** | Shows connection state, recent actions, logs, rule coverage, and protection health so failures are visible. |
-| **Insights** | Summarizes usage, blocks, focus streaks, and weekly activity to show whether the system is helping. |
-
-StopAccess has two enforcement scopes:
-
-- **Local protection**: Android accessibility/overlay blocking and browser extension rules on the current device.
-- **Profile-wide protection**: NextDNS settings that can affect every device using the same NextDNS profile.
-
-The product should always make that scope clear before changing profile-wide settings.
-
----
-
-## Requirements
-
-- Android 7.0+ (API 24+)
-- A [NextDNS](https://nextdns.io) account for cloud/profile-wide enforcement
-- Usage Access permission for Android usage limits
-- Accessibility and overlay permissions for stronger Android blocking
-
----
+| **Browser Website Blocking** | Tracks active tab time, blocks selected domains via fast Declarative Net Request rules, and displays strict "Access Denied" overlays. |
+| **NextDNS Cloud Sync** | Synchronizes custom denylists, privacy blocklists, security settings, and profile-wide controls directly with the NextDNS API. |
+| **Active Usage Tracking**| Accurately measures active tab duration on mapped domains to enforce precise daily usage limits entirely locally. |
+| **Focus Sessions** | Starts timed sessions that immediately enforce temporary strict limitations on specific services. |
+| **Strict Lock & Guardian PIN** | Designed defensively to protect settings; introduces a strict local PIN to stop impulsive bypasses during focus sessions. |
 
 ## Developer Setup
 
-This repository is organized as a lightweight monorepo:
+The codebase is organized as an NPM workspace containing the extension and its shared core packages:
 
-- `.`: the active React Native mobile app
-- `extension/`: browser extension workspace
-- `packages/core`: shared API/domain logic
-- `packages/state`: shared state and persistence helpers
-- `packages/sync`: sync orchestration
-- `packages/types`: shared TypeScript contracts
-- `packages/viewmodels`: shared screen behavior for app and extension surfaces
+- `extension/`: The core browser extension built with React and Tailwind CSS.
+- `packages/`: Core domain routing, state, and NextDNS API logic.
 
-### Prerequisites
+### 1. Requirements
 
-```text
-Node.js 18+
-JDK 17
-Android SDK (API 34)
-React Native CLI
-```
+- Node.js 18+
 
-### Install
+### 2. Install Dependencies
 
+From the repository root:
 ```bash
-git clone <repo-url>
+git clone <repository-url>
 cd gate
 npm install
 ```
 
-### Run
+### 3. Run Locally
 
+Run the extension in watch mode to automatically rebuild assets during development:
 ```bash
-npx react-native run-android
+npm run watch -w extension
 ```
 
-### Lint, Type-Check, And Extension Verification
+*To load the extension:*
+1. Navigate to `chrome://extensions/`
+2. Enable **Developer mode** in the top right.
+3. Select **Load unpacked** and locate the `gate/extension/` directory.
 
+### 4. Verify Quality
+
+Run TypeScript compilation, linting, and extension production build verification:
 ```bash
-npm run lint
-npm run typecheck
 npm run verify:extension
 ```
 
----
+## Privacy
 
-## Environment
-
-Copy `.env.example` to `.env`. No secrets are stored here; credentials are entered by the user at runtime and stored locally.
-
----
-
-## Release Build
-
-### 1. Create a keystore
-
-```bash
-keytool -genkeypair -v \
-  -keystore StopAccess-release.jks \
-  -alias StopAccess \
-  -keyalg RSA -keysize 2048 \
-  -validity 10000
-```
-
-Store the keystore file outside the repository.
-
-### 2. Add credentials to `android/local.properties`
-
-```text
-RELEASE_STORE_FILE=/path/to/StopAccess-release.jks
-RELEASE_STORE_PASSWORD=yourpassword
-RELEASE_KEY_ALIAS=StopAccess
-RELEASE_KEY_PASSWORD=yourkeypassword
-```
-
-`local.properties` is git-ignored. Never commit it.
-
-### 3. Build the release APK / AAB
-
-```bash
-# APK
-cd android && ./gradlew assembleRelease
-
-# AAB
-cd android && ./gradlew bundleRelease
-```
-
-Output: `android/app/build/outputs/`
-
----
-
-## Architecture
-
-```text
-src/
-  api/         nextdns.ts         - NextDNS REST client with retry/backoff
-  components/                    - Shared UI components
-  engine/      nativeEngine.ts    - Rule evaluation and native bridge coordination
-  modules/     usageStats.ts      - Android UsageStatsManager bridge
-               installedApps.ts  - Installed app list bridge
-  screens/                       - Android tab and settings screens
-  services/    logger.ts          - Persistent in-app log store
-               notifications.ts  - Local notifications
-  store/       storageAdapter.ts  - App storage adapter
-  types/       native.ts          - Native navigation and bridge types
-  utils/                         - Time and text helpers
-android/
-  app/src/main/
-    java/com/stopaccess/          - Native Android modules and services
-extension/
-  src/background/                 - Browser runtime, DNR, sync, and session guard
-  src/screens/                    - Extension dashboard, apps, focus, privacy, security, settings
-packages/
-  core/                           - NextDNS API, domain mapping, rules, insights
-  state/                          - Local state helpers
-  sync/                           - Sync orchestration
-  types/                          - Shared contracts
-  viewmodels/                     - Shared UI behavior
-```
-
-### Key Design Decisions
-
-- **Layered enforcement** - Android local blocking, browser local blocking, and NextDNS profile-wide blocking work together but are different scopes.
-- **Visible health** - The UI should show whether protection, accessibility, cloud sync, and recent rule changes are working.
-- **Friction for weakening rules** - Strict Mode and Guardian PIN make sensitive changes harder to do impulsively.
-- **Shared logic** - Core rule, NextDNS, state, and view model code lives in packages so the Android app and extension stay aligned.
-
----
-
-## Permissions
-
-| Permission | Reason |
-| --- | --- |
-| `PACKAGE_USAGE_STATS` | Measure per-app screen time to enforce daily limits. |
-| Accessibility service | Detect foreground app changes and trigger blocking. |
-| Overlay permission | Show the block screen over blocked apps. |
-| `RECEIVE_BOOT_COMPLETED` | Restore protection after device restart. |
-| Notifications | Warn when rules, limits, or protection states need attention. |
-| `INTERNET` | Sync block rules and settings with NextDNS. |
-
----
+StopAccess prioritizes localization constraint mapping. It processes active tabs via the Background Service Worker without passing context, strings, or analytics to any external endpoints.
 
 ## License
 
