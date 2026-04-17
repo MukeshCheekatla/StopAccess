@@ -1,10 +1,10 @@
 # StopAccess Extension
 
 [![Available on Chrome Web Store](https://img.shields.io/badge/Available_on-Chrome_Web_Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/dajibamebijnlohkeddaignbneobpjag?utm_source=item-share-cb)
+[![Available on Edge Add-ons](https://img.shields.io/badge/Available_on-Edge_Add--ons-0078D7?style=for-the-badge&logo=microsoftedge&logoColor=white)](https://microsoftedge.microsoft.com/addons/detail/stopaccess-website-ap/ecgocgconlggmehhgfmcbhjghmkokcfi)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-stopaccess.pages.dev-FF4F00?style=for-the-badge&logo=vercel&logoColor=white)](https://stopaccess.pages.dev/)
 
 StopAccess is a precision site blocking and productivity extension. It combines rigorous browser website blocking via Declarative Net Request, local active tab tracking, strict schedules, Guardian PIN lockdowns, and optional NextDNS cloud synchronization.
-
-![StopAccess Feature Graphic](docs/assets/feature_graphic.png)
 
 ## What It Does
 
