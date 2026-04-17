@@ -183,5 +183,21 @@ export function findServiceIdByDomain(domain: string): string | null {
   if (!norm) {
     return null;
   }
-  return SERVICE_DOMAIN_ALIASES[norm] || null;
+
+  // Try exact match first
+  if (SERVICE_DOMAIN_ALIASES[norm]) {
+    return SERVICE_DOMAIN_ALIASES[norm];
+  }
+
+  // Walk up subdomains (e.g., m.facebook.com -> facebook.com)
+  const parts = norm.split('.');
+  // Check from the longest possible parent down to the root domain
+  for (let i = 1; i < parts.length - 1; i++) {
+    const parent = parts.slice(i).join('.');
+    if (SERVICE_DOMAIN_ALIASES[parent]) {
+      return SERVICE_DOMAIN_ALIASES[parent];
+    }
+  }
+
+  return null;
 }

@@ -6,7 +6,7 @@ import {
 } from '../src/engine/rules';
 import { SyncOrchestrator } from '../src/engine/sync';
 
-jest.mock('../src/sync');
+jest.mock('../src/engine/sync');
 
 describe('FocusEngine', () => {
   let mockCtx: jest.Mocked<SyncContext>;

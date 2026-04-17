@@ -25,7 +25,7 @@ describe('resolveIconUrl', () => {
 
   it('falls back to favicon for unknown domains', () => {
     const url = resolveIconUrl('my-random-blog.net');
-    expect(url).toContain('google.com/s2/favicons');
+    expect(url).toContain('t1.gstatic.com/faviconV2');
     expect(url).toContain('my-random-blog.net');
   });
 
@@ -36,9 +36,9 @@ describe('resolveIconUrl', () => {
 });
 
 describe('getCategoryBadge', () => {
-  it('returns emoji for known categories', () => {
-    expect(getCategoryBadge({ id: 'games' })).toBe('🎮');
-    expect(getCategoryBadge({ id: 'social-networks' })).toBe('🌐');
+  it('returns svg markup for known categories', () => {
+    expect(getCategoryBadge({ id: 'games' })).toContain('<svg');
+    expect(getCategoryBadge({ id: 'social-networks' })).toContain('<svg');
   });
 
   it('returns uppercase initials for unknown categories', () => {
