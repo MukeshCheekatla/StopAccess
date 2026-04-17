@@ -440,7 +440,7 @@ export function renderAppTableRow(
         )}</span>`;
 
   return `
-    <div class="rule-table-row ${
+    <div class="rule-table-row fg-transition-all fg-duration-150 hover:fg-bg-[var(--fg-glass-bg)] ${
       active ? 'is-active' : ''
     }" data-pkg="${escapeHtml(rule.packageName)}" style="
       display: grid;
@@ -449,14 +449,10 @@ export function renderAppTableRow(
       align-items: center;
       padding: 14px 20px;
       border-bottom: 1px solid var(--fg-glass-border);
-      transition: background 0.15s;
       cursor: default;
       width: 100%;
       scroll-snap-align: start;
-    "
-    onmouseover="this.style.background='var(--fg-glass-bg)'"
-    onmouseout="this.style.background=''"
-    >
+    ">
       <!-- 1. Icon -->
       <div style="display: flex; align-items: center; justify-content: center;">
         ${renderBrandLogo(identifier, rule.appName, 32)}

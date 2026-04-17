@@ -715,7 +715,7 @@ async function renderSubTab(
         </div>
 
         <div class="rule-table-body-scroll" style="
-          flex: 1;
+          flex: 0 1 auto;
           min-height: 0;
           overflow-y: auto;
           scroll-behavior: smooth;
@@ -786,7 +786,7 @@ async function renderSubTab(
       </div>
 
       <div style="position: fixed; bottom: 32px; right: 32px; z-index: 100;">
-        <button class="btn-premium" id="btnOpenTargetDrawer" style="width: 64px; height: 64px; font-size: 28px; display:flex; align-items:center; justify-content:center; border-radius: 20px; padding: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: transform 0.2s; cursor: pointer;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">+</button>
+        <button class="btn-premium fg-transition-transform hover:fg-scale-110 active:fg-scale-95" id="btnOpenTargetDrawer" style="width: 64px; height: 64px; font-size: 28px; display:flex; align-items:center; justify-content:center; border-radius: 20px; padding: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.5); cursor: pointer;">+</button>
       </div>
     `;
   }

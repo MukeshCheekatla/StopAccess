@@ -144,7 +144,7 @@ export async function renderDashboardPage(
             </div>
             <div>
                <div class="section-label" style="${UI_TOKENS.TEXT.LABEL} margin-bottom: 20px;">Usage Breakdown</div>
-               <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center" id="chartSlot" style="border-radius: 20px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); height: 280px; transition: opacity 0.2s;">
+               <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center" id="chartSlot" style="border-radius: 20px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); height: 280px; transition: opacity 0.4s ease-out; opacity: 1;">
                   <canvas id="liveUsageChart" style="width: 100% !important; height: 230px !important;"></canvas>
                </div>
                <div class="fg-mt-5 fg-text-xs fg-text-[var(--fg-text)] fg-opacity-80 fg-leading-normal fg-font-semibold">
@@ -510,14 +510,17 @@ export async function renderDashboardPage(
       }
     }
 
-    const chartSlot = container.querySelector('#chartSlot');
-    if (chartSlot && domainList.length === 0) {
-      if (!chartSlot.querySelector('.chart-empty')) {
-        chartSlot.innerHTML +=
-          '<div class="chart-empty fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-text)] fg-opacity-60 fg-text-[13px] fg-font-bold">No activity found.</div>';
+    const chartSlot = container.querySelector('#chartSlot') as HTMLElement;
+    if (chartSlot) {
+      chartSlot.style.opacity = '1';
+      if (domainList.length === 0) {
+        if (!chartSlot.querySelector('.chart-empty')) {
+          chartSlot.innerHTML +=
+            '<div class="chart-empty fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-text)] fg-opacity-60 fg-text-[13px] fg-font-bold">No activity found.</div>';
+        }
+      } else {
+        chartSlot.querySelector('.chart-empty')?.remove();
       }
-    } else if (chartSlot) {
-      chartSlot.querySelector('.chart-empty')?.remove();
     }
 
     // Chart and icon logic
@@ -589,11 +592,13 @@ export async function renderDashboardPage(
               },
             },
             tooltip: {
+              displayColors: false,
               callbacks: {
+                title: () => '',
                 label: function (context: any) {
                   const label = context.label || '';
                   const value = context.raw as number;
-                  return ` ${label}: ${formatMinutes(value)}`;
+                  return `${label}: ${formatMinutes(value)}`;
                 },
               },
             },

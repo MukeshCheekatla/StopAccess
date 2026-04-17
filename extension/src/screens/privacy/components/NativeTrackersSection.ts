@@ -101,11 +101,9 @@ export function renderNativeTrackersSection(
 
           return `
             <div
-              class="security-toggle-row native-toggle-card fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150"
+              class="security-toggle-row native-toggle-card fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-opacity-80"
               data-id="${vendor.id}"
               style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
-              onmouseenter="this.style.transform='translateY(-2px)'; this.style.opacity='0.8'"
-              onmouseleave="this.style.transform=''; this.style.opacity='1'"
             >
               <!-- Icon on the left (No box) -->
               <div class="fg-shrink-0 fg-flex fg-items-center fg-justify-center" style="width: 40px; height: 40px;">

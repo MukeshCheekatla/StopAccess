@@ -66,11 +66,9 @@ export function renderParentalSection(
         ${controls
           .map(
             (ctrl) => `
-          <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150"
+          <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-opacity-80"
             data-key="${ctrl.key}"
             style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
-            onmouseenter="this.style.transform='translateY(-2px)';this.style.opacity='0.8'"
-            onmouseleave="this.style.transform='';this.style.opacity='1'"
           >
             <div class="fg-relative fg-shrink-0">
               <span class="fg-text-[var(--muted)]">${ctrl.icon}</span>

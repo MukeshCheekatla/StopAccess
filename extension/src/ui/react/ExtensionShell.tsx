@@ -150,9 +150,9 @@ export function DashboardShell<T extends string>({
       >
         <div className="fg-px-3 fg-pt-4 fg-pb-[22px] fg-flex fg-items-center fg-gap-[14px]">
           <img
-            src="/assets/icon-48.png"
+            src="/assets/icon-128.png"
             alt="StopAccess"
-            className="fg-w-9 fg-h-9 fg-rounded-[10px] fg-border fg-border-[var(--fg-glass-border)] fg-object-contain"
+            className="fg-w-9 fg-h-9 fg-object-contain"
           />
           <div className="fg-flex fg-items-baseline fg-gap-3">
             <div
