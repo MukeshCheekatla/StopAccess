@@ -1,64 +1,55 @@
-# StopAccess Extension
+<div align="center">
+  <img src="extension/assets/icon-128.png" width="128" height="128" alt="StopAccess">
+  <h1>StopAccess</h1>
+  <p>A precision site blocking and focus management engine.<br/><b>Privacy focused • NextDNS Integration • Cross-platform</b></p>
 
-[![Available on Chrome Web Store](https://img.shields.io/badge/Available_on-Chrome_Web_Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/dajibamebijnlohkeddaignbneobpjag?utm_source=item-share-cb)
-[![Available on Edge Add-ons](https://img.shields.io/badge/Available_on-Edge_Add--ons-0078D7?style=for-the-badge&logo=microsoftedge&logoColor=white)](https://microsoftedge.microsoft.com/addons/detail/stopaccess-website-ap/ecgocgconlggmehhgfmcbhjghmkokcfi)
-[![Live Demo](https://img.shields.io/badge/Live_Demo-stopaccess.pages.dev-FF4F00?style=for-the-badge&logo=vercel&logoColor=white)](https://stopaccess.pages.dev/)
+  <p>
+    <img src="https://img.shields.io/badge/License-MIT-orange.svg?style=flat-square" alt="License">
+    <img src="https://img.shields.io/badge/Status-Active-brightgreen.svg?style=flat-square" alt="Status">
+  </p>
+</div>
 
-StopAccess is a precision site blocking and productivity extension. It combines rigorous browser website blocking via Declarative Net Request, local active tab tracking, strict schedules, Guardian PIN lockdowns, and optional NextDNS cloud synchronization.
+## About
+StopAccess is a high-performance site blocking extension designed to eliminate distractions. It combines ironclad browser rules (DNR) with local active tracking and secure NextDNS synchronization for uncompromising productivity.
 
-## What It Does
+## Features
+- **Instant Blocking**: Leverages Declarative Net Request for zero-latency site restriction.
+- **High-Fidelity Focus**: Professional countdown meter with unified dashboard & popup controls.
+- **Direct Cloud Sync**: Seamlessly synchronize your NextDNS denylists and security profiles.
+- **Guardian Lock**: Real-time typing challenges and PIN lockdowns to prevent impulsive bypasses.
+- **Local First**: All evaluation happens on-device. No history is ever stored or transmitted.
 
-| Feature | How it works |
-| --- | --- |
-| **Browser Website Blocking** | Tracks active tab time, blocks selected domains via fast Declarative Net Request rules, and displays strict "Access Denied" overlays. |
-| **NextDNS Cloud Sync** | Synchronizes custom denylists, privacy blocklists, security settings, and profile-wide controls directly with the NextDNS API. |
-| **Active Usage Tracking**| Accurately measures active tab duration on mapped domains to enforce precise daily usage limits entirely locally. |
-| **Focus Sessions** | Starts timed sessions that immediately enforce temporary strict limitations on specific services. |
-| **Strict Lock & Guardian PIN** | Designed defensively to protect settings; introduces a strict local PIN to stop impulsive bypasses during focus sessions. |
+## Installation
 
-## Developer Setup
+### Browser Extension
+Download the latest version from the official stores:
 
-The codebase is organized as an NPM workspace containing the extension and its shared core packages:
+<a href="https://chromewebstore.google.com/detail/dajibamebijnlohkeddaignbneobpjag">
+  <img src="https://www.google.com/s2/favicons?domain=chrome.google.com&sz=128" width="40" height="40" alt="Chrome Web Store" title="Chrome Web Store">
+</a>
+&nbsp;&nbsp;&nbsp;
+<a href="https://microsoftedge.microsoft.com/addons/detail/stopaccess-website-ap/ecgocgconlggmehhgfmcbhjghmkokcfi">
+  <img src="https://www.google.com/s2/favicons?domain=microsoftedge.microsoft.com&sz=128" width="40" height="40" alt="Edge Add-ons" title="Edge Add-ons">
+</a>
 
-- `extension/`: The core browser extension built with React and Tailwind CSS.
-- `packages/`: Core domain routing, state, and NextDNS API logic.
-
-### 1. Requirements
-
-- Node.js 18+
-
-### 2. Install Dependencies
-
-From the repository root:
+## Development
 ```bash
-git clone <repository-url>
-cd gate
+git clone https://github.com/MukeshCheekatla/StopAccess.git
+cd StopAccess
 npm install
-```
-
-### 3. Run Locally
-
-Run the extension in watch mode to automatically rebuild assets during development:
-```bash
 npm run watch -w extension
 ```
 
-*To load the extension:*
-1. Navigate to `chrome://extensions/`
-2. Enable **Developer mode** in the top right.
-3. Select **Load unpacked** and locate the `gate/extension/` directory.
+### Structure
+- `extension/`: Core browser extension (React + Tailwind).
+- `packages/`: Shared domain logic, state, and sync modules.
 
-### 4. Verify Quality
+## Legal & Privacy
+StopAccess functions strictly locally. We do not host, store, or distribute your browsing data. All rule evaluations happen on-device. For more information, visit our [Privacy Policy](extension/PRIVACY.md).
 
-Run TypeScript compilation, linting, and extension production build verification:
-```bash
-npm run verify:extension
-```
-
-## Privacy
-
-StopAccess prioritizes localization constraint mapping. It processes active tabs via the Background Service Worker without passing context, strings, or analytics to any external endpoints.
-
-## License
-
-MIT
+## Built With
+<p align="left">
+  <img src="https://www.google.com/s2/favicons?domain=react.dev&sz=128" width="24" height="24" alt="React">
+  <img src="https://www.google.com/s2/favicons?domain=typescriptlang.org&sz=128" width="24" height="24" alt="TypeScript">
+  <img src="https://www.google.com/s2/favicons?domain=tailwindcss.com&sz=128" width="24" height="24" alt="Tailwind CSS">
+</p>
