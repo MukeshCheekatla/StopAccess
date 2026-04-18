@@ -9,7 +9,6 @@ import { appsController } from '../../lib/appsController';
 import { getCachedIcon } from '../../lib/iconCache';
 import {
   UI_TOKENS,
-  renderLoader,
   renderBrandLogo,
   attachGlobalIconListeners,
 } from '../../lib/ui';
@@ -33,7 +32,7 @@ export async function renderDashboardPage(
     !container.innerHTML ||
     container.innerHTML === '<div class="empty-state"></div>'
   ) {
-    container.innerHTML = renderLoader();
+    container.innerHTML = '<div class="fg-animate-fade-in fg-py-12"></div>';
   }
 
   try {
@@ -620,7 +619,9 @@ export async function renderDashboardPage(
           changes.focus_mode_end_time || changes.fg_active_session
         );
         const configChanged = !!(
-          changes.nextdns_api_key || changes.nextdns_profile_id
+          changes.nextdns_api_key ||
+          changes.nextdns_profile_id ||
+          changes.fg_cloud_blocked_queries
         );
 
         if (rulesChanged || usageChanged || focusChanged || configChanged) {

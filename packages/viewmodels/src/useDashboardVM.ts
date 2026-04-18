@@ -199,16 +199,29 @@ export async function loadDashboardData(selectedDate?: string) {
 
   let cloudBlockedQueries = 0;
   if (syncStatus === 'connected') {
-    try {
-      const countersRes = await nextDNSApi.getAnalyticsCounters();
-      if (countersRes && countersRes.ok) {
-        const rawData = (countersRes as any).data || {};
-        cloudBlockedQueries = rawData.blocked ?? rawData.blockedQueries ?? 0;
-      }
-    } catch (e) {
-      console.warn('Real-time sync failed. Using local state.', e);
-    }
+    // Background refresh: fetch and save to storage.
+    // This will trigger the storage listener in DashboardPage to re-render.
+    nextDNSApi
+      .getAnalyticsCounters()
+      .then((res: any) => {
+        if (res && res.ok) {
+          const data = res.data;
+          let blocked = 0;
+          if (Array.isArray(data)) {
+            const bObj = data.find((i: any) => i.status === 'blocked');
+            blocked = Number(bObj?.queries) || 0;
+          } else if (data && typeof data === 'object') {
+            blocked =
+              Number(data.blocked || data.blockedQueries || data.queries) || 0;
+          }
+          storage.set('fg_cloud_blocked_queries', blocked);
+        }
+      })
+      .catch((e) => console.warn('[Dashboard] Sync fail', e));
   }
+
+  cloudBlockedQueries =
+    (await storage.getNumber('fg_cloud_blocked_queries', 0)) ?? 0;
 
   const focusSummary = summarizeFocusSessions(sessionHistory, targetDate);
   const focusEnd = await storage.getNumber(STORAGE_KEYS.FOCUS_END, 0);

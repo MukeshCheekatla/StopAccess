@@ -677,7 +677,6 @@ function _renderIdlePopup(container: HTMLElement): void {
   container.querySelectorAll('.start-focus').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const mins = btn.getAttribute('data-mins')!;
-      await chrome.storage.local.set({ fg_focus_session_start: Date.now() });
       chrome.runtime.sendMessage(
         { action: 'startFocus', minutes: parseInt(mins, 10) },
         () => renderFocusPage(container, 'popup'),

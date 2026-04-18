@@ -291,21 +291,6 @@ function DashboardApp() {
     };
   }, []);
 
-  const [visitedTabs, setVisitedTabs] = useState<Set<TabId>>(
-    new Set([activeTab]),
-  );
-
-  useEffect(() => {
-    setVisitedTabs((prev) => {
-      if (prev.has(activeTab)) {
-        return prev;
-      }
-      const next = new Set(prev);
-      next.add(activeTab);
-      return next;
-    });
-  }, [activeTab]);
-
   const getRenderFnForTab = (tabId: TabId) => {
     switch (tabId) {
       case 'focus':
@@ -356,9 +341,6 @@ function DashboardApp() {
     return (
       <div className="fg-relative fg-h-full fg-w-full">
         {TABS.map((tab) => {
-          if (!visitedTabs.has(tab.id)) {
-            return null;
-          }
           const renderFn = getRenderFnForTab(tab.id);
           if (!renderFn) {
             return null;
