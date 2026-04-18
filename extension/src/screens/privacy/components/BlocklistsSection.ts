@@ -10,6 +10,7 @@ import {
   renderSectionTitleRow,
   UI_TOKENS,
 } from '../../../lib/ui';
+import { getCachedIconSync } from '../../../lib/iconCache';
 
 // Icons
 const iconList =
@@ -247,18 +248,26 @@ function getIconHtml(
   sizePx: number = 24,
   imgSizePx: number = 20,
 ): string {
-  if (!iconUrl) {
-    return `<div class="fg-text-[var(--muted)]" style="width: ${sizePx}px; height: ${sizePx}px; display: flex; align-items: center; justify-content: center;">${iconDatabase}</div>`;
-  }
+  const cachedUrl = domainCandidate ? getCachedIconSync(domainCandidate) : null;
+  const primaryUrl = cachedUrl || iconUrl;
+  const hasCache = !!cachedUrl;
 
   return `
-    <div class="fg-relative fg-flex fg-items-center fg-justify-center" style="width: ${sizePx}px; height: ${sizePx}px;">
-      <div class="placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-text)]" style="opacity: 0.5; z-index: 1;">
+    <div class="global-brand-logo fg-relative fg-flex fg-items-center fg-justify-center" data-domain="${
+      domainCandidate || ''
+    }" style="width: ${sizePx}px; height: ${sizePx}px;">
+      <div class="logo-fallback placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-text)]" style="opacity: ${
+        hasCache ? '0' : '0.5'
+      }; z-index: 1;">
         ${iconDatabase}
       </div>
-      <img src="${iconUrl}" data-domain="${
-    domainCandidate || ''
-  }" data-type="blocklist" style="width: ${imgSizePx}px; height: ${imgSizePx}px; object-fit: contain; z-index: 2; border-radius: 20%; display: none;" crossorigin="anonymous">
+      <img src="${primaryUrl}" 
+           data-domain="${domainCandidate || ''}" 
+           class="brand-logo-image" 
+           style="width: ${imgSizePx}px; height: ${imgSizePx}px; object-fit: contain; z-index: 2; border-radius: 20%; opacity: ${
+    hasCache ? '1' : '0'
+  }; display: ${hasCache ? 'block' : 'none'};" 
+           crossorigin="anonymous">
     </div>
   `;
 }

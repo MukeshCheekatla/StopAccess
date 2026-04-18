@@ -20,7 +20,6 @@ import {
   renderCloudBanner,
   renderErrorCard,
   applyToggleUI,
-  renderLoader,
 } from '../../lib/ui';
 
 const vm = createSecurityVM(storage, nextDNSApi);
@@ -31,8 +30,6 @@ export async function renderSecurityPage(
   if (!container) {
     return;
   }
-
-  container.innerHTML = renderLoader();
 
   const { settings, parental, isConfigured, error } = await vm.load();
 
@@ -49,31 +46,52 @@ export async function renderSecurityPage(
     return;
   }
 
-  container.innerHTML = `
-    ${isLocalMode ? renderLocalModeBanner() : ''}
-    <!-- Sections -->
-    <div id="security_sections_container" class="${
-      isLocalMode ? 'fg-opacity-50 fg-pointer-events-none' : ''
-    }">
-      ${renderThreatSection(settings || ({} as any))}
-      ${renderDomainProtectionSection(settings || ({} as any))}
-      ${renderContentProtectionSection(settings || ({} as any))}
-      ${renderParentalSection(parental)}
-      ${renderTldManager((settings?.tlds as any) || [])}
-    </div>
-  `;
+  // Idempotent Shell Guard
+  if (!container.querySelector('#securityShell')) {
+    container.innerHTML = `
+      <div id="securityShell" class="fg-animate-fade-in fg-py-1">
+        ${isLocalMode ? renderLocalModeBanner() : ''}
+        <!-- Sections -->
+        <div id="security_sections_container" class="${
+          isLocalMode ? 'fg-opacity-50 fg-pointer-events-none' : ''
+        }">
+          ${renderThreatSection(settings || ({} as any))}
+          ${renderDomainProtectionSection(settings || ({} as any))}
+          ${renderContentProtectionSection(settings || ({} as any))}
+          ${renderParentalSection(parental)}
+          ${renderTldManager((settings?.tlds as any) || [])}
+        </div>
+      </div>
+    `;
 
-  if (isLocalMode) {
-    container
-      .querySelector('#btn_upgrade_cloud')
-      ?.addEventListener('click', () => {
-        chrome.tabs.create({
-          url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
+    if (isLocalMode) {
+      container
+        .querySelector('#btn_upgrade_cloud')
+        ?.addEventListener('click', () => {
+          chrome.tabs.create({
+            url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
+          });
         });
-      });
-  }
+    }
 
-  attachHandlers(container, settings);
+    attachHandlers(container, settings);
+  } else {
+    // In-place update if shell exists
+    const sectionsContainer = container.querySelector(
+      '#security_sections_container',
+    );
+    if (sectionsContainer) {
+      sectionsContainer.innerHTML = `
+        ${renderThreatSection(settings || ({} as any))}
+        ${renderDomainProtectionSection(settings || ({} as any))}
+        ${renderContentProtectionSection(settings || ({} as any))}
+        ${renderParentalSection(parental)}
+        ${renderTldManager((settings?.tlds as any) || [])}
+      `;
+      // Re-attach handlers if inner content was replaced
+      attachHandlers(container, settings);
+    }
+  }
 }
 
 function attachHandlers(

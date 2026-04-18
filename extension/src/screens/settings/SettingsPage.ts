@@ -640,6 +640,12 @@ export async function renderSettingsPage(container) {
       }
     });
 
+  if ((window as any).__settingsStorageListener) {
+    chrome.storage.onChanged.removeListener(
+      (window as any).__settingsStorageListener,
+    );
+  }
+
   const storageListener = (changes: any) => {
     if (changes.nextdns_profile_id) {
       const field = container.querySelector('#cfg_profile') as HTMLInputElement;
@@ -649,6 +655,7 @@ export async function renderSettingsPage(container) {
       }
     }
   };
+  (window as any).__settingsStorageListener = storageListener;
   chrome.storage.onChanged.addListener(storageListener);
   // We should ideally return a cleanup function or handle it via a mutation observer when container is removed
   // but for a simple extension dashboard this is generally fine or we can use a weak reference if needed.
@@ -901,14 +908,7 @@ export async function renderSettingsPage(container) {
   };
   renderStats();
 
-  container
-    .querySelector('#btn_refresh_sync')
-    ?.addEventListener('click', async () => {
-      const fresh = await loadSettingsData();
-      Object.assign(syncState, fresh.syncState);
-      renderStats();
-      toast.success('Telemetry Refreshed');
-    });
+  // Note: btn_refresh_sync listener removed as button is not present in template.
 
   container.querySelector('#btn_force_sync')?.addEventListener('click', () => {
     chrome.runtime.sendMessage({ action: 'manualSync' });

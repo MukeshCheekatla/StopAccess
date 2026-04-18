@@ -9,7 +9,7 @@ import {
   renderSectionBadge,
   renderSectionTitleRow,
   UI_TOKENS,
-  getBrandLogoUrl,
+  renderBrandLogo,
 } from '../../../lib/ui';
 
 interface VendorMeta {
@@ -97,7 +97,6 @@ export function renderNativeTrackersSection(
       <div class="fg-grid fg-grid-cols-3 fg-gap-2">
         ${KNOWN_NATIVE_TRACKERS.map((vendor) => {
           const active = activeIds.has(vendor.id);
-          const faviconUrl = getBrandLogoUrl(vendor.domain, 64);
 
           return `
             <div
@@ -106,13 +105,7 @@ export function renderNativeTrackersSection(
               style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
             >
               <!-- Icon on the left (No box) -->
-              <div class="fg-shrink-0 fg-flex fg-items-center fg-justify-center" style="width: 40px; height: 40px;">
-                <img
-                  src="${faviconUrl}"
-                  alt="${vendor.name}"
-                  style="width: 32px; height: 32px; object-fit: contain;"
-                >
-              </div>
+              ${renderBrandLogo(vendor.domain, vendor.name, 40)}
 
                <div class="fg-flex-1 fg-min-w-0">
                  <div class="fg-flex fg-items-center fg-gap-2 fg-mb-[2px]">

@@ -19,8 +19,9 @@ import {
   applyToggleUI,
   applyCardToggleUI,
   renderStatCard,
-  getBrandLogoUrl,
+  attachGlobalIconListeners,
 } from '../../lib/ui';
+import { prefetchIconCache } from '../../lib/iconCache';
 
 const vm = createPrivacyVM(storage, nextDNSApi);
 
@@ -37,7 +38,16 @@ export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
     return;
   }
 
-  const { settings, isConfigured, error } = await vm.load();
+  // Remove blocking loader to ensure instant dashboard display
+  if (!container.innerHTML) {
+    container.innerHTML =
+      '<div class="fg-max-w-[800px] fg-mx-auto fg-animate-fade-in fg-py-12"></div>';
+  }
+
+  const [{ settings, isConfigured, error }] = await Promise.all([
+    vm.load(),
+    prefetchIconCache(),
+  ]);
 
   // Onboarding Bridge: Allow viewing in Local Mode
   const isLocalMode = !isConfigured;
@@ -56,9 +66,22 @@ export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
   const blocklistCount = isLocalMode ? 0 : await vm.getActiveBlocklistCount();
   const nativeCount = isLocalMode ? 0 : await vm.getActiveNativeCount();
   const disguisedActive = isLocalMode ? false : settings?.disguisedTrackers;
-  const availableBlocklists = isLocalMode
-    ? []
-    : await vm.getAvailableBlocklists();
+
+  let availableBlocklists: any[] = [];
+  if (!isLocalMode) {
+    vm.getAvailableBlocklists().then((list) => {
+      availableBlocklists = list;
+      const section = container.querySelector('#privacy_blocklists_section');
+      if (section) {
+        section.innerHTML = renderBlocklistsSection(
+          privacySettings.blocklists ?? [],
+          availableBlocklists,
+        );
+        attachGlobalIconListeners(container);
+      }
+    });
+  }
+
   const privacySettings =
     settings ||
     ({
@@ -102,10 +125,12 @@ export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
       <!-- Sections -->
       ${renderPrivacyOptionsSection(privacySettings)}
       ${renderNativeTrackersSection(privacySettings.natives ?? [])}
-      ${renderBlocklistsSection(
-        privacySettings.blocklists ?? [],
-        availableBlocklists,
-      )}
+      <div id="privacy_blocklists_section">
+        ${renderBlocklistsSection(
+          privacySettings.blocklists ?? [],
+          availableBlocklists,
+        )}
+      </div>
     </div>
   `;
 
@@ -193,45 +218,8 @@ function attachHandlers(container: HTMLElement): void {
       }
     });
 
-    // Delegate icon load/error events to bypass CSP inline handler restrictions
-    if (!(container as any).__iconListenersAttached) {
-      container.addEventListener(
-        'load',
-        (e) => {
-          const target = e.target as HTMLImageElement;
-          if (target.tagName === 'IMG' && target.dataset.type === 'blocklist') {
-            target.style.display = 'block';
-            if (target.previousElementSibling) {
-              (target.previousElementSibling as HTMLElement).style.display =
-                'none';
-            }
-          }
-        },
-        true,
-      );
-
-      container.addEventListener(
-        'error',
-        (e) => {
-          const target = e.target as HTMLImageElement;
-          if (target.tagName === 'IMG' && target.dataset.type === 'blocklist') {
-            const domain = target.dataset.domain;
-            if (domain && !target.dataset.triedFallback) {
-              target.dataset.triedFallback = 'true';
-              target.src = getBrandLogoUrl(domain, 64);
-            } else {
-              target.style.display = 'none';
-              if (target.previousElementSibling) {
-                (target.previousElementSibling as HTMLElement).style.display =
-                  'flex';
-              }
-            }
-          }
-        },
-        true,
-      );
-      (container as any).__iconListenersAttached = true;
-    }
+    // Use standardized icon caching listeners from UI library
+    attachGlobalIconListeners(container);
   }
 
   // Drawer Search
