@@ -14,8 +14,22 @@ export function LegacyBridge({
   isVisible = true,
 }: LegacyBridgeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const mountedRef = useRef(false);
 
+  // Render once on mount to pre-populate content before first tab visit
   useEffect(() => {
+    if (containerRef.current) {
+      renderFn(containerRef.current);
+    }
+    mountedRef.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-render only on actual tab switch (not the initial mount trigger)
+  useEffect(() => {
+    if (!mountedRef.current) {
+      return;
+    }
     if (containerRef.current && isVisible) {
       renderFn(containerRef.current);
     }

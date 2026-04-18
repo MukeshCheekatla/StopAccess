@@ -1337,8 +1337,23 @@ export async function confirmGuardianAction(options: {
     '../background/platformAdapter'
   );
 
-  // 1. Patience Challenge
   const challengeEnabled = await storage.getBoolean('challenge_enabled');
+  const currentPin = await storage.getString('guardian_pin');
+
+  // 0. Environment Check for Popup
+  // Typing inside a tiny extension popup is terrible UX.
+  // If a lock is triggered, move them to the full dashboard.
+  if (
+    (challengeEnabled || currentPin) &&
+    window.location.pathname.includes('popup.html')
+  ) {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL('dashboard.html?tab=apps'),
+    });
+    window.close();
+    return false;
+  }
+
   if (challengeEnabled) {
     const challengeText =
       (await storage.getString('challenge_text')) ||
@@ -1350,7 +1365,6 @@ export async function confirmGuardianAction(options: {
   }
 
   // 2. PIN Lock
-  const currentPin = await storage.getString('guardian_pin');
   if (currentPin) {
     const { toast } = (await import('./toast')) as any;
     return new Promise((resolve) => {

@@ -1,7 +1,7 @@
 import { nextDNSApi } from '../../background/platformAdapter';
 import { buildDashboardTabPath } from '@stopaccess/core';
 import { toast } from '../../lib/toast';
-import { renderCloudBanner, renderLoader, UI_TOKENS } from '../../lib/ui';
+import { renderCloudBanner, UI_TOKENS } from '../../lib/ui';
 
 declare var chrome: any;
 
@@ -24,71 +24,83 @@ export async function renderSchedulePage(
     return;
   }
 
-  const isConfigured = await nextDNSApi.isConfigured();
+  const [isConfigured, { fg_nextdns_schedule }] = await Promise.all([
+    nextDNSApi.isConfigured(),
+    chrome.storage.local.get(['fg_nextdns_schedule']),
+  ]);
+
   const isLocalMode = !isConfigured;
 
-  // Render the skeleton first
-  container.innerHTML = `
-    <div class="fg-max-w-[760px] fg-mx-auto fg-animate-fade-in" style="min-height: calc(100vh - 180px); display:flex; flex-direction:column; justify-content:center;">
-      ${isLocalMode ? _renderCloudRequiredBanner() : ''}
-      <div id="schedule_content_container" class="${
-        isLocalMode ? 'fg-opacity-40 fg-pointer-events-none' : ''
-      }">
-        <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-mt-24">
-          ${renderLoader('Contacting Control Hub', 'fg-mt-24')}
-        </div>
-      </div>
-    </div>
-  `;
-
-  if (isLocalMode) {
-    const mockRecreation = {
-      mon: { enabled: true, start: '18:00', end: '21:00' },
-      tue: { enabled: true, start: '18:00', end: '21:00' },
-      wed: { enabled: true, start: '18:00', end: '21:00' },
-      thu: { enabled: true, start: '18:00', end: '21:00' },
-      fri: { enabled: true, start: '17:00', end: '23:00' },
-      sat: { enabled: true, start: '09:00', end: '23:00' },
-      sun: { enabled: true, start: '09:00', end: '21:00' },
-    };
-    const content = container.querySelector('#schedule_content_container');
-    if (content) {
-      _renderPage(content as HTMLElement, mockRecreation);
-    }
-
-    container
-      .querySelector('#btn_upgrade_cloud_schedule')
-      ?.addEventListener('click', () => {
-        chrome.tabs.create({
-          url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
-        });
-      });
-    return;
-  }
-
-  try {
-    const res = await nextDNSApi.getSchedules();
-    if (!res.ok) {
-      throw res.error;
-    }
-
-    const recreation = res.data || {};
-
+  // Guard: only build DOM once — subsequent calls update in-place
+  if (!container.querySelector('#scheduleShell')) {
     if (context === 'popup') {
       _renderPopup(container);
-    } else {
-      _renderPage(container, recreation);
+      return;
     }
-  } catch (e: any) {
-    _renderError(container, e);
+
+    if (isLocalMode) {
+      const mockRecreation = {
+        mon: { enabled: true, start: '18:00', end: '21:00' },
+        tue: { enabled: true, start: '18:00', end: '21:00' },
+        wed: { enabled: true, start: '18:00', end: '21:00' },
+        thu: { enabled: true, start: '18:00', end: '21:00' },
+        fri: { enabled: true, start: '17:00', end: '23:00' },
+        sat: { enabled: true, start: '09:00', end: '23:00' },
+        sun: { enabled: true, start: '09:00', end: '21:00' },
+      };
+      _renderPage(container, mockRecreation, isLocalMode);
+      container
+        .querySelector('#btn_upgrade_cloud_schedule')
+        ?.addEventListener('click', () => {
+          chrome.tabs.create({
+            url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
+          });
+        });
+      return;
+    }
+
+    // No cache yet — build shell with whatever we have (empty = loading state)
+    _renderPage(container, fg_nextdns_schedule || {}, false);
+  } else if (context === 'popup') {
+    return; // popup already rendered
+  }
+
+  // Background sync — update values in-place, no DOM wipe
+  if (!isLocalMode) {
+    nextDNSApi
+      .getSchedules()
+      .then((res) => {
+        if (res.ok) {
+          const recreation = res.data || {};
+          const hasChanged =
+            JSON.stringify(recreation) !== JSON.stringify(fg_nextdns_schedule);
+          if (hasChanged) {
+            chrome.storage.local.set({ fg_nextdns_schedule: recreation });
+            _patchDaySlots(container, recreation);
+          }
+        }
+      })
+      .catch((e) => {
+        if (!fg_nextdns_schedule && !container.querySelector('.day-slot')) {
+          _renderError(container, e);
+        }
+      });
   }
 }
 
-function _renderPage(container: HTMLElement, recreation: any): void {
+function _renderPage(
+  container: HTMLElement,
+  recreation: any,
+  isLocalMode: boolean = false,
+): void {
   container.innerHTML = `
-    <div class="fg-max-w-[800px] fg-mx-auto fg-animate-fade-in fg-pb-20">
-      
-      <!-- User Screenshot Fidelity Modal -->
+    <div id="scheduleShell" class="fg-max-w-[800px] fg-mx-auto fg-pb-20">
+
+      ${isLocalMode ? _renderCloudRequiredBanner() : ''}
+
+      <div class="${isLocalMode ? 'fg-opacity-40 fg-pointer-events-none' : ''}">
+
+      <!-- Card -->
       <div class="glass-card fg-mx-auto fg-mt-4" style="background: var(--fg-surface); border: 1px solid var(--fg-glass-border); border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(15,23,42,0.12);">
         
         <!-- Header -->
@@ -99,7 +111,6 @@ function _renderPage(container: HTMLElement, recreation: any): void {
                UI_TOKENS.TEXT.SUBTEXT
              }; margin-top: 4px; max-width: 400px;">Schedule your daily "Free Time" when all blocks are automatically paused so you can browse freely.</p>
            </div>
-           <button class="fg-text-white/40 hover:fg-text-white/80 fg-transition-colors fg-mt-1">✕</button>
         </div>
 
         <div class="fg-p-5 fg-flex fg-flex-col fg-gap-3">
@@ -146,7 +157,6 @@ function _renderPage(container: HTMLElement, recreation: any): void {
 
         <!-- Footer -->
         <div class="fg-p-6 fg-border-t fg-border-white/[0.05] fg-flex fg-justify-end fg-gap-3">
-           <button class="fg-px-6 fg-py-2 fg-rounded-md fg-text-[14px] fg-font-semibold fg-text-white/60 hover:fg-bg-white/5 fg-border fg-border-white/10 fg-transition-all" style="height: 42px;">Cancel</button>
            <button id="btnSaveMaster" class="fg-px-8 fg-py-2 fg-rounded-md fg-text-[14px] fg-font-bold fg-text-white fg-transition-all" style="background: var(--fg-accent); height: 42px;">Save</button>
         </div>
       </div>
@@ -159,6 +169,7 @@ function _renderPage(container: HTMLElement, recreation: any): void {
          </p>
        </div>
 
+      </div>
     </div>
 
     <style>
@@ -195,13 +206,35 @@ function _renderPage(container: HTMLElement, recreation: any): void {
       }
       .time-input:hover { border-color: rgba(255,255,255,0.2) !important; }
       .time-input:focus { border-color: var(--fg-accent) !important; }
-
-      @keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-      .fg-animate-fade-in { animation: fade-in 0.4s ease-out forwards; }
     </style>
   `;
 
   _attachHandlers(container);
+}
+
+function _patchDaySlots(container: HTMLElement, recreation: any): void {
+  container.querySelectorAll('.day-slot').forEach((slot) => {
+    const checkbox = slot.querySelector('.day-check') as HTMLInputElement;
+    const day = checkbox.dataset.day!;
+    const data = recreation[day];
+    if (!data) {
+      return;
+    }
+
+    checkbox.checked = data.enabled;
+    const inputs = slot.querySelector('.slot-inputs') as HTMLElement;
+    inputs.classList.toggle('fg-opacity-60', !data.enabled);
+    inputs.classList.toggle('fg-pointer-events-none', !data.enabled);
+
+    const startInput = slot.querySelector(
+      '.time-input[data-type="start"]',
+    ) as HTMLInputElement;
+    const endInput = slot.querySelector(
+      '.time-input[data-type="end"]',
+    ) as HTMLInputElement;
+    startInput.value = data.start;
+    endInput.value = data.end;
+  });
 }
 
 function _attachHandlers(container: HTMLElement): void {
@@ -260,7 +293,13 @@ function _attachHandlers(container: HTMLElement): void {
         const res = await nextDNSApi.updateSchedules(payload);
         if (res.ok) {
           toast.success('NextDNS Synchronized');
-          setTimeout(() => renderSchedulePage(container, 'page'), 800);
+          chrome.storage.local.set({ fg_nextdns_schedule: payload });
+          btn.innerText = 'Saved ✓';
+          setTimeout(() => {
+            btn.innerText = originalText;
+            btn.style.opacity = '1';
+            btn.disabled = false;
+          }, 1500);
         } else {
           throw new Error(res.error?.message);
         }
