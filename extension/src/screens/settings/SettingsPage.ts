@@ -16,6 +16,7 @@ const iconEdit =
 import { toast } from '../../lib/toast';
 import { checkGuard } from '../../background/sessionGuard';
 import { UI_TOKENS, renderInfoTooltip } from '../../lib/ui';
+import { COLORS } from '../../lib/designTokens';
 
 export async function renderSettingsPage(container) {
   if (!container) {
@@ -240,7 +241,7 @@ export async function renderSettingsPage(container) {
                     <div>
                       <h2 style="${
                         UI_TOKENS.TEXT.HEADING
-                      }">Patience Check ${renderInfoTooltip(
+                      }">Unblock Challenge ${renderInfoTooltip(
     'Requires you to type a specific paragraph perfectly before settings can be unlocked. Adds mental friction to prevent impulsive changes.',
   )}</h2>
                       <p style="${
@@ -261,11 +262,23 @@ export async function renderSettingsPage(container) {
                 } fg-flex-1 fg-flex fg-flex-col">
                   <div style="${
                     UI_TOKENS.TEXT.LABEL
-                  }; font-size: 11px; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px;">Custom Challenge Text (Min. 100 chars)</div>
+                  }; font-size: 11px; color: var(--fg-muted); letter-spacing: 0.1em; margin-bottom: 8px;">Target Paragraph</div>
                   <textarea id="txt_challenge_body" class="fg-flex-1 fg-w-full fg-bg-[var(--fg-surface-hover)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-2xl fg-p-4 fg-text-[13px] fg-text-[var(--fg-text)] fg-min-h-[120px] fg-outline-none focus:fg-border-[var(--fg-accent)] fg-transition-all" placeholder="Enter custom text for the challenge...">${challengeText}</textarea>
-                  <div class="fg-flex fg-justify-between fg-mt-3 fg-items-center">
-                    <button id="btn_reset_challenge_text" class="fg-text-[10px] fg-font-bold fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] fg-uppercase fg-tracking-widest fg-transition-all">Restore Default</button>
-                    <button id="btn_save_challenge_text" class="btn-premium fg-px-6 fg-py-2.5 fg-rounded-xl fg-text-[10px] fg-font-black fg-uppercase fg-tracking-widest">Update Challenge</button>
+                  
+                  <div class="fg-mt-4">
+                    <div style="${
+                      UI_TOKENS.TEXT.LABEL
+                    }; font-size: 10px; color: var(--fg-muted); margin-bottom: 8px;">Quick Presets</div>
+                    <div class="fg-flex fg-flex-wrap fg-gap-2">
+                       <button class="preset-para-btn fg-px-3 fg-py-1.5 fg-bg-[var(--fg-surface-hover)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-lg fg-text-[10px] fg-font-bold fg-text-[var(--fg-muted)] hover:fg-border-[var(--fg-accent)] hover:fg-text-[var(--fg-accent)] fg-transition-all" data-text="Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions. This challenge is here to remind me that my time is valuable and I must use it wisely.">Default Focus</button>
+                       <button class="preset-para-btn fg-px-3 fg-py-1.5 fg-bg-[var(--fg-surface-hover)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-lg fg-text-[10px] fg-font-bold fg-text-[var(--fg-muted)] hover:fg-border-[var(--fg-accent)] hover:fg-text-[var(--fg-accent)] fg-transition-all" data-text="Self-discipline is the ability to make yourself do what you should do, when you should do it, whether you feel like it or not. I control my actions, and I choose to spend my time on meaningful work that brings me closer to my future self.">Cold Discipline</button>
+                       <button class="preset-para-btn fg-px-3 fg-py-1.5 fg-bg-[var(--fg-surface-hover)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-lg fg-text-[10px] fg-font-bold fg-text-[var(--fg-muted)] hover:fg-border-[var(--fg-accent)] hover:fg-text-[var(--fg-accent)] fg-transition-all" data-text="The more you think you know, the more you realize you don't. Stay humble, stay hungry, and most importantly, stay focused on the task at hand. Do not let the digital noise pull you away from what truly matters in your life today.">Mindful Clarity</button>
+                    </div>
+                  </div>
+
+                  <div class="fg-flex fg-justify-between fg-mt-6 fg-items-center">
+                    <button id="btn_reset_challenge_text" class="fg-text-[10px] fg-font-bold fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] fg-transition-all">Restore Default</button>
+                    <button id="btn_save_challenge_text" class="btn-premium fg-px-6 fg-py-2.5 fg-rounded-xl fg-text-[10px] fg-font-black">Update Challenge</button>
                   </div>
                 </div>
               </section>
@@ -330,11 +343,11 @@ export async function renderSettingsPage(container) {
         letter-spacing: 0.08em;
       }
       .badge-premium.active {
-        background: rgba(16, 185, 129, 0.18);
+        background: var(--fg-green-soft);
         color: var(--fg-green);
       }
       .badge-premium.local {
-        background: rgba(59, 130, 246, 0.18);
+        background: var(--fg-blue-badge);
         color: var(--fg-accent);
       }
       .input-premium {
@@ -406,10 +419,10 @@ export async function renderSettingsPage(container) {
         width: 18px;
         left: 2px;
         bottom: 2px;
-        background-color: white;
+        background-color: ${COLORS.white};
         transition: .4s;
         border-radius: 50%;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        box-shadow: 0 4px 12px var(--fg-shadow);
       }
       input:checked + .slider-toggle {
         background-color: var(--fg-accent);
@@ -424,7 +437,7 @@ export async function renderSettingsPage(container) {
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(255,255,255,0.03);
+        background: var(--fg-overlay-subtle);
         border: 1px solid var(--fg-glass-border);
         border-radius: 14px;
         font-size: 20px;
@@ -434,8 +447,8 @@ export async function renderSettingsPage(container) {
       }
       .pin-digit-slot.active {
         border-color: var(--fg-accent);
-        background: rgba(14, 165, 233, 0.1);
-        box-shadow: 0 0 20px rgba(14, 165, 233, 0.1);
+        background: var(--fg-blue-soft);
+        box-shadow: 0 0 20px var(--fg-blue-soft);
         transform: scale(1.05);
       }
       @keyframes fg-blink {
@@ -444,7 +457,7 @@ export async function renderSettingsPage(container) {
       }
       .pin-digit-slot.focused-slot {
         border-color: var(--fg-accent);
-        background: rgba(255,255,255,0.06);
+        background: var(--fg-white-wash-strong);
       }
       .pin-digit-slot.focused-slot::after {
         content: "";
@@ -463,7 +476,7 @@ export async function renderSettingsPage(container) {
       }
       .dns-tab-btn:hover {
         opacity: 0.8;
-        background: rgba(255,255,255,0.05);
+        background: var(--fg-white-wash);
       }
       .dns-tab-btn.active {
         opacity: 1 !important;
@@ -616,7 +629,7 @@ export async function renderSettingsPage(container) {
       btn.disabled = true;
       feedback.classList.remove('fg-hidden');
       feedback.className =
-        'fg-p-4 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-black/30 fg-text-[var(--fg-muted)]';
+        'fg-p-4 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-[var(--fg-overlay-subtle)] fg-text-[var(--fg-muted)]';
       feedback.innerText = 'Negotiating with NextDNS Cloud...';
 
       try {
@@ -885,6 +898,15 @@ export async function renderSettingsPage(container) {
       toast.info('Restored Default Quote');
     });
 
+  container.querySelectorAll('.preset-para-btn').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const text = (btn as HTMLElement).dataset.text || '';
+      txtChallenge.value = text;
+      await updateChallengeTextAction(text);
+      toast.info(`Switched to ${(btn as HTMLElement).innerText}`);
+    });
+  });
+
   const renderStats = () => {
     const statsDiv = container.querySelector('#sync_stats');
     if (!statsDiv) {
@@ -990,7 +1012,7 @@ export async function renderSettingsPage(container) {
       ).reverse();
       const modal = document.createElement('div');
       modal.className =
-        'fg-fixed fg-inset-0 fg-bg-black/70 fg-backdrop-blur-xl fg-flex fg-items-center fg-justify-center fg-z-50 fg-p-8';
+        'fg-fixed fg-inset-0 fg-bg-[var(--fg-overlay)] fg-backdrop-blur-xl fg-flex fg-items-center fg-justify-center fg-z-50 fg-p-8';
       modal.innerHTML = `
         <div class="fg-bg-[var(--fg-surface)] fg-w-full fg-max-w-xl fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-flex fg-flex-col fg-max-h-[85vh] fg-shadow-2xl">
           <div class="fg-p-8 fg-border-b fg-border-[var(--fg-glass-border)] fg-flex fg-justify-between fg-items-center">
@@ -1002,7 +1024,7 @@ export async function renderSettingsPage(container) {
               logs
                 .map(
                   (l) => `
-                <div class="fg-p-4 fg-bg-white/5 fg-rounded-2xl fg-text-[11px] fg-font-mono fg-flex fg-gap-4">
+                <div class="fg-p-4 fg-bg-[var(--fg-white-wash)] fg-rounded-2xl fg-text-[11px] fg-font-mono fg-flex fg-gap-4">
                   <span class="fg-opacity-30">${new Date(
                     l.timestamp,
                   ).toLocaleTimeString()}</span>

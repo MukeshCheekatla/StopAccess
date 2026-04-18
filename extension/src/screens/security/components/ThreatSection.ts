@@ -78,7 +78,7 @@ export function renderThreatSection(settings: NextDNSSecuritySettings): string {
     <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
       ${renderSectionTitleRow(
         svgTarget,
-        '#818cf8',
+        'var(--fg-indigo)',
         'Threat Protection',
         renderSectionBadge(`${activeCount}/${total} Active`),
       )}
@@ -99,7 +99,7 @@ function renderToggleRow(toggle: ThreatToggle, active: boolean): string {
     >
       <!-- Icon and Indicator (Left) -->
       <div class="fg-relative fg-shrink-0">
-        <span class="fg-text-[#818cf8]">${toggle.icon}</span>
+        <span class="fg-text-[var(--fg-indigo)]">${toggle.icon}</span>
       </div>
 
       <!-- Content (Middle) -->

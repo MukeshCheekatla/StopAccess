@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { UI_TOKENS } from '../../lib/ui';
+import { COLORS } from '../../lib/designTokens';
 import {
   extensionAdapter as storage,
   STORAGE_KEYS,
@@ -142,7 +143,7 @@ export function FocusPopupView() {
           <div className="fg-fixed fg-inset-0 fg-z-[1000] fg-flex fg-items-center fg-justify-center fg-backdrop-blur-sm">
             <div
               onClick={() => setAbortModal(false)}
-              className="fg-absolute fg-inset-0 fg-bg-black/60"
+              className="fg-absolute fg-inset-0 fg-bg-[var(--fg-overlay)]"
             />
             <div className="fg-relative fg-w-72 fg-rounded-3xl fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-surface)] fg-p-7 fg-text-center fg-shadow-2xl">
               <div
@@ -165,7 +166,7 @@ export function FocusPopupView() {
                 <button
                   onClick={stopFocus}
                   className="fg-flex-1 fg-rounded-xl fg-bg-[var(--fg-red)] fg-py-2.5 fg-text-[11px] fg-font-bold"
-                  style={{ color: 'white' }}
+                  style={{ color: COLORS.onAccent }}
                 >
                   ABORT
                 </button>

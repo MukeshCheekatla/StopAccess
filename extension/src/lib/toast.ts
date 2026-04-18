@@ -42,28 +42,28 @@ class ToastManager {
       .fg-toast {
         min-width: 280px;
         max-width: 380px;
-        background: rgba(10, 10, 15, 0.9);
+        background: var(--fg-overlay-strong);
         backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--fg-glass-border);
         border-radius: 12px;
         padding: 16px;
-        color: #F8FAFC;
+        color: var(--fg-on-accent);
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         font-size: 13px;
         font-weight: 500;
-        box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+        box-shadow: 0 12px 32px var(--fg-shadow);
         animation: fg-toast-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         display: flex;
         align-items: center;
         gap: 12px;
         pointer-events: auto;
       }
-      .fg-toast.error { border-left: 4px solid #334155; }
-      .fg-toast.success { border-left: 4px solid #F8FAFC; }
+      .fg-toast.error { border-left: 4px solid var(--fg-muted); }
+      .fg-toast.success { border-left: 4px solid var(--fg-on-accent); }
       .fg-toast .toast-icon { 
         font-weight: 900; 
         font-size: 11px; 
-        background: rgba(255,255,255,0.05); 
+        background: var(--fg-white-wash); 
         width: 24px; height: 24px; 
         display:flex; align-items:center; justify-content:center; 
         border-radius: 6px;

@@ -268,7 +268,7 @@ function PopupApp() {
           </p>
           <button
             type="button"
-            className="fg-w-full fg-rounded-lg fg-border-0 fg-bg-[var(--accent)] fg-px-4 fg-py-3 fg-text-[14px] fg-font-bold fg-text-white"
+            className="fg-w-full fg-rounded-lg fg-border-0 fg-bg-[var(--accent)] fg-px-4 fg-py-3 fg-text-[14px] fg-font-bold fg-text-[var(--fg-on-accent)]"
             onClick={() =>
               chrome.tabs.create({
                 url: chrome.runtime.getURL('dashboard.html'),

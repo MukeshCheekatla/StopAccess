@@ -333,7 +333,7 @@ function DashboardApp() {
     if (!ready) {
       return (
         <div className="fg-flex fg-items-center fg-justify-center fg-h-full">
-          <div className="fg-animate-spin fg-w-10 fg-h-10 fg-border-4 fg-border-white/5 fg-border-t-sky-300 fg-rounded-full" />
+          <div className="fg-animate-spin fg-w-10 fg-h-10 fg-border-4 fg-border-[var(--fg-white-wash)] fg-border-t-[var(--fg-blue)] fg-rounded-full" />
         </div>
       );
     }

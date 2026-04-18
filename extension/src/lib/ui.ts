@@ -5,6 +5,7 @@ import {
   resolveIconUrl,
   formatMinutes,
 } from '@stopaccess/core';
+import { COLORS } from './designTokens';
 
 /**
  * UI_TOKENS — single source of truth for all text/colour styles.
@@ -131,11 +132,11 @@ export const UI_TOKENS = {
     R: TOKEN_DEFS,
   },
   COLORS: {
-    RED: 'var(--red)',
-    GREEN: 'var(--fg-green)',
-    MUTED: 'var(--muted)',
-    TEXT: 'var(--fg-text)',
-    ACCENT: 'var(--fg-accent)',
+    RED: COLORS.red,
+    GREEN: COLORS.green,
+    MUTED: COLORS.muted,
+    TEXT: COLORS.text,
+    ACCENT: COLORS.accent,
   },
 };
 
@@ -353,7 +354,7 @@ export function renderPassSelector(rule: any) {
 
 export function renderStreakBadge(streak: number) {
   const isZero = streak <= 0;
-  const color = isZero ? 'var(--muted)' : '#f97316';
+  const color = isZero ? COLORS.muted : COLORS.fire;
 
   return `
     <div style="display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 12px; color: ${color}; font-weight: 700;">
@@ -367,7 +368,7 @@ export function renderStreakBadge(streak: number) {
 
 export function renderCompactStreak(streak: number) {
   const isZero = streak <= 0;
-  const color = isZero ? 'var(--fg-muted)' : '#f97316';
+  const color = isZero ? COLORS.muted : COLORS.fire;
   return `
     <div style="display: flex; align-items: center; gap: 4px; color: ${color}; font-weight: 600; font-size: 12px;">
       <svg width="10" height="10" viewBox="0 0 448 512" fill="currentColor" style="opacity: ${
@@ -392,7 +393,7 @@ export function renderTableProgress(
   }
 
   let percent = 0;
-  let color = '#10b981'; // Green
+  let color: string = COLORS.green;
 
   if (used <= 0) {
     percent = 0;
@@ -405,7 +406,7 @@ export function renderTableProgress(
     if (percent >= 80) {
       color = 'var(--red)';
     } else if (percent >= 50) {
-      color = '#facc15'; // Yellow
+      color = 'var(--fg-progress-yellow)';
     }
   }
 
@@ -528,9 +529,9 @@ export function renderCloudBanner(
   accentColor = 'var(--fg-accent)',
 ): string {
   return `
-    <div class="glass-card" style="margin-bottom: 32px; padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; border-color: ${accentColor}; background: rgba(59, 130, 246, 0.05);">
+    <div class="glass-card" style="margin-bottom: 32px; padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; border-color: ${accentColor}; background: var(--fg-blue-wash);">
       <div style="display: flex; align-items: center; gap: 20px;">
-        <div style="width: 44px; height: 44px; border-radius: 14px; background: rgba(59,130,246,0.1); display: flex; align-items: center; justify-content: center; color: ${accentColor}; flex-shrink: 0;">
+        <div style="width: 44px; height: 44px; border-radius: 14px; background: var(--fg-blue-soft); display: flex; align-items: center; justify-content: center; color: ${accentColor}; flex-shrink: 0;">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19c.7 0 1.3-.2 1.8-.7s.7-1.1.7-1.8c0-1.4-1.1-2.5-2.5-2.5-.1 0-.3 0-.4.1C16.5 10.6 13.5 8 10 8c-3.1 0-5.7 2.1-6.7 5h-.3C1.3 13 0 14.3 0 15.9c0 1.6 1.3 2.9 2.9 2.9h14.6z"/></svg>
         </div>
         <div>
@@ -538,7 +539,7 @@ export function renderCloudBanner(
           <div style="${UI_TOKENS.TEXT.BANNER_BODY}; margin-top: 4px;">${body}</div>
         </div>
       </div>
-      <button class="btn-premium" id="${btnId}" style="background: ${accentColor}; color: #fff; font-weight: 700; white-space: nowrap; margin-left: 24px;">${btnLabel}</button>
+      <button class="btn-premium" id="${btnId}" style="background: ${accentColor}; color: ${COLORS.onAccent}; font-weight: 700; white-space: nowrap; margin-left: 24px;">${btnLabel}</button>
     </div>
   `;
 }
@@ -569,7 +570,7 @@ export function renderSectionHeader(
 ): string {
   const badge =
     count !== undefined && count > 0
-      ? `<span style="font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 100px; background: rgba(185,28,28,0.12); color: var(--red); border: 1px solid rgba(185,28,28,0.2);">${count}</span>`
+      ? `<span style="font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 100px; background: var(--fg-danger-badge); color: var(--red); border: 1px solid var(--fg-danger-badge-border);">${count}</span>`
       : '';
   return `
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
@@ -617,8 +618,8 @@ export function renderToggleSwitch(
         active ? '16px' : '2px'
       };
         width: 14px; height: 14px; border-radius: 50%;
-        background: white; transition: left 0.2s ease;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.3);"></span>
+        background: ${COLORS.white}; transition: left 0.2s ease;
+        box-shadow: 0 1px 2px var(--fg-shadow);"></span>
     </button>
   `;
 }
@@ -652,8 +653,8 @@ export function renderPillToggle(
         active ? '18px' : '2px'
       };
         width: 16px; height: 16px; border-radius: 50%;
-        background: white; transition: left 0.2s;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.4);"></span>
+        background: ${COLORS.white}; transition: left 0.2s;
+        box-shadow: 0 1px 3px var(--fg-shadow);"></span>
     </button>
   `;
 }
@@ -693,10 +694,10 @@ export function applyCardToggleUI(
   }
   btn.setAttribute('data-active', String(active));
   btn.setAttribute('aria-pressed', String(active));
-  btn.style.background = active ? 'rgba(0,196,140,0.12)' : 'var(--fg-glass-bg)';
+  btn.style.background = active ? 'var(--fg-emerald-strong)' : COLORS.glassBg;
   btn.style.borderColor = active
-    ? 'rgba(0,196,140,0.35)'
-    : 'var(--fg-glass-border)';
+    ? 'var(--fg-emerald-border-strong)'
+    : COLORS.glassBorder;
   btn.style.color = active ? 'var(--green)' : 'var(--muted)';
   if (active) {
     btn.classList.add('active');
@@ -764,11 +765,11 @@ export function renderSectionBadge(
   const styles: Record<string, string> = {
     default:
       'background: var(--fg-glass-bg); color: var(--fg-text); border: 1px solid var(--fg-glass-border); opacity: 0.8;',
-    red: 'background: rgba(185,28,28,0.12); color: var(--red); border: 1px solid rgba(185,28,28,0.2);',
+    red: 'background: var(--fg-danger-badge); color: var(--red); border: 1px solid var(--fg-danger-badge-border);',
     green:
-      'background: rgba(0,196,140,0.1); color: var(--green); border: 1px solid rgba(0,196,140,0.25);',
+      'background: var(--fg-emerald-soft); color: var(--green); border: 1px solid var(--fg-emerald-border);',
     accent:
-      'background: rgba(99,102,241,0.12); color: var(--fg-accent); border: 1px solid rgba(99,102,241,0.2);',
+      'background: var(--fg-indigo-soft); color: var(--fg-accent); border: 1px solid var(--fg-nav-border);',
   };
   return `<span style="font-size: 10px; font-weight: 800; letter-spacing: 0.06em;  padding: 3px 10px; border-radius: 100px; ${styles[color]}">${label}</span>`;
 }
@@ -785,7 +786,7 @@ export function renderSectionBadge(
  * NativeTrackers, PrivacyOptions — all 7 follow identical structure.
  *
  * @param iconHtml   SVG/HTML for the leading icon (already escaped)
- * @param iconColor  CSS color value for the icon, e.g. 'var(--accent)', '#818cf8'
+ * @param iconColor CSS token for the icon, e.g. COLORS.accent.
  * @param title      Section title text
  * @param badge      Optional badge string (from renderSectionBadge) or ''
  */
@@ -867,7 +868,7 @@ export async function showConfirmDialog(
     const overlay = document.createElement('div');
     overlay.id = dialogId;
     overlay.className =
-      'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-black/60 fg-backdrop-blur-sm fg-opacity-0 fg-scale-105 fg-transition-all fg-duration-300';
+      'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay)] fg-backdrop-blur-sm fg-opacity-0 fg-scale-105 fg-transition-all fg-duration-300';
 
     overlay.innerHTML = `
       <div class="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[32px] fg-p-8 fg-max-w-[420px] fg-w-full fg-shadow-2xl">
@@ -881,7 +882,7 @@ export async function showConfirmDialog(
           <button class="dialog-confirm-btn btn-premium fg-px-6 fg-py-3 fg-rounded-2xl fg-text-sm" 
                   style="font-weight: 800; background: ${
                     isDestructive ? 'var(--red)' : 'var(--fg-text)'
-                  }; color: ${isDestructive ? '#fff' : 'var(--fg-bg)'};">
+                  }; color: ${isDestructive ? COLORS.onAccent : COLORS.bg};">
             ${confirmLabel}
           </button>
         </div>
@@ -943,7 +944,7 @@ export function renderInfoTooltip(
   return `
     <div class="fg-tooltip ${directionClass} ${alignClass} fg-inline-flex fg-items-center fg-justify-center fg-rounded-full fg-transition-colors fg-cursor-help" 
          data-tooltip="${tooltipText}"
-         style="width: 14px; height: 14px; background: rgba(255, 255, 255, 0.05); color: var(--fg-muted); font-size: 0; margin-left: 6px; vertical-align: middle;">
+         style="width: 14px; height: 14px; background: var(--fg-white-wash); color: var(--fg-muted); font-size: 0; margin-left: 6px; vertical-align: middle;">
       <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
     </div>
   `;
@@ -961,7 +962,7 @@ export function showPinModal(
 ) {
   const overlay = document.createElement('div');
   overlay.className =
-    'fg-fixed fg-inset-0 fg-z-[2000] fg-flex fg-items-center fg-justify-center fg-bg-black/80 fg-backdrop-blur-xl fg-transition-all fg-duration-300 fg-opacity-0';
+    'fg-fixed fg-inset-0 fg-z-[2000] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay-strong)] fg-backdrop-blur-xl fg-transition-all fg-duration-300 fg-opacity-0';
 
   overlay.innerHTML = `
     <div class="pin-modal-card fg-bg-[var(--fg-surface)] fg-w-[340px] fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-shadow-2xl fg-p-8 fg-text-center fg-transition-transform fg-duration-300 fg-scale-105">
@@ -1012,7 +1013,7 @@ export function showPinModal(
 
       <div class="fg-flex fg-flex-col fg-gap-3">
         <div class="fg-flex fg-gap-3">
-          <button class="fg-flex-1 fg-rounded-2xl fg-py-3.5 fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-50 fg-uppercase fg-tracking-[0.15em] hover:fg-bg-black/5 fg-transition-all" id="pin_cancel_btn">Cancel</button>
+          <button class="fg-flex-1 fg-rounded-2xl fg-py-3.5 fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-50 fg-uppercase fg-tracking-[0.15em] hover:fg-bg-[var(--fg-white-wash)] fg-transition-all" id="pin_cancel_btn">Cancel</button>
           <button class="btn-premium fg-flex-1 fg-py-3.5 fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.15em]" id="pin_verify_btn">Verify</button>
         </div>
         <button id="pin_forgot_link" class="fg-text-[9px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-40 hover:fg-opacity-80 fg-uppercase fg-tracking-widest fg-transition-all fg-mt-2">Forgot PIN?</button>
@@ -1128,12 +1129,12 @@ export function showPinModal(
 export async function showWhatsNew(version: string, features: any[]) {
   const overlay = document.createElement('div');
   overlay.className =
-    'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-black/60 fg-backdrop-blur-xl fg-opacity-0 fg-transition-all fg-duration-500';
+    'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay)] fg-backdrop-blur-xl fg-opacity-0 fg-transition-all fg-duration-500';
 
   const featureList = features
     .map(
       (f) => `
-    <div class="fg-flex fg-gap-5 fg-p-5 fg-rounded-[24px] fg-bg-white/5 fg-border fg-border-white/5">
+    <div class="fg-flex fg-gap-5 fg-p-5 fg-rounded-[24px] fg-bg-[var(--fg-white-wash)] fg-border fg-border-[var(--fg-white-wash)]">
       <div class="fg-text-3xl">${f.icon}</div>
       <div>
         <div class="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)] fg-uppercase fg-tracking-widest">${f.label}</div>
@@ -1181,75 +1182,225 @@ export async function showWhatsNew(version: string, features: any[]) {
   });
 }
 
+const CHALLENGE_PRESETS = [
+  'Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions. This challenge is here to remind me that my time is valuable and I must use it wisely.',
+  'Self-discipline is the ability to make yourself do what you should do, when you should do it, whether you feel like it or not. I control my actions, and I choose to spend my time on meaningful work that brings me closer to my future self.',
+  "The more you think you know, the more you realize you don't. Stay humble, stay hungry, and most importantly, stay focused on the task at hand. Do not let the digital noise pull you away from what truly matters in your life today.",
+  'Focus on what you can control, and let go of what you cannot. Your attention is your most valuable resource; do not squander it on distractions that offer no real value to your life or your goals.',
+];
+
 /**
  * Show a 'Patience Challenge' typing modal.
  * User must type the target text perfectly to proceed.
  */
 export async function showTypingChallenge(
-  targetText: string = 'Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions.',
+  initialText: string = CHALLENGE_PRESETS[0],
 ): Promise<boolean> {
   return new Promise((resolve) => {
+    let targetText = initialText;
     const overlay = document.createElement('div');
     overlay.className =
-      'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-black/80 fg-backdrop-blur-2xl fg-opacity-0 fg-transition-all fg-duration-500';
+      'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay-strong)] fg-backdrop-blur-2xl fg-opacity-0 fg-transition-all fg-duration-500';
 
-    overlay.innerHTML = `
-      <div class="fg-bg-[var(--fg-surface)] fg-border fg-border-white/5 fg-rounded-[48px] fg-p-14 fg-max-w-[750px] fg-w-full fg-shadow-2xl fg-scale-95 fg-transition-all fg-duration-500">
-        <div class="fg-text-center fg-mb-10">
-          <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-accent)] fg-uppercase fg-tracking-[0.4em] fg-mb-3">Mastery Challenge</div>
-          <h2 class="fg-text-3xl fg-font-black fg-text-[var(--fg-text)]">Patience Check</h2>
-          <p class="fg-text-[13px] fg-text-[var(--fg-muted)] fg-mt-1">Prove your focus by typing the paragraph below.</p>
-        </div>
-        
-        <div id="challenge_display" class="fg-text-[22px] fg-line-height-1.6 fg-mb-12 fg-text-left fg-select-none" style="font-family: 'JetBrains Mono', monospace; word-break: break-word; letter-spacing: 0.02em;">
-          ${targetText
-            .split('')
-            .map((char) => `<span class="char-unit">${char}</span>`)
-            .join('')}
-        </div>
-        
-        <input type="text" id="challenge_input" class="fg-absolute fg-opacity-0 fg-pointer-events-none" />
-        
-        <div class="fg-flex fg-gap-5">
-          <button id="btn_cancel_challenge" class="fg-flex-1 fg-h-16 fg-rounded-[24px] fg-text-[12px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-40 fg-uppercase fg-tracking-widest hover:fg-bg-white/5 hover:fg-opacity-80 fg-transition-all">I'll Wait</button>
-          <div class="fg-flex-[2] fg-relative fg-h-16 fg-rounded-[24px] fg-bg-[var(--fg-surface-hover)] fg-flex fg-items-center fg-px-8">
-            <div id="challenge_progress_bar" class="fg-absolute fg-inset-0 fg-bg-[var(--fg-accent)]/10 fg-rounded-[24px] fg-w-0 fg-transition-all"></div>
-            <div class="fg-relative fg-text-[12px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-60 fg-uppercase fg-tracking-widest">Progress: <span id="progress_percent">0</span>%</div>
+    const renderModal = () => {
+      overlay.innerHTML = `
+        <div class="fg-relative fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-white-wash)] fg-rounded-[48px] fg-p-14 fg-max-w-[750px] fg-w-full fg-shadow-2xl fg-scale-95 fg-transition-all fg-duration-500">
+          <button id="btn_shuffle_challenge" class="fg-absolute fg-top-10 fg-right-10 fg-w-10 fg-h-10 fg-rounded-full fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-white-wash)] fg-transition-all" title="Shuffle paragraph">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+          </button>
+          
+          <div class="fg-text-center fg-mb-10">
+            <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-accent)] fg-tracking-[0.4em] fg-mb-2">Mastery Challenge</div>
+            <h2 class="fg-text-2xl fg-font-black fg-text-[var(--fg-text)]">Unblock Challenge</h2>
+            <p class="fg-text-[13px] fg-text-[var(--fg-muted)] fg-mt-1">Prove your focus by typing the paragraph below.</p>
+          </div>
+          
+          <div id="challenge_display" class="fg-text-[26px] fg-line-height-1.6 fg-mb-12 fg-text-left fg-select-none" style="font-family: 'JetBrains Mono', monospace; word-break: break-word; white-space: pre-wrap; letter-spacing: 0.02em;">
+            ${targetText
+              .split('')
+              .map((char) => `<span class="char-unit">${char}</span>`)
+              .join('')}
+          </div>
+          
+          <input type="text" id="challenge_input" class="fg-absolute fg-opacity-0 fg-pointer-events-none" />
+          
+          <div class="fg-flex fg-gap-6 fg-items-center">
+            <button id="btn_cancel_challenge" class="fg-px-8 fg-h-16 fg-rounded-[24px] fg-text-[13px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-40 hover:fg-bg-[var(--fg-surface-hover)] hover:fg-opacity-100 fg-transition-all">I'll Wait</button>
+            
+            <div class="fg-flex-1 fg-relative fg-h-16 fg-rounded-[24px] fg-bg-[var(--fg-surface-hover)] fg-flex fg-items-center fg-justify-center fg-px-10">
+              <div id="challenge_progress_bar" class="fg-absolute fg-inset-0 fg-bg-[var(--fg-accent)]/10 fg-rounded-[24px] fg-w-0 fg-transition-all"></div>
+              
+              <div class="fg-relative fg-flex fg-items-center fg-justify-center fg-gap-8 fg-text-[14px] fg-font-bold fg-select-none">
+                <div class="fg-flex fg-items-center fg-gap-3">
+                  <span class="fg-text-[var(--fg-muted)]">Progress</span>
+                  <span class="fg-text-[var(--fg-text)]"><span id="progress_percent">0</span>%</span>
+                </div>
+                
+                <div class="fg-w-1.5 fg-h-1.5 fg-rounded-full fg-bg-[var(--fg-text)] fg-opacity-10"></div>
+                
+                <div class="fg-flex fg-items-center fg-gap-3">
+                  <span class="fg-text-[var(--fg-muted)]">Mistakes</span>
+                  <span id="mistake_count" class="fg-text-[var(--fg-text)]">0</span>
+                </div>
+                
+                <div class="fg-w-1.5 fg-h-1.5 fg-rounded-full fg-bg-[var(--fg-text)] fg-opacity-10"></div>
+                
+                <div class="fg-flex fg-items-center fg-gap-3">
+                  <span class="fg-text-[var(--fg-muted)]">Time</span>
+                  <span id="challenge_timer" class="fg-text-[var(--fg-text)]" style="font-family: 'JetBrains Mono', monospace; min-width: 60px; text-align: left;">0.0s</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <style>
-        .char-unit {
-          color: var(--fg-text);
-          opacity: 0.15;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-          border-bottom: 2px solid transparent;
-          padding: 0 1px;
-        }
-        .char-unit.current { 
-          opacity: 1; 
-          color: var(--fg-text); 
-          border-bottom: 2.5px solid var(--fg-accent);
-          background: rgba(59, 130, 246, 0.1);
-        }
-        .char-unit.typed { color: var(--fg-green); opacity: 1; }
-        .char-unit.error { color: var(--red); opacity: 1; background: rgba(239, 68, 68, 0.1); border-radius: 4px; }
-      </style>
-    `;
+        
+        <style>
+          .char-unit {
+            color: var(--fg-text);
+            opacity: 0.15;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-bottom: 2px solid transparent;
+          }
+          .char-unit.current { 
+            opacity: 1; 
+            color: var(--fg-text); 
+            border-bottom: 2px solid var(--fg-accent);
+          }
+          .char-unit.typed { 
+            color: var(--fg-green); 
+            opacity: 1; 
+          }
+          .char-unit.error { 
+            color: var(--red); 
+            opacity: 1; 
+            border-bottom: 2px solid var(--red);
+          }
+        </style>
+      `;
+    };
 
+    renderModal();
     document.body.appendChild(overlay);
 
-    const input = overlay.querySelector('#challenge_input') as HTMLInputElement;
-    const chars = overlay.querySelectorAll('.char-unit');
-    const progressBar = overlay.querySelector(
+    let currentIndex = 0;
+    let mistakeCount = 0;
+    let startTime: number | null = null;
+    let timerInterval: any = null;
+
+    let input = overlay.querySelector('#challenge_input') as HTMLInputElement;
+    let chars = overlay.querySelectorAll('.char-unit');
+    let progressBar = overlay.querySelector(
       '#challenge_progress_bar',
     ) as HTMLElement;
-    const progressText = overlay.querySelector(
+    let progressText = overlay.querySelector(
       '#progress_percent',
     ) as HTMLElement;
+    let mistakeText = overlay.querySelector('#mistake_count') as HTMLElement;
+    let timerText = overlay.querySelector('#challenge_timer') as HTMLElement;
 
-    let currentIndex = 0;
+    const resetState = () => {
+      currentIndex = 0;
+      mistakeCount = 0;
+      startTime = null;
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+      timerText.textContent = '0.0s';
+
+      // Refresh references
+      input = overlay.querySelector('#challenge_input') as HTMLInputElement;
+      chars = overlay.querySelectorAll('.char-unit');
+      progressBar = overlay.querySelector(
+        '#challenge_progress_bar',
+      ) as HTMLElement;
+      progressText = overlay.querySelector('#progress_percent') as HTMLElement;
+      mistakeText = overlay.querySelector('#mistake_count') as HTMLElement;
+      timerText = overlay.querySelector('#challenge_timer') as HTMLElement;
+
+      updateUI();
+      input.focus();
+    };
+
+    const setupListeners = () => {
+      overlay
+        .querySelector('#btn_shuffle_challenge')
+        ?.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const filtered = CHALLENGE_PRESETS.filter((p) => p !== targetText);
+          targetText = filtered[Math.floor(Math.random() * filtered.length)];
+          renderModal();
+          resetState();
+          setupListeners(); // Re-bind listeners for new DOM
+        });
+
+      overlay
+        .querySelector('#btn_cancel_challenge')
+        ?.addEventListener('click', () => {
+          if (timerInterval) {
+            clearInterval(timerInterval);
+          }
+          overlay.classList.add('fg-opacity-0');
+          setTimeout(() => {
+            overlay.remove();
+            resolve(false);
+          }, 500);
+        });
+
+      overlay.addEventListener('click', () => input.focus());
+
+      input.addEventListener('input', () => {
+        if (!startTime) {
+          startTime = Date.now();
+          timerInterval = setInterval(() => {
+            if (!startTime) {
+              return;
+            }
+            const elapsed = (Date.now() - startTime) / 1000;
+            timerText.textContent = `${elapsed.toFixed(1)}s`;
+          }, 100);
+        }
+
+        const val = input.value;
+        if (!val) {
+          return;
+        }
+
+        const typedChar = val[val.length - 1];
+        const targetChar = targetText[currentIndex];
+
+        if (typedChar === targetChar) {
+          chars[currentIndex].classList.remove('error');
+          chars[currentIndex].classList.add('typed');
+          currentIndex++;
+          updateUI();
+
+          if (currentIndex === targetText.length) {
+            if (timerInterval) {
+              clearInterval(timerInterval);
+            }
+            overlay.classList.add('fg-opacity-0');
+            setTimeout(() => {
+              overlay.remove();
+              resolve(true);
+            }, 500);
+          }
+        } else {
+          mistakeCount++;
+          updateUI();
+          chars[currentIndex].classList.add('error');
+          overlay.firstElementChild?.animate(
+            [
+              { transform: 'translateX(-2px)' },
+              { transform: 'translateX(2px)' },
+              { transform: 'translateX(0)' },
+            ],
+            { duration: 100, iterations: 2 },
+          );
+        }
+        input.value = '';
+      });
+    };
 
     const updateUI = () => {
       chars.forEach((c, i) => {
@@ -1261,59 +1412,11 @@ export async function showTypingChallenge(
       const percent = Math.floor((currentIndex / targetText.length) * 100);
       progressBar.style.width = `${percent}%`;
       progressText.textContent = percent.toString();
+      mistakeText.textContent = mistakeCount.toString();
     };
 
     updateUI();
-
-    // Trigger input focus on any click
-    overlay.addEventListener('click', () => input.focus());
-
-    input.addEventListener('input', () => {
-      const val = input.value;
-      if (!val) {
-        return;
-      }
-
-      const typedChar = val[val.length - 1];
-      const targetChar = targetText[currentIndex];
-
-      if (typedChar === targetChar) {
-        chars[currentIndex].classList.remove('error');
-        chars[currentIndex].classList.add('typed');
-        currentIndex++;
-        updateUI();
-
-        if (currentIndex === targetText.length) {
-          overlay.classList.add('fg-opacity-0');
-          setTimeout(() => {
-            overlay.remove();
-            resolve(true);
-          }, 500);
-        }
-      } else {
-        chars[currentIndex].classList.add('error');
-        // Shake animation
-        overlay.firstElementChild?.animate(
-          [
-            { transform: 'translateX(-2px)' },
-            { transform: 'translateX(2px)' },
-            { transform: 'translateX(0)' },
-          ],
-          { duration: 100, iterations: 2 },
-        );
-      }
-      input.value = '';
-    });
-
-    overlay
-      .querySelector('#btn_cancel_challenge')
-      ?.addEventListener('click', () => {
-        overlay.classList.add('fg-opacity-0');
-        setTimeout(() => {
-          overlay.remove();
-          resolve(false);
-        }, 500);
-      });
+    setupListeners();
 
     // Animate in
     setTimeout(() => {

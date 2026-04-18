@@ -1,5 +1,6 @@
 import { getDomainForRule } from '@stopaccess/core';
 import { AppRule } from '@stopaccess/types';
+import { EXTENSION_COLOR_VAR_DECLARATIONS } from '../lib/designTokens';
 
 // Bail out immediately if this is a zombie script (context already invalidated)
 if (typeof chrome === 'undefined' || !chrome.runtime?.id) {
@@ -202,9 +203,9 @@ function buildOverlayMarkup(domain, options: any = {}) {
   const timeStr = formatTime(usedMs || usedMinutes * 60000);
 
   return `
-    <div class="fg-h-[100vh] fg-w-[100vw] fg-flex fg-items-center fg-justify-center fg-bg-[#0B0B0B] fg-text-white fg-font-sans fg-overflow-y-auto fg-px-4 fg-py-6 sm:fg-p-8">
+    <div class="fg-h-[100vh] fg-w-[100vw] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-host-bg)] fg-text-[var(--fg-on-accent)] fg-font-sans fg-overflow-y-auto fg-px-4 fg-py-6 sm:fg-p-8">
       <div class="fg-w-full fg-max-w-[440px] fg-flex fg-flex-col fg-items-center fg-p-4 sm:fg-p-6">
-        <div class="fg-text-[12px] sm:fg-text-[13px] fg-font-black fg-tracking-[0.24em] fg-text-white fg-mb-5 sm:fg-mb-8">STOPACCESS</div>
+        <div class="fg-text-[12px] sm:fg-text-[13px] fg-font-black fg-tracking-[0.24em] fg-text-[var(--fg-on-accent)] fg-mb-5 sm:fg-mb-8">STOPACCESS</div>
 
         <div class="fg-relative fg-w-[150px] fg-h-[150px] sm:fg-w-[180px] sm:fg-h-[180px] fg-mb-6 sm:fg-mb-8">
           <svg class="fg-w-full fg-h-full fg--rotate-90" viewBox="0 0 180 180">
@@ -221,7 +222,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
           </div>
         </div>
 
-        <div class="fg-w-full fg-break-words fg-text-center fg-text-[22px] sm:fg-text-2xl fg-font-bold fg-tracking-tight fg-mb-1 fg-text-white/90">${safeDomain}</div>
+        <div class="fg-w-full fg-break-words fg-text-center fg-text-[22px] sm:fg-text-2xl fg-font-bold fg-tracking-tight fg-mb-1 fg-text-[var(--fg-on-accent)] fg-opacity-90">${safeDomain}</div>
         <div class="fg-text-[13px] sm:fg-text-sm fg-text-zinc-500 fg-mb-6 sm:fg-mb-8 fg-text-center fg-leading-relaxed">${statusText}</div>
 
         <div class="fg-grid fg-grid-cols-3 fg-gap-px fg-w-full fg-bg-zinc-800 fg-rounded-2xl fg-overflow-hidden fg-mb-6 sm:fg-mb-8 fg-border fg-border-zinc-800">
@@ -267,7 +268,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
             : ''
         }
 
-        <button class="fg-back fg-w-full fg-p-4 fg-border fg-border-zinc-800 fg-rounded-xl fg-bg-transparent fg-text-zinc-400 fg-text-sm fg-font-black fg-transition-all hover:fg-bg-white/5 active:fg-scale-[0.98]">
+        <button class="fg-back fg-w-full fg-p-4 fg-border fg-border-zinc-800 fg-rounded-xl fg-bg-transparent fg-text-zinc-400 fg-text-sm fg-font-black fg-transition-all hover:fg-bg-[var(--fg-white-wash)] active:fg-scale-[0.98]">
           &larr; Comply And Return
         </button>
       </div>
@@ -291,8 +292,8 @@ function showPreBlockSignal() {
 
   const wrapper = document.createElement('div');
   wrapper.innerHTML = `
-    <div class="fg-fixed fg-inset-0 fg-z-[2147483646] fg-flex fg-items-center fg-justify-center fg-bg-black/10 fg-backdrop-blur-[1px]">
-      <div class="fg-flex fg-h-36 fg-w-36 fg-items-center fg-justify-center fg-rounded-full fg-border fg-border-[var(--fg-red)]/40 fg-bg-[var(--fg-red)]/15 fg-shadow-[0_0_80px_rgba(239,68,68,0.35)]">
+    <div class="fg-fixed fg-inset-0 fg-z-[2147483646] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay-tint)] fg-backdrop-blur-[1px]">
+      <div class="fg-flex fg-h-36 fg-w-36 fg-items-center fg-justify-center fg-rounded-full fg-border fg-border-[var(--fg-red)]/40 fg-bg-[var(--fg-red)]/15 fg-shadow-[0_0_80px_var(--fg-red-glow)]">
         <div class="fg-h-16 fg-w-16 fg-rounded-full fg-bg-[var(--fg-red)] fg-animate-pulse"></div>
       </div>
     </div>
@@ -345,6 +346,7 @@ function injectOverlay(domain, options: any = {}) {
   const baseStyle = document.createElement('style');
   baseStyle.textContent = `
     :host {
+      ${EXTENSION_COLOR_VAR_DECLARATIONS}
       all: initial !important;
       position: fixed !important;
       top: 0 !important;
@@ -353,7 +355,7 @@ function injectOverlay(domain, options: any = {}) {
       height: 100vh !important;
       z-index: 2147483647 !important;
       display: block !important;
-      background-color: #0B0B0B !important;
+      background-color: var(--fg-host-bg) !important;
     }
   `;
   shadow.appendChild(baseStyle);
@@ -787,29 +789,30 @@ if (window.location.hostname.includes('nextdns.io')) {
       card.setAttribute(
         'style',
         [
+          EXTENSION_COLOR_VAR_DECLARATIONS,
           'position:fixed',
           'bottom:24px',
           'right:24px',
           'z-index:2147483646',
           'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
-          'background:#ffffff',
-          'border:1px solid rgba(0,0,0,0.08)',
+          'background:var(--fg-guide-bg)',
+          'border:1px solid var(--fg-guide-border)',
           'border-radius:18px',
           'padding:20px',
           'width:264px',
-          'box-shadow:0 12px 40px rgba(0,0,0,0.12)',
-          'color:#111827',
+          'box-shadow:0 12px 40px var(--fg-shadow-soft)',
+          'color:var(--fg-guide-text)',
           'pointer-events:none', // Make it non-interactive
         ].join(';'),
       );
 
       card.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-        <img src="${iconUrl}" style="width:20px;height:20px;border-radius:6px;border:1px solid rgba(0,0,0,0.05);" />
-        <span style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:rgba(0,0,0,0.4);">StopAccess Guide</span>
+        <img src="${iconUrl}" style="width:20px;height:20px;border-radius:6px;border:1px solid var(--fg-guide-icon-border);" />
+        <span style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:var(--fg-guide-label);">StopAccess Guide</span>
       </div>
-      <div style="font-size:12px;color:rgba(0,0,0,0.7);line-height:1.6;font-weight:600;">
-        Scroll down to the <strong style="color:#111827">API</strong> section. Generate a dedicated key, copy it, then return to StopAccess to paste it.
+      <div style="font-size:12px;color:var(--fg-guide-muted);line-height:1.6;font-weight:600;">
+        Scroll down to the <strong style="color:var(--fg-guide-text)">API</strong> section. Generate a dedicated key, copy it, then return to StopAccess to paste it.
       </div>
     `;
 

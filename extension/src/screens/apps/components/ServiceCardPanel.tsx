@@ -21,7 +21,9 @@ export const ServiceCardPanel: React.FC<ServiceCardProps> = ({
   return (
     <div
       className={`fg-flex fg-items-center fg-justify-between fg-gap-[6px] fg-rounded-[12px] fg-px-[14px] fg-py-3 ${
-        active ? 'fg-bg-white/[0.05]' : 'fg-bg-white/[0.01]'
+        active
+          ? 'fg-bg-[var(--fg-white-wash)]'
+          : 'fg-bg-[var(--fg-white-wash-faint)]'
       }`}
     >
       <div className="fg-flex fg-min-w-0 fg-flex-1 fg-items-center fg-gap-3">
@@ -53,7 +55,7 @@ export const ServiceCardPanel: React.FC<ServiceCardProps> = ({
               Allowance:
             </div>
             <select
-              className="fg-h-6 fg-rounded-[6px] fg-border-0 fg-bg-white/[0.05] fg-px-1.5 fg-text-[10px] fg-font-bold fg-text-[var(--fg-text)]"
+              className="fg-h-6 fg-rounded-[6px] fg-border-0 fg-bg-[var(--fg-white-wash)] fg-px-1.5 fg-text-[10px] fg-font-bold fg-text-[var(--fg-text)]"
               value={0}
               disabled
             >
@@ -66,7 +68,7 @@ export const ServiceCardPanel: React.FC<ServiceCardProps> = ({
       <div className="fg-flex fg-shrink-0 fg-items-center fg-gap-[6px]">
         <button
           className={`fg-relative fg-h-8 fg-w-16 fg-overflow-hidden fg-rounded-full fg-border-0 ${
-            active ? 'fg-bg-[var(--red)]' : 'fg-bg-white/[0.05]'
+            active ? 'fg-bg-[var(--red)]' : 'fg-bg-[var(--fg-white-wash)]'
           }`}
           disabled={isLocked}
           onClick={onToggle}
@@ -75,14 +77,14 @@ export const ServiceCardPanel: React.FC<ServiceCardProps> = ({
           <span
             className={`fg-absolute fg-top-1/2 -fg-translate-y-1/2 fg-text-[11px] fg-font-extrabold ${
               active
-                ? 'fg-left-[10px] fg-text-white'
+                ? 'fg-left-[10px] fg-text-[var(--fg-on-accent)]'
                 : 'fg-right-[10px] fg-text-[var(--muted)]'
             }`}
           >
             {active ? 'ON' : 'OFF'}
           </span>
           <span
-            className={`fg-absolute fg-top-1 fg-h-6 fg-w-6 fg-rounded-full fg-bg-white ${
+            className={`fg-absolute fg-top-1 fg-h-6 fg-w-6 fg-rounded-full fg-bg-[var(--fg-white)] ${
               active ? 'fg-translate-x-8' : ''
             }`}
             style={{
@@ -93,7 +95,7 @@ export const ServiceCardPanel: React.FC<ServiceCardProps> = ({
         </button>
 
         <button
-          className="fg-flex fg-h-6 fg-w-6 fg-items-center fg-justify-center fg-rounded-[6px] fg-border-0 fg-bg-white/[0.02] fg-text-[var(--muted)]"
+          className="fg-flex fg-h-6 fg-w-6 fg-items-center fg-justify-center fg-rounded-[6px] fg-border-0 fg-bg-[var(--fg-white-wash-faint)] fg-text-[var(--muted)]"
           disabled={isLocked}
           onClick={onDelete}
           type="button"

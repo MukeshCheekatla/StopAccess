@@ -23,6 +23,11 @@ import {
   showConfirmDialog,
   attachGlobalIconListeners,
 } from '../../lib/ui';
+import {
+  CATEGORY_COLORS,
+  COLORS,
+  DEFAULT_CATEGORY_COLOR,
+} from '../../lib/designTokens';
 
 let activeTab = 'shield';
 let availableCategories: any[] = [];
@@ -70,8 +75,8 @@ export async function renderAppsPage(container: HTMLElement) {
             UI_EXAMPLES.DOMAIN
           })" id="appSearch" value="${escapeHtml(
       searchTerm,
-    )}" class="input-premium" style="width:100%; height:60px; font-size:15px; border-radius:20px; padding-left: 24px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text); box-shadow: inset 0 2px 8px rgba(0,0,0,0.05);">
-          <div id="searchBadge" style="position: absolute; right: 20px; top: 20px; font-size: 12px; font-weight: 800; color: var(--muted); background: rgba(255,255,255,0.03); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--glass-border); pointer-events: none;">CTRL + F</div>
+    )}" class="input-premium" style="width:100%; height:60px; font-size:15px; border-radius:20px; padding-left: 24px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text); box-shadow: inset 0 2px 8px var(--fg-shadow-inset);">
+          <div id="searchBadge" style="position: absolute; right: 20px; top: 20px; font-size: 12px; font-weight: 800; color: var(--muted); background: var(--fg-overlay-subtle); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--glass-border); pointer-events: none;">CTRL + F</div>
         </div>
         <div id="searchActionContainer"></div>
       </div>
@@ -121,7 +126,9 @@ export async function renderAppsPage(container: HTMLElement) {
                 !initialIsEditing ? 'btn-premium' : ''
               }" style="${
       initialIsEditing ? 'flex: 1;' : 'width: auto; padding: 0 16px;'
-    } height: 30px; font-size: 11px; font-weight: 700; color: #fff; background: ${
+    } height: 30px; font-size: 11px; font-weight: 700; color: ${
+      COLORS.onAccent
+    }; background: ${
       initialIsEditing ? 'var(--fg-accent)' : 'var(--accent)'
     }; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; border: none;">
                 ${initialIsEditing ? 'Save' : editIcon + ' &nbsp; Edit'}
@@ -276,7 +283,7 @@ export async function renderAppsPage(container: HTMLElement) {
           redirectInput.style.opacity = '1';
           btnRedirectSave.innerHTML = 'Save';
           btnRedirectSave.style.background = 'var(--fg-accent)';
-          btnRedirectSave.style.color = '#fff';
+          btnRedirectSave.style.color = COLORS.onAccent;
           btnRedirectSave.style.border = 'none';
           btnRedirectClear.style.visibility = 'visible';
           btnRedirectClear.style.pointerEvents = 'auto';
@@ -285,7 +292,7 @@ export async function renderAppsPage(container: HTMLElement) {
           redirectInput.style.opacity = '0.8';
           btnRedirectSave.innerHTML = `${editIconArr} Edit`;
           btnRedirectSave.style.background = 'var(--fg-accent)';
-          btnRedirectSave.style.color = '#fff';
+          btnRedirectSave.style.color = COLORS.onAccent;
           btnRedirectSave.style.border = 'none';
           btnRedirectClear.style.visibility = 'hidden';
           btnRedirectClear.style.pointerEvents = 'none';
@@ -408,7 +415,7 @@ async function refreshListOnly(passedRules?: any[]) {
   if (actionContainer) {
     if (searchTerm.trim().length > 1) {
       actionContainer.innerHTML = `
-        <button id="btnAddDomainUnified" class="btn-premium" style="height: 60px; padding: 0 32px; border-radius: 20px; font-weight: 900; font-size: 13px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 20px rgba(59,130,246,0.2);">
+        <button id="btnAddDomainUnified" class="btn-premium" style="height: 60px; padding: 0 32px; border-radius: 20px; font-weight: 900; font-size: 13px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 20px var(--fg-blue-soft);">
           Block
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
         </button>
@@ -540,14 +547,14 @@ async function renderSubTab(
       <div style="display: flex; flex: 1; min-height: 0; flex-direction: column;">
       <!-- Centered App Discovery Drawer -->
       <div id="targetDrawerOverlay" class="fg-fixed fg-inset-0 fg-z-[1000] fg-transition-all fg-duration-300 fg-flex fg-items-center fg-justify-center" 
-        style="display: none; background: rgba(5,5,10,0.85); backdrop-filter: blur(12px);">
+        style="display: none; background: var(--fg-overlay-strong); backdrop-filter: blur(12px);">
         
-        <div id="targetDrawer" class="fg-relative fg-w-[720px] fg-max-h-[85vh] fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[32px] fg-shadow-[0_32px_64px_rgba(0,0,0,0.5)] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
+        <div id="targetDrawer" class="fg-relative fg-w-[720px] fg-max-h-[85vh] fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[32px] fg-shadow-[0_32px_64px_var(--fg-shadow-strong)] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
           
           <!-- Header -->
           <div class="fg-p-8 fg-border-b fg-border-[var(--fg-glass-border)] fg-flex fg-items-center fg-justify-between">
             <div>
-              <div class="fg-text-[10px] fg-font-bold fg-tracking-[0.2em] fg-text-[#3b82f6] fg-mb-1 fg-uppercase">App List</div>
+              <div class="fg-text-[10px] fg-font-bold fg-tracking-[0.2em] fg-text-[var(--fg-blue)] fg-mb-1 fg-uppercase">App List</div>
               <div class="fg-text-2xl fg-font-bold fg-tracking-tight fg-text-[var(--fg-text)]">Add to Blocklist</div>
             </div>
             <button id="btnCloseTargetDrawer" class="fg-p-3 fg-rounded-2xl hover:fg-bg-[var(--fg-surface-hover)] fg-text-[var(--muted)] fg-transition-all">
@@ -786,7 +793,7 @@ async function renderSubTab(
       </div>
 
       <div style="position: fixed; bottom: 32px; right: 32px; z-index: 100;">
-        <button class="btn-premium fg-transition-transform hover:fg-scale-110 active:fg-scale-95" id="btnOpenTargetDrawer" style="width: 64px; height: 64px; font-size: 28px; display:flex; align-items:center; justify-content:center; border-radius: 20px; padding: 0; box-shadow: 0 10px 25px rgba(0,0,0,0.5); cursor: pointer;">+</button>
+        <button class="btn-premium fg-transition-transform hover:fg-scale-110 active:fg-scale-95" id="btnOpenTargetDrawer" style="width: 64px; height: 64px; font-size: 28px; display:flex; align-items:center; justify-content:center; border-radius: 20px; padding: 0; box-shadow: 0 10px 25px var(--fg-shadow-strong); cursor: pointer;">+</button>
       </div>
     `;
   }
@@ -799,7 +806,7 @@ async function renderSubTab(
     const visibleCategories = allCategories.filter(matchesSearch);
     const activeCount = visibleCategories.filter((c) => c.active).length;
     const disabledWarning = !currentIsConfigured
-      ? `<div style="padding: 16px; border-radius: 12px; background: rgba(255, 184, 0, 0.1); border: 1px solid rgba(255, 184, 0, 0.2); margin-bottom: 24px; color: #ffeb3b; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+      ? `<div style="padding: 16px; border-radius: 12px; background: ${COLORS.amberSoft}; border: 1px solid ${COLORS.amberBorder}; margin-bottom: 24px; color: ${COLORS.amberText}; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
            DNS profile required to turn on categories.
          </div>`
@@ -844,19 +851,7 @@ function renderCategoryCard(
   const badge = getCategoryBadge(category);
   const isLocked = lockedDomains.includes(category.id.toLowerCase());
 
-  const themeMap: any = {
-    'social-networks': '#6366f1',
-    'video-streaming': '#f43f5e',
-    gambling: '#f59e0b',
-    games: '#10b981',
-    dating: '#ec4899',
-    news: '#06b6d4',
-    shopping: '#8b5cf6',
-    crypto: '#facc15',
-    porn: '#7c3aed',
-    piracy: '#4b5563',
-  };
-  const theme = themeMap[category.id] || '#64748b';
+  const theme = CATEGORY_COLORS[category.id] || DEFAULT_CATEGORY_COLOR;
 
   const descMap: Record<string, { full: string; short: string }> = {
     porn: {

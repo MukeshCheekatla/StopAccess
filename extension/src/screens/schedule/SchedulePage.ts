@@ -2,6 +2,7 @@ import { nextDNSApi } from '../../background/platformAdapter';
 import { buildDashboardTabPath } from '@stopaccess/core';
 import { toast } from '../../lib/toast';
 import { renderCloudBanner, UI_TOKENS } from '../../lib/ui';
+import { COLORS } from '../../lib/designTokens';
 
 declare var chrome: any;
 
@@ -101,10 +102,10 @@ function _renderPage(
       <div class="${isLocalMode ? 'fg-opacity-40 fg-pointer-events-none' : ''}">
 
       <!-- Card -->
-      <div class="glass-card fg-mx-auto fg-mt-4" style="background: var(--fg-surface); border: 1px solid var(--fg-glass-border); border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px rgba(15,23,42,0.12);">
+      <div class="glass-card fg-mx-auto fg-mt-4" style="background: var(--fg-surface); border: 1px solid var(--fg-glass-border); border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px var(--fg-shadow-soft);">
         
         <!-- Header -->
-        <div class="fg-flex fg-items-start fg-justify-between fg-p-5 fg-border-b fg-border-white/[0.08]">
+        <div class="fg-flex fg-items-start fg-justify-between fg-p-5 fg-border-b fg-border-[var(--fg-glass-border)]">
            <div>
              <h2 style="${UI_TOKENS.TEXT.HEADING}">Recreation Time</h2>
              <p style="${
@@ -141,7 +142,7 @@ function _renderPage(
                             UI_TOKENS.TEXT.CARD_TITLE
                           }">
                    
-                   <span class="fg-text-white/30 fg-font-light fg-text-xl">→</span>
+                   <span class="fg-text-[var(--fg-muted)] fg-opacity-30 fg-font-light fg-text-xl">→</span>
  
                    <input type="time" class="time-input fg-px-3" value="${
                      data.end
@@ -156,8 +157,8 @@ function _renderPage(
         </div>
 
         <!-- Footer -->
-        <div class="fg-p-6 fg-border-t fg-border-white/[0.05] fg-flex fg-justify-end fg-gap-3">
-           <button id="btnSaveMaster" class="fg-px-8 fg-py-2 fg-rounded-md fg-text-[14px] fg-font-bold fg-text-white fg-transition-all" style="background: var(--fg-accent); height: 42px;">Save</button>
+        <div class="fg-p-6 fg-border-t fg-border-[var(--fg-white-wash)] fg-flex fg-justify-end fg-gap-3">
+           <button id="btnSaveMaster" class="fg-px-8 fg-py-2 fg-rounded-md fg-text-[14px] fg-font-bold fg-text-[var(--fg-on-accent)] fg-transition-all" style="background: var(--fg-accent); height: 42px;">Save</button>
         </div>
       </div>
 
@@ -194,7 +195,7 @@ function _renderPage(
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        color: white;
+        color: var(--fg-on-accent);
         font-weight: 900;
         font-size: 12px;
       }
@@ -204,7 +205,7 @@ function _renderPage(
         outline: none;
         transition: border-color 0.2s;
       }
-      .time-input:hover { border-color: rgba(255,255,255,0.2) !important; }
+      .time-input:hover { border-color: var(--fg-white-wash-strong) !important; }
       .time-input:focus { border-color: var(--fg-accent) !important; }
     </style>
   `;
@@ -323,12 +324,14 @@ function _renderCloudRequiredBanner(): string {
 
 function _renderError(container: HTMLElement, e: any): void {
   container.innerHTML = `
-    <div class="glass-card fg-p-12 fg-text-center fg-mx-auto fg-mt-12" style="max-width: 440px; background: #1a1c1e; border: 1px solid rgba(255,100,100,0.2); border-radius: 20px;">
+    <div class="glass-card fg-p-12 fg-text-center fg-mx-auto fg-mt-12" style="max-width: 440px; background: var(--fg-surface); border: 1px solid var(--fg-danger-border); border-radius: 20px;">
       <div class="fg-text-lg fg-font-black fg-mb-2">Access Denied</div>
       <div class="fg-text-xs fg-text-[var(--fg-muted)] fg-mb-8">${
         e.message || 'Identity verification failed'
       }</div>
-      <button id="btn_retry_access" class="btn-premium fg-mx-auto fg-w-full" style="height: 56px; border-radius: 12px; background: var(--fg-accent); color: white; font-weight: 900;">Retry Access</button>
+      <button id="btn_retry_access" class="btn-premium fg-mx-auto fg-w-full" style="height: 56px; border-radius: 12px; background: var(--fg-accent); color: ${
+        COLORS.onAccent
+      }; font-weight: 900;">Retry Access</button>
     </div>
   `;
 
@@ -344,10 +347,10 @@ function _renderPopup(container: HTMLElement): void {
     <div class="fg-flex fg-justify-between fg-items-center fg-mb-4 fg-px-1">
        <div class="fg-text-[10px] fg-font-black fg-text-[var(--fg-muted)]  fg-tracking-[1.5px]">Recreation</div>
     </div>
-    <div class="glass-card fg-p-5 fg-text-center" style="border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; background: #1a1c1e;">
-       <div class="fg-text-xs fg-font-bold fg-text-white/80">Independent Cloud Scheduling</div>
+    <div class="glass-card fg-p-5 fg-text-center" style="border: 1px solid var(--fg-white-wash); border-radius: 12px; background: var(--fg-surface);">
+       <div class="fg-text-xs fg-font-bold fg-text-[var(--fg-text)] fg-opacity-80">Independent Cloud Scheduling</div>
     </div>
-    <button class="btn-premium fg-w-full fg-mt-6 fg-text-[11px]" id="btn_full_schedule" style="height: 48px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1); color: white; font-weight: 800;">Open Cloud Hub</button>
+    <button class="btn-premium fg-w-full fg-mt-6 fg-text-[11px]" id="btn_full_schedule" style="height: 48px; border-radius: 12px; background: var(--fg-overlay-subtle); border: 1px solid var(--fg-white-wash-strong); color: ${COLORS.onAccent}; font-weight: 800;">Open Cloud Hub</button>
   `;
   container
     .querySelector('#btn_full_schedule')

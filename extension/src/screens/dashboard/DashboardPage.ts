@@ -12,6 +12,7 @@ import {
   renderBrandLogo,
   attachGlobalIconListeners,
 } from '../../lib/ui';
+import { CHART_COLORS, COLORS } from '../../lib/designTokens';
 import { attachCalendarWidget } from './CalendarWidget';
 
 // This function opens the extension settings page
@@ -224,7 +225,7 @@ export async function renderDashboardPage(
               UI_TOKENS.TEXT.LABEL
             } opacity: 0.5; font-size: 11px; margin-top: 4px;">GLOBAL BASELINE</div>
           </div>
-          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);">
+          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--fg-white-wash);">
              <div style="${
                UI_TOKENS.TEXT.LABEL
              } opacity: 0.8; font-size: 12px;">${Math.round(
@@ -260,7 +261,7 @@ export async function renderDashboardPage(
               <span style="opacity: 0.5; color: var(--fg-text); font-weight: 400;">vs yesterday</span>
             </div>
           </div>
-          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);">
+          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--fg-white-wash);">
              <div style="${
                UI_TOKENS.TEXT.LABEL
              } opacity: 0.8; font-size: 11px; letter-spacing: 0.05em;">TRACKING ACTIVE</div>
@@ -282,7 +283,7 @@ export async function renderDashboardPage(
               UI_TOKENS.TEXT.LABEL
             } opacity: 0.5; font-size: 11px; margin-top: 4px;">INTERACTIONS TODAY</div>
           </div>
-          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);">
+          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--fg-white-wash);">
              <div style="${
                UI_TOKENS.TEXT.LABEL
              } opacity: 0.8; font-size: 12px;">avg ${fmtTime(
@@ -316,7 +317,7 @@ export async function renderDashboardPage(
                }; font-size: 11px; color: var(--fg-text); font-weight: 700;">${timerStatusText.toUpperCase()}</span>
             </div>
           </div>
-          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05);">
+          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--fg-white-wash);">
              <div style="${
                UI_TOKENS.TEXT.LABEL
              } opacity: 0.5; font-size: 11px;">${sessionTone} sessions vs yest.</div>
@@ -541,23 +542,14 @@ export async function renderDashboardPage(
         return match ? docStyle.getPropertyValue(match[1]).trim() : token;
       };
 
-      const chartTextColor = resolveToken(UI_TOKENS.COLORS.TEXT) || '#111827';
+      const chartTextColor = resolveToken(UI_TOKENS.COLORS.TEXT) || COLORS.text;
 
-      const pastelColors = [
-        '#A0C4FF', // blue
-        '#CAFFBF', // green
-        '#9BF6FF', // cyan
-        '#FDFFB6', // yellow
-        '#FFD6A5', // orange
-        '#FFADAD', // red
-        '#BDB2FF', // purple
-        '#FFC6FF', // pink
-      ];
+      const pastelColors = [...CHART_COLORS];
       const bgColors = domainList.map(
         (_, i) => pastelColors[i % pastelColors.length],
       );
       const borderColor =
-        docStyle.getPropertyValue('--fg-glass-bg').trim() || '#111827';
+        docStyle.getPropertyValue('--fg-glass-bg').trim() || COLORS.surface;
 
       window.__dashPulseChart = new Chart(ctx, {
         type: 'pie',
@@ -650,12 +642,13 @@ export async function renderDashboardPage(
                 ? currentStyle.getPropertyValue(match[1]).trim()
                 : token;
             };
-            const freshText = freshResolve(UI_TOKENS.COLORS.TEXT) || '#111827';
+            const freshText =
+              freshResolve(UI_TOKENS.COLORS.TEXT) || COLORS.text;
 
             if (chart.data.datasets?.[0]) {
               const borderCol =
                 currentStyle.getPropertyValue('--fg-glass-bg').trim() ||
-                '#111827';
+                COLORS.surface;
               chart.data.datasets[0].borderColor = borderCol;
             }
             if (chart.options.plugins?.legend?.labels) {

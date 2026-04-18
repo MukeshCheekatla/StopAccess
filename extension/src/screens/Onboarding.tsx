@@ -6,6 +6,7 @@ import {
   nextDNSApi,
   STORAGE_KEYS,
 } from '../background/platformAdapter';
+import { COLORS, COLOR_CLASSES } from '../lib/designTokens';
 
 type Step = 'welcome' | 'connect' | 'done';
 
@@ -93,7 +94,7 @@ function Field({
               }`}
               style={{
                 border: `1.5px solid ${
-                  isFocused ? 'var(--fg-text)' : 'rgba(128, 128, 128, 0.3)'
+                  isFocused ? COLORS.text : 'var(--fg-input-border-muted)'
                 }`,
               }}
             />
@@ -101,13 +102,15 @@ function Field({
 
           {hasValue && !isFocused && (
             <div className="fg-shrink-0 fg-animate-in fg-zoom-in fg-duration-300">
-              <div className="fg-w-6 fg-h-6 fg-bg-[var(--fg-green)] fg-rounded-full fg-flex fg-items-center fg-justify-center fg-shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+              <div
+                className={`fg-w-6 fg-h-6 fg-bg-[var(--fg-green)] fg-rounded-full fg-flex fg-items-center fg-justify-center ${COLOR_CLASSES.shadow.greenGlow}`}
+              >
                 <svg
                   width="12"
                   height="12"
                   viewBox="0 0 24 24"
                   fill="none"
-                  stroke="white"
+                  stroke={COLORS.onAccent}
                   strokeWidth="5"
                   strokeLinecap="round"
                   strokeLinejoin="round"

@@ -56,7 +56,7 @@ export function renderBlocklistsSection(
     <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
       ${renderSectionTitleRow(
         iconList,
-        '#818cf8',
+        'var(--fg-indigo)',
         'Ad &amp; Tracker Blocklists',
         renderSectionBadge(`${activeIds.size} Active`),
       )}
@@ -89,21 +89,21 @@ export function renderBlocklistsSection(
 
     <!-- Centered Library Modal -->
     <div id="blocklist-drawer-overlay" class="fg-fixed fg-inset-0 fg-z-[1000] fg-transition-all fg-duration-300 fg-flex fg-items-center fg-justify-center" 
-      style="display: none; background: rgba(0,0,0,0.4); backdrop-filter: blur(12px);">
+      style="display: none; background: var(--fg-overlay); backdrop-filter: blur(12px);">
       
-      <div id="blocklist-drawer" class="fg-relative fg-w-[720px] fg-max-h-[85vh] fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[32px] fg-shadow-[0_32px_64px_rgba(0,0,0,0.5)] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
+      <div id="blocklist-drawer" class="fg-relative fg-w-[720px] fg-max-h-[85vh] fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[32px] fg-shadow-[0_32px_64px_var(--fg-shadow-strong)] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
         
         <!-- Header -->
-        <div class="fg-p-8 fg-border-b fg-border-white/[0.05] fg-flex fg-items-center fg-justify-between">
+        <div class="fg-p-8 fg-border-b fg-border-[var(--fg-white-wash)] fg-flex fg-items-center fg-justify-between">
           <div>
             <div style="${
               UI_TOKENS.TEXT.LABEL
-            }; color: #818cf8; margin-bottom: 4px; letter-spacing: 3px;">Discovery</div>
+            }; color: var(--fg-indigo); margin-bottom: 4px; letter-spacing: 3px;">Discovery</div>
             <div style="${
               UI_TOKENS.TEXT.HERO
             }; color: var(--fg-text); font-size: 1.5rem;">Blocklist Library</div>
           </div>
-          <button id="close-blocklist-drawer" class="fg-p-3 fg-rounded-2xl hover:fg-bg-white/[0.05] fg-text-[var(--muted)] fg-transition-all">
+          <button id="close-blocklist-drawer" class="fg-p-3 fg-rounded-2xl hover:fg-bg-[var(--fg-white-wash)] fg-text-[var(--muted)] fg-transition-all">
             ${iconClose}
           </button>
         </div>
@@ -314,9 +314,9 @@ function renderBlocklistCard(list: any, active: boolean): string {
           active ? 'active' : ''
         }" data-id="${list.id}" data-active="${active}" 
           style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: ${
-            active ? 'rgba(0,196,140,0.15)' : 'var(--fg-glass-bg)'
+            active ? 'var(--fg-emerald-strong)' : 'var(--fg-glass-bg)'
           }; border: 1px solid ${
-    active ? 'rgba(0,196,140,0.4)' : 'var(--fg-glass-border)'
+    active ? 'var(--fg-emerald-border-strong)' : 'var(--fg-glass-border)'
   }; color: ${active ? 'var(--green)' : 'var(--fg-muted)'};">
           ${
             active
@@ -348,7 +348,7 @@ function renderBlocklistRow(list: any, active: boolean): string {
 
   const iconHtml = getIconHtml(iconUrl, domain, 32, 28);
   const websiteHtml = domain
-    ? `<span class="fg-text-[#4f46e5] fg-mr-1.5">${domain}</span>`
+    ? `<span class="fg-text-[var(--fg-primary-blue)] fg-mr-1.5">${domain}</span>`
     : '';
 
   return `
@@ -369,7 +369,7 @@ function renderBlocklistRow(list: any, active: boolean): string {
              )}</div>
              ${
                active
-                 ? '<span class="fg-bg-[#4f46e5]/[0.15] fg-text-[#4f46e5] fg-text-[9px] fg-font-black  fg-tracking-widest fg-px-2 fg-py-0.5 fg-rounded-md">Active</span>'
+                 ? '<span class="fg-bg-[var(--fg-indigo-soft)] fg-text-[var(--fg-primary-blue)] fg-text-[9px] fg-font-black  fg-tracking-widest fg-px-2 fg-py-0.5 fg-rounded-md">Active</span>'
                  : ''
              }
           </div>
@@ -378,8 +378,8 @@ function renderBlocklistRow(list: any, active: boolean): string {
           }" data-id="${list.id}" data-active="${active}" 
             style="padding: 6px 16px; border-radius: 8px; font-size: 11px; font-weight: 900; letter-spacing: 0.1em;  
             background: ${
-              active ? '#ef4444' : '#3b82f6'
-            }; color: white; border: none; transition: all 0.2s;">
+              active ? 'var(--fg-red)' : 'var(--fg-blue)'
+            }; color: var(--fg-on-accent); border: none; transition: all 0.2s;">
             ${active ? 'Remove' : 'Add'}
           </button>
         </div>

@@ -1,4 +1,5 @@
 import React, { type ReactNode, useMemo } from 'react';
+import { COLORS, COLOR_CLASSES } from '../../lib/designTokens';
 import { UI_TOKENS } from '../../lib/ui';
 
 export type ShellTab<T extends string> = {
@@ -52,7 +53,7 @@ export function PopupShell<T extends string>({
   return (
     <div className="fg-main fg-shell-bg fg-flex fg-flex-col fg-h-screen fg-w-full fg-overflow-hidden fg-text-[var(--text)]">
       {passHud}
-      <div className="fg-flex fg-items-center fg-gap-2 fg-px-4 fg-py-3 fg-bg-[rgba(0,0,0,0.1)] fg-overflow-x-auto fg-no-scrollbar fg-z-50">
+      <div className="fg-flex fg-items-center fg-gap-2 fg-px-4 fg-py-3 fg-bg-[var(--fg-overlay-tint)] fg-overflow-x-auto fg-no-scrollbar fg-z-50">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           // Omit color from style to let tailwind classes handle it (crucial for theme flipping)
@@ -70,7 +71,7 @@ export function PopupShell<T extends string>({
               style={
                 {
                   ...styleWithoutColor,
-                  color: isActive ? '#ffffff' : undefined,
+                  color: isActive ? COLORS.onAccent : undefined,
                 } as any
               }
               data-tab={tab.id}
@@ -89,16 +90,16 @@ export function PopupShell<T extends string>({
               ...UI_TOKENS.TEXT.R.LABEL,
               color:
                 status.tone === 'active' || status.tone === 'error'
-                  ? '#ffffff'
+                  ? COLORS.onAccent
                   : undefined,
             }}
           >
             <span
               className={`fg-w-1.5 fg-h-1.5 fg-rounded-full ${
                 status.tone === 'active'
-                  ? 'fg-bg-white fg-animate-pulse'
+                  ? `${COLOR_CLASSES.bg.onAccent} fg-animate-pulse`
                   : status.tone === 'error'
-                  ? 'fg-bg-white'
+                  ? COLOR_CLASSES.bg.onAccent
                   : 'fg-bg-[var(--fg-muted)]'
               }`}
             />
@@ -222,12 +223,12 @@ export function DashboardShell<T extends string>({
             className="fg-relative fg-flex fg-items-center fg-rounded-[14px] fg-p-1 fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-h-[42px]"
             style={{
               backgroundColor:
-                'color-mix(in srgb, var(--fg-sidebar-bg) 90%, black 10%)',
+                'color-mix(in srgb, var(--fg-sidebar-bg) 90%, var(--fg-black) 10%)',
             }}
           >
             {/* Animated Slider Pill */}
             <div
-              className="fg-absolute fg-h-[32px] fg-shadow-[0_2px_8px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.06)] fg-rounded-[10px] fg-transition-all fg-duration-300 fg-ease-out fg-z-[1] fg-border fg-border-[var(--fg-glass-border)]"
+              className={`fg-absolute fg-h-[32px] ${COLOR_CLASSES.shadow.switch} fg-rounded-[10px] fg-transition-all fg-duration-300 fg-ease-out fg-z-[1] fg-border fg-border-[var(--fg-glass-border)]`}
               style={{
                 width: 'calc((100% - 8px) / 3)',
                 left:
@@ -237,7 +238,7 @@ export function DashboardShell<T extends string>({
                     ? 'calc(4px + (100% - 8px) / 3)'
                     : 'calc(4px + 2 * (100% - 8px) / 3)',
                 backgroundColor:
-                  theme === 'light' ? '#ffffff' : 'var(--fg-surface)',
+                  theme === 'light' ? COLORS.white : COLORS.surface,
               }}
             />
 
@@ -245,7 +246,7 @@ export function DashboardShell<T extends string>({
               onClick={() => onThemeChange?.('light')}
               className={`fg-relative fg-z-[2] fg-flex-1 fg-flex fg-items-center fg-justify-center fg-h-full fg-rounded-[10px] fg-transition-colors fg-duration-300 ${
                 theme === 'light'
-                  ? 'fg-text-black'
+                  ? 'fg-text-[var(--fg-black)]'
                   : 'fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)]'
               }`}
               title="Light Mode"

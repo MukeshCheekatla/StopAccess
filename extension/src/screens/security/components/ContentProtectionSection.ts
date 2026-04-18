@@ -25,7 +25,7 @@ export function renderContentProtectionSection(
     <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
       ${renderSectionTitleRow(
         iconLock,
-        '#ef4444',
+        'var(--fg-red)',
         'Content Protection',
         renderSectionBadge(active ? '1 Active' : '0 Active'),
       )}
@@ -53,7 +53,7 @@ export function renderContentProtectionSection(
             <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-snug">
               Block child sexual abuse material.
             </div>
-            <div class="fg-inline-block fg-text-[10px] fg-font-black fg-tracking-[1px]  fg-mt-[5px] fg-px-2 fg-py-[2px] fg-rounded-[10px]" style="background: rgba(0,196,140,0.1); color: var(--green); border: 1px solid rgba(0,196,140,0.2);">
+            <div class="fg-inline-block fg-text-[10px] fg-font-black fg-tracking-[1px]  fg-mt-[5px] fg-px-2 fg-py-[2px] fg-rounded-[10px]" style="background: var(--fg-emerald-soft); color: var(--green); border: 1px solid var(--fg-emerald-border);">
               RECOMMENDED
             </div>
           </div>

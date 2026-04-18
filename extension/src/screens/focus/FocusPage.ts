@@ -5,6 +5,7 @@ import {
 import { FocusSessionRecord } from '@stopaccess/types';
 import { escapeHtml } from '@stopaccess/core';
 import { UI_TOKENS, getBrandLogoUrl } from '../../lib/ui';
+import { COLORS } from '../../lib/designTokens';
 
 declare var chrome: any;
 declare var window: any;
@@ -123,7 +124,7 @@ function renderAmbientShell(
     <div style="position:relative; min-height:${minHeight}; border-radius:28px; overflow:hidden; background:
       linear-gradient(160deg, var(--fg-surface), var(--fg-bg));
       border:1px solid var(--fg-glass-border); display: flex; flex-direction: column;
-      box-shadow: 0 18px 48px rgba(15,23,42,0.12);">
+      box-shadow: 0 18px 48px var(--fg-shadow-soft);">
 
       <div style="position:relative; z-index:1; display:grid; grid-template-columns:${gridTemplate}; gap:16px; flex: 1; padding:${padding};">
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0;">
@@ -606,11 +607,11 @@ function _renderIdlePage(container: HTMLElement): void {
       btn.style.borderColor = 'var(--fg-accent)';
       const label = btn.querySelector('span:last-child') as HTMLElement;
       if (label) {
-        label.style.color = 'rgba(255,255,255,0.7)';
+        label.style.color = 'var(--fg-on-accent-muted)';
       }
       const timeVal = btn.querySelector('span:first-child') as HTMLElement;
       if (timeVal) {
-        timeVal.style.color = '#fff';
+        timeVal.style.color = COLORS.onAccent;
       }
 
       // 2. Animate the ring ticks rapidly
@@ -703,7 +704,7 @@ function _showAbortModal(
   modalContainer.innerHTML = `
     <div style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:${width}; z-index:10000; padding:${padding}; text-align:center; background:var(--fg-surface); backdrop-filter:blur(20px); border:1px solid var(--fg-glass-border); border-radius: ${
     isPopup ? '20px' : '24px'
-  }; box-shadow: 0 20px 50px rgba(0,0,0,0.5); color: var(--fg-text);">
+  }; box-shadow: 0 20px 50px var(--fg-shadow-strong); color: var(--fg-text);">
       <div style="font-size:${titleSize}; font-weight:900; color:var(--fg-text); margin-bottom:${
     isPopup ? '8px' : '12px'
   }; letter-spacing:1px;">ABORT SESSION?</div>
@@ -724,18 +725,18 @@ function _showAbortModal(
   }; cursor:pointer; font-weight:800; font-size:${
     isPopup ? '10px' : '11px'
   };">CANCEL</button>
-        <button class="btn-confirm-abort" style="flex:1; background:var(--fg-red); border:none; color:white; padding:${
-          isPopup ? '8px' : '10px'
-        }; border-radius:${
+        <button class="btn-confirm-abort" style="flex:1; background:var(--fg-red); border:none; color:${
+          COLORS.onAccent
+        }; padding:${isPopup ? '8px' : '10px'}; border-radius:${
     isPopup ? '10px' : '12px'
   }; cursor:pointer; font-weight:800; font-size:${
     isPopup ? '10px' : '11px'
   };">ABORT</button>
       </div>
     </div>
-    <div style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.6); z-index:9999; backdrop-filter:blur(${
-      isPopup ? '4px' : '8px'
-    });"></div>
+    <div style="position:fixed; top:0; left:0; right:0; bottom:0; background:${
+      COLORS.overlay
+    }; z-index:9999; backdrop-filter:blur(${isPopup ? '4px' : '8px'});"></div>
   `;
   document.body.appendChild(modalContainer);
 

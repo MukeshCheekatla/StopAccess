@@ -22,7 +22,11 @@ export function renderPrivacyOptionsSection(
 ): string {
   return `
     <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
-      ${renderSectionTitleRow(iconSettings, '#6366f1', 'Privacy Settings')}
+      ${renderSectionTitleRow(
+        iconSettings,
+        'var(--fg-primary-blue)',
+        'Privacy Settings',
+      )}
 
       <div class="fg-grid fg-grid-cols-2 fg-gap-5">
         <!-- Disguised Trackers -->
@@ -31,7 +35,7 @@ export function renderPrivacyOptionsSection(
           data-key="disguisedTrackers"
           style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
         >
-          <div class="fg-shrink-0 fg-w-10 fg-h-10 fg-rounded-2xl fg-bg-[#818cf8]/10 fg-flex fg-items-center fg-justify-center fg-text-[#818cf8]">
+          <div class="fg-shrink-0 fg-w-10 fg-h-10 fg-rounded-2xl fg-bg-[var(--fg-indigo-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-indigo)]">
             ${iconEyeOff}
           </div>
           <div class="fg-flex-1 fg-min-w-0">

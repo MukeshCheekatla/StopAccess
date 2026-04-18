@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { UI_TOKENS, getBrandLogoUrl, resolveIconDomain } from '../../lib/ui';
+import { COLORS } from '../../lib/designTokens';
 import { appsController } from '../../lib/appsController';
 import { toast } from '../../lib/toast';
 import { findServiceIdByDomain, getDomainForRule } from '@stopaccess/core';
@@ -329,7 +330,7 @@ export const AppsPopupView: React.FC = () => {
         <div
           className="fg-fixed fg-inset-0 fg-z-50 fg-flex fg-items-end fg-justify-center"
           style={{
-            background: 'rgba(0,0,0,0.5)',
+            background: COLORS.overlay,
             backdropFilter: 'blur(8px)',
           }}
           onClick={() => setPauseTarget(null)}

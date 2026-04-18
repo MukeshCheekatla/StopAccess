@@ -10,12 +10,12 @@ export default {
   theme: {
     extend: {
       colors: {
-        accent: '#52525B', // Standard theme accent
-        'accent-alt': '#3F3F46',
-        'brand-dark': '#09090B',
-        'brand-muted': '#a1a1aa',
-        'glass-bg': 'rgba(18, 18, 20, 0.7)',
-        'glass-border': 'rgba(255, 255, 255, 0.04)',
+        accent: 'var(--fg-accent)',
+        'accent-alt': 'var(--fg-surface-hover)',
+        'brand-dark': 'var(--fg-bg)',
+        'brand-muted': 'var(--fg-muted)',
+        'glass-bg': 'var(--fg-glass-bg)',
+        'glass-border': 'var(--fg-glass-border)',
       },
       fontFamily: {
         sans: [

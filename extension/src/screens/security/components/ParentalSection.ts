@@ -57,7 +57,7 @@ export function renderParentalSection(
     <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
       ${renderSectionTitleRow(
         iconShield,
-        '#3b82f6',
+        'var(--fg-blue)',
         'Parental Control',
         renderSectionBadge(`${activeCount} Active`),
       )}

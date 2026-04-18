@@ -57,7 +57,7 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
           </div>
         </div>
         <div class="fg-flex fg-items-center fg-gap-2">
-           <span class="fg-text-[11px] fg-font-black fg-text-[var(--yellow)] fg-bg-[var(--yellow)]/10 fg-px-3 fg-py-1 fg-rounded-full" style="border: 1px solid rgba(251,191,36,0.15);">
+           <span class="fg-text-[11px] fg-font-black fg-text-[var(--yellow)] fg-bg-[var(--yellow)]/10 fg-px-3 fg-py-1 fg-rounded-full" style="border: 1px solid var(--fg-warning-border-soft);">
             ${tlds.length} Blocked
            </span>
         </div>
@@ -82,7 +82,7 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
             style="text-transform: lowercase;"
             maxlength="20"
           >
-          <button id="btn_add_tld" class="fg-bg-[var(--yellow)]/10 fg-text-[var(--yellow)] fg-text-[11px] fg-font-black fg-px-6 fg-py-3 fg-rounded-xl fg-transition-all hover:fg-bg-[var(--yellow)]/20  fg-tracking-wider" style="border: 1px solid rgba(251,191,36,0.2);">
+          <button id="btn_add_tld" class="fg-bg-[var(--yellow)]/10 fg-text-[var(--yellow)] fg-text-[11px] fg-font-black fg-px-6 fg-py-3 fg-rounded-xl fg-transition-all hover:fg-bg-[var(--yellow)]/20  fg-tracking-wider" style="border: 1px solid var(--fg-warning-border);">
             Block
           </button>
         </div>
@@ -132,7 +132,7 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
               .map(
                 (tld) => `
               <div class="fg-group fg-flex fg-items-center fg-gap-3 fg-pl-4 fg-pr-2 fg-py-2 fg-rounded-xl fg-transition-all fg-relative" 
-                style="background: rgba(239,68,68,0.05); border: 1px solid rgba(239,68,68,0.15);">
+                style="background: var(--fg-danger-soft); border: 1px solid var(--fg-danger-border);">
                 <div class="fg-w-1.5 fg-h-1.5 fg-rounded-full fg-bg-[var(--red)] fg-animate-pulse"></div>
                 <div class="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)]">.${tld.id}</div>
                 <button

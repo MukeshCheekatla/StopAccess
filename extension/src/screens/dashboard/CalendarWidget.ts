@@ -1,3 +1,5 @@
+import { COLORS } from '../../lib/designTokens';
+
 export function attachCalendarWidget(
   triggerElement: HTMLElement,
   container: HTMLElement,
@@ -23,7 +25,7 @@ export function attachCalendarWidget(
   calendarContainer.style.zIndex = '1000';
   calendarContainer.style.padding = '16px';
   calendarContainer.style.width = '260px';
-  calendarContainer.style.boxShadow = '0 10px 40px rgba(0,0,0,0.2)';
+  calendarContainer.style.boxShadow = '0 10px 40px var(--fg-shadow-soft)';
   calendarContainer.style.background = 'var(--fg-glass-bg)';
   calendarContainer.style.border = '1px solid var(--fg-glass-border)';
 
@@ -81,21 +83,21 @@ export function attachCalendarWidget(
       const isToday = cellDateStr === todayDateStr;
       const isFuture = cellDateStr > todayDateStr;
 
-      let bg = 'transparent';
-      let color = 'var(--fg-text)';
+      let bg: string = 'transparent';
+      let color: string = COLORS.text;
       let cursor = 'pointer';
       let opacity = '1';
 
       if (isSelected) {
-        bg = 'var(--fg-accent, #3b82f6)';
-        color = '#fff';
+        bg = COLORS.accent;
+        color = COLORS.onAccent;
       } else if (isFuture) {
-        color = 'var(--fg-muted)';
+        color = COLORS.muted;
         opacity = '0.3';
         cursor = 'default';
       } else if (isToday) {
-        color = 'var(--fg-accent, #3b82f6)';
-        bg = 'rgba(59, 130, 246, 0.1)';
+        color = COLORS.accent;
+        bg = COLORS.blueSoft;
       }
 
       daysHtml += `
@@ -111,7 +113,7 @@ export function attachCalendarWidget(
     // Quick Actions
     const quickActionsHtml = `
       <div style="display:flex; justify-content:space-between; margin-top:16px; border-top:1px solid var(--fg-glass-border); padding-top:12px;">
-        <button id="cal-today-btn" style="background:transparent; border:none; color:var(--fg-accent, #3b82f6); font-size:12px; font-weight:600; cursor:pointer;">Today</button>
+        <button id="cal-today-btn" style="background:transparent; border:none; color:${COLORS.accent}; font-size:12px; font-weight:600; cursor:pointer;">Today</button>
         <button id="cal-close-btn" style="background:transparent; border:none; color:var(--fg-muted); font-size:12px; font-weight:500; cursor:pointer;">Close</button>
       </div>
     `;
@@ -170,7 +172,7 @@ export function attachCalendarWidget(
         }
         if ((el as HTMLElement).style.backgroundColor === 'transparent') {
           (el as HTMLElement).style.backgroundColor =
-            'var(--fg-glass-hover, rgba(0,0,0,0.05))';
+            'var(--fg-glass-hover, var(--fg-shadow-inset))';
         }
       });
       el.addEventListener('mouseout', () => {
@@ -182,7 +184,7 @@ export function attachCalendarWidget(
         if (!isSelected && !isToday) {
           (el as HTMLElement).style.backgroundColor = 'transparent';
         } else if (isToday && !isSelected) {
-          (el as HTMLElement).style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+          (el as HTMLElement).style.backgroundColor = COLORS.blueSoft;
         }
       });
     });

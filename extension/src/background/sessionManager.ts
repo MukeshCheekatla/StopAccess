@@ -2,6 +2,7 @@ import { FocusSessionRecord } from '@stopaccess/types';
 import { syncDNRRules } from './dnrAdapter';
 import { nextDNSApi } from './platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
+import { RAW_COLORS } from '../lib/designTokens';
 /**
  * Starts a new focus session.
  * Snapshots current blocked state and optionally enables NextDNS block bypass protection.
@@ -181,5 +182,7 @@ export async function updateBadge(session: FocusSessionRecord) {
   const remaining = session.duration - Math.floor(session.elapsed / 60);
   const text = remaining > 0 ? `${remaining}m` : 'OK';
   await chrome.action.setBadgeText({ text });
-  await chrome.action.setBadgeBackgroundColor({ color: '#6366f1' });
+  await chrome.action.setBadgeBackgroundColor({
+    color: RAW_COLORS.primaryBlue,
+  });
 }

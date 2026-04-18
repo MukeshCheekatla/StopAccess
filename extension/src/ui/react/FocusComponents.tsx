@@ -1,4 +1,5 @@
 import React, { type ReactNode } from 'react';
+import { COLOR_CLASSES } from '../../lib/designTokens';
 
 /**
  * Design System Components for StopAccess
@@ -22,11 +23,14 @@ export function Button({
     'fg-inline-flex fg-items-center fg-justify-center fg-gap-2 fg-font-black fg-tracking-[0.14em]  fg-border-0 fg-outline-none fg-shadow-none [appearance:none] disabled:fg-opacity-50 disabled:fg-pointer-events-none';
 
   const variants = {
-    primary: 'fg-bg-[var(--accent)] fg-text-white hover:fg-bg-[#3b3b43]',
+    primary:
+      'fg-bg-[var(--accent)] fg-text-[var(--fg-on-accent)] hover:fg-bg-[var(--fg-surface-hover)]',
     secondary:
-      'fg-bg-white/5 fg-text-slate-200 hover:fg-bg-white/10 hover:fg-text-white',
-    danger: 'fg-bg-[var(--red)] fg-text-white hover:fg-bg-[#991b1b]',
-    ghost: 'fg-bg-transparent fg-text-slate-400 hover:fg-text-slate-200',
+      'fg-bg-[var(--fg-white-wash)] fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-white-wash-strong)] hover:fg-text-[var(--fg-text)]',
+    danger:
+      'fg-bg-[var(--red)] fg-text-[var(--fg-on-accent)] hover:fg-bg-[var(--fg-red)]',
+    ghost:
+      'fg-bg-transparent fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)]',
   };
 
   const sizes = {
@@ -64,7 +68,7 @@ export function Card({
       fg-panel fg-rounded-[18px] fg-p-6
       ${
         hover
-          ? 'fg-cursor-pointer hover:fg-bg-[rgba(255,255,255,0.03)] hover:fg-border-[#3f3f46]'
+          ? `fg-cursor-pointer ${COLOR_CLASSES.hover.overlaySubtle} ${COLOR_CLASSES.border.hover}`
           : ''
       }
       ${className}
@@ -89,15 +93,15 @@ export function Stat({
 }) {
   return (
     <div className={`fg-flex fg-flex-col fg-gap-1 ${className}`}>
-      <div className="fg-text-[10px] fg-font-black fg-text-slate-400  fg-tracking-[0.2em]">
+      <div className="fg-text-[10px] fg-font-black fg-text-[var(--fg-muted)] fg-tracking-[0.2em]">
         {label}
       </div>
       <div className="fg-flex fg-items-baseline fg-gap-2">
-        <div className="fg-text-3xl fg-font-black fg-text-white fg-tracking-tighter fg-tabular-nums">
+        <div className="fg-text-3xl fg-font-black fg-text-[var(--fg-text)] fg-tracking-tighter fg-tabular-nums">
           {value}
         </div>
         {subvalue && (
-          <div className="fg-text-xs fg-font-bold fg-text-slate-400">
+          <div className="fg-text-xs fg-font-bold fg-text-[var(--fg-muted)]">
             {subvalue}
           </div>
         )}
@@ -128,16 +132,16 @@ export function Modal({
   return (
     <div className="fg-fixed fg-inset-0 fg-z-[10000] fg-flex fg-items-center fg-justify-center fg-p-6">
       <div
-        className="fg-absolute fg-inset-0 fg-bg-black/80 fg-backdrop-blur-sm"
+        className="fg-absolute fg-inset-0 fg-bg-[var(--fg-overlay-strong)] fg-backdrop-blur-sm"
         onClick={onClose}
       />
       <div className="fg-panel fg-relative fg-w-full fg-max-w-xl fg-rounded-[16px] fg-p-8">
         <div className="fg-text-center fg-mb-6">
-          <div className="fg-text-sm fg-font-black fg-text-white  fg-tracking-[0.24em] fg-mb-2">
+          <div className="fg-text-sm fg-font-black fg-text-[var(--fg-text)] fg-tracking-[0.24em] fg-mb-2">
             {title}
           </div>
           {description && (
-            <div className="fg-text-xs fg-text-slate-400 fg-leading-relaxed">
+            <div className="fg-text-xs fg-text-[var(--fg-muted)] fg-leading-relaxed">
               {description}
             </div>
           )}
