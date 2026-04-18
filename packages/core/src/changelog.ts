@@ -5,7 +5,7 @@ export const CHANGELOG = [
     features: [
       {
         icon: '🐢',
-        label: 'Patience Check',
+        label: 'Unblock Challenge',
         desc: 'New real-time typing challenge to prevent impulsive setting changes.',
       },
       {
