@@ -126,8 +126,6 @@ async function saveUsage(domain, durationMs) {
   // CRITICAL: Ensure day has not changed before saving usage
   await performDailyReset();
 
-  await performDailyReset();
-
   await withStorageLock(async () => {
     // 1. Raw Accumulated Usage
     const res = await chrome.storage.local.get([STORAGE_KEYS.USAGE]);
@@ -184,16 +182,23 @@ async function syncRulesWithUsage() {
         rulesChanged = true;
       }
 
-      if (
-        rules[i].mode === 'limit' &&
-        (rules[i].usedMinutesToday || 0) >= (rules[i].dailyLimitMinutes || 0)
-      ) {
-        if (!rules[i].blockedToday) {
+      if (rules[i].mode === 'limit') {
+        const isOverLimit =
+          (rules[i].usedMinutesToday || 0) >= (rules[i].dailyLimitMinutes || 0);
+        if (isOverLimit && !rules[i].blockedToday) {
           rules[i].blockedToday = true;
           rulesChanged = true;
           extensionLogger.add(
             'info',
             `Limit reached for ${rules[i].packageName}. Blocking.`,
+          );
+        } else if (!isOverLimit && rules[i].blockedToday) {
+          // Limit was likely increased — release the block
+          rules[i].blockedToday = false;
+          rulesChanged = true;
+          extensionLogger.add(
+            'info',
+            `Limit increased for ${rules[i].packageName}. Releasing block.`,
           );
         }
       }
@@ -209,7 +214,6 @@ async function incrementSession(domain) {
   if (!domain) {
     return;
   }
-  await performDailyReset();
   await performDailyReset();
 
   await withStorageLock(async () => {
@@ -447,6 +451,12 @@ async function runCycle(forceSync = false) {
       } catch (e) {
         await extensionAdapter.set(STORAGE_KEYS.CONNECTION_STATUS, 'error');
       }
+    } else if (nextdns_cfg.profileId) {
+      // Profile ID exists but no API Key -> Browser Mode (Local Only)
+      await extensionAdapter.set(
+        STORAGE_KEYS.CONNECTION_STATUS,
+        'browser_mode',
+      );
     } else {
       await extensionAdapter.set(
         STORAGE_KEYS.CONNECTION_STATUS,

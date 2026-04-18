@@ -175,6 +175,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
     usedMs = 0,
     limitMinutes = 0,
     sessions = 0,
+    isFocusActive = false,
   } = options;
 
   const isLimitMode = ruleMode === 'limit' && limitMinutes > 0;
@@ -188,7 +189,9 @@ function buildOverlayMarkup(domain, options: any = {}) {
 
   const ringColor = pct >= 100 ? 'var(--fg-red)' : 'var(--fg-accent)';
 
-  const statusText = isLimitMode
+  const statusText = isFocusActive
+    ? 'FOCUS SESSION ACTIVE'
+    : isLimitMode
     ? 'DAILY ACCESS LIMIT EXCEEDED'
     : 'ACCESS DENIED BY STOPACCESS';
   const remaining = isLimitMode ? Math.max(0, limitMinutes - usedMinutes) : 0;
@@ -488,7 +491,10 @@ async function checkAndBlock() {
       'usage',
       'fg_redirect_url',
       'strict_mode_enabled',
+      'fg_focus_end',
     ]);
+    const focusEnd = Number(res.fg_focus_end || 0);
+    const isFocusActive = focusEnd > Date.now();
     const blockedDomains = Array.isArray(res[BLOCKED_DOMAINS_KEY])
       ? res[BLOCKED_DOMAINS_KEY]
       : [];
@@ -593,6 +599,7 @@ async function checkAndBlock() {
             usedMs: effectiveMs,
             limitMinutes: matchingRule?.dailyLimitMinutes || 0,
             sessions,
+            isFocusActive,
           });
         }, OVERLAY_DELAY_MS);
       }

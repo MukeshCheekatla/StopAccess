@@ -64,26 +64,48 @@ export async function syncDNRRules(domains: string[]) {
       },
     }));
 
-    // Delay DNR block by 2 seconds to allow the page and block overlay to load first
-    if (pendingDNRTimer) {
-      clearTimeout(pendingDNRTimer);
-    }
+    const currentRules = await chrome.declarativeNetRequest.getDynamicRules();
+    const currentDomains = currentRules
+      .map((r) => r.condition.urlFilter?.replace('||', '').replace('^', ''))
+      .filter(Boolean);
 
-    pendingDNRTimer = setTimeout(async () => {
+    // Determine if this is an "unblock" action (any current domain is missing from uniqueDomains)
+    const isUnblocking = currentDomains.some(
+      (d) => !uniqueDomains.includes(d!),
+    );
+
+    const performUpdate = async () => {
       try {
-        const currentRules =
+        const rulesToClear =
           await chrome.declarativeNetRequest.getDynamicRules();
         await chrome.declarativeNetRequest.updateDynamicRules({
-          removeRuleIds: currentRules.map((r) => r.id),
+          removeRuleIds: rulesToClear.map((r) => r.id),
           addRules: netRules as any,
         });
         console.log(
-          `[StopAccess] DNR Synced (Delayed): ${netRules.length} sub-resource rules active.`,
+          `[StopAccess] DNR Synced (${isUnblocking ? 'Instant' : 'Delayed'}): ${
+            netRules.length
+          } rules active.`,
         );
       } catch (e) {
-        console.error('[StopAccess] Delayed DNR update failed', e);
+        console.error('[StopAccess] DNR update failed', e);
       }
-    }, 2000);
+      pendingDNRTimer = null;
+    };
+
+    if (pendingDNRTimer) {
+      clearTimeout(pendingDNRTimer);
+      pendingDNRTimer = null;
+    }
+
+    if (isUnblocking) {
+      // Unblocking must be instantaneous for good UX
+      await performUpdate();
+    } else {
+      // Blocking is delayed by 2s to allow the site to 'background load' assets
+      // so it doesn't break SPAs as harshly and feels smoother.
+      pendingDNRTimer = setTimeout(performUpdate, 2000);
+    }
 
     return { ok: true, count: netRules.length };
   } catch (error) {
