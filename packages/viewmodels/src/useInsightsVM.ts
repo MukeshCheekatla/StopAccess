@@ -18,28 +18,51 @@ export async function loadInsightsData() {
   let counters = { blocked: 0, allowed: 0 };
 
   if (isConfigured) {
+    // We use individual try-catches to ensure one failing endpoint doesn't break the whole page
     try {
-      const [logsRes, domainsRes, countersRes] = await Promise.all([
-        nextDNSApi.getLogs('blocked', 20),
-        nextDNSApi.getTopBlockedDomains(10),
-        nextDNSApi.getAnalyticsCounters(),
-      ]);
+      const logsRes = await nextDNSApi.getLogs('blocked', 20).catch((e) => {
+        console.warn('[Insights] Logs fetch failed', e);
+        return { ok: false };
+      });
       blockedLogs = (logsRes as any).ok ? (logsRes as any).data || [] : [];
+    } catch (e) {}
+
+    try {
+      const domainsRes = await nextDNSApi
+        .getTopBlockedDomains(10)
+        .catch((e) => {
+          console.warn('[Insights] Top domains fetch failed', e);
+          return { ok: false };
+        });
       topBlocked = (domainsRes as any).ok ? (domainsRes as any).data || [] : [];
+    } catch (e) {}
 
-      if ((countersRes as any).ok && Array.isArray((countersRes as any).data)) {
-        const dataArray = (countersRes as any).data;
-        const blockedObj = dataArray.find((i: any) => i.status === 'blocked');
-        const allowedObj = dataArray.find((i: any) => i.status === 'allowed');
-        const defaultObj = dataArray.find((i: any) => i.status === 'default');
+    try {
+      const countersRes = await nextDNSApi.getAnalyticsCounters().catch((e) => {
+        console.warn('[Insights] Counters fetch failed', e);
+        return { ok: false };
+      });
 
-        const blocked = Number(blockedObj?.queries) || 0;
-        const allowed = Number(allowedObj?.queries || defaultObj?.queries) || 0;
-        counters = { blocked, allowed };
+      if ((countersRes as any).ok) {
+        const data = (countersRes as any).data;
+        // Handle both Array (list of statuses) and Object (summary) formats
+        if (Array.isArray(data)) {
+          const blockedObj = data.find((i: any) => i.status === 'blocked');
+          const allowedObj = data.find(
+            (i: any) => i.status === 'allowed' || i.status === 'default',
+          );
+          counters = {
+            blocked: Number(blockedObj?.queries) || 0,
+            allowed: Number(allowedObj?.queries) || 0,
+          };
+        } else if (data && typeof data === 'object') {
+          counters = {
+            blocked: Number(data.blocked || data.blockedQueries) || 0,
+            allowed: Number(data.allowed || data.allowedQueries) || 0,
+          };
+        }
       }
-    } catch (e) {
-      console.warn('NextDNS insights fetch failed', e);
-    }
+    } catch (e) {}
   }
 
   const maxMins = Math.max(
@@ -79,8 +102,11 @@ export async function loadInsightsData() {
       ? Math.round((Number(counters.blocked) / totalQueries) * 100)
       : 0;
 
+  const isOffline = !navigator.onLine;
+
   return {
     isConfigured,
+    isOffline,
     isSyncModeFull: isConfigured,
     snapshots,
     blockedLogs,

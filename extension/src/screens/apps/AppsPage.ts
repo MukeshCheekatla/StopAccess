@@ -16,7 +16,6 @@ import {
   renderAppIcon,
   getRuleActiveState,
   UI_TOKENS,
-  renderLoader,
   renderEmptyState,
   renderSectionBadge,
   renderAppTableRow,
@@ -26,9 +25,7 @@ import {
 } from '../../lib/ui';
 
 let activeTab = 'shield';
-let availableServices: any[] = [];
 let availableCategories: any[] = [];
-let isLoadingNextDNS = false;
 let searchTerm = '';
 let globalContainer: HTMLElement | null = null;
 let currentIsConfigured = false;
@@ -62,7 +59,7 @@ export async function renderAppsPage(container: HTMLElement) {
     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
 
   if (currentIsConfigured) {
-    await loadNextDNSMetadata();
+    loadNextDNSMetadata();
   }
 
   if (!container.querySelector('.search-bar')) {
@@ -367,16 +364,12 @@ async function loadNextDNSMetadata() {
     return;
   }
 
-  isLoadingNextDNS = true;
   try {
     const metadata: any = await appsController.loadMetadata();
-    availableServices = metadata.services || [];
     availableCategories = metadata.categories || [];
     (window as any).availableDenylist = metadata.denylist || [];
   } catch (err) {
     console.error('[StopAccess] Metadata Sync Fail:', err);
-  } finally {
-    isLoadingNextDNS = false;
   }
 }
 
@@ -396,9 +389,7 @@ async function refreshListOnly(passedRules?: any[]) {
     '#searchBadge',
   ) as HTMLElement;
 
-  if (tabContent && isLoadingNextDNS && availableServices.length === 0) {
-    tabContent.innerHTML = renderLoader('Syncing with NextDNS...');
-  }
+  // Removed blocking loader to ensure instant interaction
 
   globalContainer.querySelectorAll('.nav-item-tab').forEach((btn) => {
     btn.classList.toggle(
@@ -1208,10 +1199,29 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
         const newMode = !isEnabled ? 'allow' : val > 0 ? 'limit' : 'block';
         const isIncreasingLimit = val > (rule.dailyLimitMinutes || 0);
 
+        if (isIncreasingLimit) {
+          const { confirmGuardianAction } = (await import(
+            '../../lib/ui'
+          )) as any;
+          const confirmed = await confirmGuardianAction({
+            title: 'Increase Allowance?',
+            body: `Verify your security to increase allowed time for ${
+              rule.appName || pkg
+            }.`,
+          });
+          if (!confirmed) {
+            return;
+          }
+        }
+
         const { extensionAdapter: storage } = await import(
           '../../background/platformAdapter'
         );
         const { updateRule } = await import('@stopaccess/state/rules');
+        const used = rule.usedMinutesToday || 0;
+        const isNowBlocked =
+          newMode === 'block' || (newMode === 'limit' && used >= val);
+
         await updateRule(storage, {
           ...(rule as any),
           dailyLimitMinutes: val,
@@ -1220,13 +1230,32 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
           streakStartedAt: isIncreasingLimit
             ? Date.now()
             : rule.streakStartedAt,
-          blockedToday: newMode === 'block',
+          blockedToday: isNowBlocked,
           updatedAt: Date.now(),
         });
         chrome.runtime.sendMessage({ action: 'manualSync' });
         toast.info(`Usage limit updated: ${(option as HTMLElement).innerText}`);
         await refreshListOnly();
       } else if (isPassSelect) {
+        const currentPasses =
+          rule.maxDailyPasses !== undefined ? rule.maxDailyPasses : 3;
+        const isIncreasingPasses = val > currentPasses;
+
+        if (isIncreasingPasses) {
+          const { confirmGuardianAction } = (await import(
+            '../../lib/ui'
+          )) as any;
+          const confirmed = await confirmGuardianAction({
+            title: 'Increase Passes?',
+            body: `Verify your security to allow more pauses for ${
+              rule.appName || pkg
+            }.`,
+          });
+          if (!confirmed) {
+            return;
+          }
+        }
+
         const { extensionAdapter: storage } = await import(
           '../../background/platformAdapter'
         );

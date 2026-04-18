@@ -58,6 +58,7 @@ async function _renderPage(container: HTMLElement): Promise<void> {
 
   const {
     isConfigured = false,
+    isOffline = false,
     snapshots = [],
     blockedLogs = [],
     topBlocked = [],
@@ -65,6 +66,23 @@ async function _renderPage(container: HTMLElement): Promise<void> {
     blockedQueries = 0,
     protectionRate = 0,
   } = data as any;
+
+  if (isOffline && isConfigured) {
+    container.innerHTML = `
+      <div class="fg-max-w-[400px] fg-mx-auto fg-mt-24 fg-text-center fg-animate-in fg-fade-in fg-duration-500">
+        <div class="fg-w-16 fg-h-16 fg-rounded-2xl fg-bg-[var(--red)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--red)] fg-mx-auto fg-mb-6">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+        </div>
+        <h2 style="${UI_TOKENS.TEXT.HEADING}; margin-bottom: 8px;">You are offline</h2>
+        <p style="${UI_TOKENS.TEXT.SUBTEXT}; margin-bottom: 24px;">Cloud Intelligence reports require an active internet connection to sync with NextDNS.</p>
+        <button id="retry_insights_offline" class="btn-premium fg-w-full">Try Reconnect</button>
+      </div>
+    `;
+    container
+      .querySelector('#retry_insights_offline')
+      ?.addEventListener('click', () => renderInsightsPage(container));
+    return;
+  }
 
   // Build local icon lookup for instant render
   const iconLookup: Record<string, string> = {};
@@ -184,50 +202,7 @@ async function _renderPage(container: HTMLElement): Promise<void> {
   });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _renderFocusChart(
-  weeklySnapshots: any[],
-  weeklyMaxMins: number,
-): string {
-  if (weeklySnapshots.length === 0) {
-    return `
-      <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-rounded-3xl fg-text-[var(--muted)] fg-text-xs fg-p-10" style="height: 180px; border: 1px dashed var(--fg-glass-border); background: var(--fg-glass-bg);">
-        <div class="fg-mb-3"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20v-6M9 20v-10M12 20v-14M15 20v-8M18 20v-4"/></svg></div>
-        No focus history yet. Start a session to build the report.
-      </div>`;
-  }
-
-  return `
-    <div class="bar-chart fg-flex fg-items-end fg-gap-4" style="height: 180px;">
-      ${weeklySnapshots
-        .map((s: any, i: number) => {
-          const height = Math.max(
-            8,
-            ((s.screenTimeMinutes || 0) / weeklyMaxMins) * 100,
-          );
-          const isLatest = i === weeklySnapshots.length - 1;
-          return `
-            <div class="bar-col fg-flex-1 fg-flex fg-flex-col fg-justify-end fg-items-center fg-gap-3" style="height: 100%;">
-              <div class="bar-track fg-w-full fg-flex-1 fg-rounded-xl fg-relative fg-overflow-hidden" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
-                <div class="bar-fill fg-w-full fg-absolute fg-transition-all fg-duration-1000" style="height: ${height}%; bottom: 0; background: ${
-            isLatest ? 'var(--accent)' : 'var(--fg-muted)'
-          }; opacity: ${isLatest ? '1' : '0.2'}; border-radius: 8px;"></div>
-              </div>
-              <div class="fg-flex fg-flex-col fg-items-center">
-                <span class="fg-text-[11px] fg-font-extrabold fg-mb-[2px] ${
-                  isLatest
-                    ? 'fg-text-[var(--fg-text)]'
-                    : 'fg-text-[var(--fg-text)] fg-opacity-60'
-                }">${s.screenTimeMinutes || 0}m</span>
-                <span class="fg-text-[10px] fg-font-bold  fg-tracking-wider" style="color: var(--fg-text); opacity: 0.5;">${new Date(
-                  s.date,
-                ).toLocaleDateString([], { weekday: 'short' })}</span>
-              </div>
-            </div>`;
-        })
-        .join('')}
-    </div>`;
-}
+// _renderFocusChart removed as it was dead code.
 
 function _renderLogsList(
   isConfigured: boolean,
