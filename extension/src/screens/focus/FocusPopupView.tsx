@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { UI_TOKENS } from '../../lib/ui';
-import { COLORS } from '../../lib/designTokens';
 import {
   extensionAdapter as storage,
   STORAGE_KEYS,
@@ -88,18 +87,28 @@ export function FocusPopupView() {
         className="fg-flex fg-h-full fg-flex-col fg-items-center fg-justify-center fg-p-6"
         style={{ background: ringStyles.bg }}
       >
-        <div className="fg-relative fg-flex fg-h-60 fg-w-60 fg-items-center fg-justify-center">
+        <div className="fg-relative fg-mb-6 fg-flex fg-h-80 fg-w-80 fg-items-center fg-justify-center">
           <svg
             className="fg-absolute fg-inset-0 fg-h-full fg-w-full"
-            viewBox="0 0 320 320"
+            viewBox="0 0 380 380"
           >
-            {Array.from({ length: 60 }).map((_, i) => {
-              const a = (i * 6 - 90) * (Math.PI / 180);
-              const x1 = 160 + 135 * Math.cos(a),
-                y1 = 160 + 135 * Math.sin(a);
-              const x2 = 160 + 148 * Math.cos(a),
-                y2 = 160 + 148 * Math.sin(a);
-              const active = i / 60 <= prog;
+            <circle
+              cx="190"
+              cy="190"
+              r="110"
+              fill="var(--fg-glass-bg)"
+              stroke="var(--fg-glass-border)"
+              strokeWidth="1"
+            />
+            {Array.from({ length: 120 }).map((_, i) => {
+              const angle = (i / 120) * Math.PI * 2 - Math.PI / 2;
+              const inner = 150 - (i % 5 === 0 ? 16 : 10);
+              const outer = 150;
+              const x1 = 190 + inner * Math.cos(angle);
+              const y1 = 190 + inner * Math.sin(angle);
+              const x2 = 190 + outer * Math.cos(angle);
+              const y2 = 190 + outer * Math.sin(angle);
+              const active = i / 120 <= prog;
               return (
                 <line
                   key={i}
@@ -107,66 +116,95 @@ export function FocusPopupView() {
                   y1={y1}
                   x2={x2}
                   y2={y2}
-                  stroke={active ? ringStyles.accent : ringStyles.tickBase}
-                  strokeWidth={active ? 2.5 : 1.5}
+                  stroke={active ? 'var(--fg-accent)' : 'rgba(255,255,255,0.1)'}
+                  strokeWidth={i % 5 === 0 ? 3.5 : 2.5}
+                  strokeLinecap="round"
                 />
               );
             })}
           </svg>
           <div className="fg-text-center fg-z-10">
             <div
-              className="fg-text-5xl fg-font-black fg-tracking-tighter"
-              style={ringStyles.text}
+              className="fg-text-6xl fg-font-light fg-tracking-tighter"
+              style={{
+                color: 'var(--fg-text)',
+                fontVariantNumeric: 'tabular-nums',
+                lineHeight: 0.95,
+              }}
             >
               {fmt(rem)}
-              <div
+            </div>
+            <div
+              style={{
+                marginTop: '12px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: 'var(--fg-muted)',
+                fontSize: '10px',
+                letterSpacing: '0.1em',
+              }}
+            >
+              <span
                 style={{
-                  ...UI_TOKENS.TEXT.R.LABEL,
-                  color: 'var(--fg-muted)',
-                  opacity: 0.8,
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  background: 'var(--fg-accent)',
+                  boxShadow: '0 0 8px var(--fg-accent-soft)',
                 }}
-              >
-                {Math.round(prog * 100)}% COMPLETE
-              </div>
+              />
+              SESSION RUNNING
+            </div>
+            <div
+              className="fg-mt-2"
+              style={{
+                ...UI_TOKENS.TEXT.R.LABEL,
+                color: 'var(--fg-muted)',
+                opacity: 0.6,
+                fontSize: '12px',
+              }}
+            >
+              {Math.round(prog * 100)}% COMPLETE
             </div>
           </div>
         </div>
         <button
           onClick={() => setAbortModal(true)}
           disabled={wait !== null}
-          className="fg-mt-6 fg-rounded-full fg-border fg-border-[var(--fg-glass-border)] fg-bg-transparent fg-px-6 fg-py-2.5 fg-text-xs fg-font-bold disabled:fg-opacity-50"
-          style={ringStyles.text}
+          className="btn-premium fg-rounded-full fg-border fg-border-[var(--fg-glass-border)] fg-bg-transparent fg-px-8 fg-py-3 fg-text-xs fg-font-black disabled:fg-opacity-50"
+          style={{
+            ...ringStyles.text,
+            letterSpacing: '1px',
+            boxShadow: 'none',
+          }}
         >
-          {wait !== null ? `WAIT ${wait}S` : 'ABORT SESSION'}
+          {wait !== null ? `ENDING IN ${wait}S...` : 'ABORT SESSION'}
         </button>
         {abortModal && (
-          <div className="fg-fixed fg-inset-0 fg-z-[1000] fg-flex fg-items-center fg-justify-center fg-backdrop-blur-sm">
+          <div className="fg-fixed fg-inset-0 fg-z-[10000] fg-flex fg-items-center fg-justify-center fg-p-6">
             <div
               onClick={() => setAbortModal(false)}
-              className="fg-absolute fg-inset-0 fg-bg-[var(--fg-overlay)]"
+              className="fg-absolute fg-inset-0 fg-bg-[rgba(0,0,0,0.6)] fg-backdrop-blur-md"
             />
-            <div className="fg-relative fg-w-72 fg-rounded-3xl fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-surface)] fg-p-7 fg-text-center fg-shadow-2xl">
-              <div
-                className="fg-mb-3 fg-text-lg fg-font-black"
-                style={ringStyles.text}
-              >
-                ABORT?
+            <div className="fg-relative fg-w-full fg-max-w-[280px] fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-surface)] fg-p-8 fg-text-center fg-shadow-[0_40px_80px_rgba(0,0,0,0.7)] focus-modal-anim">
+              <div className="fg-mb-3 fg-text-sm fg-font-black fg-tracking-[2px] fg-text-[var(--fg-text)]">
+                ABORT SESSION?
               </div>
-              <div className="fg-mb-6 fg-text-sm" style={ringStyles.dim}>
-                Quitting early will end your current shield.
+              <div className="fg-mb-8 fg-text-[11px] fg-font-medium fg-leading-relaxed fg-text-[var(--fg-muted)]">
+                Quitting early will end your current shield protection
+                immediately.
               </div>
               <div className="fg-flex fg-gap-3">
                 <button
                   onClick={() => setAbortModal(false)}
-                  className="fg-flex-1 fg-rounded-xl fg-bg-[var(--fg-glass-bg)] fg-py-2.5 fg-text-[11px] fg-font-bold fg-border fg-border-[var(--fg-glass-border)]"
-                  style={ringStyles.text}
+                  className="fg-flex-1 fg-rounded-2xl fg-bg-[var(--fg-glass-bg)] fg-py-3.5 fg-text-[10px] fg-font-black fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-text)] fg-transition-all hover:fg-bg-[var(--fg-surface-hover)]"
                 >
                   CANCEL
                 </button>
                 <button
                   onClick={stopFocus}
-                  className="fg-flex-1 fg-rounded-xl fg-bg-[var(--fg-red)] fg-py-2.5 fg-text-[11px] fg-font-bold"
-                  style={{ color: COLORS.onAccent }}
+                  className="fg-flex-1 fg-rounded-2xl fg-bg-[var(--fg-red)] fg-py-3.5 fg-text-[10px] fg-font-black fg-text-white fg-transition-all hover:fg-scale-[1.05] active:fg-scale-[0.95] fg-shadow-[0_0_20px_var(--fg-red-glow)]"
                 >
                   ABORT
                 </button>
@@ -180,66 +218,144 @@ export function FocusPopupView() {
 
   return (
     <div
-      className="fg-flex fg-h-full fg-flex-col fg-items-center fg-justify-center fg-p-6"
-      style={{ background: ringStyles.bg }}
+      className="fg-flex fg-h-full fg-flex-col fg-items-center fg-justify-center fg-p-4 fg-animate-fade-in"
+      style={{
+        background: 'linear-gradient(160deg, var(--fg-surface), var(--fg-bg))',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
     >
-      <div className="fg-mb-7 fg-text-center">
-        <div style={{ ...UI_TOKENS.TEXT.R.LABEL, color: 'var(--fg-accent)' }}>
-          IGNITE DEEP FOCUS
+      <div className="fg-mb-4 fg-text-left fg-w-full fg-max-w-[340px] fg-px-2">
+        <div
+          style={{
+            ...UI_TOKENS.TEXT.R.LABEL,
+            color: 'var(--fg-muted)',
+            marginBottom: '4px',
+          }}
+        >
+          Ready
         </div>
         <div
-          style={{ ...UI_TOKENS.TEXT.R.CARD_TITLE, color: 'var(--fg-text)' }}
+          style={{
+            ...UI_TOKENS.TEXT.R.SUBTEXT,
+            fontSize: '12px',
+            lineHeight: '1.5',
+            opacity: 0.7,
+          }}
         >
-          Ready TO START
+          Pick a session length and Focus will start a real countdown.
         </div>
       </div>
-      <div className="fg-relative fg-mb-6 fg-flex fg-h-48 fg-w-48 fg-items-center fg-justify-center">
+
+      <div className="fg-relative fg-mb-4 fg-flex fg-h-56 fg-w-56 fg-items-center fg-justify-center">
         <svg
           className="fg-absolute fg-inset-0 fg-h-full fg-w-full"
-          viewBox="0 0 320 320"
+          viewBox="0 0 380 380"
         >
-          {Array.from({ length: 60 }).map((_, i) => (
-            <line
-              key={i}
-              x1="160"
-              y1="20"
-              x2="160"
-              y2="35"
-              stroke="var(--fg-glass-border)"
-              strokeWidth="2"
-              transform={`rotate(${i * 6} 160 160)`}
-            />
-          ))}
+          <circle
+            cx="190"
+            cy="190"
+            r="110"
+            fill="var(--fg-glass-bg)"
+            stroke="var(--fg-glass-border)"
+            strokeWidth="1"
+          />
+          {Array.from({ length: 120 }).map((_, i) => {
+            const angle = (i / 120) * Math.PI * 2 - Math.PI / 2;
+            const inner = 150 - (i % 5 === 0 ? 16 : 10);
+            const outer = 150;
+            const x1 = 190 + inner * Math.cos(angle);
+            const y1 = 190 + inner * Math.sin(angle);
+            const x2 = 190 + outer * Math.cos(angle);
+            const y2 = 190 + outer * Math.sin(angle);
+            return (
+              <line
+                key={i}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="var(--fg-glass-border)"
+                strokeWidth={i % 5 === 0 ? 3.5 : 2.5}
+                strokeLinecap="round"
+                opacity="0.3"
+              />
+            );
+          })}
         </svg>
-        <div
-          className="fg-text-4xl fg-font-black"
-          style={{ color: 'var(--fg-muted)', opacity: 0.4 }}
-        >
-          --:--
+        <div className="fg-text-center fg-z-10">
+          <div
+            className="fg-text-3xl fg-font-light fg-tracking-tighter"
+            style={{
+              color: 'var(--fg-text)',
+              fontVariantNumeric: 'tabular-nums',
+              opacity: 0.25,
+            }}
+          >
+            --:--
+          </div>
+          <div
+            style={{
+              marginTop: '6px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              color: 'var(--fg-muted)',
+              fontSize: '8px',
+              letterSpacing: '0.1em',
+            }}
+          >
+            <span
+              style={{
+                width: '4px',
+                height: '4px',
+                borderRadius: '50%',
+                background: 'var(--fg-accent)',
+                opacity: 0.4,
+              }}
+            />
+            READY
+          </div>
         </div>
       </div>
-      <div className="fg-grid fg-w-full fg-grid-cols-2 fg-gap-2.5">
+
+      <div className="fg-grid fg-w-full fg-grid-cols-2 fg-gap-2.5 fg-max-w-[320px]">
         {PRESETS.map((p) => (
           <button
             key={p.m}
             onClick={() => startFocus(p.m)}
-            className="fg-rounded-[24px] fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-glass-bg)] fg-p-5 fg-transition-all hover:fg-bg-[var(--fg-surface-hover)] hover:fg-scale-[1.02] active:fg-scale-[0.98]"
+            className="btn-premium start-focus fg-flex fg-flex-col fg-items-start fg-gap-0.5 fg-text-left fg-rounded-[16px] fg-transition-all hover:fg-scale-[1.02] active:fg-scale-[0.98]"
+            style={{
+              padding: '12px 14px',
+              minHeight: '62px',
+              background: 'var(--fg-glass-bg)',
+              border: '1px solid var(--fg-glass-border)',
+              boxShadow: 'none',
+            }}
           >
-            <div style={{ ...UI_TOKENS.TEXT.R.STAT, color: 'var(--fg-text)' }}>
-              {p.m}M
-            </div>
-            <div
+            <span
               style={{
-                ...UI_TOKENS.TEXT.R.LABEL,
-                color: 'var(--fg-accent)',
-                marginTop: '4px',
+                fontSize: '18px',
+                fontWeight: 900,
+                color: 'var(--fg-text)',
+                lineHeight: 1,
               }}
             >
+              {p.m}m
+            </span>
+            <span
+              className="fg-text-[9px] fg-font-bold fg-tracking-[0.1em]"
+              style={{ color: 'var(--fg-muted)', opacity: 0.8 }}
+            >
               {p.t.toUpperCase()}
-            </div>
+            </span>
           </button>
         ))}
       </div>
+      <style>{`
+        @keyframes modalIn { from { opacity: 0; transform: translate(-50%, -40%) scale(0.9); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+        .focus-modal-anim { animation: modalIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+      `}</style>
     </div>
   );
 }

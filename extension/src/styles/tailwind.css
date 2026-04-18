@@ -492,14 +492,14 @@
   background: var(--fg-tooltip-bg-strong);
   backdrop-filter: blur(12px);
   color: var(--fg-white);
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   letter-spacing: 0.01em;
   line-height: 1.6;
   border-radius: 14px;
   white-space: pre-wrap;
   width: max-content;
-  max-width: 240px;
+  max-width: 280px;
   text-align: left;
   box-shadow: 0 25px 50px -12px var(--fg-shadow-tooltip), 0 0 0 1px var(--fg-white-wash-tooltip);
   opacity: 0;
@@ -830,7 +830,7 @@
 
     /* Lists */
     /* ── Service Cards ── */
-    .service-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px; }
+    .service-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; width: 100%; min-width: 0; }
     .service-card {
       background: var(--fg-glass-bg);
       border: 1px solid var(--glass-border);
@@ -1506,3 +1506,16 @@
 }
 
 
+
+.service-card:has(.fg-tooltip:hover) { z-index: 10000; position: relative; }
+.fg-tooltip:hover { z-index: 10001; }
+
+.fg-tooltip:hover::before, .fg-tooltip:hover::after { z-index: 999999 !important; }
+.rule-table-row:hover { z-index: 100; position: relative; }
+
+#tabContent { position: relative; z-index: 1; }
+#tabContent:has(.fg-tooltip:hover) { z-index: 2000 !important; overflow: visible !important; }
+.apps-layout-container { display: flex; position: relative; z-index: 1; }
+
+.security-toggle-row:hover { z-index: 1000 !important; position: relative; }
+.app-card:has(.fg-tooltip:hover) { z-index: 1000 !important; position: relative; }
