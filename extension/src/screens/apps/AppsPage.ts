@@ -430,6 +430,7 @@ async function refreshListOnly(passedRules?: any[]) {
     tabContent.style.flexDirection = 'column';
     tabContent.style.minHeight = '0';
     tabContent.style.overflowY = activeTab === 'shield' ? 'clip' : 'auto';
+    tabContent.style.overflowX = 'hidden';
     tabContent.style.scrollSnapType =
       activeTab === 'shield' ? 'none' : 'y mandatory';
     tabContent.style.scrollPaddingTop = '10px';

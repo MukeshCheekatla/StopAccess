@@ -119,5 +119,14 @@ export const EXTENSION_COLOR_VAR_DECLARATIONS = `
   --fg-overlay-tint: rgba(0, 0, 0, 0.1);
   --fg-white-wash: rgba(255, 255, 255, 0.05);
   --fg-red-glow: rgba(239, 68, 68, 0.35);
+  --fg-chart-border-dark: rgba(0, 0, 0, 0.2);
+  --fg-chart-blue: #a0c4ff;
+  --fg-chart-green: #caffbf;
+  --fg-chart-cyan: #9bf6ff;
+  --fg-chart-yellow: #fdffb6;
+  --fg-chart-orange: #ffd6a5;
+  --fg-chart-red: #ffadad;
+  --fg-chart-purple: #bdb2ff;
+  --fg-chart-pink: #ffc6ff;
   --fg-shadow-soft: rgba(0, 0, 0, 0.12);
 `;

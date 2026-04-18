@@ -942,10 +942,14 @@ export function renderInfoTooltip(
   const directionClass = direction === 'down' ? 'fg-tooltip-down' : '';
   const alignClass = align !== 'center' ? `fg-tooltip-${align}` : '';
   return `
-    <div class="fg-tooltip ${directionClass} ${alignClass} fg-inline-flex fg-items-center fg-justify-center fg-rounded-full fg-transition-colors fg-cursor-help" 
+    <div class="fg-tooltip ${directionClass} ${alignClass} fg-inline-flex fg-items-center fg-justify-center fg-transition-colors fg-cursor-pointer" 
          data-tooltip="${tooltipText}"
-         style="width: 14px; height: 14px; background: var(--fg-white-wash); color: var(--fg-muted); font-size: 0; margin-left: 6px; vertical-align: middle;">
-      <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+         style="margin-left: 6px; vertical-align: middle; color: var(--fg-muted);">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <path d="M12 16v-4"></path>
+        <path d="M12 8h.01"></path>
+      </svg>
     </div>
   `;
 }
@@ -965,7 +969,7 @@ export function showPinModal(
     'fg-fixed fg-inset-0 fg-z-[2000] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay-strong)] fg-backdrop-blur-xl fg-transition-all fg-duration-300 fg-opacity-0';
 
   overlay.innerHTML = `
-    <div class="pin-modal-card fg-bg-[var(--fg-surface)] fg-w-[340px] fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-shadow-2xl fg-p-8 fg-text-center fg-transition-transform fg-duration-300 fg-scale-105">
+    <div class="pin-modal-card fg-bg-[var(--fg-surface)] fg-w-[340px] fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-shadow-2xl fg-p-8 fg-text-center fg-transition-transform fg-duration-300">
       <div class="fg-mb-6 fg-mx-auto fg-w-12 fg-h-12 fg-rounded-2xl fg-bg-[var(--fg-accent-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-accent)]">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
@@ -1204,7 +1208,7 @@ export async function showTypingChallenge(
 
     const renderModal = () => {
       overlay.innerHTML = `
-        <div class="fg-relative fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-white-wash)] fg-rounded-[48px] fg-p-14 fg-max-w-[750px] fg-w-full fg-shadow-2xl fg-scale-95 fg-transition-all fg-duration-500">
+        <div class="fg-relative fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-white-wash)] fg-rounded-[48px] fg-p-14 fg-max-w-[750px] fg-w-full fg-shadow-2xl fg-transition-all fg-duration-500">
           <button id="btn_shuffle_challenge" class="fg-absolute fg-top-10 fg-right-10 fg-w-10 fg-h-10 fg-rounded-full fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-white-wash)] fg-transition-all" title="Shuffle paragraph">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
           </button>
@@ -1391,11 +1395,11 @@ export async function showTypingChallenge(
           chars[currentIndex].classList.add('error');
           overlay.firstElementChild?.animate(
             [
-              { transform: 'translateX(-2px)' },
-              { transform: 'translateX(2px)' },
+              { transform: 'translateX(-1px)' },
+              { transform: 'translateX(1px)' },
               { transform: 'translateX(0)' },
             ],
-            { duration: 100, iterations: 2 },
+            { duration: 50, iterations: 3 },
           );
         }
         input.value = '';
@@ -1421,7 +1425,6 @@ export async function showTypingChallenge(
     // Animate in
     setTimeout(() => {
       overlay.classList.remove('fg-opacity-0');
-      overlay.firstElementChild?.classList.remove('fg-scale-95');
       input.focus();
     }, 10);
   });

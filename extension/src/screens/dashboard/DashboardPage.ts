@@ -544,12 +544,18 @@ export async function renderDashboardPage(
 
       const chartTextColor = resolveToken(UI_TOKENS.COLORS.TEXT) || COLORS.text;
 
-      const pastelColors = [...CHART_COLORS];
+      const pastelColors = CHART_COLORS.map((c) => resolveToken(c));
       const bgColors = domainList.map(
         (_, i) => pastelColors[i % pastelColors.length],
       );
-      const borderColor =
-        docStyle.getPropertyValue('--fg-glass-bg').trim() || COLORS.surface;
+      const borderColor = resolveToken('--fg-glass-bg') || COLORS.surface;
+
+      const isDark =
+        !document.documentElement.classList.contains('light-theme');
+      const chartBorderWidth = isDark ? 0.5 : 2;
+      const chartBorderColor = isDark
+        ? resolveToken('--fg-chart-border-dark')
+        : borderColor;
 
       window.__dashPulseChart = new Chart(ctx, {
         type: 'pie',
@@ -559,8 +565,8 @@ export async function renderDashboardPage(
             {
               data: domainList.map((d) => Math.floor(d.timeMs / 60000)),
               backgroundColor: bgColors,
-              borderColor: borderColor,
-              borderWidth: 2,
+              borderColor: chartBorderColor,
+              borderWidth: chartBorderWidth,
             },
           ],
         },
