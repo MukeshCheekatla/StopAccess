@@ -31,7 +31,7 @@ export function renderContentProtectionSection(
       )}
 
       <div class="fg-grid fg-grid-cols-3 fg-gap-2">
-        <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-opacity-80"
+        <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-bg-[var(--fg-surface-hover)]"
           data-key="csam"
           style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
         >

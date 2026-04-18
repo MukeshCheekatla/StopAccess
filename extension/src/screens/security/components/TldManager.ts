@@ -102,7 +102,7 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
               .map(
                 (t) => `
               <button
-                class="tld-quick-add fg-flex fg-items-center fg-gap-2 fg-px-4 fg-py-2 fg-rounded-xl fg-transition-all fg-cursor-pointer fg-font-bold hover:fg-translate-y-[-1px] hover:fg-opacity-80"
+                class="tld-quick-add fg-flex fg-items-center fg-gap-2 fg-px-4 fg-py-2 fg-rounded-xl fg-transition-all fg-cursor-pointer fg-font-bold hover:fg-translate-y-[-1px] hover:fg-bg-[var(--fg-surface-hover)]"
                 data-id="${t.id}"
                 style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text);"
               >

@@ -53,7 +53,7 @@ export async function renderSecurityPage(
         ${isLocalMode ? renderLocalModeBanner() : ''}
         <!-- Sections -->
         <div id="security_sections_container" class="${
-          isLocalMode ? 'fg-opacity-50 fg-pointer-events-none' : ''
+          isLocalMode ? 'is-local-mode fg-pointer-events-none' : ''
         }">
           ${renderThreatSection(settings || ({} as any))}
           ${renderDomainProtectionSection(settings || ({} as any))}
