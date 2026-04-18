@@ -17,7 +17,7 @@
       </td>
       <td align="center" border="0">
         <a href="https://stopaccess.pages.dev/">
-          <img src="https://www.google.com/s2/favicons?domain=stopaccess.pages.dev&sz=128" width="44" height="44" alt="Live Demo">
+          <img src="https://raw.githubusercontent.com/lucide-icons/lucide/main/icons/external-link.svg" width="40" height="40" alt="Live Demo">
         </a>
       </td>
     </tr>
