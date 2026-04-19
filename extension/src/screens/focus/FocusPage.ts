@@ -228,8 +228,7 @@ function renderPresetButtons(): string {
 function renderIdleStateSummary(): string {
   return `
     <div style="width:min(420px, 100%); margin-bottom:12px; padding:18px 22px; border-radius:22px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); text-align:left; backdrop-filter:blur(12px);">
-      <div style="${UI_TOKENS.TEXT.LABEL}">Ready</div>
-      <div style="${UI_TOKENS.TEXT.SUBTEXT}; font-size:13px; line-height:1.6; margin-top:6px;">Pick a session length and Focus will start a real countdown. Nothing shown here is simulated.</div>
+      <div style="${UI_TOKENS.TEXT.SUBTEXT}; font-size:13px; line-height:1.6;">Pick a session length and Focus will start a real countdown. Nothing shown here is simulated.</div>
     </div>
   `;
 }
@@ -289,21 +288,15 @@ function renderFocusDetails(
 function renderSidePanels(title: string, body: string): string {
   return `
     <div class="fg-p-6 fg-rounded-[22px]" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); backdrop-filter:blur(16px);">
-      <div style="${UI_TOKENS.TEXT.LABEL}; margin-bottom: 14px;">Today</div>
       <div style="${
-        UI_TOKENS.TEXT.CARD_TITLE
-      }; margin-bottom: 10px;">Focus Time</div>
+        UI_TOKENS.TEXT.LABEL
+      }; margin-bottom: 14px;">Today's Focus Time</div>
       <div style="font-size:42px; font-weight:300; line-height:1; color:var(--fg-text);">${formatMinutes(
         getTodayFocusMinutes(),
       )}</div>
     </div>
     <div class="fg-p-6 fg-rounded-[22px]" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); backdrop-filter:blur(16px);">
-      <div style="${
-        UI_TOKENS.TEXT.LABEL
-      }; margin-bottom: 14px;">Current State</div>
-      <div style="${
-        UI_TOKENS.TEXT.CARD_TITLE
-      }; margin-bottom: 10px;">${title}</div>
+      <div style="${UI_TOKENS.TEXT.LABEL}; margin-bottom: 14px;">${title}</div>
       <div style="${
         UI_TOKENS.TEXT.SUBTEXT
       }; font-size: 13px; line-height:1.7;">${body}</div>
@@ -311,13 +304,10 @@ function renderSidePanels(title: string, body: string): string {
     <div class="fg-p-6 fg-rounded-[22px] fg-flex-1" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); backdrop-filter:blur(16px);">
       <div style="${
         UI_TOKENS.TEXT.LABEL
-      }; margin-bottom: 14px;">Today Records</div>
-      <div style="${
-        UI_TOKENS.TEXT.CARD_TITLE
-      }; margin-bottom: 4px;">Session History</div>
+      }; margin-bottom: 14px;">Session History</div>
       <div style="${
         UI_TOKENS.TEXT.SUBTEXT
-      }; font-size: 13px; margin-bottom: 14px;">Completed and interrupted sessions from today.</div>
+      }; font-size: 13px; margin-bottom: 14px;">Today's completed or interrupted sessions.</div>
       ${renderTodayRecords()}
     </div>
   `;
