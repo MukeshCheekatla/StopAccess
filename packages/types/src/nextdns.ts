@@ -126,12 +126,12 @@ export interface NextDNSPrivacySettings {
  * NextDNS Recreation Time (day-specific periods where blocking is disabled)
  */
 export interface NextDNSDayRecreation {
-  enabled: boolean;
   start: string; // "HH:mm"
   end: string; // "HH:mm"
 }
 
 export interface NextDNSRecreationTime {
+  timezone?: string;
   mon?: NextDNSDayRecreation;
   tue?: NextDNSDayRecreation;
   wed?: NextDNSDayRecreation;

@@ -24,4 +24,6 @@ export const STORAGE_KEYS = {
   THEME: 'fg_appearance_theme',
   ICON_CACHE: 'fg_icon_cache',
   ONBOARDING_DONE: 'fg_onboarding_done',
+  ENGINE_HEARTBEAT: 'fg_last_engine_heartbeat',
+  TYPING_MASTERY_LOG: 'fg_typing_mastery_log',
 };

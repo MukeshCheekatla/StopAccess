@@ -36,7 +36,7 @@ export async function syncRecreationTime(
 ): Promise<NextDNSResponse<boolean>> {
   const profileId = (client as any).cfg.profileId;
   try {
-    const res = await client.fetch(`/profiles/${profileId}/parentalControl`, {
+    const res = await client.fetch(`/profiles/${profileId}`, {
       method: 'PATCH',
       body: JSON.stringify({
         parentalControl: {

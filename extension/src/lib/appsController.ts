@@ -87,12 +87,13 @@ export const appsController = {
               scope: 'both' as const,
             });
 
-      // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode and if rule scope permits
+      // 1. Cloud Layer (NextDNS)
+      // STRICT: Only sync to NextDNS if Hard Mode is enabled globally.
       const policy = await getBlockingPolicy(storage);
-      if (
-        policy.enforcesCloudBlocking &&
-        (baseRule.scope === 'profile' || baseRule.scope === 'both')
-      ) {
+      // STRICT: Only sync to cloud if Hard Mode is enabled globally.
+      const shouldCloudSync = policy.enforcesCloudBlocking;
+
+      if (shouldCloudSync) {
         await this._runCloudSync(() =>
           nextDNSApi.setTargetState(kind, id, nextState),
         );

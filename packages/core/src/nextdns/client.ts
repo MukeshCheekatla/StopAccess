@@ -16,6 +16,7 @@ import {
 } from '@stopaccess/types';
 import { sleep } from '../utils/retry';
 import { getDomainForRule } from '../engine/domains';
+import { sanitizeForHeader } from '../utils/text';
 import { BASE_URL, MAX_RETRIES, RETRY_BASE_MS, wrapResponse } from './base';
 import * as denylist from './denylist';
 import * as services from './services';
@@ -58,7 +59,7 @@ export class NextDNSClient implements NextDNSApiClient {
   ): Promise<Response> {
     const url = `${BASE_URL}${path}`;
     const headers = {
-      'X-Api-Key': this.cfg.apiKey,
+      'X-Api-Key': sanitizeForHeader(this.cfg.apiKey),
       'Content-Type': 'application/json',
       ...options.headers,
     };
