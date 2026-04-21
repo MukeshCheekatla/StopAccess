@@ -260,3 +260,52 @@ export async function loadDashboardData(selectedDate?: string) {
     ).length,
   };
 }
+
+export async function loadDomainUsageDetails(
+  domain: string,
+  selectedDate?: string,
+) {
+  const storageData = (await chrome.storage.local.get([
+    STORAGE_KEYS.USAGE,
+    STORAGE_KEYS.USAGE_HISTORY,
+  ])) as any;
+
+  const usageHistory = (storageData[STORAGE_KEYS.USAGE_HISTORY] ||
+    {}) as Record<string, UsageMap>;
+  const todayUsage = (storageData[STORAGE_KEYS.USAGE] || {}) as UsageMap;
+
+  const today = getTodayKey();
+  const targetDate = selectedDate || today;
+  const isToday = targetDate === today;
+  const series = [];
+
+  for (let offset = 6; offset >= 0; offset--) {
+    const date = addDays(targetDate, -offset);
+    const dayUsage = date === today ? todayUsage : usageHistory[date] || {};
+    const entry = dayUsage[domain] || { time: 0, sessions: 0 };
+
+    series.push({
+      date,
+      timeMs: entry.time || 0,
+      sessions: entry.sessions || 0,
+    });
+  }
+
+  const recent = series[series.length - 1];
+  const previous = series[series.length - 2] || { timeMs: 0, sessions: 0 };
+
+  const totalTimeMs = series.reduce((sum, s) => sum + s.timeMs, 0);
+  const totalSessions = series.reduce((sum, s) => sum + s.sessions, 0);
+
+  return {
+    domain,
+    series,
+    totalTimeMs,
+    totalSessions,
+    targetDate,
+    isToday,
+    avgTimePerSession:
+      totalSessions > 0 ? Math.round(totalTimeMs / totalSessions) : 0,
+    usageDeltaPct: percentDelta(recent.timeMs, previous.timeMs),
+  };
+}

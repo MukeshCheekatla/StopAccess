@@ -1,4 +1,5 @@
 import { fmtTime, buildDashboardTabPath } from '@stopaccess/core';
+import { COLORS } from '../../lib/designTokens';
 import { nextDNSApi } from '../../background/platformAdapter';
 import { appsController } from '../../lib/appsController';
 import { getCachedIcon } from '../../lib/iconCache';
@@ -126,13 +127,13 @@ async function _renderPage(container: HTMLElement): Promise<void> {
           'Stopped Attempts',
           '<span style="' +
             UI_TOKENS.TEXT.BADGE +
-            ' border: 1px solid var(--fg-green); padding: 2px 8px; border-radius: 6px; color: var(--fg-green);">Active</span>',
+            ' border: 1px solid ${COLORS.green}; padding: 2px 8px; border-radius: 6px; color: ${COLORS.green};">Active</span>',
         )}
         ${renderStatCard(
           'Safety Score',
           iconShield,
           'var(--green)',
-          `<span style="color: var(--fg-green);">${protectionRate}%</span>`,
+          `<span style="color: ${COLORS.green};">${protectionRate}%</span>`,
           'Shield Efficiency',
         )}
       </div>
@@ -211,14 +212,14 @@ function _renderLogsList(
 ): string {
   if (!isConfigured) {
     return `
-      <div class="glass-card fg-p-10 fg-text-center fg-opacity-90" style="border: 1px dashed var(--fg-glass-border); background: var(--fg-glass-bg);">
-        <div class="fg-mb-4 fg-text-[var(--fg-text)] fg-opacity-50 fg-flex fg-justify-center">${iconShield}</div>
-        <div class="fg-text-xs fg-font-extrabold fg-text-[var(--fg-text)]  fg-tracking-wider fg-mb-2">Advanced Protection Locked</div>
-        <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-relaxed fg-max-w-[280px] fg-mx-auto">Connect your NextDNS Profile in Settings to enable deep traffic analysis.</div>
+      <div class="glass-card fg-p-10 fg-text-center fg-opacity-90" style="border: 1px dashed ${COLORS.glassBorder}; background: ${COLORS.glassBg};">
+        <div class="fg-mb-4 fg-text-[${COLORS.text}] fg-opacity-50 fg-flex fg-justify-center">${iconShield}</div>
+        <div class="fg-text-xs fg-font-extrabold fg-text-[${COLORS.text}]  fg-tracking-wider fg-mb-2">Advanced Protection Locked</div>
+        <div class="fg-text-[11px] fg-text-[${COLORS.text}] fg-opacity-60 fg-leading-relaxed fg-max-w-[280px] fg-mx-auto">Connect your NextDNS Profile in Settings to enable deep traffic analysis.</div>
       </div>`;
   }
   if (blockedLogs.length === 0) {
-    return `<div class="glass-card fg-p-8 fg-text-center fg-text-[var(--fg-text)] fg-opacity-60">
+    return `<div class="glass-card fg-p-8 fg-text-center fg-text-[${COLORS.text}] fg-opacity-60">
       <div class="fg-text-[11px] fg-font-bold  fg-tracking-widest">No denials recorded</div>
     </div>`;
   }
@@ -247,9 +248,11 @@ function _renderLogsList(
              </div>
            </div>
           <div class="fg-flex fg-items-center fg-gap-2 fg-shrink-0">
-            <button class="block-log-domain fg-flex fg-h-8 fg-w-8 fg-items-center fg-justify-center fg-rounded-full fg-bg-[var(--fg-accent-soft)] fg-text-[var(--fg-accent)]" data-domain="${
-              log.domain
-            }" title="Block ${log.domain}">
+            <button class="block-log-domain fg-flex fg-h-8 fg-w-8 fg-items-center fg-justify-center fg-rounded-full fg-bg-[${
+              COLORS.accentSoft
+            }] fg-text-[${COLORS.accent}]" data-domain="${
+        log.domain
+      }" title="Block ${log.domain}">
               +
             </button>
             <div style="${
@@ -267,7 +270,7 @@ function _renderTopBlocked(
   iconLookup: Record<string, string> = {},
 ): string {
   if (!isConfigured || topBlocked.length === 0) {
-    return `<div class="glass-card fg-p-8 fg-text-center fg-text-[var(--fg-text)] fg-opacity-60">
+    return `<div class="glass-card fg-p-8 fg-text-center fg-text-[${COLORS.text}] fg-opacity-60">
       <div class="fg-text-[11px] fg-font-bold ">Awaiting stats...</div>
     </div>`;
   }
@@ -292,7 +295,9 @@ function _renderTopBlocked(
              <div class="fg-text-[12px] fg-font-black fg-text-[var(--accent)]">${Math.round(
                (item.queries / topBlocked[0].queries) * 100,
              )}%</div>
-             <div class="fg-text-[8px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-30  fg-tracking-tighter">Intensity</div>
+             <div class="fg-text-[8px] fg-font-black fg-text-[${
+               COLORS.text
+             }] fg-opacity-30  fg-tracking-tighter">Intensity</div>
           </div>
         </div>`;
     })
@@ -338,7 +343,9 @@ async function _renderPopup(container: HTMLElement): Promise<void> {
       </div>
 
       <div class="fg-flex fg-items-center fg-justify-between fg-mb-4">
-        <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-60  fg-tracking-widest">Top Denied</div>
+        <div class="fg-text-[11px] fg-font-black fg-text-[${
+          COLORS.text
+        }] fg-opacity-60  fg-tracking-widest">Top Denied</div>
         <div class="fg-text-[10px] fg-font-bold fg-text-[var(--green)] ">Healthy</div>
       </div>
       <div class="fg-flex fg-flex-col fg-gap-2">
@@ -362,7 +369,11 @@ async function _renderPopup(container: HTMLElement): Promise<void> {
                 .join('')
         }
       </div>
-      <button class="btn fg-w-full fg-mt-4 fg-text-[11px] fg-font-black fg-py-3" id="btn_full_insights" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text);">View Full Dashboard</button>
+      <button class="btn fg-w-full fg-mt-4 fg-text-[11px] fg-font-black fg-py-3" id="btn_full_insights" style="background: ${
+        COLORS.glassBg
+      }; border: 1px solid ${COLORS.glassBorder}; color: ${
+    COLORS.text
+  };">View Full Dashboard</button>
     </div>
   `;
 

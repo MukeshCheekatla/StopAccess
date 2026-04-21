@@ -1,4 +1,5 @@
 import { COLORS } from '../../lib/designTokens';
+import { UI_TOKENS } from '../../lib/ui';
 
 export function attachCalendarWidget(
   triggerElement: HTMLElement,
@@ -25,9 +26,9 @@ export function attachCalendarWidget(
   calendarContainer.style.zIndex = '1000';
   calendarContainer.style.padding = '16px';
   calendarContainer.style.width = '260px';
-  calendarContainer.style.boxShadow = '0 10px 40px var(--fg-shadow-soft)';
-  calendarContainer.style.background = 'var(--fg-glass-bg)';
-  calendarContainer.style.border = '1px solid var(--fg-glass-border)';
+  calendarContainer.style.boxShadow = `0 10px 40px ${COLORS.shadowSoft}`;
+  calendarContainer.style.background = COLORS.glassBg;
+  calendarContainer.style.border = `1px solid ${COLORS.glassBorder}`;
 
   const renderMonth = () => {
     const year = renderDate.getFullYear();
@@ -50,15 +51,15 @@ export function attachCalendarWidget(
     ];
     const headerHtml = `
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
-        <button id="cal-prev-month" style="background:transparent; border:none; cursor:pointer; color:var(--fg-text); font-weight:bold; font-size:16px;">&lt;</button>
-        <div style="font-weight:bold; color:var(--fg-text); font-size:14px;">${monthNames[month]} ${year}</div>
-        <button id="cal-next-month" style="background:transparent; border:none; cursor:pointer; color:var(--fg-text); font-weight:bold; font-size:16px;">&gt;</button>
+        <button id="cal-prev-month" style="background:transparent; border:none; cursor:pointer; color:${COLORS.text}; font-weight:bold; font-size:16px;">&lt;</button>
+        <div style="font-weight:bold; color:${COLORS.text}; font-size:14px;">${monthNames[month]} ${year}</div>
+        <button id="cal-next-month" style="background:transparent; border:none; cursor:pointer; color:${COLORS.text}; font-weight:bold; font-size:16px;">&gt;</button>
       </div>
     `;
 
     // Weekdays
     const weekdaysHtml = `
-      <div style="display:grid; grid-template-columns:repeat(7, 1fr); text-align:center; font-size:10px; color:var(--fg-muted); margin-bottom:8px; font-weight:bold;">
+      <div style="display:grid; grid-template-columns:repeat(7, 1fr); text-align:center; ${UI_TOKENS.TEXT.BADGE} color:${COLORS.muted}; margin-bottom:8px;">
         <div>S</div><div>M</div><div>T</div><div>W</div><div>T</div><div>F</div><div>S</div>
       </div>
     `;
@@ -103,7 +104,7 @@ export function attachCalendarWidget(
       daysHtml += `
         <div class="cal-day" data-date="${cellDateStr}" data-future="${isFuture}" style="
           width:100%; aspect-ratio:1; display:flex; align-items:center; justify-content:center; 
-          border-radius:6px; cursor:${cursor}; background:${bg}; color:${color}; font-size:12px; font-weight:500; opacity:${opacity};
+          border-radius:6px; cursor:${cursor}; background:${bg}; color:${color}; ${UI_TOKENS.TEXT.SUBTEXT} opacity:${opacity};
           transition:0.1s background;
         ">${i}</div>
       `;
@@ -112,9 +113,9 @@ export function attachCalendarWidget(
 
     // Quick Actions
     const quickActionsHtml = `
-      <div style="display:flex; justify-content:space-between; margin-top:16px; border-top:1px solid var(--fg-glass-border); padding-top:12px;">
-        <button id="cal-today-btn" style="background:transparent; border:none; color:${COLORS.accent}; font-size:12px; font-weight:600; cursor:pointer;">Today</button>
-        <button id="cal-close-btn" style="background:transparent; border:none; color:var(--fg-muted); font-size:12px; font-weight:500; cursor:pointer;">Close</button>
+      <div style="display:flex; justify-content:space-between; margin-top:16px; border-top:1px solid ${COLORS.glassBorder}; padding-top:12px;">
+        <button id="cal-today-btn" style="background:transparent; border:none; color:${COLORS.accent}; ${UI_TOKENS.TEXT.SUBTEXT} cursor:pointer;">Today</button>
+        <button id="cal-close-btn" style="background:transparent; border:none; color:${COLORS.muted}; ${UI_TOKENS.TEXT.SUBTEXT} cursor:pointer;">Close</button>
       </div>
     `;
 
