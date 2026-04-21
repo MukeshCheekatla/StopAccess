@@ -1,5 +1,36 @@
 export const CHANGELOG = [
   {
+    version: '1.0.7',
+    title: 'Mastery & Protection Refinement',
+    features: [
+      {
+        icon: '📈',
+        label: 'Typing Mastery Trends',
+        desc: 'New real-time analytics for your focus sessions, tracking WPM and accuracy directly in your dashboard.',
+      },
+      {
+        icon: '🛡️',
+        label: 'Deep In-App Protection',
+        desc: 'Advanced path-based blocking that can target specific sections like YouTube Shorts or Instagram Reels.',
+      },
+      {
+        icon: '⚡',
+        label: 'Zero-Delay Site Release',
+        desc: 'Optimized unblocking engine that restores site access the millisecond your focus session ends.',
+      },
+      {
+        icon: '🔒',
+        label: 'Privacy Logic Fix',
+        desc: 'Ensured that rules never sync to your cloud NextDNS profile unless DNS Hard Mode is explicitly enabled.',
+      },
+      {
+        icon: '📐',
+        label: 'Aligned Site Stability',
+        desc: 'Synchronized network and UI delays (2.5s) to allow complex sites to load metadata before blocking kicks in.',
+      },
+    ],
+  },
+  {
     version: '1.0.6',
     title: 'High-Fidelity Synthesis Update',
     features: [

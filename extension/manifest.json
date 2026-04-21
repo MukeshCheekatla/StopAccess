@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "StopAccess - Website & App Blocker",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Block distracting sites with browser rules, NextDNS sync, schedules, focus sessions, strict mode, privacy, and diagnostics.",
   "permissions": [
     "declarativeNetRequest",

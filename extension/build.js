@@ -9,11 +9,24 @@ import {
   readFileSync,
   rmSync,
   writeFileSync,
+  existsSync,
 } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// --- SIMPLE ENV LOADER ---
+const envPath = resolve(__dirname, '.env');
+if (existsSync(envPath)) {
+  const envContent = readFileSync(envPath, 'utf8');
+  envContent.split('\n').forEach((line) => {
+    const [key, ...valueParts] = line.split('=');
+    if (key && valueParts.length > 0) {
+      process.env[key.trim()] = valueParts.join('=').trim();
+    }
+  });
+}
 
 // Paths
 const SRC_DIR = resolve(__dirname, 'src');
@@ -33,6 +46,9 @@ const baseConfig = {
   minify: true,
   define: {
     'process.env.NODE_ENV': '"production"',
+    // Supabase credentials — set these in your .env before building
+    __SUPABASE_URL__: JSON.stringify(process.env.SUPABASE_URL || ''),
+    __SUPABASE_ANON_KEY__: JSON.stringify(process.env.SUPABASE_ANON_KEY || ''),
   },
   alias: {
     '@stopaccess/core': resolve(__dirname, '../packages/core/src'),
