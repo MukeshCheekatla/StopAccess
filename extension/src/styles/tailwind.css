@@ -799,7 +799,7 @@
       height: 36px; letter-spacing: 0.5px; background: transparent; color: var(--muted);
       cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     }
-    .nav-item-tab.active { background: var(--accent); color: var(--fg-white); }
+    .nav-item-tab.active { background: var(--fg-in-app-active-bg); color: var(--fg-in-app-active-text); }
     .nav-item-tab:hover:not(.active) { color: var(--text); background: var(--fg-surface-hover); }
 
     /* ── Main Area ── */
@@ -1502,12 +1502,12 @@
   }
 
   .nav-item-tab.is-active {
-    background: var(--accent) !important;
-    color: var(--fg-white) !important;
-    border-color: var(--accent) !important;
+    background: var(--fg-in-app-active-bg) !important;
+    color: var(--fg-in-app-active-text) !important;
+    border-color: var(--fg-in-app-active-border) !important;
   }
   .nav-item-tab.is-active * {
-    color: var(--fg-white) !important;
+    color: var(--fg-in-app-active-text) !important;
   }
 }
 

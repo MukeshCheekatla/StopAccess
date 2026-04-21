@@ -6,35 +6,29 @@ import React, { useEffect, useRef } from 'react';
  */
 interface LegacyBridgeProps {
   renderFn: (container: HTMLElement) => Promise<void> | void;
-  isVisible?: boolean;
 }
 
-export function LegacyBridge({
-  renderFn,
-  isVisible = true,
-}: LegacyBridgeProps) {
+export function LegacyBridge({ renderFn }: LegacyBridgeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mountedRef = useRef(false);
+  const initializedRef = useRef<boolean>(false);
+  const lastFnRef = useRef<any>(null);
 
-  // Render once on mount to pre-populate content before first tab visit
   useEffect(() => {
     if (containerRef.current) {
-      renderFn(containerRef.current);
+      // If the function changed OR we haven't initialized this container yet
+      if (lastFnRef.current !== renderFn || !initializedRef.current) {
+        lastFnRef.current = renderFn;
+        initializedRef.current = true;
+        renderFn(containerRef.current);
+      }
     }
-    mountedRef.current = true;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [renderFn]);
 
-  // Re-render only on actual tab switch (not the initial mount trigger)
-  useEffect(() => {
-    if (!mountedRef.current) {
-      return;
-    }
-    if (containerRef.current && isVisible) {
-      renderFn(containerRef.current);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isVisible]);
-
-  return <div ref={containerRef} className="fg-h-full fg-w-full fg-min-w-0" />;
+  return (
+    <div
+      ref={containerRef}
+      className="fg-h-full fg-w-full fg-min-w-0"
+      id="legacy-bridge-root"
+    />
+  );
 }

@@ -140,6 +140,87 @@ export const UI_TOKENS = {
   },
 };
 
+/**
+ * Shared Date Selector Widget
+ */
+export function setupDateSelectorWidget(
+  container: HTMLElement,
+  dateW: HTMLElement,
+  data: { targetDate: string; isToday: boolean },
+  onDateChange: (date: string) => void,
+  attachCalendar: (
+    trigger: HTMLElement,
+    container: HTMLElement,
+    currentDate: string,
+    onSelect: (date: string) => void,
+  ) => void,
+) {
+  const { targetDate, isToday } = data;
+  const date = new Date(targetDate);
+  const friendly = isToday
+    ? 'Today'
+    : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+  dateW.innerHTML = `
+    <div class="fg-flex fg-items-center fg-gap-1">
+      <button class="date-nav-prev" style="width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:${
+        COLORS.muted
+      }; cursor:pointer; transition:all 0.2s;">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      
+      <div style="display: flex; flex-direction: column; align-items: center; min-width: 80px; cursor:pointer;" class="date-picker-trigger" id="sa-date-trigger">
+        <div style="${UI_TOKENS.TEXT.CARD_TITLE}; color:${
+    COLORS.text
+  }; font-weight:800; font-size: 12px;">${friendly}</div>
+        <div style="${UI_TOKENS.TEXT.BADGE} color:${
+    COLORS.muted
+  }; text-transform: uppercase; margin-top: -1px;">${targetDate}</div>
+      </div>
+
+      <button class="date-nav-next" ${
+        isToday ? 'disabled' : ''
+      } style="width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:${
+    COLORS.muted
+  }; cursor:${isToday ? 'default' : 'pointer'}; opacity:${
+    isToday ? '0.2' : '1'
+  }; transition:all 0.2s;">
+         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  `;
+
+  (dateW as any).__dashTargetDate = targetDate;
+
+  if (!(dateW as any).__dateListenerAttached) {
+    dateW.addEventListener('click', (e: MouseEvent) => {
+      const currentTargetDate = (dateW as any).__dashTargetDate;
+      const prevBtn = (e.target as HTMLElement).closest('.date-nav-prev');
+      const nextBtn = (e.target as HTMLElement).closest('.date-nav-next');
+
+      if (prevBtn && !prevBtn.hasAttribute('disabled')) {
+        const d = new Date(currentTargetDate);
+        d.setDate(d.getDate() - 1);
+        onDateChange(d.toLocaleDateString('en-CA'));
+      }
+      if (nextBtn && !nextBtn.hasAttribute('disabled')) {
+        const d = new Date(currentTargetDate);
+        d.setDate(d.getDate() + 1);
+        onDateChange(d.toLocaleDateString('en-CA'));
+      }
+      if ((e.target as HTMLElement).closest('#sa-date-trigger')) {
+        attachCalendar(
+          dateW.querySelector('#sa-date-trigger') as HTMLElement,
+          container,
+          currentTargetDate,
+          (newDateStr: string) => onDateChange(newDateStr),
+        );
+      }
+    });
+    (dateW as any).__dateListenerAttached = true;
+  }
+}
+
 import { saveIconToCache, getCachedIconSync } from './iconCache';
 
 /** Resolves any domain/identifier to a favicon URL via the core iconography engine. */
@@ -1133,16 +1214,16 @@ export function showPinModal(
 export async function showWhatsNew(version: string, features: any[]) {
   const overlay = document.createElement('div');
   overlay.className =
-    'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay)] fg-backdrop-blur-xl fg-opacity-0 fg-transition-all fg-duration-500';
+    'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay)] fg-backdrop-blur-[20px] fg-opacity-0 fg-transition-all fg-duration-500';
 
   const featureList = features
     .map(
       (f) => `
-    <div class="fg-flex fg-gap-5 fg-p-5 fg-rounded-[24px] fg-bg-[var(--fg-white-wash)] fg-border fg-border-[var(--fg-white-wash)]">
-      <div class="fg-text-3xl">${f.icon}</div>
+    <div class="fg-flex fg-gap-5 fg-p-6 fg-rounded-[32px] fg-bg-[var(--fg-white-wash)] fg-border fg-border-[var(--fg-white-wash)] fg-transition-all hover:fg-bg-[var(--fg-surface-hover)]">
+      <div class="fg-text-4xl fg-shrink-0">${f.icon}</div>
       <div>
-        <div class="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)] fg-uppercase fg-tracking-widest">${f.label}</div>
-        <div class="fg-text-[12px] fg-text-[var(--fg-muted)] fg-mt-1 fg-line-height-1.4">${f.desc}</div>
+        <div class="fg-text-[16px] fg-font-bold fg-text-[var(--fg-text)] fg-tracking-tight">${f.label}</div>
+        <div class="fg-text-[12px] fg-text-[var(--fg-muted)] fg-mt-1 fg-line-height-1.4 fg-font-medium">${f.desc}</div>
       </div>
     </div>
   `,
@@ -1150,17 +1231,22 @@ export async function showWhatsNew(version: string, features: any[]) {
     .join('');
 
   overlay.innerHTML = `
-    <div class="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[40px] fg-p-10 fg-max-w-[500px] fg-w-full fg-shadow-2xl fg-scale-95 fg-transition-all fg-duration-500">
-      <div class="fg-text-center fg-mb-10">
-        <div class="fg-text-[10px] fg-font-black fg-text-[var(--fg-accent)] fg-uppercase fg-tracking-[0.3em] fg-mb-3">Update Discovery</div>
-        <h2 class="fg-text-3xl fg-font-black fg-text-[var(--fg-text)] fg-tracking-tight">What's New in v${version}</h2>
+    <div class="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[48px] fg-p-12 fg-max-w-[1000px] fg-w-[90%] fg-shadow-2xl fg-scale-95 fg-transition-all fg-duration-500 fg-flex fg-flex-col">
+      <div class="fg-mb-10 fg-flex fg-items-end fg-justify-between">
+        <div>
+          <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-accent)] fg-tracking-wide fg-mb-2">System Update Discovery</div>
+          <h2 class="fg-text-4xl fg-font-black fg-text-[var(--fg-text)] fg-tracking-tighter">What's New in v${version}</h2>
+        </div>
+        <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-muted)] fg-opacity-50 fg-tracking-tight">Build 1.0.7 Stable</div>
       </div>
       
-      <div class="fg-flex fg-flex-col fg-gap-4 fg-mb-10">
+      <div class="fg-grid fg-grid-cols-2 fg-gap-5 fg-mb-12">
         ${featureList}
       </div>
       
-      <button id="btn_close_whats_new" class="btn-premium fg-w-full fg-h-16 fg-rounded-3xl fg-font-black fg-uppercase fg-tracking-[0.2em] fg-text-sm">Explore Features</button>
+      <div class="fg-flex fg-justify-center">
+        <button id="btn_close_whats_new" class="btn-premium fg-px-20 fg-h-16 fg-rounded-3xl fg-font-bold fg-tracking-tight fg-text-base">Explore Features</button>
+      </div>
     </div>
   `;
 
@@ -1173,16 +1259,24 @@ export async function showWhatsNew(version: string, features: any[]) {
   }, 10);
 
   return new Promise<void>((resolve) => {
+    const close = () => {
+      overlay.classList.add('fg-opacity-0');
+      overlay.firstElementChild?.classList.add('fg-scale-95');
+      setTimeout(() => {
+        overlay.remove();
+        resolve();
+      }, 500);
+    };
+
     overlay
       .querySelector('#btn_close_whats_new')
-      ?.addEventListener('click', () => {
-        overlay.classList.add('fg-opacity-0');
-        overlay.firstElementChild?.classList.add('fg-scale-95');
-        setTimeout(() => {
-          overlay.remove();
-          resolve();
-        }, 500);
-      });
+      ?.addEventListener('click', close);
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        close();
+      }
+    });
   });
 }
 
@@ -1357,12 +1451,12 @@ export async function showTypingChallenge(
         if (!startTime) {
           startTime = Date.now();
           timerInterval = setInterval(() => {
-            if (!startTime) {
-              return;
-            }
-            const elapsed = (Date.now() - startTime) / 1000;
-            timerText.textContent = `${elapsed.toFixed(1)}s`;
-          }, 100);
+            const elapsed = Math.floor((Date.now() - startTime!) / 1000);
+            const m = Math.floor(elapsed / 60);
+            const s = elapsed % 60;
+            timerText.textContent =
+              m > 0 ? `${m}:${s.toString().padStart(2, '0')}` : `${elapsed}s`;
+          }, 500);
         }
 
         const val = input.value;
@@ -1383,6 +1477,28 @@ export async function showTypingChallenge(
             if (timerInterval) {
               clearInterval(timerInterval);
             }
+
+            // Record Performance
+            const elapsed = startTime ? (Date.now() - startTime) / 1000 : 0;
+            if (elapsed > 0) {
+              import('./typingHistory').then(({ saveTypingSession }) => {
+                const wpm = Math.round(targetText.length / 5 / (elapsed / 60));
+                const attempts = targetText.length + mistakeCount;
+                const accuracy = Math.round(
+                  (targetText.length / attempts) * 100,
+                );
+
+                saveTypingSession({
+                  timestamp: Date.now(),
+                  duration: elapsed,
+                  wpm,
+                  accuracy,
+                  textLength: targetText.length,
+                  mistakes: mistakeCount,
+                });
+              });
+            }
+
             overlay.classList.add('fg-opacity-0');
             setTimeout(() => {
               overlay.remove();
@@ -1442,6 +1558,18 @@ export async function confirmGuardianAction(options: {
   const { extensionAdapter: storage } = await import(
     '../background/platformAdapter'
   );
+  const { checkGuard } = await import('../background/sessionGuard');
+  const { toast } = (await import('./toast')) as any;
+
+  // 1. System Lock Check (Focus Session / Strict Mode)
+  // We check this FIRST so we don't annoy the user with a challenge that won't work.
+  const guard = await checkGuard(
+    options.isDestructive ? 'remove_app' : 'modify_blocklist',
+  );
+  if (!guard.allowed) {
+    toast.error((guard as any).reason);
+    return false;
+  }
 
   const challengeEnabled = await storage.getBoolean('challenge_enabled');
   const currentPin = await storage.getString('guardian_pin');
@@ -1472,7 +1600,6 @@ export async function confirmGuardianAction(options: {
 
   // 2. PIN Lock
   if (currentPin) {
-    const { toast } = (await import('./toast')) as any;
     return new Promise((resolve) => {
       showPinModal(
         options.title,

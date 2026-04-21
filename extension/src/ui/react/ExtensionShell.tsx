@@ -88,6 +88,9 @@ export function PopupShell<T extends string>({
             className={`fg-inline-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-full fg-whitespace-nowrap ${statusClassName}`}
             style={{
               ...UI_TOKENS.TEXT.R.LABEL,
+              minWidth: '52px',
+              textAlign: 'center',
+              justifyContent: 'center',
               color:
                 status.tone === 'active' || status.tone === 'error'
                   ? COLORS.onAccent
@@ -216,7 +219,7 @@ export function DashboardShell<T extends string>({
                 opacity: 0.6,
               }}
             >
-              THEME
+              Theme
             </div>
           </div>
           <div

@@ -14,6 +14,10 @@ export const COLORS = {
   text: 'var(--fg-text)',
   yellow: 'var(--fg-yellow)',
 
+  inAppActiveBg: 'var(--fg-in-app-active-bg)',
+  inAppActiveBorder: 'var(--fg-in-app-active-border)',
+  inAppActiveText: 'var(--fg-in-app-active-text)',
+
   activeIndicator: 'var(--fg-active-indicator)',
   amberSoft: 'var(--fg-amber-soft)',
   amberBorder: 'var(--fg-amber-border)',
