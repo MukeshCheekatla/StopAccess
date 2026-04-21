@@ -171,7 +171,9 @@ export class NextDNSSyncAdapter {
     try {
       let changedCount = 0;
       for (const rule of rules) {
-        const active = rule.mode === 'block' || rule.mode === 'limit';
+        // Only push if the rule is CURRENTLY blocked (e.g. limit reached or manual block)
+        const active = rule.blockedToday === true;
+
         const result = await (this.api as any).setTargetState(
           rule.type || 'domain',
           rule.packageName,

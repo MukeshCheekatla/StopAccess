@@ -1,6 +1,7 @@
 import { getDomainForRule } from '@stopaccess/core';
 import { AppRule } from '@stopaccess/types';
 import { EXTENSION_COLOR_VAR_DECLARATIONS } from '../lib/designTokens';
+import { checkInAppFeatures, checkInAppUrlBlock } from './inAppBlocking';
 
 // Bail out immediately if this is a zombie script (context already invalidated)
 if (typeof chrome === 'undefined' || !chrome.runtime?.id) {
@@ -15,7 +16,7 @@ const CONTENT_DEBUG_KEY = 'fg_content_debug';
 const OVERLAY_ID = '__fg_block_overlay__';
 const DEFAULT_MAX_DAILY_PASSES = 3;
 const PASS_DURATION_MINUTES = 5;
-const OVERLAY_DELAY_MS = 2300;
+const OVERLAY_DELAY_MS = 2500;
 const PREBLOCK_ID = '__fg_block_prewarn__';
 
 let overlayActive = false;
@@ -201,6 +202,11 @@ function buildOverlayMarkup(domain, options: any = {}) {
     '<svg class="fg-w-4 fg-h-4 fg-opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
 
   const timeStr = formatTime(usedMs || usedMinutes * 60000);
+  const isLongTime = timeStr.includes('h');
+  const timeFontSize = isLongTime
+    ? 'fg-text-xl sm:fg-text-2xl'
+    : 'fg-text-2xl sm:fg-text-3xl';
+  const remainingPasses = Math.max(0, maxExtensions - extensionCount);
 
   return `
     <div class="fg-h-[100vh] fg-w-[100vw] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-host-bg)] fg-text-[var(--fg-on-accent)] fg-font-sans fg-overflow-y-auto fg-px-4 fg-py-6 sm:fg-p-8">
@@ -215,9 +221,9 @@ function buildOverlayMarkup(domain, options: any = {}) {
               style="stroke-dasharray: ${C}; stroke-dashoffset: ${offset}; transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);" />
           </svg>
           <div class="fg-absolute fg-inset-0 fg-flex fg-flex-col fg-items-center fg-justify-center fg-gap-1">
-            <div class="fg-text-2xl sm:fg-text-3xl fg-font-bold fg-tracking-tight fg-tabular-nums" id="__fg_live_time">${timeStr}</div>
-            <div class="fg-text-[10px] fg-font-semibold fg-text-zinc-500  fg-tracking-widest">
-              ${isLimitMode ? 'used today' : 'screen time'}
+            <div class="${timeFontSize} fg-font-bold fg-tracking-tight fg-tabular-nums" id="__fg_live_time">${timeStr}</div>
+            <div class="fg-text-[10px] fg-font-semibold fg-text-zinc-500 fg-tracking-widest">
+              ${isLimitMode ? 'TIME USED' : 'SCREEN TIME'}
             </div>
           </div>
         </div>
@@ -228,17 +234,15 @@ function buildOverlayMarkup(domain, options: any = {}) {
         <div class="fg-grid fg-grid-cols-3 fg-gap-px fg-w-full fg-bg-zinc-800 fg-rounded-2xl fg-overflow-hidden fg-mb-6 sm:fg-mb-8 fg-border fg-border-zinc-800">
           <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
             <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${sessions}</div>
-            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600  fg-tracking-wider">Sessions</div>
+            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600 fg-tracking-wider">Sessions</div>
           </div>
           <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${
-              isLimitMode ? remaining + 'm' : '—'
-            }</div>
-            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600  fg-tracking-wider">Remaining</div>
+            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${remaining}m</div>
+            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600 fg-tracking-wider">Time left</div>
           </div>
           <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${extensionCount}/${maxExtensions}</div>
-            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600  fg-tracking-wider">Passes</div>
+            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${remainingPasses}</div>
+            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600 fg-tracking-wider">Passes left</div>
           </div>
         </div>
 
@@ -247,14 +251,14 @@ function buildOverlayMarkup(domain, options: any = {}) {
             ? `
           <div class="fg-w-full fg-p-4 sm:fg-p-5 fg-bg-zinc-900/50 fg-border fg-border-zinc-800 fg-rounded-[20px] fg-mb-4">
             <div class="fg-flex fg-items-center fg-justify-between fg-mb-4">
-              <div class="fg-text-[13px] sm:fg-text-sm fg-font-black fg-text-zinc-300">Request Temporary Access</div>
+              <div class="fg-text-[13px] sm:fg-text-sm fg-font-black fg-text-zinc-300">Temporary Access</div>
               <div class="fg-text-[10px] fg-font-bold fg-text-zinc-500 fg-bg-zinc-800/50 fg-px-2 fg-py-0.5 fg-rounded-full">
-                ${maxExtensions - extensionCount} left
+                ${remainingPasses} available
               </div>
             </div>
             <div class="fg-grid fg-grid-cols-2 fg-gap-3">
               <button class="fg-extend-btn fg-col-span-2 fg-flex fg-items-center fg-justify-center fg-gap-2 fg-p-3.5 fg-bg-zinc-800/50 fg-border fg-border-zinc-700/50 fg-rounded-xl fg-text-sm fg-font-bold fg-text-zinc-300 fg-transition-all hover:fg-bg-zinc-700/50 active:fg-scale-[0.98] disabled:fg-opacity-30 disabled:fg-cursor-not-allowed" data-minutes="${PASS_DURATION_MINUTES}">
-                ${clockSvg} ${PASS_DURATION_MINUTES} min pass
+                ${clockSvg} Use ${PASS_DURATION_MINUTES}m pass
               </button>
             </div>
           </div>
@@ -262,14 +266,14 @@ function buildOverlayMarkup(domain, options: any = {}) {
             : extensionCount >= maxExtensions
             ? `
           <div class="fg-w-full fg-p-4 fg-bg-zinc-900/30 fg-border fg-border-zinc-800 fg-rounded-xl fg-mb-4 fg-text-center fg-text-xs fg-text-zinc-600">
-            <strong class="fg-text-zinc-400">Daily limit reached.</strong> All passes used for today.
+            <strong class="fg-text-zinc-400">Daily limit reached.</strong> No passes left for today.
           </div>
         `
             : ''
         }
 
         <button class="fg-back fg-w-full fg-p-4 fg-border fg-border-zinc-800 fg-rounded-xl fg-bg-transparent fg-text-zinc-400 fg-text-sm fg-font-black fg-transition-all hover:fg-bg-[var(--fg-white-wash)] active:fg-scale-[0.98]">
-          &larr; Comply And Return
+          &larr; Back To Safety
         </button>
       </div>
     </div>
@@ -367,7 +371,7 @@ function injectOverlay(domain, options: any = {}) {
   shadow.appendChild(wrapper);
 
   shadow.querySelector('.fg-back')?.addEventListener('click', () => {
-    window.history.back();
+    window.location.href = chrome.runtime.getURL('dashboard.html');
   });
 
   shadow.querySelectorAll('.fg-extend-btn').forEach((btn) => {
@@ -430,6 +434,10 @@ function removeOverlay() {
 
   overlayActive = false;
   removePreBlockSignal();
+  if (pendingOverlayTimer) {
+    clearTimeout(pendingOverlayTimer);
+    pendingOverlayTimer = null;
+  }
   if (liveTimerInterval) {
     clearInterval(liveTimerInterval);
     liveTimerInterval = null;
@@ -467,6 +475,12 @@ async function checkAndBlock() {
     ) {
       return;
     }
+
+    // Call In-App Features
+    checkInAppFeatures(domain);
+
+    const urlBlock = checkInAppUrlBlock(domain, window.location.pathname);
+    const isInAppBlocked = urlBlock.blocked;
 
     // Check for active temp pass FIRST
     const activePass = await getActiveTempPass(domain);
@@ -528,9 +542,9 @@ async function checkAndBlock() {
     const effectiveBlockedDomains = Array.from(
       new Set([...blockedDomains, ...derivedBlockedDomains]),
     );
-    const isBlocked = effectiveBlockedDomains.some((bd) =>
-      matchesBlockedDomain(domain, bd),
-    );
+    const isBlocked =
+      isInAppBlocked ||
+      effectiveBlockedDomains.some((bd) => matchesBlockedDomain(domain, bd));
 
     const matchingRule = findMatchingRule(rules, domain);
     const extensionCount = await getExtensionCount(domain);
@@ -680,7 +694,9 @@ chrome.storage.onChanged.addListener((changes) => {
     changes[BLOCKED_DOMAINS_KEY] ||
     changes[RULES_KEY] ||
     changes[TEMP_PASSES_KEY] ||
-    changes.fg_redirect_url
+    changes.fg_redirect_url ||
+    changes.inAppRules ||
+    changes.fg_focus_end
   ) {
     checkAndBlock();
   }

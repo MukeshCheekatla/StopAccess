@@ -102,9 +102,9 @@ export async function syncDNRRules(domains: string[]) {
       // Unblocking must be instantaneous for good UX
       await performUpdate();
     } else {
-      // Blocking is delayed by 2s to allow the site to 'background load' assets
-      // so it doesn't break SPAs as harshly and feels smoother.
-      pendingDNRTimer = setTimeout(performUpdate, 2000);
+      // Blocking is delayed to allow the site to 'background load' assets
+      // so it doesn't break SPAs and usage tracking.
+      pendingDNRTimer = setTimeout(performUpdate, 2500);
     }
 
     return { ok: true, count: netRules.length };

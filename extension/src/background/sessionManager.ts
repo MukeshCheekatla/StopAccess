@@ -3,6 +3,7 @@ import { syncDNRRules } from './dnrAdapter';
 import { nextDNSApi } from './platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
 import { RAW_COLORS } from '../lib/designTokens';
+import { notifyFocusComplete } from './notifications';
 /**
  * Starts a new focus session.
  * Snapshots current blocked state and optionally enables NextDNS block bypass protection.
@@ -165,13 +166,10 @@ export async function handleAlarm(
   }
 
   if (alarm.name === 'fg_session_end') {
+    const session = await getActiveSession();
+    const duration = session?.duration ?? 0;
     await endSession('completed');
-    chrome.notifications.create('fg_session_done', {
-      type: 'basic',
-      iconUrl: 'assets/icon.png',
-      title: 'Focus Session Complete',
-      message: 'Great work! Your focus session has ended.',
-    });
+    notifyFocusComplete(duration);
     return true;
   }
 

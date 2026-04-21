@@ -22,6 +22,21 @@ import {
   updateBadge,
   startSession,
 } from './sessionManager';
+// import { initPeerSync, broadcastDiff, getPeerSyncStatus } from './peerSync';
+// import { broadcastDiff, getPeerSyncStatus } from './peerSync'; // initPeerSync remains disabled
+import {
+  checkUsageMilestones,
+  notifyFocusComplete,
+  notifyFocusStopped,
+  notifyLimitApproaching,
+  notifyServiceDistraction,
+} from './notifications';
+import {
+  getCloudUser,
+  // signInWithGoogle, // commented out
+  signOut,
+  // pushUsageToCloud,
+} from './authManager';
 
 // --- Local-First Tracking State ---
 let sync = null;
@@ -49,6 +64,76 @@ async function withStorageLock<T>(task: () => Promise<T>): Promise<T> {
       isStorageLocked = false;
     }
   }
+}
+
+const SAFETY_MAX_DURATION = 15 * 60 * 1000; // 15 minutes max per increment
+
+async function sanitizeUsageData() {
+  const now = Date.now();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const timeSinceMidnight = now - today.getTime();
+
+  await withStorageLock(async () => {
+    // 1. Sanitize Today's Usage
+    const res = await chrome.storage.local.get([
+      STORAGE_KEYS.USAGE,
+      STORAGE_KEYS.USAGE_HISTORY,
+    ]);
+    const u = res[STORAGE_KEYS.USAGE] || {};
+    let usageChanged = false;
+
+    let totalDayUsage = 0;
+    for (const dom of Object.keys(u)) {
+      if (u[dom].time > timeSinceMidnight + 30000) {
+        u[dom].time = timeSinceMidnight;
+        usageChanged = true;
+      }
+      totalDayUsage += u[dom].time || 0;
+    }
+
+    if (totalDayUsage > timeSinceMidnight + 60000) {
+      const scale = timeSinceMidnight / totalDayUsage;
+      for (const dom of Object.keys(u)) {
+        u[dom].time = Math.floor(u[dom].time * scale);
+      }
+      usageChanged = true;
+    }
+
+    if (usageChanged) {
+      await chrome.storage.local.set({ [STORAGE_KEYS.USAGE]: u });
+    }
+
+    // 2. Sanitize Historical Usage (One-off fix for corrupted history)
+    const history = res[STORAGE_KEYS.USAGE_HISTORY] || {};
+    let historyChanged = false;
+    const MAX_DAY_MS = 24 * 60 * 60 * 1000;
+
+    for (const day of Object.keys(history)) {
+      const dayUsage = history[day];
+      let dayTotal = 0;
+
+      for (const d of Object.keys(dayUsage)) {
+        if (dayUsage[d].time > MAX_DAY_MS) {
+          dayUsage[d].time = MAX_DAY_MS;
+          historyChanged = true;
+        }
+        dayTotal += dayUsage[d].time || 0;
+      }
+
+      if (dayTotal > MAX_DAY_MS + 60000) {
+        const scale = MAX_DAY_MS / dayTotal;
+        for (const d of Object.keys(dayUsage)) {
+          dayUsage[d].time = Math.floor(dayUsage[d].time * scale);
+        }
+        historyChanged = true;
+      }
+    }
+
+    if (historyChanged) {
+      await chrome.storage.local.set({ [STORAGE_KEYS.USAGE_HISTORY]: history });
+    }
+  });
 }
 
 const ACTIVE_TAB_KEY = 'active_tab_state';
@@ -124,7 +209,11 @@ async function saveUsage(domain, durationMs) {
   }
 
   // CRITICAL: Ensure day has not changed before saving usage
-  await performDailyReset();
+  const dayChanged = await performDailyReset();
+  if (dayChanged) {
+    // If the day just changed, we don't want to record a giant delta from the previous day here.
+    return;
+  }
 
   await withStorageLock(async () => {
     // 1. Raw Accumulated Usage
@@ -135,7 +224,9 @@ async function saveUsage(domain, durationMs) {
       u[domain] = { time: 0, sessions: 0 };
     }
 
-    u[domain].time += durationMs;
+    // Safety: Cap individual increment to prevent sleep/wake artifacts
+    const cappedDuration = Math.min(durationMs, SAFETY_MAX_DURATION);
+    u[domain].time += cappedDuration;
     await chrome.storage.local.set({ [STORAGE_KEYS.USAGE]: u });
 
     // 2. Aggregate Snapshots
@@ -183,8 +274,10 @@ async function syncRulesWithUsage() {
       }
 
       if (rules[i].mode === 'limit') {
-        const isOverLimit =
-          (rules[i].usedMinutesToday || 0) >= (rules[i].dailyLimitMinutes || 0);
+        const used = rules[i].usedMinutesToday || 0;
+        const limit = rules[i].dailyLimitMinutes || 0;
+        const isOverLimit = used >= limit;
+
         if (isOverLimit && !rules[i].blockedToday) {
           rules[i].blockedToday = true;
           rulesChanged = true;
@@ -200,12 +293,20 @@ async function syncRulesWithUsage() {
             'info',
             `Limit increased for ${rules[i].packageName}. Releasing block.`,
           );
+        } else if (!isOverLimit && limit > 0 && limit - used <= 5) {
+          // Proximity warning: 5 minutes left
+          notifyLimitApproaching(
+            rules[i].appName || rules[i].packageName,
+            limit - used,
+          ).catch(() => {});
         }
       }
     }
 
     if (rulesChanged) {
       await saveRules(extensionAdapter, rules);
+      // Notify peers of the rule change (debounced internally).
+      // broadcastDiff({ rules });
     }
   });
 }
@@ -287,33 +388,61 @@ async function switchTab(tabId) {
 async function initActiveTab() {
   try {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tabs[0]) {
-      const domain = getDomain(tabs[0].url);
-      const nextState = { domain, start: Date.now(), tabId: tabs[0].id };
-      await setActiveTabState(nextState);
-      if (domain) {
-        await incrementSession(domain);
+    if (!tabs[0]) {
+      await setActiveTabState(null);
+      return;
+    }
+
+    const domain = getDomain(tabs[0].url);
+    const existing = await getActiveTabState();
+    const now = Date.now();
+
+    // If the service worker restarted, check if the "existing" state is still valid.
+    // Validity check: session must have started TODAY and within a reasonable window.
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const lastReset = await extensionAdapter.getString(STORAGE_KEYS.LAST_RESET);
+    const staleThreshold = 10 * 60 * 1000; // 10 minutes
+
+    if (
+      existing &&
+      existing.tabId === tabs[0].id &&
+      existing.domain === domain &&
+      lastReset === todayStr &&
+      now - existing.start < staleThreshold
+    ) {
+      // Still on same tab, same day, and not too long since last update — keep tracking.
+      return;
+    }
+
+    // New tab, new day, or stale session — flush any previously tracked time first.
+    if (existing && existing.domain) {
+      const duration = now - existing.start;
+      if (duration > 50 && duration < SAFETY_MAX_DURATION) {
+        await saveUsage(existing.domain, duration);
       }
+    }
+
+    const nextState = { domain, start: now, tabId: tabs[0].id };
+    await setActiveTabState(nextState);
+    if (domain) {
+      await incrementSession(domain);
     }
   } catch {
     await setActiveTabState(null);
   }
 }
 
-async function performDailyReset() {
+async function performDailyReset(): Promise<boolean> {
   if (isResetting) {
-    return;
+    return false;
   }
 
   try {
     const lastReset = await extensionAdapter.getString(STORAGE_KEYS.LAST_RESET);
     const todayStr = new Date().toLocaleDateString('en-CA');
 
-    if (!lastReset || lastReset === todayStr) {
-      if (!lastReset) {
-        await extensionAdapter.set(STORAGE_KEYS.LAST_RESET, todayStr);
-      }
-      return;
+    if (lastReset === todayStr) {
+      return false;
     }
 
     isResetting = true;
@@ -379,24 +508,68 @@ async function performDailyReset() {
     await extensionAdapter.set(STORAGE_KEYS.LAST_RESET, todayStr);
 
     extensionLogger.add('info', `Daily reset complete for ${todayStr}`);
+    return true;
   } catch (err) {
     recordRuntimeError('daily_reset', err);
+    return false;
   } finally {
     isResetting = false;
   }
 }
 
 // --- Sync & Engine Orchestration ---
+let isCyclePending = false;
+
 async function runCycle(forceSync = false) {
   if (isRunningCycle) {
+    isCyclePending = true;
     return;
   }
   isRunningCycle = true;
 
   try {
+    // If we were pending, force a full sync to catch up on all changes
+    const shouldForceSync = forceSync || isCyclePending;
+    isCyclePending = false;
+
     await performDailyReset();
+    await sanitizeUsageData();
     await flushActiveTabUsage();
     await syncRulesWithUsage();
+
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.ENGINE_HEARTBEAT]: Date.now(),
+    });
+
+    // Usage milestone notifications
+    const usageRes = await chrome.storage.local.get([STORAGE_KEYS.USAGE]);
+    const usageMap = usageRes[STORAGE_KEYS.USAGE] || {};
+
+    // --- Disabled: Cloud Sync (Backend not implemented) ---
+    /*
+    const user = await getCloudUser();
+    if (user) {
+      // Push usage snapshots to Supabase
+      await pushUsageToCloud(usageMap);
+      extensionLogger.add('info', `Cloud Sync complete for ${user.email}`);
+    }
+    */
+    const totalUsageMs = Object.values(usageMap).reduce(
+      (sum: number, v: any) => sum + (v?.time || 0),
+      0,
+    ) as number;
+    checkUsageMilestones(totalUsageMs).catch(() => {});
+
+    // Distraction nudge for long uninterrupted sessions
+    const activeState = await getActiveTabState();
+    if (activeState && activeState.domain) {
+      const sessionMins = (Date.now() - activeState.start) / 60000;
+      if (sessionMins >= 30) {
+        notifyServiceDistraction(activeState.domain, sessionMins).catch(
+          () => {},
+        );
+      }
+    }
 
     const cfg = await chrome.storage.local.get([
       STORAGE_KEYS.PROFILE_ID,
@@ -418,9 +591,9 @@ async function runCycle(forceSync = false) {
         notifyBlocked: (name) => {
           chrome.notifications.create({
             type: 'basic',
-            iconUrl: '../assets/icon.png',
-            title: 'Focus Terminal: Active Rule',
-            message: `${name} has reached its daily focus limit.`,
+            iconUrl: chrome.runtime.getURL('assets/icon-128.png'),
+            title: `⚠️ Limit Reached: ${name}`,
+            message: `You've used up your focus time for ${name} today. We're keeping you on track!`,
           });
         },
       },
@@ -436,7 +609,7 @@ async function runCycle(forceSync = false) {
         sync.adapter.client = client;
       }
 
-      if (forceSync) {
+      if (shouldForceSync) {
         await sync.onStateChange(true);
       }
 
@@ -510,6 +683,9 @@ async function runCycle(forceSync = false) {
     });
   } finally {
     isRunningCycle = false;
+    if (isCyclePending) {
+      setTimeout(() => runCycle(true), 100);
+    }
   }
 }
 
@@ -522,7 +698,20 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 chrome.windows.onFocusChanged.addListener((windowId) => {
   if (windowId === chrome.windows.WINDOW_ID_NONE) {
-    switchTab(-1);
+    // Same bypass as idle handler: keep tracking if audio/video is actively playing.
+    (async () => {
+      try {
+        const current = await getActiveTabState();
+        if (current?.tabId) {
+          const tab = await chrome.tabs.get(current.tabId);
+          if (tab.audible) {
+            // Browser lost focus but media is playing — keep accumulating time.
+            return;
+          }
+        }
+      } catch (e) {}
+      switchTab(-1);
+    })();
   } else {
     chrome.tabs.query({ active: true, windowId }, (tabs) => {
       if (tabs[0]) {
@@ -564,6 +753,14 @@ setTimeout(
   100,
 );
 
+// Cross-device sync via Supabase (Disabled: Backend not implemented)
+/*
+initPeerSync(() => {
+  // Remote state applied — re-run engine so DNR rules & UI stay current.
+  runCycle().catch((err) => recordRuntimeError('peer_sync_run_cycle', err));
+}).catch((err) => recordRuntimeError('peer_sync_init', err));
+*/
+
 self.addEventListener('error', (event) => {
   recordRuntimeError('service_worker_error', event.error || event.message);
 });
@@ -582,6 +779,7 @@ chrome.runtime.onInstalled.addListener(async (details) => {
       [STORAGE_KEYS.LOGS]: JSON.stringify([]),
       [STORAGE_KEYS.USAGE]: {},
       [STORAGE_KEYS.LAST_RESET]: new Date().toLocaleDateString('en-CA'),
+      [STORAGE_KEYS.CONNECTION_STATUS]: 'syncing',
     });
     // Open full-page dashboard on install
     const url = chrome.runtime.getURL(buildExtensionPagePath('dashboard.html'));
@@ -596,6 +794,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
 });
 
 chrome.runtime.onStartup.addListener(async () => {
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.CONNECTION_STATUS]: 'syncing',
+  });
   initActiveTab();
   chrome.alarms.create('StopAccess_engine', {
     periodInMinutes: 1,
@@ -608,6 +809,7 @@ chrome.runtime.onStartup.addListener(async () => {
     const elapsed = (Date.now() - session.startedAt) / 60000;
     if (elapsed >= session.duration) {
       await endSession('completed');
+      notifyFocusComplete(session.duration);
       await runCycle();
     } else {
       await updateBadge(session);
@@ -673,6 +875,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           enableBlockBypass: !!msg.enableBlockBypass,
         });
         await runCycle();
+        // Broadcast focus end-time so other devices show the active session
+        // const focusEnd = Date.now() + msg.minutes * 60_000;
+        // broadcastDiff({ focusEndTime: focusEnd });
         sendResponse({ ok: true });
       } catch (e) {
         sendResponse({ ok: false, error: String(e) });
@@ -698,13 +903,96 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           return;
         }
 
+        const minutesDone = Math.round(
+          (Date.now() - (session?.startedAt ?? Date.now())) / 60000,
+        );
         await endSession('cancelled');
         await runCycle();
+        notifyFocusStopped(minutesDone);
+        // Broadcast cleared focus so other devices stop showing the session
+        // broadcastDiff({ focusEndTime: 0 });
         sendResponse({ ok: true });
       } catch (e) {
         sendResponse({ ok: false, error: String(e) });
       }
     })();
+    return true;
+  }
+
+  // ── Quick Block current site ─────────────────────────────────────────────
+  if (msg.action === 'quickBlock') {
+    (async () => {
+      try {
+        const { domain } = msg;
+        if (!domain) {
+          sendResponse({ ok: false, error: 'No domain' });
+          return;
+        }
+
+        const rules = await getRules(extensionAdapter);
+        const already = rules.some(
+          (r) => r.customDomain === domain || r.packageName === domain,
+        );
+        if (already) {
+          sendResponse({ ok: false, error: 'Already blocked' });
+          return;
+        }
+
+        const newRule = {
+          appName: domain,
+          packageName: domain,
+          customDomain: domain,
+          type: 'domain' as const,
+          scope: 'browser' as const,
+          mode: 'block' as const,
+          dailyLimitMinutes: 0,
+          blockedToday: false,
+          usedMinutesToday: 0,
+          addedByUser: true,
+          desiredBlockingState: true,
+          addedAt: Date.now(),
+          updatedAt: Date.now(),
+        };
+        await saveRules(extensionAdapter, [...rules, newRule]);
+        // broadcastDiff({ rules: [...rules, newRule] });
+        await runCycle(true);
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true;
+  }
+
+  // ── Sync status (diagnostic) ─────────────────────────────────────────────
+  if (msg.action === 'getSyncStatus') {
+    // getPeerSyncStatus is already statically imported via initPeerSync
+    sendResponse({
+      ok: true,
+      status: { enabled: false, connected: false, deviceId: '', profileId: '' },
+    });
+    return true;
+  }
+
+  // ── Cloud Auth (Google Sign-In commented out) ────────────────────────────
+  // if (msg.action === 'signInWithGoogle') {
+  //   signInWithGoogle()
+  //     .then((success) => sendResponse({ ok: success }))
+  //     .catch((e) => sendResponse({ ok: false, error: String(e) }));
+  //   return true;
+  // }
+
+  if (msg.action === 'signOut') {
+    signOut()
+      .then(() => sendResponse({ ok: true }))
+      .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
+  if (msg.action === 'getCloudUser') {
+    getCloudUser()
+      .then((user) => sendResponse({ ok: true, user }))
+      .catch(() => sendResponse({ ok: false }));
     return true;
   }
 
