@@ -1,3 +1,4 @@
+import { COLORS } from '../../../lib/designTokens';
 /**
  * BlocklistsSection & Library Modal
  * Management for NextDNS blocklists with centered discovery library.
@@ -53,10 +54,10 @@ export function renderBlocklistsSection(
     });
 
   return `
-    <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
+    <div class="fg-p-2 fg-mb-4">
       ${renderSectionTitleRow(
         iconList,
-        'var(--fg-indigo)',
+        COLORS.indigo,
         'Ad &amp; Tracker Blocklists',
         renderSectionBadge(`${activeIds.size} Active`),
       )}
@@ -70,12 +71,16 @@ export function renderBlocklistsSection(
             type="text" 
             id="blocklist-search-main"
             placeholder="Search filtered lists..."
-            class="fg-w-full fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-2xl fg-py-3 fg-pl-11 fg-pr-4 fg-text-sm fg-outline-none focus:fg-border-[var(--accent)] fg-transition-all"
-            style="color: var(--fg-text);"
+            class="fg-w-full fg-bg-[${COLORS.glassBg}] fg-border fg-border-[${
+    COLORS.glassBorder
+  }] fg-rounded-2xl fg-py-3 fg-pl-11 fg-pr-4 fg-text-sm fg-outline-none focus:fg-border-[var(--accent)] fg-transition-all"
+            style="color: ${COLORS.text};"
           >
         </div>
         <button id="open-blocklist-drawer" class="fg-px-5 fg-py-3 fg-rounded-2xl fg-text-[11px] fg-font-black  fg-tracking-widest fg-transition-all hover:fg-opacity-80"
-          style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text);">
+          style="background: ${COLORS.glassBg}; border: 1px solid ${
+    COLORS.glassBorder
+  }; color: ${COLORS.text};">
           + Add Filter
         </button>
       </div>
@@ -89,19 +94,25 @@ export function renderBlocklistsSection(
 
     <!-- Centered Library Modal -->
     <div id="blocklist-drawer-overlay" class="fg-fixed fg-inset-0 fg-z-[1000] fg-transition-all fg-duration-300 fg-flex fg-items-center fg-justify-center" 
-      style="display: none; background: var(--fg-overlay); backdrop-filter: blur(12px);">
+      style="display: none; background: ${
+        COLORS.overlay
+      }; backdrop-filter: blur(12px);">
       
-      <div id="blocklist-drawer" class="fg-relative fg-w-[720px] fg-max-h-[85vh] fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[32px] fg-shadow-[0_32px_64px_var(--fg-shadow-strong)] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
+      <div id="blocklist-drawer" class="fg-relative fg-w-[720px] fg-max-h-[85vh] fg-bg-[${
+        COLORS.surface
+      }] fg-border fg-border-[${
+    COLORS.glassBorder
+  }] fg-rounded-[32px] fg-shadow-[0_32px_64px_var(--fg-shadow-strong)] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
         
         <!-- Header -->
         <div class="fg-p-8 fg-border-b fg-border-[var(--fg-white-wash)] fg-flex fg-items-center fg-justify-between">
           <div>
-            <div style="${
-              UI_TOKENS.TEXT.LABEL
-            }; color: var(--fg-indigo); margin-bottom: 4px; letter-spacing: 3px;">Discovery</div>
-            <div style="${
-              UI_TOKENS.TEXT.HERO
-            }; color: var(--fg-text); font-size: 1.5rem;">Blocklist Library</div>
+            <div style="${UI_TOKENS.TEXT.LABEL}; color: ${
+    COLORS.indigo
+  }; margin-bottom: 4px; letter-spacing: 3px;">Discovery</div>
+            <div style="${UI_TOKENS.TEXT.HERO}; color: ${
+    COLORS.text
+  }; font-size: 1.5rem;">Blocklist Library</div>
           </div>
           <button id="close-blocklist-drawer" class="fg-p-3 fg-rounded-2xl hover:fg-bg-[var(--fg-white-wash)] fg-text-[var(--muted)] fg-transition-all">
             ${iconClose}
@@ -120,8 +131,10 @@ export function renderBlocklistsSection(
               placeholder="Search ${
                 available.length
               } blocklists by name, developer or domains..."
-              class="fg-w-full fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[20px] fg-py-4 fg-pl-14 fg-pr-6 fg-text-[15px] fg-outline-none focus:fg-border-[var(--accent)] fg-transition-all"
-              style="color: var(--fg-text);"
+              class="fg-w-full fg-bg-[${COLORS.glassBg}] fg-border fg-border-[${
+    COLORS.glassBorder
+  }] fg-rounded-[20px] fg-py-4 fg-pl-14 fg-pr-6 fg-text-[15px] fg-outline-none focus:fg-border-[var(--accent)] fg-transition-all"
+              style="color: ${COLORS.text};"
             >
           </div>
         </div>
@@ -135,11 +148,15 @@ export function renderBlocklistsSection(
         </div>
 
         <!-- Footer -->
-        <div class="fg-px-8 fg-py-5 fg-bg-[var(--fg-glass-bg)] fg-border-t fg-border-[var(--fg-glass-border)] fg-flex fg-justify-between fg-items-center">
+        <div class="fg-px-8 fg-py-5 fg-bg-[${
+          COLORS.glassBg
+        }] fg-border-t fg-border-[${
+    COLORS.glassBorder
+  }] fg-flex fg-justify-between fg-items-center">
           <div style="${UI_TOKENS.TEXT.LABEL}; opacity: 0.6;">
-            Total Library Score: <span style="color: var(--fg-text);">${
-              available.length
-            } Lists</span>
+            Total Library Score: <span style="color: ${COLORS.text};">${
+    available.length
+  } Lists</span>
           </div>
           <div style="${UI_TOKENS.TEXT.LABEL}; opacity: 0.6;">
             Sorted by Popularity
@@ -256,9 +273,9 @@ function getIconHtml(
     <div class="global-brand-logo fg-relative fg-flex fg-items-center fg-justify-center" data-domain="${
       domainCandidate || ''
     }" style="width: ${sizePx}px; height: ${sizePx}px;">
-      <div class="logo-fallback placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-text)]" style="opacity: ${
-        hasCache ? '0' : '0.5'
-      }; z-index: 1;">
+      <div class="logo-fallback placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[${
+        COLORS.text
+      }]" style="opacity: ${hasCache ? '0' : '0.5'}; z-index: 1;">
         ${iconDatabase}
       </div>
       <img src="${primaryUrl}" 
@@ -292,17 +309,17 @@ function renderBlocklistCard(list: any, active: boolean): string {
       class="blocklist-card fg-flex fg-flex-col fg-p-4 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-200"
       data-id="${list.id}"
       data-active="${active}"
-      style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); min-height: 110px;"
+      style="background: ${COLORS.glassBg}; border: 1px solid ${
+    COLORS.glassBorder
+  }; min-height: 110px;"
     >
       <div class="fg-flex fg-items-start fg-gap-3 fg-mb-3">
         <div class="fg-shrink-0 fg-mt-1">${iconHtml}</div>
         <div class="fg-flex-1 fg-min-w-0">
           <div class="fg-flex fg-items-center fg-gap-1.5 fg-mb-[1px]">
-            <div style="${
-              UI_TOKENS.TEXT.CARD_TITLE
-            }; color: var(--fg-text);" class="fg-truncate">${escapeHtml(
-    list.name,
-  )}</div>
+            <div style="${UI_TOKENS.TEXT.CARD_TITLE}; color: ${
+    COLORS.text
+  };" class="fg-truncate">${escapeHtml(list.name)}</div>
           </div>
           <div style="${
             UI_TOKENS.TEXT.SUBTEXT
@@ -314,10 +331,10 @@ function renderBlocklistCard(list: any, active: boolean): string {
           active ? 'active' : ''
         }" data-id="${list.id}" data-active="${active}" 
           style="width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: ${
-            active ? 'var(--fg-emerald-strong)' : 'var(--fg-glass-bg)'
+            active ? 'var(--fg-emerald-strong)' : COLORS.glassBg
           }; border: 1px solid ${
-    active ? 'var(--fg-emerald-border-strong)' : 'var(--fg-glass-border)'
-  }; color: ${active ? 'var(--green)' : 'var(--fg-muted)'};">
+    active ? 'var(--fg-emerald-border-strong)' : COLORS.glassBorder
+  }; color: ${active ? 'var(--green)' : COLORS.muted};">
           ${
             active
               ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
@@ -325,14 +342,24 @@ function renderBlocklistCard(list: any, active: boolean): string {
           }
         </button>
       </div>
-      <div class="fg-mt-auto fg-flex fg-items-center fg-gap-3 fg-pt-2 fg-border-t fg-border-[var(--fg-glass-border)]">
+      <div class="fg-mt-auto fg-flex fg-items-center fg-gap-3 fg-pt-2 fg-border-t fg-border-[${
+        COLORS.glassBorder
+      }]">
         <div class="fg-flex fg-items-center fg-gap-1">
-          <span class="fg-text-[var(--fg-text)] fg-opacity-40">${iconDatabase}</span>
-          <span class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-90">${entriesStr}</span>
+          <span class="fg-text-[${
+            COLORS.text
+          }] fg-opacity-40">${iconDatabase}</span>
+          <span class="fg-text-[11px] fg-font-black fg-text-[${
+            COLORS.text
+          }] fg-opacity-90">${entriesStr}</span>
         </div>
         <div class="fg-flex fg-items-center fg-gap-1">
-          <span class="fg-text-[var(--fg-text)] fg-opacity-40">${iconRefresh}</span>
-          <span class="fg-text-[10px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-70">${updatedStr}</span>
+          <span class="fg-text-[${
+            COLORS.text
+          }] fg-opacity-40">${iconRefresh}</span>
+          <span class="fg-text-[10px] fg-font-bold fg-text-[${
+            COLORS.text
+          }] fg-opacity-70">${updatedStr}</span>
         </div>
       </div>
     </div>
@@ -352,7 +379,11 @@ function renderBlocklistRow(list: any, active: boolean): string {
     : '';
 
   return `
-    <div class="blocklist-row fg-flex fg-items-center fg-gap-5 fg-p-6 fg-rounded-2xl hover:fg-bg-[var(--fg-glass-bg)] fg-transition-all fg-border fg-border-transparent hover:fg-border-[var(--fg-glass-border)]" 
+    <div class="blocklist-row fg-flex fg-items-center fg-gap-5 fg-p-6 fg-rounded-2xl hover:fg-bg-[${
+      COLORS.glassBg
+    }] fg-transition-all fg-border fg-border-transparent hover:fg-border-[${
+    COLORS.glassBorder
+  }]" 
       data-id="${list.id}" data-active="${active}" data-name="${escapeHtml(
     (list.name || '').toLowerCase(),
   )}" data-desc="${escapeHtml((list.description || '').toLowerCase())}">
@@ -364,22 +395,26 @@ function renderBlocklistRow(list: any, active: boolean): string {
       <div class="fg-flex-1 fg-min-w-0">
         <div class="fg-flex fg-items-center fg-justify-between fg-mb-1.5">
           <div class="fg-flex fg-items-center fg-gap-3">
-             <div class="fg-text-[17px] fg-font-black fg-text-[var(--fg-text)]">${escapeHtml(
-               list.name,
-             )}</div>
+             <div class="fg-text-[17px] fg-font-black fg-text-[${
+               COLORS.text
+             }]">${escapeHtml(list.name)}</div>
              ${
                active
-                 ? '<span class="fg-bg-[var(--fg-indigo-soft)] fg-text-[var(--fg-primary-blue)] fg-text-[9px] fg-font-black  fg-tracking-widest fg-px-2 fg-py-0.5 fg-rounded-md">Active</span>'
+                 ? '<span class="fg-bg-[' +
+                   COLORS.indigoSoft +
+                   '] fg-text-[var(--fg-primary-blue)] fg-text-[9px] fg-font-black  fg-tracking-widest fg-px-2 fg-py-0.5 fg-rounded-md">Active</span>'
                  : ''
              }
           </div>
           <button class="blocklist-toggle-btn ${
             active ? 'active' : ''
           }" data-id="${list.id}" data-active="${active}" 
-            style="padding: 6px 16px; border-radius: 8px; font-size: 11px; font-weight: 900; letter-spacing: 0.1em;  
-            background: ${
-              active ? 'var(--fg-red)' : 'var(--fg-blue)'
-            }; color: var(--fg-on-accent); border: none; transition: all 0.2s;">
+            style="padding: 6px 16px; border-radius: 8px; ${
+              UI_TOKENS.TEXT.BADGE
+            }
+            background: ${active ? COLORS.red : COLORS.blue}; color: ${
+    COLORS.onAccent
+  }; border: none; transition: all 0.2s;">
             ${active ? 'Remove' : 'Add'}
           </button>
         </div>
@@ -395,9 +430,13 @@ function renderBlocklistRow(list: any, active: boolean): string {
         }; text-transform: none; font-weight: 500; opacity: 0.7;">
           ${websiteHtml}
           ${domain ? '<span class="fg-opacity-40 fg-mx-1.5">•</span>' : ''}
-          <span style="color: var(--fg-text); opacity: 0.8;">${entriesRaw.toLocaleString()} entries</span>
+          <span style="color: ${
+            COLORS.text
+          }; opacity: 0.8;">${entriesRaw.toLocaleString()} entries</span>
           <span class="fg-opacity-40 fg-mx-1.5">•</span>
-          <span style="color: var(--fg-text); opacity: 0.8;">Updated ${updatedStr}</span>
+          <span style="color: ${
+            COLORS.text
+          }; opacity: 0.8;">Updated ${updatedStr}</span>
         </div>
       </div>
     </div>

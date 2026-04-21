@@ -1,4 +1,5 @@
 /**
+import { COLORS } from '../../../lib/designTokens';
  * DomainProtectionSection
  * Renders: DNS Rebinding, IDN Homographs, Typosquatting, DGA, NRD, DDNS, Parking
  */
@@ -12,6 +13,7 @@ import {
   renderInfoTooltip,
   UI_TOKENS,
 } from '../../../lib/ui';
+import { COLORS } from '../../../lib/designTokens';
 
 interface DomainToggle {
   key: keyof Omit<NextDNSSecuritySettings, 'tlds'>;
@@ -19,6 +21,8 @@ interface DomainToggle {
   tooltip: string; // Glossary text
   description: string;
   icon: string; // inline SVG string
+  color: string; // CSS color string/variable
+  isBeta?: boolean;
 }
 
 // Inline SVG icons — no emojis
@@ -38,6 +42,8 @@ const svgPause =
   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
 const svgGlobe =
   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+const svgSlash =
+  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>';
 
 const DOMAIN_TOGGLES: DomainToggle[] = [
   {
@@ -48,6 +54,7 @@ const DOMAIN_TOGGLES: DomainToggle[] = [
     description:
       'Prevents attackers from controlling your local network via DNS.',
     icon: svgRefresh,
+    color: '#f87171',
   },
   {
     key: 'idnHomographs',
@@ -56,6 +63,7 @@ const DOMAIN_TOGGLES: DomainToggle[] = [
       "Blocks 'look-alike' domains that use similar characters from different alphabets to impersonate legitimate sites (phishing).",
     description: 'Block look-alike domains using foreign characters.',
     icon: svgType,
+    color: '#60a5fa',
   },
   {
     key: 'typosquatting',
@@ -64,6 +72,7 @@ const DOMAIN_TOGGLES: DomainToggle[] = [
       'Detects and blocks common misspellings of popular websites designed to trick you into visiting malicious clones.',
     description: 'Block domains designed to catch common URL typos.',
     icon: svgKeyboard,
+    color: '#fbbf24',
   },
   {
     key: 'dga',
@@ -72,6 +81,7 @@ const DOMAIN_TOGGLES: DomainToggle[] = [
       'Blocks algorithmically generated domains used by malware to communicate with command-and-control servers.',
     description: 'Block algorithmically generated domains used by malware.',
     icon: svgSliders,
+    color: '#c084fc',
   },
   {
     key: 'nrd',
@@ -81,6 +91,7 @@ const DOMAIN_TOGGLES: DomainToggle[] = [
     description:
       'Block domains registered in the last 30 days (often malicious).',
     icon: svgClock,
+    color: '#34d399',
   },
   {
     key: 'ddns',
@@ -89,6 +100,8 @@ const DOMAIN_TOGGLES: DomainToggle[] = [
       'Blocks hostnames from dynamic DNS providers, which are often utilized to host malicious content or malware payloads.',
     description: 'Block dynamic DNS hostnames used in attacks.',
     icon: svgWifi,
+    color: '#818cf8',
+    isBeta: true,
   },
   {
     key: 'parking',
@@ -97,6 +110,16 @@ const DOMAIN_TOGGLES: DomainToggle[] = [
       'Blocks domains that are inactive or show ads, preventing potential tracking and reducing general network clutter.',
     description: 'Block inactive parked domains used for ads or tracking.',
     icon: svgPause,
+    color: '#94a3b8',
+  },
+  {
+    key: 'csam',
+    label: 'Block CSAM',
+    tooltip:
+      'Blocks access to known Child Sexual Abuse Material (CSAM) domains using industry-standard safety lists from organizations like the NCMEC.',
+    description: 'Block child sexual abuse material.',
+    icon: svgSlash,
+    color: '#ef4444',
   },
 ];
 
@@ -109,46 +132,74 @@ export function renderDomainProtectionSection(
   const total = DOMAIN_TOGGLES.length;
 
   return `
-    <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
+    <div class="fg-p-2 fg-mb-4">
       ${renderSectionTitleRow(
         svgGlobe,
         'var(--accent)',
         'Domain Protection',
         renderSectionBadge(`${activeCount}/${total} Active`),
       )}
-      <div class="fg-grid fg-grid-cols-3 fg-gap-2">
-        ${DOMAIN_TOGGLES.map((t) =>
-          renderToggleRow(t, settings[t.key] as boolean),
+      <div class="fg-grid fg-grid-cols-2 fg-gap-2">
+        ${DOMAIN_TOGGLES.map((t, i) =>
+          renderToggleRow(t, settings[t.key] as boolean, i),
         ).join('')}
       </div>
     </div>
   `;
 }
 
-function renderToggleRow(toggle: DomainToggle, active: boolean): string {
+function renderToggleRow(
+  toggle: DomainToggle,
+  active: boolean,
+  index?: number,
+): string {
+  const align = index !== undefined && index % 2 !== 0 ? 'right' : 'center';
+
   return `
-    <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-bg-[var(--fg-surface-hover)]"
+    <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-bg-[${
+      COLORS.surfaceHover
+    }]"
       data-key="${toggle.key}"
-      style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
+      style="background: ${COLORS.glassBg}; border: 1px solid ${
+    COLORS.glassBorder
+  };"
     >
       <!-- Icon (Left) -->
       <div class="fg-relative fg-shrink-0">
-        <span class="fg-text-[var(--accent)]">${toggle.icon}</span>
+        <span style="color: ${toggle.color};">${toggle.icon}</span>
       </div>
 
       <!-- Content (Middle) -->
-      <div class="fg-flex-1 fg-min-w-0">
+       <div class="fg-flex-1 fg-min-w-0">
         <div class="fg-flex fg-items-center fg-gap-2 fg-mb-[2px]">
           <div style="${UI_TOKENS.TEXT.CARD_TITLE}" class="fg-truncate">
             ${escapeHtml(toggle.label)}
           </div>
-          ${renderInfoTooltip(toggle.tooltip ?? '')}
+          ${
+            toggle.isBeta
+              ? `
+            <span class="fg-text-[7px] fg-font-black fg-px-1.5 fg-py-0.5 fg-rounded-md fg-bg-[${COLORS.accentSoft}] fg-text-[${COLORS.accent}] fg-ml-1 fg-tracking-wider" style="border: 1px solid var(--fg-nav-border);">
+              BETA
+            </span>
+          `
+              : ''
+          }
+          ${renderInfoTooltip(toggle.tooltip ?? '', 'up', align)}
         </div>
         <div style="${
           UI_TOKENS.TEXT.SUBTEXT
         }; opacity: 0.6; line-height: 1.4;" class="fg-line-clamp-2">
           ${escapeHtml(toggle.description)}
         </div>
+        ${
+          toggle.key === 'csam'
+            ? `
+          <div class="fg-inline-block fg-text-[8px] fg-font-black fg-tracking-[1px] fg-mt-[5px] fg-px-2 fg-py-[2px] fg-rounded-[10px]" style="background: ${COLORS.emeraldSoft}; color: var(--green); border: 1px solid ${COLORS.emeraldBorder};">
+            RECOMMENDED
+          </div>
+        `
+            : ''
+        }
       </div>
 
       <!-- Toggle (Right) -->

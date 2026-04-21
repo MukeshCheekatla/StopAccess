@@ -1,3 +1,4 @@
+import { COLORS } from '../../lib/designTokens';
 /**
  * PrivacyPage
  * Full dashboard tab for NextDNS Privacy settings.
@@ -18,20 +19,11 @@ import {
   renderErrorCard,
   applyToggleUI,
   applyCardToggleUI,
-  renderStatCard,
   attachGlobalIconListeners,
 } from '../../lib/ui';
 import { prefetchIconCache } from '../../lib/iconCache';
 
 const vm = createPrivacyVM(storage, nextDNSApi);
-
-// SVG icons
-const iconShield =
-  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
-const iconWifi =
-  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1.42 10a16 16 0 0 1 21.16 0"/><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>';
-const iconLayers =
-  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>';
 
 export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
   if (!container) {
@@ -44,10 +36,11 @@ export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
       '<div class="fg-max-w-[800px] fg-mx-auto fg-animate-fade-in fg-py-12"></div>';
   }
 
-  const [{ settings, isConfigured, error }] = await Promise.all([
-    vm.load(),
-    prefetchIconCache(),
-  ]);
+  const [{ settings, isConfigured, error }, availableBlocklists] =
+    await Promise.all([vm.load(), vm.getAvailableBlocklists()]);
+
+  // Handle icon cache prefetch separately
+  prefetchIconCache();
 
   // Onboarding Bridge: Allow viewing in Local Mode
   const isLocalMode = !isConfigured;
@@ -61,25 +54,6 @@ export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
       .querySelector('#btn_retry_privacy')
       ?.addEventListener('click', () => renderPrivacyPage(container));
     return;
-  }
-
-  const blocklistCount = isLocalMode ? 0 : await vm.getActiveBlocklistCount();
-  const nativeCount = isLocalMode ? 0 : await vm.getActiveNativeCount();
-  const disguisedActive = isLocalMode ? false : settings?.disguisedTrackers;
-
-  let availableBlocklists: any[] = [];
-  if (!isLocalMode) {
-    vm.getAvailableBlocklists().then((list) => {
-      availableBlocklists = list;
-      const section = container.querySelector('#privacy_blocklists_section');
-      if (section) {
-        section.innerHTML = renderBlocklistsSection(
-          privacySettings.blocklists ?? [],
-          availableBlocklists,
-        );
-        attachGlobalIconListeners(container);
-      }
-    });
   }
 
   const privacySettings =
@@ -97,34 +71,15 @@ export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
     <div id="privacy_content_container" class="${
       isLocalMode ? 'fg-opacity-50 fg-pointer-events-none' : ''
     }">
-      <!-- Summary badges (Scan results) -->
-      <div class="fg-grid fg-grid-cols-3 fg-gap-4 fg-mb-8">
-        ${renderStatCard(
-          'Filters',
-          iconShield,
-          blocklistCount > 0 ? 'var(--green)' : 'var(--fg-muted)',
-          blocklistCount,
-          'Active Blocklists',
-        )}
-        ${renderStatCard(
-          'Tracking',
-          iconWifi,
-          nativeCount > 0 ? 'rgb(56,189,248)' : 'var(--fg-muted)',
-          nativeCount,
-          'Native Rules',
-        )}
-        ${renderStatCard(
-          'Stealth',
-          iconLayers,
-          disguisedActive ? 'rgb(168,85,247)' : 'var(--fg-muted)',
-          disguisedActive ? 'ON' : 'OFF',
-          'Cloaking Protection',
-        )}
-      </div>
-
       <!-- Sections -->
-      ${renderPrivacyOptionsSection(privacySettings)}
-      ${renderNativeTrackersSection(privacySettings.natives ?? [])}
+      <div class="fg-grid fg-grid-cols-1 lg:fg-grid-cols-[1.8fr_1fr] fg-gap-4 fg-mb-4">
+        <div>
+           ${renderNativeTrackersSection(privacySettings.natives ?? [])}
+        </div>
+        <div>
+           ${renderPrivacyOptionsSection(privacySettings)}
+        </div>
+      </div>
       <div id="privacy_blocklists_section">
         ${renderBlocklistsSection(
           privacySettings.blocklists ?? [],
@@ -145,6 +100,7 @@ export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
   }
 
   attachHandlers(container);
+  attachGlobalIconListeners(container);
 }
 
 function attachHandlers(container: HTMLElement): void {
@@ -306,8 +262,8 @@ function attachHandlers(container: HTMLElement): void {
   container.querySelectorAll('.native-toggle-btn').forEach((btn) => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
-      const id = btn.getAttribute('data-id')!;
-      const active = btn.getAttribute('data-active') === 'true';
+      const id = btn.getAttribute('data-key')!;
+      const active = btn.getAttribute('aria-checked') === 'true';
 
       applyToggleUI(btn as HTMLElement, !active);
 
@@ -367,6 +323,6 @@ function renderLocalModeBanner(): string {
     'Multi-layered tracking protection requires cloud synchronization. Connect to enable global blocklists.',
     'btn_upgrade_cloud_privacy',
     'Upgrade to Cloud',
-    'var(--fg-yellow)',
+    COLORS.yellow,
   );
 }

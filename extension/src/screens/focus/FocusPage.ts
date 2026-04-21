@@ -74,8 +74,8 @@ function renderTodayRecords(): string {
 
   if (records.length === 0) {
     return `
-      <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-text-center fg-text-[var(--fg-muted)]" style="min-height:220px;">
-        <div style="font-size:16px; color:var(--fg-muted);">No records yet</div>
+      <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-text-center fg-text-[${COLORS.muted}]" style="min-height:220px;">
+        <div style="font-size:16px; color:${COLORS.muted};">No records yet</div>
       </div>
     `;
   }
@@ -94,15 +94,15 @@ function renderTodayRecords(): string {
       );
       const tone =
         session.status === 'completed'
-          ? 'var(--fg-text)'
+          ? COLORS.text
           : session.status === 'cancelled'
-          ? 'var(--fg-red)'
-          : 'var(--fg-muted)';
+          ? COLORS.red
+          : COLORS.muted;
 
       return `
-        <div class="fg-grid fg-items-center fg-gap-[14px] fg-py-[14px]" style="grid-template-columns:56px 1fr auto; border-top:1px solid var(--fg-glass-border);">
-          <div class="fg-text-[12px] fg-font-medium" style="color: var(--fg-muted);">${start}</div>
-          <div style="height:1px; background:var(--fg-glass-border); opacity: 0.5;"></div>
+        <div class="fg-grid fg-items-center fg-gap-[14px] fg-py-[14px]" style="grid-template-columns:56px 1fr auto; border-top:1px solid ${COLORS.glassBorder};">
+          <div class="fg-text-[12px] fg-font-medium" style="color: ${COLORS.muted};">${start}</div>
+          <div style="height:1px; background:${COLORS.glassBorder}; opacity: 0.5;"></div>
           <div class="fg-text-[12px] fg-font-bold" style="color:${tone};">${duration}</div>
         </div>
       `;
@@ -122,9 +122,11 @@ function renderAmbientShell(
 
   return `
     <div style="position:relative; min-height:${minHeight}; border-radius:28px; overflow:hidden; background:
-      linear-gradient(160deg, var(--fg-surface), var(--fg-bg));
-      border:1px solid var(--fg-glass-border); display: flex; flex-direction: column;
-      box-shadow: 0 18px 48px var(--fg-shadow-soft);">
+      linear-gradient(160deg, ${COLORS.surface}, ${COLORS.bg});
+      border:1px solid ${
+        COLORS.glassBorder
+      }; display: flex; flex-direction: column;
+      box-shadow: 0 18px 48px ${COLORS.shadowSoft};">
 
       <div style="position:relative; z-index:1; display:grid; grid-template-columns:${gridTemplate}; gap:16px; flex: 1; padding:${padding};">
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0;">
@@ -159,8 +161,8 @@ function renderRingMarkup(
     const y2 = 190 + outer * Math.sin(angle);
     const stroke =
       index < activeTicks
-        ? 'var(--fg-accent)'
-        : 'color-mix(in srgb, var(--fg-muted) 35%, transparent)';
+        ? COLORS.accent
+        : `color-mix(in srgb, ${COLORS.muted} 35%, transparent)`;
     const strokeWidth = index % 5 === 0 ? 3.5 : 2.5;
     return `<line data-tick-index="${index}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-linecap="round" />`;
   }).join('');
@@ -168,16 +170,16 @@ function renderRingMarkup(
   return `
       <div style="position:relative; width:360px; height:360px; max-width:100%;">
         <svg viewBox="0 0 380 380" style="position:absolute; inset:0; width:100%; height:100%;">
-          <circle cx="190" cy="190" r="110" fill="var(--fg-glass-bg)" stroke="var(--fg-glass-border)" stroke-width="1" />
+          <circle cx="190" cy="190" r="110" fill="${COLORS.glassBg}" stroke="${COLORS.glassBorder}" stroke-width="1" />
           ${lines}
         </svg>
         <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-          <div id="liveTimerDisplay" style="font-size:56px; font-weight:300; line-height:0.95; letter-spacing:-0.05em; color:var(--fg-text); font-variant-numeric:tabular-nums;">${timeDisplay}</div>
-          <div style="margin-top:10px; display:inline-flex; align-items:center; gap:8px; color:var(--fg-muted); font-size:10px; letter-spacing:0.1em; ">
-            <span style="width:6px; height:6px; border-radius:50%; background:var(--fg-accent); box-shadow:0 0 8px var(--fg-accent-soft);"></span>
+          <div id="liveTimerDisplay" style="font-size:56px; font-weight:300; line-height:0.95; letter-spacing:-0.05em; color:${COLORS.text}; font-variant-numeric:tabular-nums;">${timeDisplay}</div>
+          <div style="margin-top:10px; display:inline-flex; align-items:center; gap:8px; color:${COLORS.muted}; font-size:10px; letter-spacing:0.1em; ">
+            <span style="width:6px; height:6px; border-radius:50%; background:${COLORS.accent}; box-shadow:0 0 8px ${COLORS.accentSoft};"></span>
             ${label}
           </div>
-          <div id="liveSublabelDisplay" style="margin-top:6px; max-width:200px; text-align:center; font-size:12px; line-height:1.5; color:var(--fg-muted);">${sublabel}</div>
+          <div id="liveSublabelDisplay" style="margin-top:6px; max-width:200px; text-align:center; font-size:12px; line-height:1.5; color:${COLORS.muted};">${sublabel}</div>
         </div>
       </div>
   `;
@@ -193,7 +195,9 @@ function renderSessionNotes(items: string[]): string {
       ${items
         .map(
           (item) => `
-        <div class="fg-py-[10px] fg-px-[14px] fg-rounded-[14px] fg-text-xs fg-font-bold" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); color:var(--fg-text);">
+        <div class="fg-py-[10px] fg-px-[14px] fg-rounded-[14px] fg-text-xs fg-font-bold" style="background:${
+          COLORS.glassBg
+        }; border:1px solid ${COLORS.glassBorder}; color:${COLORS.text};">
           ${escapeHtml(item)}
         </div>
       `,
@@ -214,9 +218,9 @@ function renderPresetButtons(): string {
       ]
         .map(
           (preset) => `
-        <button class="btn-premium start-focus fg-flex fg-flex-col fg-items-start fg-gap-1 fg-text-left fg-rounded-[18px]" data-mins="${preset.m}" style="padding:16px 18px; min-height:80px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); box-shadow:none;">
-          <span style="font-size:22px; font-weight:900; color:var(--fg-text); line-height:1;">${preset.m}m</span>
-          <span class="fg-text-[10px] fg-font-bold  fg-tracking-[0.1em]" style="color:var(--fg-muted);">${preset.tag}</span>
+        <button class="btn-premium start-focus fg-flex fg-flex-col fg-items-start fg-gap-1 fg-text-left fg-rounded-[18px]" data-mins="${preset.m}" style="padding:16px 18px; min-height:80px; background:${COLORS.glassBg}; border:1px solid ${COLORS.glassBorder}; box-shadow:none;">
+          <span style="font-size:22px; font-weight:900; color:${COLORS.text}; line-height:1;">${preset.m}m</span>
+          <span class="fg-text-[10px] fg-font-bold  fg-tracking-[0.1em]" style="color:${COLORS.muted};">${preset.tag}</span>
         </button>
       `,
         )
@@ -227,7 +231,7 @@ function renderPresetButtons(): string {
 
 function renderIdleStateSummary(): string {
   return `
-    <div style="width:min(420px, 100%); margin-bottom:12px; padding:18px 22px; border-radius:22px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); text-align:left; backdrop-filter:blur(12px);">
+    <div style="width:min(420px, 100%); margin-bottom:12px; padding:18px 22px; border-radius:22px; background:${COLORS.glassBg}; border:1px solid ${COLORS.glassBorder}; text-align:left; backdrop-filter:blur(12px);">
       <div style="${UI_TOKENS.TEXT.SUBTEXT}; font-size:13px; line-height:1.6;">Pick a session length and Focus will start a real countdown. Nothing shown here is simulated.</div>
     </div>
   `;
@@ -236,7 +240,11 @@ function renderIdleStateSummary(): string {
 function renderDomainIcon(domain: string, size = 32): string {
   const iconUrl = getBrandLogoUrl(domain, 128);
   return `
-    <div style="width:${size}px; height:${size}px; border-radius:10px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); display:flex; align-items:center; justify-content:center; overflow:hidden;">
+    <div style="width:${size}px; height:${size}px; border-radius:10px; background:${
+    COLORS.glassBg
+  }; border:1px solid ${
+    COLORS.glassBorder
+  }; display:flex; align-items:center; justify-content:center; overflow:hidden;">
       <img src="${iconUrl}" style="width:${Math.round(
     size * 0.6,
   )}px; height:${Math.round(
@@ -251,10 +259,10 @@ function renderActiveStateSummary(
   count: number,
 ): string {
   return `
-    <div style="width:min(440px, 100%); margin-bottom:12px; padding:18px 22px; border-radius:22px; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); text-align:left; backdrop-filter:blur(12px);">
+    <div style="width:min(440px, 100%); margin-bottom:12px; padding:18px 22px; border-radius:22px; background:${COLORS.glassBg}; border:1px solid ${COLORS.glassBorder}; text-align:left; backdrop-filter:blur(12px);">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <div style="${UI_TOKENS.TEXT.LABEL}">Shielding Services</div>
-        <div style="${UI_TOKENS.TEXT.BADGE}; background:var(--fg-accent-soft); color:var(--fg-accent); padding:2px 8px; border-radius:6px; border:1px solid var(--fg-glass-border);">${count} Active</div>
+        <div style="${UI_TOKENS.TEXT.BADGE}; background:${COLORS.accentSoft}; color:${COLORS.accent}; padding:2px 8px; border-radius:6px; border:1px solid ${COLORS.glassBorder};">${count} Active</div>
       </div>
       <div style="display:flex; align-items:center; gap:10px; min-height:30px;">
         ${currentFocusHtml}
@@ -287,21 +295,27 @@ function renderFocusDetails(
 
 function renderSidePanels(title: string, body: string): string {
   return `
-    <div class="fg-p-6 fg-rounded-[22px]" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); backdrop-filter:blur(16px);">
+    <div class="fg-p-6 fg-rounded-[22px]" style="background:${
+      COLORS.glassBg
+    }; border:1px solid ${COLORS.glassBorder}; backdrop-filter:blur(16px);">
       <div style="${
         UI_TOKENS.TEXT.LABEL
       }; margin-bottom: 14px;">Today's Focus Time</div>
-      <div style="font-size:42px; font-weight:300; line-height:1; color:var(--fg-text);">${formatMinutes(
-        getTodayFocusMinutes(),
-      )}</div>
+      <div style="font-size:42px; font-weight:300; line-height:1; color:${
+        COLORS.text
+      };">${formatMinutes(getTodayFocusMinutes())}</div>
     </div>
-    <div class="fg-p-6 fg-rounded-[22px]" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); backdrop-filter:blur(16px);">
+    <div class="fg-p-6 fg-rounded-[22px]" style="background:${
+      COLORS.glassBg
+    }; border:1px solid ${COLORS.glassBorder}; backdrop-filter:blur(16px);">
       <div style="${UI_TOKENS.TEXT.LABEL}; margin-bottom: 14px;">${title}</div>
       <div style="${
         UI_TOKENS.TEXT.SUBTEXT
       }; font-size: 13px; line-height:1.7;">${body}</div>
     </div>
-    <div class="fg-p-6 fg-rounded-[22px] fg-flex-1" style="background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); backdrop-filter:blur(16px);">
+    <div class="fg-p-6 fg-rounded-[22px] fg-flex-1" style="background:${
+      COLORS.glassBg
+    }; border:1px solid ${COLORS.glassBorder}; backdrop-filter:blur(16px);">
       <div style="${
         UI_TOKENS.TEXT.LABEL
       }; margin-bottom: 14px;">Session History</div>
@@ -440,14 +454,20 @@ async function _renderActivePage(
         .slice(0, 5)
         .map((d) => renderDomainIcon(d, 36))
         .join('')
-    : '<div style="font-size:15px; color:var(--fg-text); line-height:1.6;">Focus session active</div>';
+    : '<div style="font-size:15px; color:${COLORS.text}; line-height:1.6;">Focus session active</div>';
 
   const sublabel = `${Math.round(progress * 100)}% complete`;
 
   const centerContent = `
     ${renderActiveStateSummary(currentFocusHtml, uniqueBlocked.length)}
     ${renderRingMarkup(timeDisplay, progress, 'Session Running', sublabel)}
-    <button class="btn-premium" id="stopFocus" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:var(--fg-text); border:1px solid var(--fg-glass-border); border-radius:999px; box-shadow:none; font-size:14px; font-weight:600; padding:10px 24px;">
+    <button class="btn-premium" id="stopFocus" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:${
+      COLORS.text
+    }; border:1px solid ${
+    COLORS.glassBorder
+  }; border-radius:999px; box-shadow:none; ${
+    UI_TOKENS.TEXT.LABEL
+  } padding:10px 24px;">
       Pause
     </button>
     ${renderFocusDetails(
@@ -504,8 +524,8 @@ function _updateActiveTicks(container: HTMLElement, progress: number): void {
     const index = parseInt(tick.getAttribute('data-tick-index') || '0', 10);
     const stroke =
       index < activeTicks
-        ? 'var(--fg-accent)'
-        : 'color-mix(in srgb, var(--fg-muted) 35%, transparent)';
+        ? COLORS.accent
+        : `color-mix(in srgb, ${COLORS.muted} 35%, transparent)`;
     if (tick.getAttribute('stroke') !== stroke) {
       tick.setAttribute('stroke', stroke);
     }
@@ -527,7 +547,13 @@ async function _renderActivePopup(
     <div style="transform: scale(0.8); margin: -20px 0;">
       ${renderRingMarkup(timeDisplay, progress, 'Active Focus', sublabel)}
     </div>
-    <button class="btn-premium" id="stopFocusPopup" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:var(--fg-text); border:1px solid var(--fg-glass-border); border-radius:999px; box-shadow:none; font-size:12px; font-weight:600; padding:8px 20px;">
+    <button class="btn-premium" id="stopFocusPopup" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:${
+      COLORS.text
+    }; border:1px solid ${
+    COLORS.glassBorder
+  }; border-radius:999px; box-shadow:none; ${
+    UI_TOKENS.TEXT.SUBTEXT
+  } padding:8px 20px;">
       ABORT SESSION
     </button>
   `;
@@ -593,8 +619,8 @@ function _renderIdlePage(container: HTMLElement): void {
       // 1. Visual Ignition sequence
       btn.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
       btn.style.transform = 'scale(0.95)';
-      btn.style.background = 'var(--fg-accent)';
-      btn.style.borderColor = 'var(--fg-accent)';
+      btn.style.background = COLORS.accent;
+      btn.style.borderColor = COLORS.accent;
       const label = btn.querySelector('span:last-child') as HTMLElement;
       if (label) {
         label.style.color = 'var(--fg-on-accent-muted)';
@@ -608,7 +634,7 @@ function _renderIdlePage(container: HTMLElement): void {
       const ticks = container.querySelectorAll('line[data-tick-index]');
       ticks.forEach((tick, i) => {
         setTimeout(() => {
-          (tick as SVGLineElement).setAttribute('stroke', 'var(--fg-accent)');
+          (tick as SVGLineElement).setAttribute('stroke', COLORS.accent);
           (tick as SVGLineElement).setAttribute('stroke-width', '4');
         }, i * 3); // Fast sweep animation
       });
@@ -620,7 +646,7 @@ function _renderIdlePage(container: HTMLElement): void {
       if (timerDisplay) {
         timerDisplay.style.transition = 'all 0.4s ease';
         timerDisplay.style.transform = 'scale(1.1)';
-        timerDisplay.style.color = 'var(--fg-accent)';
+        timerDisplay.style.color = COLORS.accent;
         timerDisplay.textContent = 'GO!';
       }
 
@@ -641,8 +667,12 @@ function _renderIdlePopup(container: HTMLElement): void {
   container.innerHTML = `
     <div class="focus-container" style="padding: 10px 0;">
       <div style="text-align: center; margin-bottom: 24px;">
-        <div class="widget-title" style="color: var(--fg-text); font-size: 14px;">IGNITE DEEP FOCUS</div>
-        <div style="font-size: 12px; color: var(--fg-muted); font-weight: 500; margin-top: 4px;">Blocks synced across devices.</div>
+        <div class="widget-title" style="color: ${
+          COLORS.text
+        }; font-size: 14px;">IGNITE DEEP FOCUS</div>
+        <div style="${
+          UI_TOKENS.TEXT.SUBTEXT
+        } margin-top: 4px;">Blocks synced across devices.</div>
       </div>
 
       <div class="focus-presets" style="gap: 10px;">
@@ -656,7 +686,7 @@ function _renderIdlePopup(container: HTMLElement): void {
             (p) => `
           <div class="focus-preset-card start-focus" data-mins="${p.m}" style="padding: 14px 10px;">
             <div class="focus-preset-time" style="font-size: 1.1rem;">${p.m}M</div>
-            <div class="focus-preset-tag" style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; ">${p.tag}</div>
+            <div class="focus-preset-tag" style="${UI_TOKENS.TEXT.BADGE} color: ${COLORS.muted};">${p.tag}</div>
           </div>
         `,
           )
@@ -692,15 +722,21 @@ function _showAbortModal(
 
   const modalContainer = document.createElement('div');
   modalContainer.innerHTML = `
-    <div style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:${width}; z-index:10000; padding:${padding}; text-align:center; background:var(--fg-surface); backdrop-filter:blur(20px); border:1px solid var(--fg-glass-border); border-radius: ${
+    <div style="position:fixed; top:50%; left:50%; transform:translate(-50%, -50%); width:${width}; z-index:10000; padding:${padding}; text-align:center; background:${
+    COLORS.surface
+  }; backdrop-filter:blur(20px); border:1px solid ${
+    COLORS.glassBorder
+  }; border-radius: ${
     isPopup ? '20px' : '24px'
-  }; box-shadow: 0 20px 50px var(--fg-shadow-strong); color: var(--fg-text);">
-      <div style="font-size:${titleSize}; font-weight:900; color:var(--fg-text); margin-bottom:${
+  }; box-shadow: 0 20px 50px var(--fg-shadow-strong); color: ${COLORS.text};">
+      <div style="font-size:${titleSize}; font-weight:900; color:${
+    COLORS.text
+  }; margin-bottom:${
     isPopup ? '8px' : '12px'
   }; letter-spacing:1px;">ABORT SESSION?</div>
-      <div style="font-size:${bodySize}; color:var(--fg-muted); line-height:1.6; margin-bottom:${
-    isPopup ? '20px' : '24px'
-  };">${
+      <div style="font-size:${bodySize}; color:${
+    COLORS.muted
+  }; line-height:1.6; margin-bottom:${isPopup ? '20px' : '24px'};">${
     isPopup
       ? 'Quitting early will end your current shield.'
       : 'Stopping now will record this as a failure in your focus analytics. Are you sure?'
@@ -708,16 +744,20 @@ function _showAbortModal(
       <div style="display:flex; gap:${
         isPopup ? '10px' : '12px'
       }; justify-content:center;">
-        <button class="btn-cancel-abort" style="flex:1; background:var(--fg-glass-bg); border:1px solid var(--fg-glass-border); color:var(--fg-text); padding:${
-          isPopup ? '8px' : '10px'
-        }; border-radius:${
+        <button class="btn-cancel-abort" style="flex:1; background:${
+          COLORS.glassBg
+        }; border:1px solid ${COLORS.glassBorder}; color:${
+    COLORS.text
+  }; padding:${isPopup ? '8px' : '10px'}; border-radius:${
     isPopup ? '10px' : '12px'
   }; cursor:pointer; font-weight:800; font-size:${
     isPopup ? '10px' : '11px'
   };">CANCEL</button>
-        <button class="btn-confirm-abort" style="flex:1; background:var(--fg-red); border:none; color:${
-          COLORS.onAccent
-        }; padding:${isPopup ? '8px' : '10px'}; border-radius:${
+        <button class="btn-confirm-abort" style="flex:1; background:${
+          COLORS.red
+        }; border:none; color:${COLORS.onAccent}; padding:${
+    isPopup ? '8px' : '10px'
+  }; border-radius:${
     isPopup ? '10px' : '12px'
   }; cursor:pointer; font-weight:800; font-size:${
     isPopup ? '10px' : '11px'

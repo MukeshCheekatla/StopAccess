@@ -1,3 +1,4 @@
+import { CloudUser } from '@stopaccess/types';
 import { setStrictModePolicy } from '@stopaccess/state';
 declare var chrome: any;
 import {
@@ -44,6 +45,13 @@ export async function loadSettingsData() {
     challengeText:
       (await storage.getString('challenge_text')) ||
       'Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions.',
+    cloudUser: await (async (): Promise<CloudUser | null> => {
+      return new Promise((resolve) => {
+        chrome.runtime.sendMessage({ action: 'getCloudUser' }, (res: any) => {
+          resolve(res?.user || null);
+        });
+      });
+    })(),
   };
 }
 
@@ -229,4 +237,24 @@ export async function toggleChallengeAction(enabled: boolean) {
 
 export async function updateChallengeTextAction(text: string) {
   await storage.set('challenge_text', text);
+}
+
+export async function signInAction(): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage({ action: 'signInWithGoogle' }, (res: any) => {
+      if (res?.error) {
+        reject(new Error(res.error));
+      } else {
+        resolve(!!res?.ok);
+      }
+    });
+  });
+}
+
+export async function signOutAction() {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ action: 'signOut' }, () => {
+      resolve(true);
+    });
+  });
 }

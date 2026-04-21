@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import React from 'react';
 import { OnboardingReact } from '../screens/Onboarding';
@@ -15,12 +15,15 @@ import {
 import { LegacyBridge } from '../ui/react/LegacyBridge';
 import { renderDashboardPage } from '../screens/dashboard/DashboardPage';
 import { renderFocusPage } from '../screens/focus/FocusPage';
-import { renderSchedulePage } from '../screens/schedule/SchedulePage';
+// import { renderSchedulePage } from '../screens/schedule/SchedulePage';
 import { renderInsightsPage } from '../screens/insights/InsightsPage';
 import { renderSettingsPage } from '../screens/settings/SettingsPage';
 import { renderSecurityPage } from '../screens/security/SecurityPage';
 import { renderPrivacyPage } from '../screens/privacy/PrivacyPage';
 import { renderAppsPage } from '../screens/apps/AppsPage';
+import { renderDomainUsageScreen } from '../screens/dashboard/DomainUsageScreen';
+import { renderInAppBlockingPage } from '../screens/in_app/InAppBlockingPage';
+import { renderTypingMasteryScreen } from '../screens/dashboard/TypingMasteryScreen';
 import { applyTheme, setupThemeListener } from '../lib/theme';
 import {
   setThemeAction,
@@ -31,11 +34,14 @@ type TabId =
   | 'dash'
   | 'apps'
   | 'focus'
-  | 'schedule'
+  // | 'schedule'
   | 'insights'
   | 'security'
   | 'privacy'
-  | 'settings';
+  | 'settings'
+  | 'domain_usage'
+  | 'typing_mastery'
+  | 'in_app';
 
 const TABS: Array<ShellTab<TabId>> = [
   {
@@ -87,8 +93,8 @@ const TABS: Array<ShellTab<TabId>> = [
     ),
   },
   {
-    id: 'schedule',
-    label: 'Schedules',
+    id: 'in_app',
+    label: 'In App Blocking',
     icon: (
       <svg
         viewBox="0 0 24 24"
@@ -96,13 +102,27 @@ const TABS: Array<ShellTab<TabId>> = [
         stroke="currentColor"
         strokeWidth="2"
       >
-        <rect x="3" y="4" width="18" height="18" rx="2" />
-        <line x1="16" y1="2" x2="16" y2="6" />
-        <line x1="8" y1="2" x2="8" y2="6" />
-        <line x1="3" y1="10" x2="21" y2="10" />
+        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
       </svg>
     ),
   },
+  // {
+  //   id: 'schedule',
+  //   label: 'Schedules',
+  //   icon: (
+  //     <svg
+  //       viewBox="0 0 24 24"
+  //       fill="none"
+  //       stroke="currentColor"
+  //       strokeWidth="2"
+  //     >
+  //       <rect x="3" y="4" width="18" height="18" rx="2" />
+  //       <line x1="16" y1="2" x2="16" y2="6" />
+  //       <line x1="8" y1="2" x2="8" y2="6" />
+  //       <line x1="3" y1="10" x2="21" y2="10" />
+  //     </svg>
+  //   ),
+  // },
   {
     id: 'insights',
     label: 'Reports',
@@ -128,8 +148,11 @@ const TABS: Array<ShellTab<TabId>> = [
         fill="none"
         stroke="currentColor"
         strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       >
-        <path d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17" />
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
       </svg>
     ),
   },
@@ -243,8 +266,22 @@ function DashboardApp() {
 
     initialize();
 
+    const handleNavigate = (e: any) => {
+      const { tab } = e.detail;
+      if (tab === 'domain_usage') {
+        setActiveTab('domain_usage');
+      } else if (tab === 'typing_mastery') {
+        setActiveTab('typing_mastery');
+      } else if (TAB_SET.has(tab)) {
+        setActiveTab(tab as TabId);
+      }
+    };
+
+    window.addEventListener('sa_navigate', handleNavigate);
+
     return () => {
       cancelled = true;
+      window.removeEventListener('sa_navigate', handleNavigate);
     };
   }, []);
 
@@ -256,7 +293,7 @@ function DashboardApp() {
         const isConfigured = await nextDNSApi.isConfigured();
         if (!isConfigured) {
           if (!cancelled) {
-            setStatus({ label: 'Not Set Up', tone: 'error' });
+            setStatus({ label: 'Not Set Up', tone: 'muted' });
           }
           return;
         }
@@ -267,9 +304,9 @@ function DashboardApp() {
         }
 
         if (connection === 'connected') {
-          setStatus({ label: 'ON', tone: 'active' });
+          setStatus({ label: 'On', tone: 'active' });
         } else if (connection === 'browser_mode') {
-          setStatus({ label: 'LOCAL', tone: 'muted' });
+          setStatus({ label: 'Local', tone: 'muted' });
         } else if (connection === 'error') {
           setStatus({ label: 'Error', tone: 'error' });
         } else {
@@ -291,29 +328,54 @@ function DashboardApp() {
     };
   }, []);
 
-  const getRenderFnForTab = (tabId: TabId) => {
-    switch (tabId) {
-      case 'focus':
-        return (container: HTMLElement) => renderFocusPage(container, 'page');
-      case 'apps':
-        return renderAppsPage;
-      case 'dash':
-        return renderDashboardPage;
-      case 'schedule':
-        return renderSchedulePage;
-      case 'insights':
-        return (container: HTMLElement) =>
-          renderInsightsPage(container, 'page');
-      case 'settings':
-        return renderSettingsPage;
-      case 'security':
-        return renderSecurityPage;
-      case 'privacy':
-        return renderPrivacyPage;
-      default:
-        return null;
-    }
-  };
+  const searchParams = new URLSearchParams(window.location.search);
+  const currentDomain = searchParams.get('domain');
+
+  const stabilizedTabs = useMemo(() => {
+    return [
+      ...TABS,
+      { id: 'domain_usage' as TabId, label: 'Usage' },
+      { id: 'typing_mastery' as TabId, label: 'Mastery' },
+    ].map((tab) => {
+      let renderFn: any = null;
+      switch (tab.id) {
+        case 'focus':
+          renderFn = (container: HTMLElement) =>
+            renderFocusPage(container, 'page');
+          break;
+        case 'apps':
+          renderFn = renderAppsPage;
+          break;
+        case 'dash':
+          renderFn = renderDashboardPage;
+          break;
+        case 'insights':
+          renderFn = (container: HTMLElement) =>
+            renderInsightsPage(container, 'page');
+          break;
+        case 'settings':
+          renderFn = renderSettingsPage;
+          break;
+        case 'security':
+          renderFn = renderSecurityPage;
+          break;
+        case 'privacy':
+          renderFn = renderPrivacyPage;
+          break;
+        case 'in_app':
+          renderFn = renderInAppBlockingPage;
+          break;
+        case 'domain_usage':
+          renderFn = (container: HTMLElement) =>
+            renderDomainUsageScreen(container, currentDomain || '');
+          break;
+        case 'typing_mastery':
+          renderFn = renderTypingMasteryScreen;
+          break;
+      }
+      return { ...tab, renderFn };
+    });
+  }, [currentDomain]);
 
   const renderCurrentContent = () => {
     if (showOnboarding) {
@@ -340,9 +402,9 @@ function DashboardApp() {
 
     return (
       <div className="fg-relative fg-h-full fg-w-full">
-        {TABS.map((tab) => {
-          const renderFn = getRenderFnForTab(tab.id);
-          if (!renderFn) {
+        {/* Persistent tab containers */}
+        {stabilizedTabs.map((tab) => {
+          if (!tab.renderFn) {
             return null;
           }
 
@@ -353,10 +415,7 @@ function DashboardApp() {
                 activeTab === tab.id ? 'fg-block' : 'fg-hidden'
               }`}
             >
-              <LegacyBridge
-                renderFn={renderFn}
-                isVisible={activeTab === tab.id}
-              />
+              <LegacyBridge renderFn={tab.renderFn} />
             </div>
           );
         })}

@@ -1,4 +1,5 @@
 /**
+import { COLORS } from '../../../lib/designTokens';
  * TldManager
  * Renders blocked TLD list with add/remove functionality.
  */
@@ -9,6 +10,7 @@ import {
   renderEmptyState,
   UI_TOKENS,
 } from '../../../lib/ui';
+import { COLORS } from '../../../lib/designTokens';
 
 // Common TLDs to suggest
 const COMMON_RISKY_TLDS = [
@@ -33,7 +35,7 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
   const suggestions = COMMON_RISKY_TLDS.filter((t) => !activeIds.has(t.id));
 
   return `
-    <div class="glass-card fg-mb-6 fg-p-8 fg-rounded-[32px] fg-relative fg-overflow-hidden">
+    <div class="fg-p-2 fg-mb-4 fg-relative fg-overflow-hidden">
       <!-- Decorative background glow -->
       <div class="fg-absolute fg-top-[-20px] fg-right-[-20px] fg-w-32 fg-h-32 fg-rounded-full fg-bg-[var(--yellow)] fg-opacity-5 fg-blur-3xl"></div>
 
@@ -67,18 +69,26 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
         UI_TOKENS.TEXT.SUBTEXT
       }; margin-bottom: 32px; max-width: 420px; line-height: 1.6;">
         Enhance your network security by blocking entire top-level domains. 
-        <span style="color: var(--fg-text); font-weight: 700;">Prevents access to high-risk regions and malicious generic extensions.</span>
+        <span style="color: ${
+          COLORS.text
+        }; font-weight: 700;">Prevents access to high-risk regions and malicious generic extensions.</span>
       </div>
 
       <!-- TLD Creative Input -->
       <div class="fg-relative fg-mb-8">
-        <div class="fg-flex fg-items-center fg-gap-3 fg-p-2 fg-rounded-[20px] fg-transition-all fg-duration-300 focus-within:fg-ring-2 focus-within:fg-ring-[var(--yellow)]/20" style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);">
-          <div class="fg-pl-4 fg-text-[var(--fg-muted)] fg-font-black fg-text-sm">.</div>
+        <div class="fg-flex fg-items-center fg-gap-3 fg-p-2 fg-rounded-[20px] fg-transition-all fg-duration-300 focus-within:fg-ring-2 focus-within:fg-ring-[var(--yellow)]/20" style="background: ${
+          COLORS.glassBg
+        }; border: 1px solid ${COLORS.glassBorder};">
+          <div class="fg-pl-4 fg-text-[${
+            COLORS.muted
+          }] fg-font-black fg-text-sm">.</div>
           <input
             type="text"
             id="tld_input"
             placeholder="enter extension (e.g. ru, cn, top)"
-            class="fg-flex-1 fg-bg-transparent fg-border-none fg-outline-none fg-text-sm fg-font-bold fg-p-2 fg-text-[var(--fg-text)]"
+            class="fg-flex-1 fg-bg-transparent fg-border-none fg-outline-none fg-text-sm fg-font-bold fg-p-2 fg-text-[${
+              COLORS.text
+            }]"
             style="text-transform: lowercase;"
             maxlength="20"
           >
@@ -93,7 +103,9 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
         suggestions.length > 0
           ? `
         <div class="fg-mb-8">
-          <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40  fg-tracking-[1.5px] fg-mb-4">
+          <div class="fg-text-[11px] fg-font-black fg-text-[${
+            COLORS.text
+          }] fg-opacity-40  fg-tracking-[1.5px] fg-mb-4">
             Suggested Blockpoints
           </div>
           <div class="fg-flex fg-flex-wrap fg-gap-2">
@@ -102,13 +114,13 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
               .map(
                 (t) => `
               <button
-                class="tld-quick-add fg-flex fg-items-center fg-gap-2 fg-px-4 fg-py-2 fg-rounded-xl fg-transition-all fg-cursor-pointer fg-font-bold hover:fg-translate-y-[-1px] hover:fg-bg-[var(--fg-surface-hover)]"
+                class="tld-quick-add fg-flex fg-items-center fg-gap-2 fg-px-4 fg-py-2 fg-rounded-xl fg-transition-all fg-cursor-pointer fg-font-bold hover:fg-translate-y-[-1px] hover:fg-bg-[${COLORS.surfaceHover}]"
                 data-id="${t.id}"
-                style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text);"
+                style="background: ${COLORS.glassBg}; border: 1px solid ${COLORS.glassBorder}; color: ${COLORS.text};"
               >
                 <span class="fg-text-[var(--yellow)] fg-text-xs">.</span>
                 <span class="fg-text-[11px]">${t.id}</span>
-                <span class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-40 fg-font-black">Add</span>
+                <span class="fg-text-[11px] fg-text-[${COLORS.text}] fg-opacity-40 fg-font-black">Add</span>
               </button>
             `,
               )
@@ -121,7 +133,9 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
 
       <!-- Active Shield List -->
       <div class="fg-mt-4">
-        <div class="fg-text-[11px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40  fg-tracking-[1.5px] fg-mb-4">
+        <div class="fg-text-[11px] fg-font-black fg-text-[${
+          COLORS.text
+        }] fg-opacity-40  fg-tracking-[1.5px] fg-mb-4">
           Currently Shadowed
         </div>
         ${
@@ -134,12 +148,12 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
               <div class="fg-group fg-flex fg-items-center fg-gap-3 fg-pl-4 fg-pr-2 fg-py-2 fg-rounded-xl fg-transition-all fg-relative" 
                 style="background: var(--fg-danger-soft); border: 1px solid var(--fg-danger-border);">
                 <div class="fg-w-1.5 fg-h-1.5 fg-rounded-full fg-bg-[var(--red)] fg-animate-pulse"></div>
-                <div class="fg-text-[13px] fg-font-black fg-text-[var(--fg-text)]">.${tld.id}</div>
+                <div class="fg-text-[13px] fg-font-black fg-text-[${COLORS.text}]">.${tld.id}</div>
                 <button
                   class="tld-remove fg-w-7 fg-h-7 fg-rounded-lg fg-flex fg-items-center fg-justify-center fg-transition-all hover:fg-bg-[var(--red)]/10"
                   data-id="${tld.id}"
                   title="Unblock ${tld.id}"
-                  style="border: none; background: transparent; color: var(--fg-muted);"
+                  style="border: none; background: transparent; color: ${COLORS.muted};"
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>

@@ -1,3 +1,4 @@
+import { COLORS } from '../../../lib/designTokens';
 /**
  * ContentProtectionSection
  * Renders: CSAM protection (and future content toggles)
@@ -22,18 +23,22 @@ export function renderContentProtectionSection(
   const active = settings.csam;
 
   return `
-    <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
+    <div class="fg-p-2 fg-mb-4">
       ${renderSectionTitleRow(
         iconLock,
-        'var(--fg-red)',
+        COLORS.red,
         'Content Protection',
         renderSectionBadge(active ? '1 Active' : '0 Active'),
       )}
 
       <div class="fg-grid fg-grid-cols-3 fg-gap-2">
-        <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-bg-[var(--fg-surface-hover)]"
+        <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-bg-[${
+          COLORS.surfaceHover
+        }]"
           data-key="csam"
-          style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
+          style="background: ${COLORS.glassBg}; border: 1px solid ${
+    COLORS.glassBorder
+  };"
         >
           <!-- Icon (Left) -->
           <div class="fg-relative fg-shrink-0">
@@ -50,10 +55,14 @@ export function renderContentProtectionSection(
                 'Blocks access to known Child Sexual Abuse Material (CSAM) domains using industry-standard safety lists from organizations like the NCMEC.',
               )}
             </div>
-            <div class="fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-60 fg-leading-snug">
+            <div class="fg-text-[11px] fg-text-[${
+              COLORS.text
+            }] fg-opacity-60 fg-leading-snug">
               Block child sexual abuse material.
             </div>
-            <div class="fg-inline-block fg-text-[10px] fg-font-black fg-tracking-[1px]  fg-mt-[5px] fg-px-2 fg-py-[2px] fg-rounded-[10px]" style="background: var(--fg-emerald-soft); color: var(--green); border: 1px solid var(--fg-emerald-border);">
+            <div class="fg-inline-block fg-text-[10px] fg-font-black fg-tracking-[1px]  fg-mt-[5px] fg-px-2 fg-py-[2px] fg-rounded-[10px]" style="background: ${
+              COLORS.emeraldSoft
+            }; color: var(--green); border: 1px solid ${COLORS.emeraldBorder};">
               RECOMMENDED
             </div>
           </div>

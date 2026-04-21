@@ -9,6 +9,7 @@ const PRESETS = [
   { m: 15, t: 'Quick' },
   { m: 25, t: 'Pomo' },
   { m: 45, t: 'Deep' },
+  { m: 60, t: 'Hour' },
   { m: 90, t: 'Flow' },
 ];
 
@@ -154,7 +155,7 @@ export function FocusPopupView() {
                   boxShadow: '0 0 8px var(--fg-accent-soft)',
                 }}
               />
-              SESSION RUNNING
+              Session Running
             </div>
             <div
               className="fg-mt-2"
@@ -165,7 +166,7 @@ export function FocusPopupView() {
                 fontSize: '12px',
               }}
             >
-              {Math.round(prog * 100)}% COMPLETE
+              {Math.round(prog * 100)}% Complete
             </div>
           </div>
         </div>
@@ -179,7 +180,7 @@ export function FocusPopupView() {
             boxShadow: 'none',
           }}
         >
-          {wait !== null ? `ENDING IN ${wait}S...` : 'ABORT SESSION'}
+          {wait !== null ? `Ending In ${wait}s...` : 'Abort Session'}
         </button>
         {abortModal && (
           <div className="fg-fixed fg-inset-0 fg-z-[10000] fg-flex fg-items-center fg-justify-center fg-p-6">
@@ -189,7 +190,7 @@ export function FocusPopupView() {
             />
             <div className="fg-relative fg-w-full fg-max-w-[280px] fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-surface)] fg-p-8 fg-text-center fg-shadow-[0_40px_80px_rgba(0,0,0,0.7)] focus-modal-anim">
               <div className="fg-mb-3 fg-text-sm fg-font-black fg-tracking-[2px] fg-text-[var(--fg-text)]">
-                ABORT SESSION?
+                Abort Session?
               </div>
               <div className="fg-mb-8 fg-text-[11px] fg-font-medium fg-leading-relaxed fg-text-[var(--fg-muted)]">
                 Quitting early will end your current shield protection
@@ -200,13 +201,13 @@ export function FocusPopupView() {
                   onClick={() => setAbortModal(false)}
                   className="fg-flex-1 fg-rounded-2xl fg-bg-[var(--fg-glass-bg)] fg-py-3.5 fg-text-[10px] fg-font-black fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-text)] fg-transition-all hover:fg-bg-[var(--fg-surface-hover)]"
                 >
-                  CANCEL
+                  Cancel
                 </button>
                 <button
                   onClick={stopFocus}
                   className="fg-flex-1 fg-rounded-2xl fg-bg-[var(--fg-red)] fg-py-3.5 fg-text-[10px] fg-font-black fg-text-white fg-transition-all hover:fg-scale-[1.05] active:fg-scale-[0.95] fg-shadow-[0_0_20px_var(--fg-red-glow)]"
                 >
-                  ABORT
+                  Abort
                 </button>
               </div>
             </div>
@@ -314,20 +315,19 @@ export function FocusPopupView() {
                 opacity: 0.4,
               }}
             />
-            READY
           </div>
         </div>
       </div>
 
-      <div className="fg-grid fg-w-full fg-grid-cols-2 fg-gap-2.5 fg-max-w-[320px]">
+      <div className="fg-flex fg-w-full fg-gap-1.5 fg-max-w-[340px] fg-px-2">
         {PRESETS.map((p) => (
           <button
             key={p.m}
             onClick={() => startFocus(p.m)}
-            className="btn-premium start-focus fg-flex fg-flex-col fg-items-start fg-gap-0.5 fg-text-left fg-rounded-[16px] fg-transition-all hover:fg-scale-[1.02] active:fg-scale-[0.98]"
+            className="btn-premium start-focus fg-flex fg-flex-1 fg-flex-col fg-items-center fg-justify-center fg-gap-0 fg-rounded-[12px] fg-transition-all hover:fg-scale-[1.05] active:fg-scale-[0.95]"
             style={{
-              padding: '12px 14px',
-              minHeight: '62px',
+              padding: '8px 2px',
+              height: '52px',
               background: 'var(--fg-glass-bg)',
               border: '1px solid var(--fg-glass-border)',
               boxShadow: 'none',
@@ -335,19 +335,19 @@ export function FocusPopupView() {
           >
             <span
               style={{
-                fontSize: '18px',
+                fontSize: '14px',
                 fontWeight: 900,
                 color: 'var(--fg-text)',
-                lineHeight: 1,
+                lineHeight: 1.2,
               }}
             >
               {p.m}m
             </span>
             <span
-              className="fg-text-[9px] fg-font-bold fg-tracking-[0.1em]"
-              style={{ color: 'var(--fg-muted)', opacity: 0.8 }}
+              className="fg-text-[8px] fg-font-black fg-tracking-[0.05em] fg-opacity-60"
+              style={{ color: 'var(--fg-muted)' }}
             >
-              {p.t.toUpperCase()}
+              {p.t}
             </span>
           </button>
         ))}

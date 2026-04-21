@@ -34,6 +34,8 @@ export interface PrivacyVM {
 }
 
 export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
+  let cachedBlocklists: any[] | null = null;
+
   async function refreshLocal(): Promise<void> {
     const res = await api.getPrivacy();
     if (res && !res.error) {
@@ -98,10 +100,14 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
     },
 
     async getAvailableBlocklists() {
+      if (cachedBlocklists) {
+        return cachedBlocklists;
+      }
       try {
         const res = await api.getAvailableBlocklists();
         if (res && !res.error) {
-          return res.data ?? res;
+          cachedBlocklists = res.data ?? res;
+          return cachedBlocklists || [];
         }
         return [];
       } catch {

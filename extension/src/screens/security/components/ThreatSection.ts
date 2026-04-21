@@ -1,3 +1,4 @@
+import { COLORS } from '../../../lib/designTokens';
 /**
  * ThreatSection
  * Renders: Threat Intelligence, AI Detection, Google Safe Browsing, Cryptojacking
@@ -19,6 +20,8 @@ interface ThreatToggle {
   tooltip: string; // Glossary text
   description: string;
   icon: string; // inline SVG string
+  color: string;
+  isBeta?: boolean;
 }
 
 // Inline SVG icons — no emojis
@@ -41,6 +44,7 @@ const THREAT_TOGGLES: ThreatToggle[] = [
       'Blocks domains from known malware, phishing, and command-and-control databases updated hourly.',
     description: 'Block domains from known threat intelligence databases.',
     icon: svgShield,
+    color: '#3b82f6',
   },
   {
     key: 'aiThreatDetection',
@@ -49,6 +53,8 @@ const THREAT_TOGGLES: ThreatToggle[] = [
       'Uses predictive machine learning to stop zero-day attacks and newly registered malicious domains.',
     description: 'Machine learning powered detection of malicious domains.',
     icon: svgCpu,
+    color: '#a855f7',
+    isBeta: true,
   },
   {
     key: 'googleSafeBrowsing',
@@ -57,6 +63,7 @@ const THREAT_TOGGLES: ThreatToggle[] = [
       'Cloud-based URL filtering that warns you about malicious websites across the entire web.',
     description: 'Protect against phishing and malware sites via Google.',
     icon: svgSearch,
+    color: '#10b981',
   },
   {
     key: 'cryptojacking',
@@ -65,6 +72,7 @@ const THREAT_TOGGLES: ThreatToggle[] = [
       "Prevents websites from hijacking your device's power to mine cryptocurrency without consent.",
     description: 'Block sites that mine cryptocurrency using your device.',
     icon: svgZap,
+    color: '#f59e0b',
   },
 ];
 
@@ -75,14 +83,14 @@ export function renderThreatSection(settings: NextDNSSecuritySettings): string {
   const total = THREAT_TOGGLES.length;
 
   return `
-    <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
+    <div class="fg-p-2 fg-mb-4">
       ${renderSectionTitleRow(
         svgTarget,
-        'var(--fg-indigo)',
+        COLORS.indigo,
         'Threat Protection',
         renderSectionBadge(`${activeCount}/${total} Active`),
       )}
-      <div class="fg-grid fg-grid-cols-3 fg-gap-2">
+      <div class="fg-grid fg-grid-cols-1 fg-gap-2">
         ${THREAT_TOGGLES.map((t) =>
           renderToggleRow(t, settings[t.key] as boolean),
         ).join('')}
@@ -93,13 +101,17 @@ export function renderThreatSection(settings: NextDNSSecuritySettings): string {
 
 function renderToggleRow(toggle: ThreatToggle, active: boolean): string {
   return `
-    <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-bg-[var(--fg-surface-hover)]"
+    <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-bg-[${
+      COLORS.surfaceHover
+    }]"
       data-key="${toggle.key}"
-      style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
+      style="background: ${COLORS.glassBg}; border: 1px solid ${
+    COLORS.glassBorder
+  };"
     >
       <!-- Icon and Indicator (Left) -->
       <div class="fg-relative fg-shrink-0">
-        <span class="fg-text-[var(--fg-indigo)]">${toggle.icon}</span>
+        <span style="color: ${toggle.color};">${toggle.icon}</span>
       </div>
 
       <!-- Content (Middle) -->
@@ -108,7 +120,16 @@ function renderToggleRow(toggle: ThreatToggle, active: boolean): string {
            <div style="${UI_TOKENS.TEXT.CARD_TITLE}" class="fg-truncate">
              ${escapeHtml(toggle.label)}
            </div>
-           ${renderInfoTooltip(toggle.tooltip ?? '')}
+           ${
+             toggle.isBeta
+               ? `
+             <span class="fg-text-[7px] fg-font-black fg-px-1.5 fg-py-0.5 fg-rounded-md fg-bg-[${COLORS.accentSoft}] fg-text-[${COLORS.accent}] fg-ml-1 fg-tracking-wider" style="border: 1px solid var(--fg-nav-border);">
+               BETA
+             </span>
+           `
+               : ''
+           }
+           ${renderInfoTooltip(toggle.tooltip ?? '', 'up', 'right')}
          </div>
          <div style="${
            UI_TOKENS.TEXT.SUBTEXT

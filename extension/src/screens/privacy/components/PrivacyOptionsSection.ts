@@ -1,4 +1,5 @@
 /**
+import { COLORS } from '../../../lib/designTokens';
  * PrivacyOptionsSection
  * Disguised trackers + allow affiliate toggles — no emojis.
  */
@@ -9,6 +10,7 @@ import {
   renderPillToggle,
   renderSectionTitleRow,
 } from '../../../lib/ui';
+import { COLORS } from '../../../lib/designTokens';
 
 const iconSettings =
   '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
@@ -21,35 +23,49 @@ export function renderPrivacyOptionsSection(
   settings: NextDNSPrivacySettings,
 ): string {
   return `
-    <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
+    <div class="fg-p-2 fg-h-full">
       ${renderSectionTitleRow(
         iconSettings,
         'var(--fg-primary-blue)',
         'Privacy Settings',
       )}
 
-      <div class="fg-grid fg-grid-cols-2 fg-gap-5">
+      <div style="${
+        UI_TOKENS.TEXT.SUBTEXT
+      }; margin-bottom: 20px; line-height: 1.5;">
+        Configure advanced protection features to neutralize hidden trackers and preserve your identity.
+      </div>
+
+      <div class="fg-grid fg-grid-cols-1 fg-gap-3">
         <!-- Disguised Trackers -->
         <div 
           class="privacy-option-card fg-flex fg-items-center fg-gap-4 fg-p-6 fg-rounded-3xl fg-transition-all fg-cursor-pointer"
           data-key="disguisedTrackers"
-          style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
+          style="background: ${COLORS.glassBg}; border: 1px solid ${
+    COLORS.glassBorder
+  };"
         >
-          <div class="fg-shrink-0 fg-w-10 fg-h-10 fg-rounded-2xl fg-bg-[var(--fg-indigo-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-indigo)]">
+          <div class="fg-shrink-0 fg-w-10 fg-h-10 fg-rounded-2xl fg-bg-[${
+            COLORS.indigoSoft
+          }] fg-flex fg-items-center fg-justify-center fg-text-[${
+    COLORS.indigo
+  }]">
             ${iconEyeOff}
           </div>
           <div class="fg-flex-1 fg-min-w-0">
             <div class="fg-flex fg-items-center fg-gap-2 fg-mb-1">
               <span class="fg-truncate" style="${
                 UI_TOKENS.TEXT.CARD_TITLE
-              }">Block Disguised Third-Party Trackers</span>
-              <span class="fg-tooltip" data-tooltip="Standard browser protections like ITP are often bypassed by trackers using CNAME cloaking. StopAccess detects and neutralizes these hidden connections.">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="fg-text-[var(--fg-text)] fg-opacity-40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              }">Block Disguised Trackers</span>
+              <span class="fg-tooltip" data-tooltip="Automatically detect and block third-party trackers disguising themselves as first-party to circumvent recent browser's privacy protections like ITP.">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="fg-text-[${
+                  COLORS.text
+                }] fg-opacity-40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               </span>
             </div>
             <div style="${
               UI_TOKENS.TEXT.SUBTEXT
-            } line-height: 1.5;">Automatically detect and block third-party trackers disguising themselves as first-party to circumvent recent browser's privacy protections like ITP.</div>
+            } line-height: 1.5;">Detect and block third-party trackers disguising themselves as first-party.</div>
           </div>
           ${renderPillToggle('disguisedTrackers', settings.disguisedTrackers)}
         </div>
@@ -58,7 +74,9 @@ export function renderPrivacyOptionsSection(
         <div 
           class="privacy-option-card fg-flex fg-items-center fg-gap-4 fg-p-6 fg-rounded-3xl fg-transition-all fg-cursor-pointer"
           data-key="allowAffiliate"
-          style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
+          style="background: ${COLORS.glassBg}; border: 1px solid ${
+    COLORS.glassBorder
+  };"
         >
           <div class="fg-shrink-0 fg-w-10 fg-h-10 fg-rounded-2xl fg-bg-sky-400/10 fg-flex fg-items-center fg-justify-center fg-text-sky-400">
             ${iconLink}
@@ -67,14 +85,16 @@ export function renderPrivacyOptionsSection(
              <div class="fg-flex fg-items-center fg-gap-2 fg-mb-1">
               <span class="fg-truncate" style="${
                 UI_TOKENS.TEXT.CARD_TITLE
-              }">Allow Affiliate & Tracking Links</span>
-               <span class="fg-tooltip" data-tooltip="Commonly used for cash-back, deals, or promotional search results. StopAccess ensures your IP stays hidden when these links are activated.">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="fg-text-[var(--fg-text)] fg-opacity-40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              }">Allow Affiliate Links</span>
+               <span class="fg-tooltip" data-tooltip="Allow affiliate & tracking domains common on deals websites, in emails or in search results. Those usually only get called after manually clicking on a link. Your IP address will automatically be hidden from those websites to preserve your privacy.">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="fg-text-[${
+                  COLORS.text
+                }] fg-opacity-40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
               </span>
             </div>
             <div style="${
               UI_TOKENS.TEXT.SUBTEXT
-            } line-height: 1.5;">Allow affiliate & tracking domains common on deals websites, in emails or in search results. Your IP address will automatically be hidden from those websites to preserve your privacy.</div>
+            } line-height: 1.5;">Allow affiliate and tracking domains commonly used for deals or search results.</div>
           </div>
           ${renderPillToggle('allowAffiliate', settings.allowAffiliate)}
         </div>

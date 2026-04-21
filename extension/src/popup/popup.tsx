@@ -70,7 +70,7 @@ function PopupApp() {
   const [ready, setReady] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [status, setStatus] = useState<ShellStatus>({
-    label: 'LOCAL',
+    label: 'Local',
     tone: 'muted',
   });
   const [passEntries, setPassEntries] = useState<PassEntry[]>([]);
@@ -312,39 +312,61 @@ function PopupApp() {
       status={status}
       tabs={TABS}
       topbarRight={
-        <button
-          onClick={() =>
-            chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') })
-          }
-          className="fg-popup-action fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-md fg-transition-all fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-glass-bg)] hover:fg-bg-[var(--fg-surface)]"
-          style={{
-            color: 'var(--fg-text)',
-            background: 'var(--fg-glass-bg)',
-            border: '1px solid var(--fg-glass-border)',
-          }}
-          type="button"
-          title="Open Full Dashboard"
-        >
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
+        <div className="fg-flex fg-items-center fg-gap-2">
+          <button
+            onClick={() =>
+              chrome.tabs.create({
+                url: chrome.runtime.getURL('dashboard.html'),
+              })
+            }
+            className="fg-popup-action fg-appearance-none fg-border-0 fg-outline-none fg-shadow-none fg-px-3 fg-py-1.5 fg-rounded-md fg-transition-all fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-glass-bg)] hover:fg-bg-[var(--fg-surface)]"
+            style={{
+              color: 'var(--fg-text)',
+              background: 'var(--fg-glass-bg)',
+              border: '1px solid var(--fg-glass-border)',
+            }}
+            type="button"
+            title="Open Full Dashboard"
           >
-            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-            <polyline points="15 3 21 3 21 9" />
-            <line x1="10" y1="14" x2="21" y2="3" />
-          </svg>
-        </button>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+              <polyline points="15 3 21 3 21 9" />
+              <line x1="10" y1="14" x2="21" y2="3" />
+            </svg>
+          </button>
+        </div>
       }
     >
-      {activeTab === 'focus' && <FocusPopupView />}
-      {activeTab === 'dash' && <DashboardPopupView />}
-      {activeTab === 'apps' && <AppsPopupView />}
+      <div
+        className={`fg-h-full fg-w-full ${
+          activeTab === 'focus' ? 'fg-block' : 'fg-hidden'
+        }`}
+      >
+        <FocusPopupView />
+      </div>
+      <div
+        className={`fg-h-full fg-w-full ${
+          activeTab === 'dash' ? 'fg-block' : 'fg-hidden'
+        }`}
+      >
+        <DashboardPopupView />
+      </div>
+      <div
+        className={`fg-h-full fg-w-full ${
+          activeTab === 'apps' ? 'fg-block' : 'fg-hidden'
+        }`}
+      >
+        <AppsPopupView />
+      </div>
     </PopupShell>
   );
 }

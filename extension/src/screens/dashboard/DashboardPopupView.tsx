@@ -133,17 +133,22 @@ export function DashboardPopupView() {
     <div className="fg-flex fg-flex-col fg-gap-4 fg-p-4">
       <div className="fg-grid fg-grid-cols-2 fg-gap-3">
         <StatTile label="Daily Activity" value={fmtTime(totalUsageMs)} />
-        <StatTile label="Lock Timer" value={timerLabel} mono />
+        <StatTile label="Focus Timer" value={timerLabel} mono />
       </div>
 
       <div className="fg-flex fg-items-center fg-justify-between fg-px-1">
-        <div style={UI_TOKENS.TEXT.R.LABEL}>RECOGNIZED ACTIVITY</div>
+        <div style={UI_TOKENS.TEXT.R.LABEL}>Recognized Activity</div>
       </div>
 
       <div className="fg-flex fg-min-h-0 fg-flex-1 fg-flex-col fg-gap-3 fg-overflow-y-auto fg-pr-1">
-        {activityRows.length > 0 ? (
+        {loading ? (
+          <>
+            <ActivitySkeleton />
+            <ActivitySkeleton />
+          </>
+        ) : activityRows.length > 0 ? (
           activityRows.map((row) => <ActivityCard key={row.domain} row={row} />)
-        ) : !loading ? (
+        ) : (
           <div className="fg-panel-muted fg-rounded-[18px] fg-px-4 fg-py-10 fg-text-center">
             <div style={{ ...UI_TOKENS.TEXT.R.LABEL, opacity: 0.6 }}>
               No activity yet
@@ -152,7 +157,7 @@ export function DashboardPopupView() {
               Open a few sites and the popup will start summarizing your day.
             </div>
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );
@@ -182,8 +187,12 @@ function StatTile({
 
 function ActivityCard({ row }: { row: ActivityRow }) {
   const faviconUrl = resolveFaviconUrl(row.domain);
+  const domainPart = row.domain.split('.')[0];
+  const rawLabel = domainPart.slice(0, 2);
   const fallbackLabel =
-    row.domain.split('.')[0].slice(0, 2).toUpperCase() || '?';
+    rawLabel.length > 0
+      ? rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1).toLowerCase()
+      : '?';
 
   return (
     <div className="fg-flex fg-items-center fg-gap-4 fg-rounded-[12px] fg-bg-[var(--fg-glass-bg)] fg-p-3 fg-border fg-border-[var(--fg-glass-border)]">
@@ -234,6 +243,19 @@ function ActivityCard({ row }: { row: ActivityRow }) {
       >
         {fmtTime(row.timeMs)}
       </div>
+    </div>
+  );
+}
+
+function ActivitySkeleton() {
+  return (
+    <div className="fg-flex fg-items-center fg-gap-4 fg-rounded-[12px] fg-bg-[var(--fg-glass-bg)] fg-p-3 fg-border fg-border-[var(--fg-glass-border)] fg-opacity-50 fg-animate-pulse">
+      <div className="fg-h-9 fg-w-9 fg-rounded-[20%] fg-bg-[var(--fg-glass-border)]" />
+      <div className="fg-flex-1 fg-flex fg-flex-col fg-gap-2">
+        <div className="fg-h-3 fg-w-24 fg-rounded-full fg-bg-[var(--fg-glass-border)]" />
+        <div className="fg-h-2 fg-w-12 fg-rounded-full fg-bg-[var(--fg-glass-border)] fg-opacity-50" />
+      </div>
+      <div className="fg-h-4 fg-w-12 fg-rounded-full fg-bg-[var(--fg-glass-border)]" />
     </div>
   );
 }

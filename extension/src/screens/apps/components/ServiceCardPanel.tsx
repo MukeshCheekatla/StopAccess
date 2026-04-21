@@ -29,7 +29,12 @@ export const ServiceCardPanel: React.FC<ServiceCardProps> = ({
       <div className="fg-flex fg-min-w-0 fg-flex-1 fg-items-center fg-gap-3">
         <div className="fg-relative fg-flex fg-h-7 fg-w-7 fg-shrink-0 fg-items-center fg-justify-center">
           <div className="fg-absolute fg-inset-0 fg-hidden fg-items-center fg-justify-center fg-text-[11px] fg-font-black fg-text-[var(--muted)]">
-            {(service.name || service.id).slice(0, 2).toUpperCase()}
+            {(() => {
+              const raw = (service.name || service.id).slice(0, 2);
+              return raw.length > 0
+                ? raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase()
+                : '?';
+            })()}
           </div>
           <img
             src={faviconUrl}
@@ -81,7 +86,7 @@ export const ServiceCardPanel: React.FC<ServiceCardProps> = ({
                 : 'fg-right-[10px] fg-text-[var(--muted)]'
             }`}
           >
-            {active ? 'ON' : 'OFF'}
+            {active ? 'On' : 'Off'}
           </span>
           <span
             className={`fg-absolute fg-top-1 fg-h-6 fg-w-6 fg-rounded-full fg-bg-[var(--fg-white)] ${

@@ -1,3 +1,4 @@
+import { COLORS } from '../../lib/designTokens';
 /**
  * SecurityPage
  * Full dashboard tab for NextDNS Security settings.
@@ -10,7 +11,7 @@ import {
 import { createSecurityVM } from '../../../../packages/viewmodels/src/useSecurityVM';
 import { renderThreatSection } from './components/ThreatSection';
 import { renderDomainProtectionSection } from './components/DomainProtectionSection';
-import { renderContentProtectionSection } from './components/ContentProtectionSection';
+// import { renderContentProtectionSection } from './components/ContentProtectionSection'; // Moved to Domain
 import { renderParentalSection } from './components/ParentalSection';
 import { renderTldManager } from './components/TldManager';
 import { toast } from '../../lib/toast';
@@ -55,9 +56,15 @@ export async function renderSecurityPage(
         <div id="security_sections_container" class="${
           isLocalMode ? 'is-local-mode fg-pointer-events-none' : ''
         }">
-          ${renderThreatSection(settings || ({} as any))}
-          ${renderDomainProtectionSection(settings || ({} as any))}
-          ${renderContentProtectionSection(settings || ({} as any))}
+          <div class="fg-grid fg-grid-cols-3 fg-gap-x-8">
+            <div class="fg-col-span-2">
+              ${renderDomainProtectionSection(settings || ({} as any))}
+            </div>
+            <div class="fg-col-span-1">
+              ${renderThreatSection(settings || ({} as any))}
+            </div>
+          </div>
+
           ${renderParentalSection(parental)}
           ${renderTldManager((settings?.tlds as any) || [])}
         </div>
@@ -82,9 +89,14 @@ export async function renderSecurityPage(
     );
     if (sectionsContainer) {
       sectionsContainer.innerHTML = `
-        ${renderThreatSection(settings || ({} as any))}
-        ${renderDomainProtectionSection(settings || ({} as any))}
-        ${renderContentProtectionSection(settings || ({} as any))}
+        <div class="fg-grid fg-grid-cols-3 fg-gap-x-8">
+          <div class="fg-col-span-2">
+            ${renderDomainProtectionSection(settings || ({} as any))}
+          </div>
+          <div class="fg-col-span-1">
+            ${renderThreatSection(settings || ({} as any))}
+          </div>
+        </div>
         ${renderParentalSection(parental)}
         ${renderTldManager((settings?.tlds as any) || [])}
       `;
@@ -106,7 +118,7 @@ function attachHandlers(
         NextDNSSecuritySettings,
         'tlds'
       >;
-      const currentActive = btn.classList.contains('active');
+      const currentActive = btn.getAttribute('aria-checked') === 'true';
       const newValue = !currentActive;
 
       // Optimistic UI
@@ -199,7 +211,7 @@ function renderLocalModeBanner(): string {
     'Cloud-level security layers are currently inactive. Connect your NextDNS account to enable global protection.',
     'btn_upgrade_cloud',
     'Upgrade to Cloud',
-    'var(--fg-yellow)',
+    COLORS.yellow,
   );
 }
 

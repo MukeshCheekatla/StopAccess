@@ -64,73 +64,114 @@ export async function renderAppsPage(container: HTMLElement) {
     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
 
   if (currentIsConfigured) {
-    loadNextDNSMetadata();
+    // Initial fetch in background, then re-render if needed
+    loadNextDNSMetadata().then(() => {
+      if (globalContainer) {
+        refreshListOnly();
+      }
+    });
   }
 
-  if (!container.querySelector('.search-bar')) {
-    container.innerHTML = `
-      <div class="search-bar" style="margin-bottom: 32px; display: flex; gap: 12px; align-items: stretch;">
-        <div style="position: relative; flex: 1;">
-          <input type="text" placeholder="Filter or Add Domain (e.g. ${
-            UI_EXAMPLES.DOMAIN
-          })" id="appSearch" value="${escapeHtml(
+  if (!container.querySelector('#__fg_apps_frame')) {
+    container.innerHTML = `<style>
+        .search-input-premium {
+          width: 100%;
+          height: 60px;
+          font-size: 15px;
+          border-radius: 12px;
+          padding-left: 24px;
+          padding-right: 100px;
+          background: ${COLORS.surface} !important;
+          border: 1px solid ${COLORS.border} !important;
+          color: ${COLORS.text} !important;
+          outline: none !important;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .search-input-premium:focus {
+          background: ${COLORS.surfaceHover} !important;
+        }
+      </style>
+      <div id="__fg_apps_frame" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+        <div class="search-bar" style="margin-bottom: 32px; display: flex; gap: 12px; align-items: stretch;">
+          <div style="position: relative; flex: 1;">
+            <input type="text" placeholder="Filter or Add Domain (e.g. ${
+              UI_EXAMPLES.DOMAIN
+            })" id="appSearch" value="${escapeHtml(
       searchTerm,
-    )}" class="input-premium" style="width:100%; height:60px; font-size:15px; border-radius:20px; padding-left: 24px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); color: var(--fg-text); box-shadow: inset 0 2px 8px var(--fg-shadow-inset);">
-          <div id="searchBadge" style="position: absolute; right: 20px; top: 20px; font-size: 12px; font-weight: 800; color: var(--muted); background: var(--fg-overlay-subtle); padding: 5px 10px; border-radius: 8px; border: 1px solid var(--glass-border); pointer-events: none;">CTRL + F</div>
-        </div>
-        <div id="searchActionContainer"></div>
-      </div>
-
-      <div class="apps-layout-container" style="flex: 1; min-height: 0; align-items: stretch; padding-bottom: 48px;">
-        <div id="tabContent" style="flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column;"></div>
-        
-        <div class="apps-side-controls">
-          <!-- Navigation -->
-          <div class="glass-card" style="padding: 20px;">
-            <div class="apps-layout-header">Selection</div>
-            <div id="appsNavigation" style="display: flex; gap: 6px; padding: 4px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 12px;">
-              <button class="nav-item-tab ${
-                activeTab === 'shield' ? 'is-active' : ''
-              }" data-tab="shield">Blocklist</button>
-              <button class="nav-item-tab ${
-                activeTab === 'categories' ? 'is-active' : ''
-              }" data-tab="categories">Categories</button>
-            </div>
+    )}" class="search-input-premium">
+            <div id="searchBadge" style="position: absolute; right: 20px; top: 18px; ${
+              UI_TOKENS.TEXT.BADGE
+            } color: ${COLORS.muted}; background: ${
+      COLORS.surfaceHover
+    }; padding: 4px 10px; border-radius: 6px; border: 1px solid ${
+      COLORS.border
+    }; pointer-events: none; opacity: 0.8;">CTRL + F</div>
           </div>
+          <div id="searchActionContainer"></div>
+        </div>
 
-          <!-- Productive Redirect -->
-          <div class="glass-card" style="padding: 20px;">
-            <div class="apps-layout-header">
-              Redirect ${renderInfoTooltip(
-                'Set a target URL to automatically redirect users when they attempt to visit a blocked site.',
-              )}
+        <div class="apps-layout-container" style="flex: 1; min-height: 0; align-items: stretch; padding-bottom: 48px;">
+          <div id="tabContent" style="flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column;"></div>
+          
+          <div class="apps-side-controls">
+            <!-- Navigation -->
+            <div class="glass-card" style="padding: 20px;">
+              <div class="apps-layout-header">Selection</div>
+              <div id="appsNavigation" style="display: flex; gap: 6px; padding: 4px; background: ${
+                COLORS.glassBg
+              }; border: 1px solid ${COLORS.glassBorder}; border-radius: 12px;">
+                <button class="nav-item-tab ${
+                  activeTab === 'shield' ? 'is-active' : ''
+                }" data-tab="shield">Blocklist</button>
+                <button class="nav-item-tab ${
+                  activeTab === 'categories' ? 'is-active' : ''
+                }" data-tab="categories">Categories</button>
+              </div>
             </div>
-            <input type="text" id="redirectInput" placeholder="e.g. notion.so" value="${escapeHtml(
-              initialIsEditing
-                ? currentRedirectUrl
-                : currentRedirectUrl
-                    .replace(/^https?:\/\//, '')
-                    .replace(/\/$/, ''),
-            )}" ${
+
+            <!-- Productive Redirect -->
+            <div class="glass-card" style="padding: 20px;">
+              <div class="apps-layout-header">
+                Redirect ${renderInfoTooltip(
+                  'Set a target URL to automatically redirect users when they attempt to visit a blocked site.',
+                )}
+              </div>
+              <input type="text" id="redirectInput" placeholder="e.g. notion.so" value="${escapeHtml(
+                initialIsEditing
+                  ? currentRedirectUrl
+                  : currentRedirectUrl
+                      .replace(/^https?:\/\//, '')
+                      .replace(/\/$/, ''),
+              )}" ${
       !initialIsEditing ? 'disabled' : ''
-    } style="width: 100%; height: 42px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 12px; padding: 0 14px; font-size: 13px; font-weight: 500; color: var(--fg-text); margin-bottom: 12px; outline: none; transition: border-color 0.2s; opacity: ${
+    } style="width: 100%; height: 42px; background: ${
+      COLORS.glassBg
+    }; border: 1px solid ${
+      COLORS.glassBorder
+    }; border-radius: 12px; padding: 0 14px; ${
+      UI_TOKENS.TEXT.CARD_TITLE
+    } margin-bottom: 12px; outline: none; transition: border-color 0.2s; opacity: ${
       initialIsEditing ? '1' : '0.8'
     };">
             <div style="display: flex; justify-content: flex-end; gap: 8px;">
-              <button id="btnRedirectClear" style="height: 30px; font-size: 11px; font-weight: 600; color: var(--fg-muted); background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; cursor: pointer; transition: all 0.2s; padding: 0 14px; visibility: ${
-                initialIsEditing ? 'visible' : 'hidden'
-              }; display: ${
-      initialIsEditing ? 'block' : 'none'
-    };">Clear</button>
+              <button id="btnRedirectClear" style="height: 30px; ${
+                UI_TOKENS.TEXT.SUBTEXT
+              } background: ${COLORS.glassBg}; border: 1px solid ${
+      COLORS.glassBorder
+    }; border-radius: 8px; cursor: pointer; transition: all 0.2s; padding: 0 14px; visibility: ${
+      initialIsEditing ? 'visible' : 'hidden'
+    }; display: ${initialIsEditing ? 'block' : 'none'};">Clear</button>
               <button id="btnRedirectSave" class="${
                 !initialIsEditing ? 'btn-premium' : ''
               }" style="${
       initialIsEditing ? 'flex: 1;' : 'width: auto; padding: 0 16px;'
-    } height: 30px; font-size: 11px; font-weight: 700; color: ${
-      COLORS.onAccent
+    } height: 30px; ${UI_TOKENS.TEXT.BADGE} color: ${
+      COLORS.inAppActiveText
     }; background: ${
-      initialIsEditing ? 'var(--fg-accent)' : 'var(--accent)'
-    }; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; border: none;">
+      initialIsEditing ? COLORS.inAppActiveBg : COLORS.inAppActiveBg
+    }; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; border: 1px solid ${
+      COLORS.inAppActiveBorder
+    };">
                 ${initialIsEditing ? 'Save' : editIcon + ' &nbsp; Edit'}
               </button>
             </div>
@@ -143,8 +184,12 @@ export async function renderAppsPage(container: HTMLElement) {
                 'Forces blocking at the network protocol layer via NextDNS, preventing browser-level bypasses.',
               )}
             </div>
-            <div style="display: flex; align-items: center; justify-content: space-between; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 12px; padding: 10px 14px;">
-              <span style="font-size: 13px; font-weight: 500; color: var(--fg-text);">Hard Block</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; background: ${
+              COLORS.glassBg
+            }; border: 1px solid ${
+      COLORS.glassBorder
+    }; border-radius: 12px; padding: 10px 14px;">
+              <span style="${UI_TOKENS.TEXT.CARD_TITLE}">Hard Block</span>
               <button class="toggle-switch-btn ${
                 currentIsAppsDnsHardMode ? 'active' : ''
               }" id="masterDnsToggle" ${
@@ -163,6 +208,14 @@ export async function renderAppsPage(container: HTMLElement) {
       searchTerm = (e.target as HTMLInputElement).value.toLowerCase();
       refreshListOnly();
     });
+
+    // Ensure search is focused on load
+    setTimeout(() => {
+      const input = container.querySelector('#appSearch') as HTMLInputElement;
+      if (input) {
+        input.focus();
+      }
+    }, 50);
 
     container
       .querySelector('#appSearch')
@@ -282,18 +335,18 @@ export async function renderAppsPage(container: HTMLElement) {
           redirectInput.disabled = false;
           redirectInput.style.opacity = '1';
           btnRedirectSave.innerHTML = 'Save';
-          btnRedirectSave.style.background = 'var(--fg-accent)';
-          btnRedirectSave.style.color = COLORS.onAccent;
-          btnRedirectSave.style.border = 'none';
+          btnRedirectSave.style.background = COLORS.inAppActiveBg;
+          btnRedirectSave.style.color = COLORS.inAppActiveText;
+          btnRedirectSave.style.border = `1px solid ${COLORS.inAppActiveBorder}`;
           btnRedirectClear.style.visibility = 'visible';
           btnRedirectClear.style.pointerEvents = 'auto';
         } else {
           redirectInput.disabled = true;
           redirectInput.style.opacity = '0.8';
           btnRedirectSave.innerHTML = `${editIconArr} Edit`;
-          btnRedirectSave.style.background = 'var(--fg-accent)';
-          btnRedirectSave.style.color = COLORS.onAccent;
-          btnRedirectSave.style.border = 'none';
+          btnRedirectSave.style.background = COLORS.inAppActiveBg;
+          btnRedirectSave.style.color = COLORS.inAppActiveText;
+          btnRedirectSave.style.border = `1px solid ${COLORS.inAppActiveBorder}`;
           btnRedirectClear.style.visibility = 'hidden';
           btnRedirectClear.style.pointerEvents = 'none';
         }
@@ -375,6 +428,30 @@ async function loadNextDNSMetadata() {
     const metadata: any = await appsController.loadMetadata();
     availableCategories = metadata.categories || [];
     (window as any).availableDenylist = metadata.denylist || [];
+
+    // Sync local rules with cloud state for categories
+    if (availableCategories.length > 0) {
+      const { rules } = await loadAppsData();
+      for (const cat of availableCategories) {
+        const localRule = rules.find(
+          (r) => r.packageName === cat.id && r.type === 'category',
+        );
+        if (localRule && localRule.desiredBlockingState !== cat.active) {
+          // Update local to match cloud
+          const { updateRule } = await import('@stopaccess/state/rules');
+          await updateRule(extensionAdapter, {
+            ...localRule,
+            desiredBlockingState: cat.active,
+            blockedToday: cat.active,
+            mode: cat.active
+              ? localRule.dailyLimitMinutes > 0
+                ? 'limit'
+                : 'block'
+              : 'allow',
+          });
+        }
+      }
+    }
   } catch (err) {
     console.error('[StopAccess] Metadata Sync Fail:', err);
   }
@@ -413,16 +490,30 @@ async function refreshListOnly(passedRules?: any[]) {
     '#searchActionContainer',
   ) as HTMLElement;
   if (actionContainer) {
-    if (searchTerm.trim().length > 1) {
-      actionContainer.innerHTML = `
-        <button id="btnAddDomainUnified" class="btn-premium" style="height: 60px; padding: 0 32px; border-radius: 20px; font-weight: 900; font-size: 13px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 10px 20px var(--fg-blue-soft);">
-          Block
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        </button>
-      `;
-    } else {
-      actionContainer.innerHTML = '';
-    }
+    const isInputValid = searchTerm.trim().length > 1;
+    actionContainer.innerHTML = `
+      <button id="btnAddDomainUnified" class="btn-premium" 
+        ${
+          !isInputValid
+            ? 'disabled style="opacity: 0.5; cursor: not-allowed;"'
+            : ''
+        }
+        style="height: 60px; padding: 0 32px; border-radius: 12px; font-weight: 900; font-size: 13px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 8px; background: ${
+          isInputValid ? COLORS.inAppActiveBg : COLORS.surface
+        }; color: ${
+      isInputValid ? COLORS.inAppActiveText : COLORS.text
+    }; border: 1px solid ${
+      isInputValid ? COLORS.inAppActiveBorder : COLORS.border
+    };">
+        Block
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    `;
+
+    // Re-attach listener since we replaced innerHTML
+    actionContainer
+      .querySelector('#btnAddDomainUnified')
+      ?.addEventListener('click', handleAddDomain);
   }
 
   if (tabContent) {
@@ -548,23 +639,54 @@ async function renderSubTab(
       <div style="display: flex; flex: 1; min-height: 0; flex-direction: column;">
       <!-- Centered App Discovery Drawer -->
       <div id="targetDrawerOverlay" class="fg-fixed fg-inset-0 fg-z-[1000] fg-transition-all fg-duration-300 fg-flex fg-items-center fg-justify-center" 
-        style="display: none; background: var(--fg-overlay-strong); backdrop-filter: blur(12px);">
+        style="display: none; background: ${
+          COLORS.overlayStrong
+        }; backdrop-filter: blur(12px);">
         
-        <div id="targetDrawer" class="fg-relative fg-w-[720px] fg-max-h-[85vh] fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[32px] fg-shadow-[0_32px_64px_var(--fg-shadow-strong)] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
+        <div id="targetDrawer" class="fg-relative fg-w-[680px] fg-max-h-[80vh] fg-bg-[${
+          COLORS.surface
+        }] fg-border fg-border-[${
+      COLORS.glassBorder
+    }] fg-rounded-[32px] fg-shadow-[0_32px_64px_var(--fg-shadow-strong)] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
           
           <!-- Header -->
-          <div class="fg-p-8 fg-border-b fg-border-[var(--fg-glass-border)] fg-flex fg-items-center fg-justify-between">
-            <div>
-              <div class="fg-text-[10px] fg-font-bold fg-tracking-[0.2em] fg-text-[var(--fg-blue)] fg-mb-1 fg-uppercase">App List</div>
-              <div class="fg-text-2xl fg-font-bold fg-tracking-tight fg-text-[var(--fg-text)]">Add to Blocklist</div>
-            </div>
-            <button id="btnCloseTargetDrawer" class="fg-p-3 fg-rounded-2xl hover:fg-bg-[var(--fg-surface-hover)] fg-text-[var(--muted)] fg-transition-all">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+          <div class="fg-px-8 fg-pt-8 fg-pb-6 fg-border-b fg-border-[${
+            COLORS.glassBorder
+          }]">
+             <div class="fg-flex fg-items-center fg-justify-between fg-mb-5">
+               <div>
+                 <div class="fg-text-[10px] fg-font-bold fg-tracking-[0.2em] fg-text-[${
+                   COLORS.blue
+                 }] fg-mb-1 fg-uppercase">Catalog Discovery</div>
+                 <div class="fg-text-xl fg-font-bold fg-tracking-tight fg-text-[${
+                   COLORS.text
+                 }]">Select Common Apps</div>
+               </div>
+               <button id="btnCloseTargetDrawer" class="fg-p-2 fg-rounded-xl hover:fg-bg-[${
+                 COLORS.surfaceHover
+               }] fg-text-[var(--muted)] fg-transition-all">
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+               </button>
+             </div>
+             
+             <!-- Interior Search Bar -->
+             <div class="fg-relative">
+               <input type="text" id="drawerSearch" placeholder="Find a service (e.g. Netflix, LinkedIn...)" 
+                  class="fg-w-full fg-h-11 fg-bg-[${
+                    COLORS.glassBg
+                  }] fg-border fg-border-[${
+      COLORS.glassBorder
+    }] fg-rounded-xl fg-pl-11 fg-pr-4 fg-text-[13px] fg-text-[${
+      COLORS.text
+    }] fg-outline-none focus:fg-border-[${COLORS.blue}] fg-transition-all">
+               <div class="fg-absolute fg-left-4 fg-top-3.5 fg-text-[var(--muted)]">
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+               </div>
+             </div>
           </div>
 
           <!-- Scrollable Grid -->
-          <div class="fg-flex-1 fg-overflow-y-auto fg-p-8 fg-grid fg-grid-cols-4 fg-gap-3">
+          <div id="drawerGrid" class="fg-flex-1 fg-overflow-y-auto fg-p-8 fg-grid fg-grid-cols-5 fg-gap-2">
             ${(() => {
               const drawerServices = NEXTDNS_SERVICES.filter(
                 (s) =>
@@ -582,7 +704,6 @@ async function renderSubTab(
                 groups[cat].push(s);
               });
 
-              // Preferred group order
               const order = [
                 'Social',
                 'Entertainment',
@@ -594,40 +715,41 @@ async function renderSubTab(
               const sortedCategories = Object.keys(groups).sort((a, b) => {
                 const idxA = order.indexOf(a);
                 const idxB = order.indexOf(b);
-                if (idxA !== -1 && idxB !== -1) {
-                  return idxA - idxB;
-                }
-                if (idxA !== -1) {
-                  return -1;
-                }
-                if (idxB !== -1) {
-                  return 1;
-                }
-                return a.localeCompare(b);
+                return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
               });
 
               return sortedCategories
                 .map((category) => {
                   const items = groups[category];
                   return `
-                  <div class="fg-col-span-4 ${
-                    category === sortedCategories[0] ? '' : 'fg-mt-4'
-                  } fg-mb-2">
-                    <div class="fg-text-[10px] fg-font-bold fg-tracking-[0.15em] fg-text-[var(--fg-muted)] fg-uppercase">${category}</div>
+                  <div class="fg-col-span-5 ${
+                    category === sortedCategories[0] ? '' : 'fg-mt-3'
+                  } fg-mb-1 drawer-category-group" data-cat="${category}">
+                    <div class="fg-text-[9px] fg-font-bold fg-tracking-[0.15em] fg-text-[${
+                      COLORS.muted
+                    }] fg-uppercase">${category}</div>
                   </div>
                   ${items
                     .map(
                       (s) => `
-                    <button class="quick-add-service fg-p-5 fg-flex-col fg-items-center fg-flex fg-gap-3 fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[24px] fg-cursor-pointer fg-text-[var(--fg-text)] fg-transition-all hover:fg-bg-[var(--fg-surface-hover)] hover:fg-scale-[1.02] hover:fg-border-[var(--fg-glass-border)] fg-group" data-id="${
-                      s.id
-                    }" data-name="${s.name}">
-                      <div class="fg-transition-transform group-hover:fg-scale-110">${renderAppIcon(
+                    <button class="quick-add-service fg-p-3 fg-flex-col fg-items-center fg-flex fg-gap-2 fg-bg-[${
+                      COLORS.glassBg
+                    }] fg-border fg-border-[${
+                        COLORS.glassBorder
+                      }] fg-rounded-[18px] fg-cursor-pointer fg-text-[${
+                        COLORS.text
+                      }] fg-transition-all hover:fg-bg-[${
+                        COLORS.surfaceHover
+                      }] hover:fg-scale-[1.02] fg-group" data-id="${
+                        s.id
+                      }" data-name="${s.name}">
+                      <div class="fg-scale-[0.8] fg-transition-transform group-hover:fg-scale-90">${renderAppIcon(
                         s.id,
                         s.name,
                       )}</div>
-                      <div class="fg-text-[11px] fg-font-medium fg-tracking-wide fg-text-[var(--fg-text)] fg-truncate fg-w-full fg-text-center">${
-                        s.name
-                      }</div>
+                      <div class="fg-text-[10px] fg-font-bold fg-tracking-tight fg-text-[${
+                        COLORS.text
+                      }] fg-truncate fg-w-full fg-text-center">${s.name}</div>
                     </button>`,
                     )
                     .join('')}
@@ -638,14 +760,18 @@ async function renderSubTab(
           </div>
 
           <!-- Footer -->
-          <div class="fg-px-8 fg-py-5 fg-bg-[var(--fg-glass-bg)] fg-border-t fg-border-[var(--fg-glass-border)] fg-flex fg-justify-between fg-items-center">
-            <div class="fg-text-[10px] fg-font-medium fg-text-[var(--muted)] fg-tracking-[0.1em] fg-uppercase">
-              Total Catalog: <span class="fg-text-[var(--fg-text)]">${
-                NEXTDNS_SERVICES.length
-              } Services</span>
+          <div class="fg-px-8 fg-py-4 fg-bg-[${
+            COLORS.glassBg
+          }] fg-border-t fg-border-[${
+      COLORS.glassBorder
+    }] fg-flex fg-justify-between fg-items-center">
+            <div class="fg-text-[9px] fg-font-bold fg-text-[var(--muted)] fg-tracking-[0.1em] fg-uppercase">
+              <span class="fg-text-[${COLORS.text}]">${
+      NEXTDNS_SERVICES.length
+    }</span> Available Services
             </div>
-            <div class="fg-text-[10px] fg-font-medium fg-text-[var(--muted)] fg-tracking-[0.1em] fg-uppercase">
-              Press ESC to Close
+            <div class="fg-text-[9px] fg-font-bold fg-text-[var(--muted)] fg-tracking-[0.1em] fg-uppercase">
+              Click Outside to Dismiss
             </div>
           </div>
         </div>
@@ -668,11 +794,11 @@ async function renderSubTab(
             background: transparent;
           }
           .rule-table-scroll-container::-webkit-scrollbar-thumb {
-            background: var(--fg-glass-border);
+            background: ${COLORS.glassBorder};
             border-radius: 10px;
           }
           .rule-table-scroll-container::-webkit-scrollbar-thumb:hover {
-            background: var(--fg-muted);
+            background: ${COLORS.muted};
           }
           .rule-table-body-scroll::-webkit-scrollbar {
             width: 6px;
@@ -681,11 +807,11 @@ async function renderSubTab(
             background: transparent;
           }
           .rule-table-body-scroll::-webkit-scrollbar-thumb {
-            background: var(--fg-glass-border);
+            background: ${COLORS.glassBorder};
             border-radius: 10px;
           }
           .rule-table-body-scroll::-webkit-scrollbar-thumb:hover {
-            background: var(--fg-muted);
+            background: ${COLORS.muted};
           }
         </style>
 
@@ -695,15 +821,12 @@ async function renderSubTab(
           column-gap: 12px;
           align-items: center;
           padding: 10px 20px;
-          background: var(--fg-glass-bg);
-          border: 1px solid var(--fg-glass-border);
+          background: ${COLORS.glassBg};
+          border: 1px solid ${COLORS.glassBorder};
           border-radius: 12px;
           flex-shrink: 0;
           backdrop-filter: blur(20px);
-          font-size: 14px;
-          font-weight: 600;
-          color: var(--fg-text);
-          letter-spacing: 0.06em;
+          ${UI_TOKENS.TEXT.LABEL}
           width: 100%;
           position: relative;
           z-index: 10;
@@ -730,8 +853,8 @@ async function renderSubTab(
           scroll-snap-type: y mandatory;
           scroll-padding-top: 10px;
           padding-top: 10px;
-          background: var(--fg-glass-bg);
-          border: 1px solid var(--fg-glass-border);
+          background: ${COLORS.glassBg};
+          border: 1px solid ${COLORS.glassBorder};
           border-radius: 16px;
           margin-top: 12px;
         ">
@@ -771,8 +894,8 @@ async function renderSubTab(
               if (domainRules.length > 0) {
                 if (appRules.length > 0) {
                   html += `
-                    <div style="padding: 6px 16px 6px 20px; border-top: 1px solid var(--fg-glass-border); border-bottom: 1px solid var(--fg-glass-border); background: var(--fg-glass-bg); display: flex; align-items: center; gap: 8px; scroll-snap-align: start;">
-                      <div style="font-size: 12px; font-weight: 700; color: var(--fg-muted);  letter-spacing: 0.1em;">Custom Domains</div>
+                    <div style="padding: 6px 16px 6px 20px; border-top: 1px solid ${COLORS.glassBorder}; border-bottom: 1px solid ${COLORS.glassBorder}; background: ${COLORS.glassBg}; display: flex; align-items: center; gap: 8px; scroll-snap-align: start;">
+                      <div style="${UI_TOKENS.TEXT.SUBTEXT}">Custom Domains</div>
                     </div>
                   `;
                 }
@@ -794,7 +917,11 @@ async function renderSubTab(
       </div>
 
       <div style="position: fixed; bottom: 32px; right: 32px; z-index: 100;">
-        <button class="btn-premium fg-transition-transform hover:fg-scale-110 active:fg-scale-95" id="btnOpenTargetDrawer" style="width: 64px; height: 64px; font-size: 28px; display:flex; align-items:center; justify-content:center; border-radius: 20px; padding: 0; box-shadow: 0 10px 25px var(--fg-shadow-strong); cursor: pointer;">+</button>
+        <button class="btn-premium fg-transition-transform hover:fg-scale-110 active:fg-scale-95" id="btnOpenTargetDrawer" style="width: 64px; height: 64px; font-size: 28px; display:flex; align-items:center; justify-content:center; border-radius: 12px; padding: 0; box-shadow: 0 10px 25px var(--fg-shadow-strong); cursor: pointer; background: ${
+          COLORS.inAppActiveBg
+        }; color: ${COLORS.inAppActiveText}; border: 1px solid ${
+      COLORS.inAppActiveBorder
+    };">+</button>
       </div>
     `;
   }
@@ -804,10 +931,10 @@ async function renderSubTab(
       const synced = availableCategories.find((ac: any) => ac.id === std.id);
       return { ...std, active: synced?.active ?? false };
     });
-    const visibleCategories = allCategories.filter(matchesSearch);
+    const visibleCategories = allCategories;
     const activeCount = visibleCategories.filter((c) => c.active).length;
     const disabledWarning = !currentIsConfigured
-      ? `<div style="padding: 16px; border-radius: 12px; background: ${COLORS.amberSoft}; border: 1px solid ${COLORS.amberBorder}; margin-bottom: 24px; color: ${COLORS.amberText}; font-size: 13px; font-weight: 800; display: flex; align-items: center; gap: 10px;">
+      ? `<div style="padding: 16px; border-radius: 12px; background: ${COLORS.amberSoft}; border: 1px solid ${COLORS.amberBorder}; margin-bottom: 24px; color: ${COLORS.amberText}; ${UI_TOKENS.TEXT.CARD_TITLE} display: flex; align-items: center; gap: 10px;">
            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
            DNS profile required to turn on categories.
          </div>`
@@ -815,7 +942,9 @@ async function renderSubTab(
 
     return `
       ${disabledWarning}
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid var(--fg-glass-border); padding-bottom: 16px;">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid ${
+        COLORS.glassBorder
+      }; padding-bottom: 16px;">
         <div>
           <div style="display: flex; align-items: center; gap: 10px;">
             <div style="${UI_TOKENS.TEXT.HEADING}">Add a Category</div>
@@ -847,8 +976,12 @@ function renderCategoryCard(
   const localRule = rules.find(
     (rule: any) => rule.packageName === category.id && rule.type === 'category',
   );
+  // Prioritize NextDNS cloud state if local rule doesn't have a specific override,
+  // or if local rule doesn't exist yet.
   const active =
-    localRule !== undefined ? getRuleActiveState(localRule, passes) : false;
+    localRule !== undefined
+      ? getRuleActiveState(localRule, passes)
+      : category.active || false;
   const badge = getCategoryBadge(category);
   const isLocked = lockedDomains.includes(category.id.toLowerCase());
 
@@ -918,13 +1051,14 @@ function renderCategoryCard(
     isLocked || !currentIsConfigured ? 'disabled' : ''
   } data-kind="category" data-id="${escapeHtml(
     category.id,
-  )}" data-name="${escapeHtml(category.name)}">
+  )}" data-name="${escapeHtml(category.name)}"
+  aria-checked="${active}" role="switch">
             <span class="on-text">ON</span>
             <span class="off-text">OFF</span>
           </button>
           ${
             isLocked
-              ? '<div style="font-size:10px; opacity:0.5; font-weight:800; letter-spacing:0.6px;">Lock</div>'
+              ? `<div style="${UI_TOKENS.TEXT.BADGE} opacity:0.5;">Lock</div>`
               : ''
           }
         </div>
@@ -971,6 +1105,47 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
   openBtn?.addEventListener('click', openDrawer);
   closeBtn?.addEventListener('click', closeDrawer);
 
+  const drawerSearch = container.querySelector(
+    '#drawerSearch',
+  ) as HTMLInputElement;
+  const serviceItems = Array.from(
+    container.querySelectorAll('.quick-add-service'),
+  ) as HTMLElement[];
+  const categoryGroups = Array.from(
+    container.querySelectorAll('.drawer-category-group'),
+  ) as HTMLElement[];
+
+  drawerSearch?.addEventListener('input', (e) => {
+    const term = (e.target as HTMLInputElement).value.toLowerCase();
+
+    // 1. Toggle item visibility
+    serviceItems.forEach((item) => {
+      const name = (item.getAttribute('data-name') || '').toLowerCase();
+      const id = (item.getAttribute('data-id') || '').toLowerCase();
+      const isMatch = name.includes(term) || id.includes(term);
+      item.style.display = isMatch ? 'flex' : 'none';
+    });
+
+    // 2. Hide category headers if no items are visible in that group
+    categoryGroups.forEach((group) => {
+      const cat = group.getAttribute('data-cat');
+      const hasVisible = serviceItems.some((item) => {
+        const itemCat =
+          NEXTDNS_SERVICES.find((s) => s.id === item.getAttribute('data-id'))
+            ?.category || 'Other';
+        return itemCat === cat && item.style.display !== 'none';
+      });
+      group.style.display = hasVisible ? 'flex' : 'none';
+    });
+  });
+
+  const handleEsc = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && overlay?.style.display === 'flex') {
+      closeDrawer();
+    }
+  };
+  window.addEventListener('keydown', handleEsc);
+
   overlay?.addEventListener('click', (e) => {
     if (e.target === overlay) {
       closeDrawer();
@@ -994,7 +1169,12 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
       const kind = btnEl.getAttribute('data-kind');
       const id =
         btnEl.getAttribute('data-id') || btnEl.getAttribute('data-pkg');
-      const wasActive = btnEl.classList.contains('active');
+      const activeStateStr = btnEl.getAttribute('aria-checked');
+      const wasActive =
+        activeStateStr !== null
+          ? activeStateStr === 'true'
+          : btnEl.classList.contains('active');
+
       const targetState = !wasActive;
       const name = btnEl.getAttribute('data-name') || id;
 
@@ -1003,6 +1183,7 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
       }
 
       btnEl.classList.toggle('active', targetState);
+      btnEl.setAttribute('aria-checked', String(targetState));
       btnEl.style.opacity = '0.5';
 
       const performAction = async () => {
@@ -1016,8 +1197,11 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
           );
           if (result.ok) {
             btnEl.style.opacity = '1';
+            const action = targetState ? 'blocked' : 'allowed';
+            toast.success(`${name || id} ${kind} is now ${action}`);
           } else {
             btnEl.classList.toggle('active', wasActive);
+            btnEl.setAttribute('aria-checked', String(wasActive));
             btnEl.style.opacity = '1';
           }
         } catch (err: any) {
@@ -1106,23 +1290,30 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
       e.stopPropagation();
       const menu = trigger.nextElementSibling as HTMLElement;
       const wasActive = menu.classList.contains('active');
-      const card = trigger.closest('.service-card') as HTMLElement;
+      const parentRow = trigger.closest(
+        '.service-card, .rule-table-row',
+      ) as HTMLElement;
+      const scrollParent = trigger.closest(
+        '.rule-table-body-scroll',
+      ) as HTMLElement;
 
-      // Close all other menus and reset their cards
+      // Close all other menus and reset their parents
       document.querySelectorAll('.fg-select-menu.active').forEach((m) => {
         if (m !== menu) {
           m.classList.remove('active');
-          const otherCard = m.closest('.service-card') as HTMLElement;
-          if (otherCard) {
-            otherCard.style.zIndex = '1';
+          const otherParent = m.closest(
+            '.service-card, .rule-table-row',
+          ) as HTMLElement;
+          if (otherParent) {
+            otherParent.style.zIndex = '1';
           }
         }
       });
 
       const nextActive = !wasActive;
       menu.classList.toggle('active', nextActive);
-      if (card) {
-        card.style.zIndex = nextActive ? '100' : '1';
+      if (parentRow) {
+        parentRow.style.zIndex = nextActive ? '1000' : '1';
       }
 
       if (nextActive) {
@@ -1134,7 +1325,20 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
         // Delay 1 frame to let it render its height
         requestAnimationFrame(() => {
           const rect = menu.getBoundingClientRect();
-          if (rect.bottom > window.innerHeight - 20) {
+          const containerRect = scrollParent
+            ? scrollParent.getBoundingClientRect()
+            : null;
+
+          const hitBottom = containerRect
+            ? rect.bottom > containerRect.bottom - 10
+            : rect.bottom > window.innerHeight - 20;
+
+          const spaceAbove = containerRect
+            ? rect.top - containerRect.top
+            : rect.top;
+
+          // Only flip UP if we hit bottom AND there is more space above than below
+          if (hitBottom && spaceAbove > 150) {
             // Flip it to open upwards
             menu.style.top = 'auto';
             menu.style.bottom = 'calc(100% + 6px)';
@@ -1150,9 +1354,11 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
     () => {
       document.querySelectorAll('.fg-select-menu.active').forEach((m) => {
         m.classList.remove('active');
-        const card = m.closest('.service-card') as HTMLElement;
-        if (card) {
-          card.style.zIndex = '1';
+        const parentRow = m.closest(
+          '.service-card, .rule-table-row',
+        ) as HTMLElement;
+        if (parentRow) {
+          parentRow.style.zIndex = '1';
         }
       });
     },

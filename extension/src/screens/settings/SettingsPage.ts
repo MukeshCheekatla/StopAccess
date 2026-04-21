@@ -1,17 +1,9 @@
-const iconCloud =
-  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19c.7 0 1.3-.2 1.8-.7s.7-1.1.7-1.8c0-1.4-1.1-2.5-2.5-2.5-.1 0-.3 0-.4.1C16.5 10.6 13.5 8 10 8c-3.1 0-5.7 2.1-6.7 5h-.3C1.3 13 0 14.3 0 15.9c0 1.6 1.3 2.9 2.9 2.9h14.6z"/></svg>';
 const iconGlobe =
   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
 const iconLock =
   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
 const iconShield =
   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
-const iconSearch =
-  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
-const iconActivity =
-  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>';
-const iconEdit =
-  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="fg-mr-1.5"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
 
 import { toast } from '../../lib/toast';
 import { checkGuard } from '../../background/sessionGuard';
@@ -27,10 +19,7 @@ export async function renderSettingsPage(container) {
     loadSettingsData,
     connectNextDNSAction,
     setStrictModeAction,
-    exportRulesAction,
-    importRulesAction,
     setGuardianPinAction,
-    testDomainCoverageAction,
     requestPinResetAction,
     cancelPinResetAction,
     checkPinResetStatus,
@@ -42,7 +31,6 @@ export async function renderSettingsPage(container) {
     profileId,
     apiKey,
     strict,
-    dnrRules,
     syncState,
     challengeEnabled,
     challengeText,
@@ -57,67 +45,16 @@ export async function renderSettingsPage(container) {
     ? `https://dns.nextdns.io/${profileId}`
     : 'https://dns.nextdns.io/-';
 
-  const isSetupActive = !!profileId && !!apiKey;
-
   container.innerHTML = `
     <div class="fg-h-full" style="min-height: calc(100vh - 40px);">
       <main class="fg-overflow-y-auto fg-p-8 fg-max-w-6xl fg-mx-auto">
         <div class="fg-grid fg-grid-cols-2 fg-gap-6 settings-dual-grid">
 
-          <section class="fg-panel-premium fg-p-6 fg-rounded-[28px]">
-            <div class="fg-flex fg-items-start fg-justify-between fg-mb-6">
-              <div class="fg-flex fg-gap-3">
-                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-sky-500/10 fg-flex fg-items-center fg-justify-center fg-text-sky-500">
-                  ${iconCloud}
-                </div>
-                <div>
-                  <h2 style="${
-                    UI_TOKENS.TEXT.HEADING
-                  }">NextDNS Profile Sync</h2>
-                  <p style="${
-                    UI_TOKENS.TEXT.SUBTEXT
-                  }; margin-top: 2px;">Sync services, denylist domains, and diagnostics.</p>
-                </div>
-              </div>
-              <button id="btn_edit_credentials" class="fg-flex fg-items-center fg-text-[9px] fg-font-black fg-text-[var(--fg-accent)] hover:fg-opacity-80  fg-tracking-[0.2em] fg-bg-[var(--fg-accent)]/10 fg-px-2.5 fg-py-1.5 fg-rounded-lg fg-transition-opacity ${
-                isSetupActive ? '' : 'fg-hidden'
-              }">
-                ${iconEdit}
-                <span>Modify</span>
-              </button>
-            </div>
-            <div class="fg-flex fg-flex-col fg-gap-6">
-              <div class="fg-flex fg-flex-col fg-gap-2">
-                <label style="${UI_TOKENS.TEXT.LABEL}">Active Profile</label>
-                <div class="fg-flex fg-items-center fg-gap-4">
-                  <input type="text" id="cfg_profile" value="${profileId}" placeholder="abc123" class="input-premium fg-w-20 fg-h-11 fg-text-lg fg-font-bold fg-text-[var(--fg-accent)] fg-bg-transparent fg-border-0 fg-p-0 ${
-    isSetupActive ? 'readonly-input' : ''
-  }" ${isSetupActive ? 'readonly' : ''}>
-                  <button class="btn-secondary-v2 fg-px-4 fg-py-2 fg-h-9 fg-whitespace-nowrap fg-text-[9px]" id="btn_open_nextdns_setup">Locate ID</button>
-                </div>
-              </div>
-
-              <div class="fg-flex fg-flex-col fg-gap-2">
-                <label style="${
-                  UI_TOKENS.TEXT.LABEL
-                }">Dedicated API Token</label>
-                <div class="fg-flex fg-items-center fg-gap-4">
-                  <input type="password" id="cfg_apiKey" value="" placeholder="${
-                    apiKey ? 'Token saved' : 'Paste dedicated token'
-                  }" class="input-premium fg-flex-1 fg-h-11 fg-text-lg fg-font-bold fg-text-[var(--fg-text)] fg-bg-transparent fg-border-0 fg-p-0 ${
-    isSetupActive ? 'readonly-input' : ''
-  }" ${isSetupActive ? 'readonly' : ''}>
-                  <button class="btn-secondary-v2 fg-px-4 fg-py-2 fg-h-9 fg-whitespace-nowrap fg-text-[9px]" id="btn_open_nextdns_account">Generate</button>
-                </div>
-              </div>
-            </div>
-            <div id="connection_feedback" class="fg-hidden fg-mt-4 fg-p-4 fg-rounded-2xl fg-text-xs fg-font-bold fg-text-center"></div>
-            <div class="fg-mt-6">
-              <button class="btn-premium fg-w-full fg-justify-center fg-h-12 fg-rounded-xl fg-text-sm fg-font-bold  fg-tracking-widest ${
-                isSetupActive ? 'fg-hidden' : ''
-              }" id="btn_save_config">Secure & Initialize Sync</button>
-            </div>
-          </section>
+          <div id="account_section_container">
+            ${(
+              await import('./components/AccountSection')
+            ).renderAccountSection(profileId, apiKey, syncState)}
+          </div>
 
           <section class="fg-panel-premium fg-p-6 fg-rounded-[28px]">
             <div class="fg-mb-6 fg-flex fg-gap-3">
@@ -138,7 +75,11 @@ export async function renderSettingsPage(container) {
                 }; opacity: 0.5;">Private DoH Endpoint</label>
                 <div class="fg-flex fg-gap-3">
                   <input type="text" id="doh_url_display" value="${dohUrl}" class="input-premium fg-flex-1 fg-h-10 fg-text-[11px] fg-text-[var(--fg-text)] fg-opacity-80 fg-font-mono fg-bg-transparent fg-border-0 fg-p-0" readonly>
-                  <button id="btn_copy_doh_inline" class="btn-premium fg-px-5 fg-h-10 fg-text-[9px]  fg-tracking-widest">Copy URL</button>
+                  <button id="btn_copy_doh_inline" class="btn-premium fg-px-5 fg-h-10 fg-text-[9px]  fg-tracking-widest" style="background: ${
+                    COLORS.inAppActiveBg
+                  }; color: ${COLORS.inAppActiveText}; border: 1px solid ${
+    COLORS.inAppActiveBorder
+  };">Copy URL</button>
                 </div>
               </div>
               <div>
@@ -278,54 +219,17 @@ export async function renderSettingsPage(container) {
 
                   <div class="fg-flex fg-justify-between fg-mt-6 fg-items-center">
                     <button id="btn_reset_challenge_text" class="fg-text-[10px] fg-font-bold fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] fg-transition-all">Restore Default</button>
-                    <button id="btn_save_challenge_text" class="btn-premium fg-px-6 fg-py-2.5 fg-rounded-xl fg-text-[10px] fg-font-black">Update Challenge</button>
+                    <button id="btn_save_challenge_text" class="btn-premium fg-px-6 fg-py-2.5 fg-rounded-xl fg-text-[10px] fg-font-black" style="background: ${
+                      COLORS.inAppActiveBg
+                    }; color: ${COLORS.inAppActiveText}; border: 1px solid ${
+    COLORS.inAppActiveBorder
+  };">Update Challenge</button>
                   </div>
                 </div>
               </section>
             </div>
           </div>
 
-          <section class="fg-panel-premium fg-p-6 fg-rounded-[28px]">
-            <div class="fg-mb-6 fg-flex fg-gap-3">
-              <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-blue-500/10 fg-flex fg-items-center fg-justify-center fg-text-blue-500">
-                ${iconSearch}
-              </div>
-              <div>
-                <h2 style="${UI_TOKENS.TEXT.HEADING}">Coverage Test</h2>
-                <p style="${
-                  UI_TOKENS.TEXT.SUBTEXT
-                }; margin-top: 2px;">Check if a host is covered by active rules.</p>
-              </div>
-            </div>
-            <div class="fg-flex fg-gap-3">
-              <input type="text" id="test_domain" placeholder="domain.com" class="input-premium fg-flex-1 fg-h-11 fg-text-sm fg-font-medium fg-text-[var(--fg-text)]">
-              <button class="btn-premium fg-px-6 fg-h-11 fg-text-[10px]  fg-tracking-widest" id="btn_test_domain">Run Scan</button>
-            </div>
-            <div id="test_result" class="fg-hidden fg-mt-4 fg-p-4 fg-rounded-2xl fg-text-center fg-text-[10px] fg-font-bold  fg-tracking-widest"></div>
-          </section>
-
-          <section class="fg-panel-premium fg-p-6 fg-rounded-[28px]">
-            <div class="fg-flex fg-items-center fg-justify-between fg-mb-5">
-              <div class="fg-flex fg-gap-3">
-                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-rose-500/10 fg-flex fg-items-center fg-justify-center fg-text-rose-500">
-                  ${iconActivity}
-                </div>
-                <div>
-                  <h2 style="${UI_TOKENS.TEXT.HEADING}">Maintenance</h2>
-                  <p style="${
-                    UI_TOKENS.TEXT.SUBTEXT
-                  }; margin-top: 2px;">Sync health and rule persistence.</p>
-                </div>
-              </div>
-              <button class="fg-text-[9px] fg-font-black fg-text-[var(--fg-accent)] fg-bg-[var(--fg-accent)]/10 fg-px-3 fg-py-1.5 fg-rounded-lg hover:fg-opacity-70" id="btn_force_sync">Push</button>
-            </div>
-            <div id="sync_stats" class="fg-text-[10px] fg-font-mono fg-space-y-2 fg-text-[var(--fg-text)] fg-mb-5"></div>
-            <div class="fg-grid fg-grid-cols-3 fg-gap-3 fg-pt-4 fg-border-t fg-border-[var(--fg-glass-border)]">
-              <button class="btn-secondary-v2 fg-py-3 fg-text-[9px]  fg-tracking-widest" id="btn_view_logs">History</button>
-              <button class="btn-secondary-v2 fg-py-3 fg-text-[9px]  fg-tracking-widest" id="btn_export_rules">Export</button>
-              <button class="btn-secondary-v2 fg-py-3 fg-text-[9px]  fg-tracking-widest" id="btn_import_rules">Import</button>
-            </div>
-          </section>
         </div>
       </main>
     </div>
@@ -480,9 +384,9 @@ export async function renderSettingsPage(container) {
       }
       .dns-tab-btn.active {
         opacity: 1 !important;
-        background: var(--fg-accent) !important;
-        border-color: var(--fg-accent) !important;
-        color: var(--fg-text) !important;
+        background: var(--fg-in-app-active-bg) !important;
+        border-color: var(--fg-in-app-active-border) !important;
+        color: var(--fg-in-app-active-text) !important;
       }
       @media (max-width: 1100px) {
         .settings-dual-grid {
@@ -500,62 +404,17 @@ export async function renderSettingsPage(container) {
     }
   };
 
-  const editBtn = container.querySelector('#btn_edit_credentials');
-  const saveBtn = container.querySelector('#btn_save_config');
-  const editLabel = editBtn?.querySelector('span');
-
-  const inputs = container.querySelectorAll(
-    '#cfg_profile, #cfg_apiKey',
-  ) as NodeListOf<HTMLInputElement>;
-
-  editBtn?.addEventListener('click', () => {
-    const isEditing = editBtn.classList.contains('active-edit');
-    if (isEditing) {
-      editBtn.classList.remove('active-edit');
-      if (editLabel) {
-        editLabel.innerText = 'Modify';
-      }
-      saveBtn?.classList.add('fg-hidden');
-      inputs.forEach((input) => {
-        input.readOnly = true;
-        input.classList.add('readonly-input');
-      });
-    } else {
-      editBtn.classList.add('active-edit');
-      if (editLabel) {
-        editLabel.innerText = 'Cancel';
-      }
-      saveBtn?.classList.remove('fg-hidden');
-      inputs.forEach((input) => {
-        input.readOnly = false;
-        input.classList.remove('readonly-input');
-      });
-    }
-  });
-
-  container
-    .querySelector('#btn_open_nextdns_setup')
-    ?.addEventListener('click', () => {
-      chrome?.storage?.local?.set({
-        fg_helper_intent: {
-          mode: 'setup',
-          expiresAt: Date.now() + 10 * 60 * 1000,
-        },
-      });
-      openExternal('https://my.nextdns.io/setup');
-    });
-
-  container
-    .querySelector('#btn_open_nextdns_account')
-    ?.addEventListener('click', () => {
-      chrome?.storage?.local?.set({
-        fg_helper_intent: {
-          mode: 'api',
-          expiresAt: Date.now() + 10 * 60 * 1000,
-        },
-      });
-      openExternal('https://my.nextdns.io/account');
-    });
+  // Modern Account Section Listeners
+  const { attachAccountListeners } = await import(
+    './components/AccountSection'
+  );
+  attachAccountListeners(
+    container,
+    profileId,
+    apiKey,
+    connectNextDNSAction,
+    () => renderSettingsPage(container),
+  );
 
   container
     .querySelector('#btn_copy_doh_inline')
@@ -602,57 +461,6 @@ export async function renderSettingsPage(container) {
     });
   });
 
-  container
-    .querySelector('#btn_save_config')
-    ?.addEventListener('click', async () => {
-      const pid = (
-        container.querySelector('#cfg_profile') as HTMLInputElement
-      ).value.trim();
-      const enteredKey = (
-        container.querySelector('#cfg_apiKey') as HTMLInputElement
-      ).value.trim();
-      const finalKey = enteredKey || apiKey;
-
-      const feedback = container.querySelector(
-        '#connection_feedback',
-      ) as HTMLElement;
-      const btn = container.querySelector(
-        '#btn_save_config',
-      ) as HTMLButtonElement;
-
-      if (!pid || !finalKey) {
-        toast.error('Identity parameters incomplete');
-        return;
-      }
-
-      btn.innerText = 'VERIFYING...';
-      btn.disabled = true;
-      feedback.classList.remove('fg-hidden');
-      feedback.className =
-        'fg-p-4 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-[var(--fg-overlay-subtle)] fg-text-[var(--fg-muted)]';
-      feedback.innerText = 'Negotiating with NextDNS Cloud...';
-
-      try {
-        const result = await connectNextDNSAction(pid, finalKey);
-        if (result.ok) {
-          feedback.className =
-            'fg-p-4 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-[var(--fg-green)]/20 fg-text-[var(--fg-green)]';
-          feedback.innerText = 'Sync verified';
-          btn.innerText = 'LINKED';
-          toast.success('Cloud sync persistent');
-          setTimeout(() => renderSettingsPage(container), 1500);
-        } else {
-          throw new Error(result.error || 'Identity rejected');
-        }
-      } catch (err) {
-        feedback.className =
-          'fg-p-4 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-[var(--fg-red)]/20 fg-text-[var(--fg-red)]';
-        feedback.innerText = err.message;
-        btn.innerText = 'RETRY';
-        btn.disabled = false;
-      }
-    });
-
   if ((window as any).__settingsStorageListener) {
     chrome.storage.onChanged.removeListener(
       (window as any).__settingsStorageListener,
@@ -670,9 +478,6 @@ export async function renderSettingsPage(container) {
   };
   (window as any).__settingsStorageListener = storageListener;
   chrome.storage.onChanged.addListener(storageListener);
-  // We should ideally return a cleanup function or handle it via a mutation observer when container is removed
-  // but for a simple extension dashboard this is generally fine or we can use a weak reference if needed.
-  // Given "Don't over engineer", I'll keep it simple.
 
   container
     .querySelector('#chk_strict_toggle')
@@ -871,10 +676,10 @@ export async function renderSettingsPage(container) {
     await toggleChallengeAction(enabled);
     if (enabled) {
       challengeBox?.classList.remove('fg-hidden');
-      toast.info('Patience Check Enabled');
+      toast.info('Unblock Challenge Enabled');
     } else {
       challengeBox?.classList.add('fg-hidden');
-      toast.info('Patience Check Disabled');
+      toast.info('Unblock Challenge Disabled');
     }
   });
 
@@ -906,154 +711,4 @@ export async function renderSettingsPage(container) {
       toast.info(`Switched to ${(btn as HTMLElement).innerText}`);
     });
   });
-
-  const renderStats = () => {
-    const statsDiv = container.querySelector('#sync_stats');
-    if (!statsDiv) {
-      return;
-    }
-    statsDiv.innerHTML = `
-      <div class="fg-flex fg-justify-between fg-opacity-70"><span>Engine Health</span> <span class="${
-        syncState.status === 'error'
-          ? 'fg-text-[var(--fg-red)]'
-          : 'fg-text-[var(--fg-green)]'
-      } fg-font-black">${syncState.status.toUpperCase()}</span></div>
-      <div class="fg-flex fg-justify-between fg-opacity-70"><span>Telemetry Cycle</span> <span class="fg-font-black">${
-        syncState.lastSyncAt
-          ? new Date(syncState.lastSyncAt).toLocaleTimeString()
-          : 'INACTIVE'
-      }</span></div>
-      <div class="fg-flex fg-justify-between fg-opacity-70"><span>Pending Blobs</span> <span class="fg-text-[var(--fg-accent)] fg-font-black">${
-        syncState.pendingOps || 0
-      } UNITS</span></div>
-    `;
-  };
-  renderStats();
-
-  // Note: btn_refresh_sync listener removed as button is not present in template.
-
-  container.querySelector('#btn_force_sync')?.addEventListener('click', () => {
-    chrome.runtime.sendMessage({ action: 'manualSync' });
-    toast.info('Manual push sequence active');
-  });
-
-  container
-    .querySelector('#btn_test_domain')
-    ?.addEventListener('click', async () => {
-      const input = container.querySelector('#test_domain') as HTMLInputElement;
-      const domain = input.value.trim().toLowerCase();
-      const resultDiv = container.querySelector('#test_result') as HTMLElement;
-      if (!domain) {
-        return;
-      }
-      resultDiv.classList.remove('fg-hidden');
-      resultDiv.innerText = 'SCANNING...';
-      const { localMatch, dnrMatch } = await testDomainCoverageAction(
-        domain,
-        dnrRules,
-      );
-      if (localMatch || dnrMatch) {
-        resultDiv.className =
-          'fg-p-4 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black fg-bg-[var(--fg-green)]/20 fg-text-[var(--fg-green)] fg-border fg-border-[var(--fg-green)]/20';
-        resultDiv.innerText = localMatch
-          ? 'Block EVENT: PERSISTENT'
-          : 'Block EVENT: VIRTUAL';
-      } else {
-        resultDiv.className =
-          'fg-p-4 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black fg-bg-[var(--fg-red)]/20 fg-text-[var(--fg-red)] fg-border fg-border-[var(--fg-red)]/20';
-        resultDiv.innerText = 'TRAFFIC CLEAN';
-      }
-    });
-
-  container
-    .querySelector('#btn_export_rules')
-    ?.addEventListener('click', async () => {
-      const rules = await exportRulesAction();
-      const blob = new Blob([rules], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'StopAccess_state.json';
-      a.click();
-      toast.success('State Archived');
-    });
-
-  container
-    .querySelector('#btn_import_rules')
-    ?.addEventListener('click', () => {
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = 'application/json';
-      input.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (!file) {
-          return;
-        }
-        try {
-          const text = await file.text();
-          await importRulesAction(text);
-          toast.success('State Restored');
-          renderSettingsPage(container);
-        } catch (err) {
-          toast.error('State Corruption');
-        }
-      };
-      input.click();
-    });
-
-  container
-    .querySelector('#btn_view_logs')
-    ?.addEventListener('click', async () => {
-      const { extensionAdapter: logStorage, STORAGE_KEYS } = await import(
-        '../../background/platformAdapter'
-      );
-      const logs = JSON.parse(
-        (await logStorage.getString(STORAGE_KEYS.LOGS)) || '[]',
-      ).reverse();
-      const modal = document.createElement('div');
-      modal.className =
-        'fg-fixed fg-inset-0 fg-bg-[var(--fg-overlay)] fg-backdrop-blur-xl fg-flex fg-items-center fg-justify-center fg-z-50 fg-p-8';
-      modal.innerHTML = `
-        <div class="fg-bg-[var(--fg-surface)] fg-w-full fg-max-w-xl fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-flex fg-flex-col fg-max-h-[85vh] fg-shadow-2xl">
-          <div class="fg-p-8 fg-border-b fg-border-[var(--fg-glass-border)] fg-flex fg-justify-between fg-items-center">
-            <div class="fg-font-black  fg-tracking-widest fg-text-xs fg-opacity-50">Audit Trail History</div>
-            <button id="close_logs" class="fg-opacity-40 hover:fg-opacity-100 transition">×</button>
-          </div>
-          <div class="fg-flex-1 fg-overflow-y-auto fg-p-6 fg-space-y-4">
-            ${
-              logs
-                .map(
-                  (l) => `
-                <div class="fg-p-4 fg-bg-[var(--fg-white-wash)] fg-rounded-2xl fg-text-[11px] fg-font-mono fg-flex fg-gap-4">
-                  <span class="fg-opacity-30">${new Date(
-                    l.timestamp,
-                  ).toLocaleTimeString()}</span>
-                  <span class="${
-                    l.level === 'error'
-                      ? 'fg-text-[var(--fg-red)]'
-                      : 'fg-text-[var(--fg-green)]'
-                  } fg-font-black">[${l.level.toUpperCase()}]</span>
-                  <span class="fg-opacity-80">${l.message}</span>
-                </div>
-              `,
-                )
-                .join('') ||
-              '<div class="fg-text-center fg-opacity-30 fg-py-20 fg-font-black  fg-tracking-widest fg-text-[10px]">Vault Unaccessed</div>'
-            }
-          </div>
-          <div class="fg-p-6 fg-flex fg-justify-end">
-            <button class="btn-premium fg-px-8 fg-py-3" id="modal_close_btn">Close</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
-      const close = () => modal.remove();
-      modal.querySelector('#close_logs')?.addEventListener('click', close);
-      modal.querySelector('#modal_close_btn')?.addEventListener('click', close);
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-          close();
-        }
-      });
-    });
 }

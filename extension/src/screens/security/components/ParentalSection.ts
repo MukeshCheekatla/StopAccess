@@ -1,4 +1,5 @@
 import type { NextDNSParentalControlSettings } from '@stopaccess/types';
+import { COLORS } from '../../../lib/designTokens';
 import {
   renderToggleSwitch,
   renderSectionBadge,
@@ -30,6 +31,7 @@ export function renderParentalSection(
       desc: 'Filter explicit results on search engines.',
       icon: iconSearch,
       active: parental.safeSearch,
+      color: '#3b82f6',
     },
     {
       key: 'youtubeRestrictedMode',
@@ -39,6 +41,7 @@ export function renderParentalSection(
       desc: 'Filter out mature videos on YouTube.',
       icon: iconYoutube,
       active: parental.youtubeRestrictedMode,
+      color: '#ef4444',
     },
     {
       key: 'blockBypass',
@@ -48,16 +51,17 @@ export function renderParentalSection(
       desc: 'Block VPNs, proxies, and Tor.',
       icon: iconShield,
       active: parental.blockBypass,
+      color: '#6366f1',
     },
   ];
 
   const activeCount = controls.filter((c) => c.active).length;
 
   return `
-    <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
+    <div class="fg-p-2 fg-mb-4">
       ${renderSectionTitleRow(
         iconShield,
-        'var(--fg-blue)',
+        COLORS.blue,
         'Parental Control',
         renderSectionBadge(`${activeCount} Active`),
       )}
@@ -66,12 +70,16 @@ export function renderParentalSection(
         ${controls
           .map(
             (ctrl) => `
-          <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-bg-[var(--fg-surface-hover)]"
+          <div class="security-toggle-row fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-bg-[${
+            COLORS.surfaceHover
+          }]"
             data-key="${ctrl.key}"
-            style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
+            style="background: ${COLORS.glassBg}; border: 1px solid ${
+              COLORS.glassBorder
+            };"
           >
             <div class="fg-relative fg-shrink-0">
-              <span class="fg-text-[var(--muted)]">${ctrl.icon}</span>
+              <span style="color: ${ctrl.color};">${ctrl.icon}</span>
             </div>
 
              <div class="fg-flex-1 fg-min-w-0">

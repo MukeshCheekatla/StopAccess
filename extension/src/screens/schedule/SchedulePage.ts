@@ -3,6 +3,7 @@ import { buildDashboardTabPath } from '@stopaccess/core';
 import { toast } from '../../lib/toast';
 import { renderCloudBanner, UI_TOKENS } from '../../lib/ui';
 import { COLORS } from '../../lib/designTokens';
+import type { NextDNSRecreationTime } from '@stopaccess/types';
 
 declare var chrome: any;
 
@@ -102,10 +103,18 @@ function _renderPage(
       <div class="${isLocalMode ? 'fg-opacity-40 fg-pointer-events-none' : ''}">
 
       <!-- Card -->
-      <div class="glass-card fg-mx-auto fg-mt-4" style="background: var(--fg-surface); border: 1px solid var(--fg-glass-border); border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px var(--fg-shadow-soft);">
+      <div class="glass-card fg-mx-auto fg-mt-4" style="background: ${
+        COLORS.surface
+      }; border: 1px solid ${
+    COLORS.glassBorder
+  }; border-radius: 24px; overflow: hidden; box-shadow: 0 24px 60px ${
+    COLORS.shadowSoft
+  };">
         
         <!-- Header -->
-        <div class="fg-flex fg-items-start fg-justify-between fg-p-5 fg-border-b fg-border-[var(--fg-glass-border)]">
+        <div class="fg-flex fg-items-start fg-justify-between fg-p-5 fg-border-b fg-border-[${
+          COLORS.glassBorder
+        }]">
            <div>
              <h2 style="${UI_TOKENS.TEXT.HEADING}">Recreation Time</h2>
              <p style="${
@@ -138,18 +147,28 @@ function _renderPage(
                    <input type="time" class="time-input fg-px-3" value="${
                      data.start
                    }" data-day="${day}" data-type="start"
-                          style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; color: var(--fg-text); height: 42px; width: 120px; ${
-                            UI_TOKENS.TEXT.CARD_TITLE
-                          }">
+                          style="background: ${
+                            COLORS.glassBg
+                          }; border: 1px solid ${
+               COLORS.glassBorder
+             }; border-radius: 8px; color: ${
+               COLORS.text
+             }; height: 42px; width: 120px; ${UI_TOKENS.TEXT.CARD_TITLE}">
                    
-                   <span class="fg-text-[var(--fg-muted)] fg-opacity-30 fg-font-light fg-text-xl">→</span>
+                   <span class="fg-text-[${
+                     COLORS.muted
+                   }] fg-opacity-30 fg-font-light fg-text-xl">→</span>
  
                    <input type="time" class="time-input fg-px-3" value="${
                      data.end
                    }" data-day="${day}" data-type="end"
-                          style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 8px; color: var(--fg-text); height: 42px; width: 120px; ${
-                            UI_TOKENS.TEXT.CARD_TITLE
-                          }">
+                          style="background: ${
+                            COLORS.glassBg
+                          }; border: 1px solid ${
+               COLORS.glassBorder
+             }; border-radius: 8px; color: ${
+               COLORS.text
+             }; height: 42px; width: 120px; ${UI_TOKENS.TEXT.CARD_TITLE}">
                  </div>
               </div>
              `;
@@ -158,7 +177,11 @@ function _renderPage(
 
         <!-- Footer -->
         <div class="fg-p-6 fg-border-t fg-border-[var(--fg-white-wash)] fg-flex fg-justify-end fg-gap-3">
-           <button id="btnSaveMaster" class="fg-px-8 fg-py-2 fg-rounded-md fg-text-[14px] fg-font-bold fg-text-[var(--fg-on-accent)] fg-transition-all" style="background: var(--fg-accent); height: 42px;">Save</button>
+           <button id="btnSaveMaster" class="fg-px-8 fg-py-2 fg-rounded-md fg-text-[14px] fg-font-bold fg-text-[${
+             COLORS.onAccent
+           }] fg-transition-all" style="background: ${
+    COLORS.accent
+  }; height: 42px;">Save</button>
         </div>
       </div>
 
@@ -178,7 +201,7 @@ function _renderPage(
         appearance: none;
         width: 20px;
         height: 20px;
-        border: 2px solid var(--fg-glass-border);
+        border: 2px solid ${COLORS.glassBorder};
         border-radius: 4px;
         background: transparent;
         cursor: pointer;
@@ -186,8 +209,8 @@ function _renderPage(
         transition: all 0.2s;
       }
       .custom-check:checked {
-        background: var(--fg-accent);
-        border-color: var(--fg-accent);
+        background: ${COLORS.accent};
+        border-color: ${COLORS.accent};
       }
       .custom-check:checked::after {
         content: '✓';
@@ -195,7 +218,7 @@ function _renderPage(
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        color: var(--fg-on-accent);
+        color: ${COLORS.onAccent};
         font-weight: 900;
         font-size: 12px;
       }
@@ -206,7 +229,7 @@ function _renderPage(
         transition: border-color 0.2s;
       }
       .time-input:hover { border-color: var(--fg-white-wash-strong) !important; }
-      .time-input:focus { border-color: var(--fg-accent) !important; }
+      .time-input:focus { border-color: ${COLORS.accent} !important; }
     </style>
   `;
 
@@ -217,15 +240,14 @@ function _patchDaySlots(container: HTMLElement, recreation: any): void {
   container.querySelectorAll('.day-slot').forEach((slot) => {
     const checkbox = slot.querySelector('.day-check') as HTMLInputElement;
     const day = checkbox.dataset.day!;
-    const data = recreation[day];
-    if (!data) {
-      return;
-    }
-
-    checkbox.checked = data.enabled;
+    const data = recreation[day] || {
+      start: '18:00',
+      end: '20:30',
+    };
+    checkbox.checked = !!recreation[day];
     const inputs = slot.querySelector('.slot-inputs') as HTMLElement;
-    inputs.classList.toggle('fg-opacity-60', !data.enabled);
-    inputs.classList.toggle('fg-pointer-events-none', !data.enabled);
+    inputs.classList.toggle('fg-opacity-60', !checkbox.checked);
+    inputs.classList.toggle('fg-pointer-events-none', !checkbox.checked);
 
     const startInput = slot.querySelector(
       '.time-input[data-type="start"]',
@@ -266,24 +288,35 @@ function _attachHandlers(container: HTMLElement): void {
       ) as HTMLButtonElement;
       const originalText = btn.innerText;
 
-      const payload: any = {};
+      const payload: NextDNSRecreationTime = {
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      };
       container.querySelectorAll('.day-slot').forEach((slot) => {
         const checkbox = slot.querySelector('.day-check') as HTMLInputElement;
         const day = checkbox.dataset.day!;
-        const start = (
-          slot.querySelector(
-            '.time-input[data-type="start"]',
-          ) as HTMLInputElement
-        ).value;
-        const end = (
-          slot.querySelector('.time-input[data-type="end"]') as HTMLInputElement
-        ).value;
+        if (checkbox.checked) {
+          const start = (
+            slot.querySelector(
+              '.time-input[data-type="start"]',
+            ) as HTMLInputElement
+          ).value;
+          const end = (
+            slot.querySelector(
+              '.time-input[data-type="end"]',
+            ) as HTMLInputElement
+          ).value;
 
-        payload[day] = {
-          enabled: checkbox.checked,
-          start,
-          end,
-        };
+          const dayKey = day as keyof NextDNSRecreationTime;
+          if (dayKey !== 'timezone') {
+            payload[dayKey] = {
+              start,
+              end,
+            };
+          }
+        } else {
+          // Explicitly null or omitted. Usually, omitting is better.
+          // But some APIs prefer null to clear. Let's follow the 'omit' pattern.
+        }
       });
 
       btn.innerText = 'Syncing...';
@@ -302,7 +335,7 @@ function _attachHandlers(container: HTMLElement): void {
             btn.disabled = false;
           }, 1500);
         } else {
-          throw new Error(res.error?.message);
+          throw new Error(res.error?.message || 'Sync failed');
         }
       } catch (e: any) {
         toast.error(e.message || 'Push failed');
@@ -324,14 +357,16 @@ function _renderCloudRequiredBanner(): string {
 
 function _renderError(container: HTMLElement, e: any): void {
   container.innerHTML = `
-    <div class="glass-card fg-p-12 fg-text-center fg-mx-auto fg-mt-12" style="max-width: 440px; background: var(--fg-surface); border: 1px solid var(--fg-danger-border); border-radius: 20px;">
+    <div class="glass-card fg-p-12 fg-text-center fg-mx-auto fg-mt-12" style="max-width: 440px; background: ${
+      COLORS.surface
+    }; border: 1px solid var(--fg-danger-border); border-radius: 20px;">
       <div class="fg-text-lg fg-font-black fg-mb-2">Access Denied</div>
-      <div class="fg-text-xs fg-text-[var(--fg-muted)] fg-mb-8">${
-        e.message || 'Identity verification failed'
-      }</div>
-      <button id="btn_retry_access" class="btn-premium fg-mx-auto fg-w-full" style="height: 56px; border-radius: 12px; background: var(--fg-accent); color: ${
-        COLORS.onAccent
-      }; font-weight: 900;">Retry Access</button>
+      <div class="fg-text-xs fg-text-[${COLORS.muted}] fg-mb-8">${
+    e.message || 'Identity verification failed'
+  }</div>
+      <button id="btn_retry_access" class="btn-premium fg-mx-auto fg-w-full" style="height: 56px; border-radius: 12px; background: ${
+        COLORS.accent
+      }; color: ${COLORS.onAccent}; font-weight: 900;">Retry Access</button>
     </div>
   `;
 
@@ -345,12 +380,12 @@ function _renderError(container: HTMLElement, e: any): void {
 function _renderPopup(container: HTMLElement): void {
   container.innerHTML = `
     <div class="fg-flex fg-justify-between fg-items-center fg-mb-4 fg-px-1">
-       <div class="fg-text-[10px] fg-font-black fg-text-[var(--fg-muted)]  fg-tracking-[1.5px]">Recreation</div>
+       <div class="fg-text-[10px] fg-font-black fg-text-[${COLORS.muted}]  fg-tracking-[1.5px]">Recreation</div>
     </div>
-    <div class="glass-card fg-p-5 fg-text-center" style="border: 1px solid var(--fg-white-wash); border-radius: 12px; background: var(--fg-surface);">
-       <div class="fg-text-xs fg-font-bold fg-text-[var(--fg-text)] fg-opacity-80">Independent Cloud Scheduling</div>
+    <div class="glass-card fg-p-5 fg-text-center" style="border: 1px solid var(--fg-white-wash); border-radius: 12px; background: ${COLORS.surface};">
+       <div class="fg-text-xs fg-font-bold fg-text-[${COLORS.text}] fg-opacity-80">Independent Cloud Scheduling</div>
     </div>
-    <button class="btn-premium fg-w-full fg-mt-6 fg-text-[11px]" id="btn_full_schedule" style="height: 48px; border-radius: 12px; background: var(--fg-overlay-subtle); border: 1px solid var(--fg-white-wash-strong); color: ${COLORS.onAccent}; font-weight: 800;">Open Cloud Hub</button>
+    <button class="btn-premium fg-w-full fg-mt-6 fg-text-[11px]" id="btn_full_schedule" style="height: 48px; border-radius: 12px; background: ${COLORS.overlaySubtle}; border: 1px solid var(--fg-white-wash-strong); color: ${COLORS.onAccent}; font-weight: 800;">Open Cloud Hub</button>
   `;
   container
     .querySelector('#btn_full_schedule')

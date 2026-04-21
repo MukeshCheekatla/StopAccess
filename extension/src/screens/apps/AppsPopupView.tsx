@@ -3,7 +3,11 @@ import { UI_TOKENS, getBrandLogoUrl, resolveIconDomain } from '../../lib/ui';
 import { COLORS } from '../../lib/designTokens';
 import { appsController } from '../../lib/appsController';
 import { toast } from '../../lib/toast';
-import { findServiceIdByDomain, getDomainForRule } from '@stopaccess/core';
+import {
+  findServiceIdByDomain,
+  getDomainForRule,
+  formatMinutes,
+} from '@stopaccess/core';
 import { STORAGE_KEYS } from '@stopaccess/state';
 import {
   loadAppsRuntimeState,
@@ -105,9 +109,7 @@ function getPassCountdown(pass: any) {
   const secs = Math.floor((diff % 60000) / 1000);
 
   if (mins >= 60) {
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return `${h}h ${m}m`;
+    return formatMinutes(mins);
   }
 
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
@@ -206,7 +208,7 @@ export const AppsPopupView: React.FC = () => {
   const recentActivity = useMemo(
     () =>
       Object.entries(usage)
-        .map(([domain, entry]) => ({ domain, time: entry?.time || 0 }))
+        .map(([domain, entry]) => ({ domain, time: (entry as any)?.time || 0 }))
         .filter(({ domain, time }) => {
           const alreadyBlocked = rules.some((rule: any) => {
             const active = Boolean(
@@ -300,10 +302,7 @@ export const AppsPopupView: React.FC = () => {
       });
     }
 
-    const label =
-      minutes >= 1440
-        ? 'rest of today'
-        : `${minutes} min${minutes === 1 ? '' : 's'}`;
+    const label = minutes >= 1440 ? 'rest of today' : formatMinutes(minutes);
     toast.success(`Paused for ${label}`);
     refresh();
   };
@@ -505,9 +504,16 @@ export const AppsPopupView: React.FC = () => {
               <div className="fg-flex fg-min-w-0 fg-flex-1 fg-items-center fg-gap-3">
                 <div className="fg-relative fg-flex fg-h-8 fg-w-8 fg-shrink-0 fg-items-center fg-justify-center">
                   <div className="fg-absolute fg-inset-0 fg-hidden fg-items-center fg-justify-center fg-text-[11px] fg-font-black fg-text-[var(--muted)]">
-                    {(rule.appName || rule.packageName)
-                      .slice(0, 2)
-                      .toUpperCase()}
+                    {(() => {
+                      const raw = (rule.appName || rule.packageName).slice(
+                        0,
+                        2,
+                      );
+                      return raw.length > 0
+                        ? raw.charAt(0).toUpperCase() +
+                            raw.slice(1).toLowerCase()
+                        : '?';
+                    })()}
                   </div>
                   <img
                     src={getBrandLogoUrl(
@@ -571,7 +577,7 @@ export const AppsPopupView: React.FC = () => {
                 }`}
                 data-kind={rule.type || 'domain'}
                 disabled={lockedDomains.includes(
-                  rule.packageName.toLowerCase(),
+                  (rule.packageName ?? '').toLowerCase(),
                 )}
                 onClick={async () => {
                   if (isTemporarilyOff) {
@@ -593,8 +599,8 @@ export const AppsPopupView: React.FC = () => {
                 type="button"
                 title={isTemporarilyOff ? 'Resume Block' : 'Temporary disable'}
               >
-                <span className="on-text">ON</span>
-                <span className="off-text">OFF</span>
+                <span className="on-text">On</span>
+                <span className="off-text">Off</span>
               </button>
             </div>
           );

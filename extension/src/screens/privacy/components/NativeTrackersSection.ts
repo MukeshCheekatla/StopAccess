@@ -1,4 +1,5 @@
 /**
+import { COLORS } from '../../../lib/designTokens';
  * NativeTrackersSection
  * Per-vendor native tracking toggles — 3-column grid with real brand icons.
  */
@@ -11,6 +12,7 @@ import {
   UI_TOKENS,
   renderBrandLogo,
 } from '../../../lib/ui';
+import { COLORS } from '../../../lib/designTokens';
 
 interface VendorMeta {
   id: string;
@@ -79,7 +81,7 @@ export function renderNativeTrackersSection(
   const activeIds = new Set(activeTrackers.map((t) => t.id));
 
   return `
-    <div class="app-card fg-mb-4 fg-p-5 fg-rounded-3xl">
+    <div class="fg-p-2 fg-h-full">
       ${renderSectionTitleRow(
         iconWifi,
         'var(--accent)',
@@ -94,7 +96,7 @@ export function renderNativeTrackersSection(
         even without any apps running.
       </div>
 
-      <div class="fg-grid fg-grid-cols-3 fg-gap-2">
+      <div class="fg-grid fg-grid-cols-2 fg-gap-2">
         ${KNOWN_NATIVE_TRACKERS.map((vendor) => {
           const active = activeIds.has(vendor.id);
 
@@ -102,7 +104,9 @@ export function renderNativeTrackersSection(
             <div
               class="security-toggle-row native-toggle-card fg-flex fg-items-center fg-gap-4 fg-p-5 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-150 hover:fg--translate-y-0.5 hover:fg-opacity-80"
               data-id="${vendor.id}"
-              style="background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border);"
+              style="background: ${COLORS.glassBg}; border: 1px solid ${
+            COLORS.glassBorder
+          };"
             >
               <!-- Icon on the left (No box) -->
               ${renderBrandLogo(vendor.domain, vendor.name, 40)}
