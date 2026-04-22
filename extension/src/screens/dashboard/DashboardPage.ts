@@ -16,18 +16,24 @@ import {
 import { CHART_COLORS, COLORS } from '../../lib/designTokens';
 import { attachCalendarWidget } from './CalendarWidget';
 import { getTypingHistory } from '../../lib/typingHistory';
+import { getRemainingMs, formatTime } from '../../lib/sessionTimer';
 
 // Key icons
 const iconPlay =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
 const iconPause =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+const iconStop =
+  '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
 
 // This function opens the extension settings page
 function openSettingsPage() {
   const url = chrome.runtime.getURL(buildDashboardTabPath('settings'));
   chrome.tabs.create({ url });
 }
+
+let lastViewedDate: string | undefined;
+let activeRenderId: string | undefined;
 
 // Key rendering function for the Dashboard (Overview) page
 export async function renderDashboardPage(
@@ -45,13 +51,24 @@ export async function renderDashboardPage(
   }
 
   try {
+    const actualDate = selectedDate || lastViewedDate;
+    const renderId = (activeRenderId = Math.random().toString(36).slice(2));
+
     const { loadDashboardData } = await import(
       '../../../../packages/viewmodels/src/useDashboardVM'
     );
-    const data = await loadDashboardData(selectedDate);
+    const data = await loadDashboardData(actualDate);
+
+    // If a new render has started for a different date, ignore this stale result
+    if (activeRenderId !== renderId) {
+      return;
+    }
+
+    lastViewedDate = data.targetDate;
     container.removeAttribute('data-mastery-active');
     const { rules, allTotalMs, domainList, isNew } = data;
     const { focusEnd } = data;
+    (window as any).__dashFocusEnd = focusEnd;
 
     const typingHistory = await getTypingHistory();
     const latestType = typingHistory[0];
@@ -62,20 +79,22 @@ export async function renderDashboardPage(
       iconLookup[d.domain] = (await getCachedIcon(d.domain)) || '';
     }
 
-    const isFocusing = focusEnd > Date.now();
+    const activeRes = await chrome.storage.local.get(['fg_active_session']);
+    const activeSession = activeRes.fg_active_session as any;
+    const isPaused = activeSession?.status === 'paused';
+    const isFocusing = focusEnd > Date.now() || isPaused;
+
     let timerDisplay = '25:00';
-    let timerDotColor: string = COLORS.muted;
+    let timerDotColor: string = COLORS.text;
     let timerTextColor: string = COLORS.text;
+    let focusStatusText = 'Focus';
 
     if (isFocusing) {
-      const remainingMs = Math.max(0, focusEnd - Date.now());
-      const m = Math.floor(remainingMs / 60000);
-      const s = Math.floor((remainingMs % 60000) / 1000);
-      timerDisplay = `${m.toString().padStart(2, '0')}:${s
-        .toString()
-        .padStart(2, '0')}`;
-      timerDotColor = COLORS.green; // Use a more distinct local color for active state
+      const remainingMs = getRemainingMs(activeSession);
+      timerDisplay = formatTime(remainingMs);
+      timerDotColor = isPaused ? COLORS.yellow : COLORS.green;
       timerTextColor = COLORS.text;
+      focusStatusText = isPaused ? 'Paused' : 'Focus';
     }
 
     // Live update helper
@@ -85,36 +104,52 @@ export async function renderDashboardPage(
       const toggleBtn = container.querySelector(
         '#btn_toggle_focus',
       ) as HTMLElement;
+      const stopBtn = container.querySelector('#btn_stop_focus') as HTMLElement;
 
-      if (!displayEl || !dotEl || !toggleBtn) {
+      if (!displayEl || !dotEl || !toggleBtn || !stopBtn) {
         return;
       }
 
       const now = Date.now();
-      const isActive = focusEnd > now;
-      if (!isActive) {
-        displayEl.textContent = '25:00';
-        displayEl.style.color = COLORS.muted;
-        dotEl.style.background = COLORS.muted;
-        dotEl.style.boxShadow = 'none';
-        toggleBtn.innerHTML = iconPlay;
-        if ((window as any).__dashTimerInterval) {
-          clearInterval((window as any).__dashTimerInterval);
-          (window as any).__dashTimerInterval = null;
-        }
-        return;
-      }
+      const currentFocusEnd = (window as any).__dashFocusEnd || 0;
+      const isActive = currentFocusEnd > now;
 
-      const rem = Math.max(0, focusEnd - now);
-      const mm = Math.floor(rem / 60000);
-      const ss = Math.floor((rem % 60000) / 1000);
-      displayEl.textContent = `${mm.toString().padStart(2, '0')}:${ss
-        .toString()
-        .padStart(2, '0')}`;
-      displayEl.style.color = COLORS.text;
-      dotEl.style.background = COLORS.green;
-      dotEl.style.boxShadow = `0 0 8px ${COLORS.green}`;
-      toggleBtn.innerHTML = iconPause;
+      // Fetch fresh session to check for 'paused' state
+      chrome.storage.local.get(['fg_active_session'], (res) => {
+        const session = res.fg_active_session as any;
+        const _isPaused = session?.status === 'paused';
+
+        if (!isActive && !_isPaused) {
+          displayEl.textContent = '25:00';
+          displayEl.style.color = COLORS.text;
+          dotEl.style.background = COLORS.text;
+          dotEl.style.boxShadow = 'none';
+          toggleBtn.innerHTML = iconPlay;
+          stopBtn.style.display = 'none';
+          if ((window as any).__dashTimerInterval) {
+            clearInterval((window as any).__dashTimerInterval);
+            (window as any).__dashTimerInterval = null;
+          }
+          return;
+        }
+
+        const remMs = getRemainingMs(session);
+        displayEl.textContent = formatTime(remMs);
+        displayEl.style.color = COLORS.text;
+        dotEl.style.background = _isPaused ? COLORS.yellow : COLORS.green;
+        dotEl.style.boxShadow = `0 0 8px ${
+          _isPaused ? COLORS.yellow : COLORS.green
+        }`;
+        const statusLabel = container.querySelector(
+          '#focusStatusLabel',
+        ) as HTMLElement;
+        if (statusLabel) {
+          statusLabel.textContent = _isPaused ? 'Paused' : 'Focus';
+          statusLabel.style.color = _isPaused ? COLORS.yellow : COLORS.text;
+        }
+        toggleBtn.innerHTML = _isPaused ? iconPlay : iconPause;
+        stopBtn.style.display = 'flex';
+      });
     };
 
     if (isFocusing && !(window as any).__dashTimerInterval) {
@@ -133,32 +168,39 @@ export async function renderDashboardPage(
           <div id="setupGuardSlot"></div>
 
           <div class="fg-flex fg-items-center fg-justify-between fg-mb-6 fg-px-1">
-             <div class="fg-flex fg-items-center fg-gap-5">
-                <div class="section-label" style="${
-                  UI_TOKENS.TEXT.LABEL
-                } margin: 0; font-size: 16px; letter-spacing: -0.01em;">Overview</div>
+              <div class="fg-flex fg-items-center fg-gap-5">
+                <div class="fg-hidden"></div>
                 
-                <!-- Tiny Timer Card -->
-                <div class="glass-card" style="padding: 6px 14px; display: flex; align-items: center; gap: 10px; background: ${
+                <!-- Expanded Timer Card -->
+                <div class="glass-card" style="padding: 8px 18px; display: flex; align-items: center; gap: 14px; background: ${
                   COLORS.glassBg
                 }; border: 1px solid ${
         COLORS.glassBorder
-      }; border-radius: 12px; height: 32px;">
-                   <div id="timerDot" style="width: 6px; height: 6px; border-radius: 50%; background: ${timerDotColor}; transition: all 0.3s;"></div>
-                   <div style="font-size: 11px; font-weight: 800; color: ${
-                     COLORS.muted
-                   }; letter-spacing: 0.05em; margin-right: -4px;">Focus</div>
-                   <div id="timerDisplay" style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 800; color: ${
-                     isFocusing ? timerTextColor : COLORS.muted
-                   }; min-width: 42px;">${timerDisplay}</div>
+      }; border-radius: 14px; height: 42px;">
+                   <div id="timerDot" style="width: 8px; height: 8px; border-radius: 50%; background: ${timerDotColor}; transition: all 0.3s; box-shadow: 0 0 10px ${timerDotColor}44;"></div>
+                   <div id="focusStatusLabel" style="font-size: 18px; font-weight: 700; color: ${
+                     isPaused ? COLORS.yellow : COLORS.text
+                   }; letter-spacing: -0.01em; margin-right: -2px;">${focusStatusText}</div>
+                   <div id="timerDisplay" style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: ${
+                     isFocusing ? timerTextColor : COLORS.text
+                   }; min-width: 52px; letter-spacing: -0.01em;">${timerDisplay}</div>
                    
-                   <button id="btn_toggle_focus" style="width: 20px; height: 20px; border-radius: 6px; background: transparent; border: none; color: ${
-                     COLORS.text
-                   }; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.6; transition: opacity 0.2s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.6'">
-                      ${isFocusing ? iconPause : iconPlay}
-                   </button>
+                   <div style="display: flex; align-items: center; gap: 6px;">
+                     <button id="btn_toggle_focus" style="width: 24px; height: 24px; border-radius: 8px; background: transparent; border: none; color: ${
+                       COLORS.text
+                     }; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: all 0.2s;" onmouseover="this.style.opacity='1'; this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.opacity='0.7'; this.style.background='transparent'">
+                        ${isFocusing ? iconPause : iconPlay}
+                     </button>
+                     <button id="btn_stop_focus" style="width: 24px; height: 24px; border-radius: 8px; background: transparent; border: none; color: ${
+                       COLORS.red
+                     }; cursor: pointer; display: ${
+        isFocusing ? 'flex' : 'none'
+      }; align-items: center; justify-content: center; opacity: 0.7; transition: all 0.2s;" onmouseover="this.style.opacity='1'; this.style.background='rgba(255,0,0,0.05)'" onmouseout="this.style.opacity='0.7'; this.style.background='transparent'">
+                        ${iconStop}
+                     </button>
+                   </div>
                 </div>
-             </div>
+              </div>
              <div id="dateSelectorWidget" style="padding: 2px; display: flex; align-items: center; gap: 4px; border-radius: 10px; background: ${
                COLORS.glassBg
              }; border: 1px solid ${COLORS.glassBorder};"></div>
@@ -175,7 +217,9 @@ export async function renderDashboardPage(
             <div>
               <div class="section-label" style="${
                 UI_TOKENS.TEXT.LABEL
-              } margin-bottom: 6px;">Current Activity</div>
+              } margin-bottom: 6px;">${
+        data.isToday ? "Today's Activity" : 'Daily Activity'
+      }</div>
               <div class="service-grid fg-gap-3" id="activityGrid" style="grid-template-columns: 1fr;"></div>
             </div>
             <div>
@@ -243,40 +287,60 @@ export async function renderDashboardPage(
           }
         }
 
-        // Timer Toggle Logic
+        // Timer Toggle (Pause/Resume) Logic
         const toggleBtn = target.closest(
           '#btn_toggle_focus',
         ) as HTMLButtonElement;
         if (toggleBtn) {
-          const isFocusActive = focusEnd > Date.now();
-          if (isFocusActive) {
-            const { showConfirmDialog } = (await import('../../lib/ui')) as any;
-            const confirmed = await showConfirmDialog({
-              title: 'Stop Focus?',
-              body: 'Ending your session early will disable active distractions blocking.',
-              confirmLabel: 'Stop Session',
-              cancelLabel: 'Keep Going',
-            });
-            if (confirmed) {
-              chrome.runtime.sendMessage({ action: 'stopFocus' }, () => {
+          chrome.storage.local.get(['fg_active_session'], async (res) => {
+            const session = res.fg_active_session as any;
+            const isFocusActive = !!session && session.status === 'focusing';
+            const _isPaused = !!session && session.status === 'paused';
+
+            if (isFocusActive) {
+              chrome.runtime.sendMessage({ action: 'pauseFocus' }, () => {
                 renderDashboardPage(container, selectedDate);
               });
+            } else if (_isPaused) {
+              chrome.runtime.sendMessage({ action: 'resumeFocus' }, () => {
+                renderDashboardPage(container, selectedDate);
+              });
+            } else {
+              const { showConfirmDialog } = (await import(
+                '../../lib/ui'
+              )) as any;
+              const confirmed = await showConfirmDialog({
+                title: 'Start 25m Focus?',
+                body: 'Enter a deep work state. We will block all distractions during this time.',
+                confirmLabel: 'Start Focus',
+              });
+              if (confirmed) {
+                chrome.runtime.sendMessage(
+                  { action: 'startFocus', minutes: 25 },
+                  () => {
+                    renderDashboardPage(container, selectedDate);
+                  },
+                );
+              }
             }
-          } else {
-            const { showConfirmDialog } = (await import('../../lib/ui')) as any;
-            const confirmed = await showConfirmDialog({
-              title: 'Start 25m Focus?',
-              body: 'Enter a deep work state. We will block all distractions during this time.',
-              confirmLabel: 'Start Focus',
+          });
+          return;
+        }
+
+        // Timer Stop Logic
+        const stopBtn = target.closest('#btn_stop_focus') as HTMLButtonElement;
+        if (stopBtn) {
+          const { showConfirmDialog } = (await import('../../lib/ui')) as any;
+          const confirmed = await showConfirmDialog({
+            title: 'Stop Focus?',
+            body: 'Ending your session early will disable active distractions blocking.',
+            confirmLabel: 'Stop Session',
+            cancelLabel: 'Keep Going',
+          });
+          if (confirmed) {
+            chrome.runtime.sendMessage({ action: 'stopFocus' }, () => {
+              renderDashboardPage(container, selectedDate);
             });
-            if (confirmed) {
-              chrome.runtime.sendMessage(
-                { action: 'startFocus', minutes: 25 },
-                () => {
-                  renderDashboardPage(container, selectedDate);
-                },
-              );
-            }
           }
           return;
         }
@@ -298,6 +362,35 @@ export async function renderDashboardPage(
     }
 
     // Dynamic Updates (runs every call)
+    // Sync the header timer state (since the shell template isn't re-injected on every render)
+    const displayEl = container.querySelector('#timerDisplay') as HTMLElement;
+    const dotEl = container.querySelector('#timerDot') as HTMLElement;
+    const statusLabel = container.querySelector(
+      '#focusStatusLabel',
+    ) as HTMLElement;
+    const toggleBtn = container.querySelector(
+      '#btn_toggle_focus',
+    ) as HTMLElement;
+    const stopBtn = container.querySelector('#btn_stop_focus') as HTMLElement;
+
+    if (displayEl) {
+      displayEl.textContent = timerDisplay;
+      displayEl.style.color = isFocusing ? timerTextColor : COLORS.text;
+    }
+    if (dotEl) {
+      dotEl.style.background = timerDotColor;
+    }
+    if (statusLabel) {
+      statusLabel.textContent = focusStatusText;
+      statusLabel.style.color = isPaused ? COLORS.yellow : COLORS.text;
+    }
+    if (toggleBtn) {
+      toggleBtn.innerHTML = isFocusing ? iconPause : iconPlay;
+    }
+    if (stopBtn) {
+      stopBtn.style.display = isFocusing ? 'flex' : 'none';
+    }
+
     const setupSlot = container.querySelector('#setupGuardSlot');
     if (setupSlot) {
       const newSetupHtml = isNew
@@ -329,9 +422,16 @@ export async function renderDashboardPage(
       const { globalAvgMs, globalAvgSessions } = data;
       avgW.innerHTML = `
         <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
-          <div class="widget-title" style="${
-            UI_TOKENS.TEXT.WIDGET_LABEL
-          }">Daily Average</div>
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="widget-title" style="${
+              UI_TOKENS.TEXT.WIDGET_LABEL
+            }">Daily Average</div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${
+              COLORS.muted
+            }" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
           <div style="margin-top: 12px;">
             <div style="${UI_TOKENS.TEXT.STAT}">${fmtTime(
         globalAvgMs || 0,
@@ -358,25 +458,54 @@ export async function renderDashboardPage(
       const isPositive = data.usageDeltaPct <= 0;
       const deltaColor = isPositive ? COLORS.green : COLORS.red;
 
+      // Determine the precise header label based on the selected date
+      let headerLabel = 'Selected Day';
+      if (data.isToday) {
+        headerLabel = 'Today Usage';
+      } else {
+        const targetDate = new Date(data.targetDate);
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        const isYesterday =
+          targetDate.toDateString() === yesterday.toDateString();
+
+        if (isYesterday) {
+          headerLabel = 'Yesterday Usage';
+        } else {
+          headerLabel = `${targetDate.toLocaleDateString([], {
+            month: 'short',
+            day: 'numeric',
+          })} Usage`;
+        }
+      }
+
       engagementW.innerHTML = `
         <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
-          <div class="widget-title" style="${UI_TOKENS.TEXT.WIDGET_LABEL}">${
-        data.isToday ? 'Today Usage' : 'Selected Day'
-      }</div>
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="widget-title" style="${
+              UI_TOKENS.TEXT.WIDGET_LABEL
+            }">${headerLabel}</div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${
+              COLORS.muted
+            }" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          </div>
           <div style="margin-top: 12px;">
             <div style="${UI_TOKENS.TEXT.STAT}">${fmtTime(
         allTotalMs as number,
       )}</div>
+          </div>
+          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--fg-white-wash);">
             <div style="${
               UI_TOKENS.TEXT.LABEL
-            } color: ${deltaColor}; font-size: 11px; margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+            } color: ${deltaColor}; font-size: 11px; display: flex; align-items: center; gap: 4px;">
               ${isPositive ? '↓' : '↑'} ${usageTone.replace(/[-+]/, '')} 
               <span style="opacity: 0.5; color: ${
                 COLORS.text
-              }; font-weight: 400;">vs yesterday</span>
+              }; font-weight: 400;">vs prev day</span>
             </div>
           </div>
-
         </div>
       `;
     }
@@ -385,14 +514,23 @@ export async function renderDashboardPage(
     if (sessionsW) {
       sessionsW.innerHTML = `
         <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
-          <div class="widget-title" style="${
-            UI_TOKENS.TEXT.WIDGET_LABEL
-          }">Sessions</div>
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div class="widget-title" style="${
+              UI_TOKENS.TEXT.WIDGET_LABEL
+            }">Sessions</div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${
+              COLORS.muted
+            }" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
+              <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 8v4l3 3"/>
+            </svg>
+          </div>
           <div style="margin-top: 12px;">
             <div style="${UI_TOKENS.TEXT.STAT}">${data.totalSessions}</div>
             <div style="${
               UI_TOKENS.TEXT.LABEL
-            } opacity: 0.5; font-size: 11px; margin-top: 4px;">Interactions Today</div>
+            } opacity: 0.5; font-size: 11px; margin-top: 4px;">Interactions ${
+        data.isToday ? 'Today' : ''
+      }</div>
           </div>
           <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--fg-white-wash);">
              <div style="${
@@ -406,11 +544,16 @@ export async function renderDashboardPage(
     }
     const timerW = container.querySelector('#timerWidget');
     if (timerW) {
-      const wpmVal = latestType ? latestType.wpm : '--';
+      const netWpmVal =
+        latestType && (latestType as any).netWpm !== undefined
+          ? (latestType as any).netWpm
+          : '--';
+      const grossWpmVal = latestType ? latestType.wpm : '--';
       const accVal = latestType
         ? `${latestType.accuracy}%`
         : 'Awaiting Data...';
-      const isHigh = latestType && latestType.wpm > 65;
+      const isHigh =
+        latestType && ((latestType as any).netWpm || latestType.wpm) > 65;
 
       timerW.innerHTML = `
         <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
@@ -418,25 +561,37 @@ export async function renderDashboardPage(
             <div class="widget-title" style="${
               UI_TOKENS.TEXT.WIDGET_LABEL
             } opacity: 0.8;">WPM Analysis</div>
-            ${
-              isHigh
-                ? `<div style="${UI_TOKENS.TEXT.BADGE} color: var(--green); border: none; background: var(--green)/10; padding: 2px 6px;">Peak</div>`
-                : ''
-            }
+            <div style="display: flex; align-items: center; gap: 8px;">
+              ${
+                isHigh
+                  ? `<div style="${UI_TOKENS.TEXT.BADGE} color: var(--green); border: none; background: var(--green)/10; padding: 2px 6px;">Peak</div>`
+                  : ''
+              }
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${
+                COLORS.muted
+              }" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
+                <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01"/><path d="M10 9h.01"/><path d="M14 9h.01"/><path d="M18 9h.01"/><path d="M6 13h.01"/><path d="M18 13h.01"/><path d="M10 13h.01"/><path d="M14 13h.01"/><path d="M8 17h8"/>
+              </svg>
+            </div>
           </div>
           <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 4px;">
-            <div style="${
-              UI_TOKENS.TEXT.STAT
-            }; font-size: 28px; line-height: 1;">${wpmVal}</div>
+            <div style="display: flex; align-items: baseline; gap: 6px;">
+              <div style="${
+                UI_TOKENS.TEXT.STAT
+              }; font-size: 28px; line-height: 1;">${netWpmVal}</div>
+              <div style="${
+                UI_TOKENS.TEXT.LABEL
+              } opacity: 0.5; font-size: 11px;">Net WPM</div>
+            </div>
             <div style="${
               UI_TOKENS.TEXT.LABEL
-            }; font-size: 11px; opacity: 0.6; font-weight: 700;">${accVal} accuracy</div>
+            }; font-size: 11px; opacity: 0.6; font-weight: 700;">${accVal} accuracy • ${grossWpmVal} Gross</div>
           </div>
           <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--fg-white-wash-border);">
              <div style="${
                UI_TOKENS.TEXT.LABEL
              } opacity: 0.5; font-size: 10px;">${
-        latestType ? 'Last focus session' : 'History initializing...'
+        latestType ? 'Last typing test' : 'History initializing...'
       }</div>
           </div>
         </div>
@@ -464,12 +619,19 @@ export async function renderDashboardPage(
     if (activityG) {
       if (domainList.length === 0) {
         activityG.innerHTML = `
-        <div class="glass-card fg-text-center fg-p-10 fg-text-[13px] fg-text-[var(--muted)]" style="border-style: dashed; background: transparent;">
-          No activity recorded in this session.
+        <div class="glass-card activity-empty-state fg-text-center fg-p-10 fg-text-[13px] fg-text-[var(--muted)]" style="border-style: dashed; background: transparent;">
+          No activity found for this period.
         </div>`;
       } else {
-        if (activityG.querySelector('.glass-card')) {
+        // Force a clear if the date has changed, container is out-of-sync, or we're moving from empty to non-empty
+        const isFreshRender =
+          !lastViewedDate ||
+          container.getAttribute('data-last-date') !== lastViewedDate ||
+          activityG.querySelector('.activity-empty-state');
+
+        if (isFreshRender) {
           activityG.innerHTML = '';
+          container.setAttribute('data-last-date', lastViewedDate || '');
         }
 
         domainList.forEach((d) => {
@@ -608,8 +770,26 @@ export async function renderDashboardPage(
 
       const chartTextColor = resolveToken(UI_TOKENS.COLORS.TEXT) || COLORS.text;
 
+      // Group domains into "Others" if the list is too long (Industry Standard)
+      const MAX_CHART_ITEMS = 7;
+      let chartData = [...domainList];
+      if (domainList.length > MAX_CHART_ITEMS + 1) {
+        const top = domainList.slice(0, MAX_CHART_ITEMS);
+        const others = domainList.slice(MAX_CHART_ITEMS);
+        const othersTimeMs = others.reduce((acc, d) => acc + d.timeMs, 0);
+        chartData = [
+          ...top,
+          {
+            domain: 'Others',
+            timeMs: othersTimeMs,
+            sessions: 0,
+            sharePct: 0,
+          } as any,
+        ];
+      }
+
       const pastelColors = CHART_COLORS.map((c) => resolveToken(c));
-      const bgColors = domainList.map(
+      const bgColors = chartData.map(
         (_, i) => pastelColors[i % pastelColors.length],
       );
       const chartBorderColor =
@@ -621,10 +801,10 @@ export async function renderDashboardPage(
       window.__dashPulseChart = new Chart(ctx, {
         type: 'pie',
         data: {
-          labels: domainList.map((d) => d.domain),
+          labels: chartData.map((d) => d.domain),
           datasets: [
             {
-              data: domainList.map((d) => Math.floor(d.timeMs / 60000)),
+              data: chartData.map((d) => d.timeMs / 60000),
               backgroundColor: bgColors,
               borderColor: chartBorderColor,
               borderWidth: chartBorderWidth,
@@ -696,7 +876,7 @@ export async function renderDashboardPage(
               '.nav-item[data-tab="dash"].active',
             );
             if (isDashActive) {
-              renderDashboardPage(activeContainer);
+              renderDashboardPage(activeContainer, lastViewedDate);
             }
           }
         }

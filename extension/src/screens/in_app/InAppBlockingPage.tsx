@@ -162,10 +162,6 @@ const FEATURE_META: Record<string, Record<string, FeatureMeta>> = {
       icon: ICONS.PLAY,
       desc: 'Removes clickable cards that appear at the end of videos.',
     },
-    disable_autoplay: {
-      icon: ICONS.PLAY,
-      desc: 'Stops videos from auto-playing after one finishes.',
-    },
     black_white: {
       icon: ICONS.PALETTE,
       desc: 'Renders the entire site in greyscale to reduce appeal.',
@@ -209,10 +205,6 @@ const FEATURE_META: Record<string, Record<string, FeatureMeta>> = {
     hide_comments: {
       icon: ICONS.COMMENTS,
       desc: 'Hides the comments section on all posts.',
-    },
-    hide_suggested: {
-      icon: ICONS.USER,
-      desc: 'Removes "Suggested for you" posts from your feed.',
     },
     black_white: {
       icon: ICONS.PALETTE,
@@ -303,6 +295,15 @@ function toLabel(feature: string) {
     .replace(/\b\w/g, (l) => l.toUpperCase());
 }
 
+function normalizeRules(rules: Record<string, string[]>) {
+  return Object.fromEntries(
+    Object.entries(rules).map(([platform, features]) => {
+      const supported = new Set(Object.keys(SELECTORS[platform] || {}));
+      return [platform, features.filter((feature) => supported.has(feature))];
+    }),
+  );
+}
+
 export function InAppBlockingView() {
   const [rules, setRules] = useState<Record<string, string[]>>({});
   const [activePlatform, setActivePlatform] = useState('youtube');
@@ -310,7 +311,11 @@ export function InAppBlockingView() {
 
   useEffect(() => {
     chrome.storage.local.get('inAppRules').then((res) => {
-      setRules((res.inAppRules as Record<string, string[]>) || {});
+      const normalized = normalizeRules(
+        (res.inAppRules as Record<string, string[]>) || {},
+      );
+      setRules(normalized);
+      chrome.storage.local.set({ inAppRules: normalized });
     });
   }, []);
 
@@ -330,7 +335,7 @@ export function InAppBlockingView() {
       const nextP = pRules.includes(feature)
         ? pRules.filter((f) => f !== feature)
         : [...pRules, feature];
-      const next = { ...prev, [platform]: nextP };
+      const next = normalizeRules({ ...prev, [platform]: nextP });
       persist(next);
       return next;
     });
@@ -341,7 +346,7 @@ export function InAppBlockingView() {
       const pRules = prev[activePlatform] || [];
       const all = Object.keys(SELECTORS[activePlatform] || {});
       const nextP = pRules.length === all.length ? [] : all;
-      const next = { ...prev, [activePlatform]: nextP };
+      const next = normalizeRules({ ...prev, [activePlatform]: nextP });
       persist(next);
       return next;
     });
@@ -533,7 +538,7 @@ export function InAppBlockingView() {
                     <div
                       className={`fg-relative fg-flex-shrink-0 fg-w-11 fg-h-6 fg-rounded-full fg-transition-colors fg-duration-200 ${
                         active
-                          ? 'fg-bg-[var(--green)]'
+                          ? 'fg-bg-[var(--fg-green)]'
                           : 'fg-bg-[var(--fg-glass-border)]'
                       }`}
                     >
@@ -612,9 +617,9 @@ export function InAppBlockingView() {
               <strong style={{ color: 'var(--fg-text)' }}>
                 Zero compromise.
               </strong>{' '}
-              These rules use CSS injection — only the selected elements are
-              hidden. Everything else (DMs, search, your account) stays fully
-              working. Changes take effect on the next page load.
+              Element rules hide matching page areas with CSS. Route rules, like
+              Shorts or Explore pages, show the StopAccess block overlay
+              instead. Open pages update after storage sync or navigation.
             </p>
           </div>
         </div>

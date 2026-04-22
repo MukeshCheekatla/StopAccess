@@ -245,7 +245,7 @@ function PopupApp() {
   if (!ready) {
     return (
       <div className="fg-main fg-shell-bg fg-flex fg-h-screen fg-w-full fg-items-center fg-justify-center fg-text-[var(--fg-text)]">
-        <div className="fg-h-8 fg-w-8 fg-animate-spin fg-rounded-full fg-border-4 fg-border-[var(--fg-glass-border)] fg-border-t-[var(--accent)]" />
+        <div className="fg-h-8 fg-w-8 fg-animate-spin fg-rounded-full fg-border-4 fg-border-[var(--fg-glass-border)] fg-border-t-[var(--fg-accent)]" />
       </div>
     );
   }
@@ -268,7 +268,7 @@ function PopupApp() {
           </p>
           <button
             type="button"
-            className="fg-w-full fg-rounded-lg fg-border-0 fg-bg-[var(--accent)] fg-px-4 fg-py-3 fg-text-[14px] fg-font-bold fg-text-[var(--fg-on-accent)]"
+            className="fg-w-full fg-rounded-lg fg-border-0 fg-bg-[var(--fg-accent)] fg-px-4 fg-py-3 fg-text-[14px] fg-font-bold fg-text-[var(--fg-on-accent)]"
             onClick={() =>
               chrome.tabs.create({
                 url: chrome.runtime.getURL('dashboard.html'),
@@ -297,10 +297,10 @@ function PopupApp() {
                 key={entry.domain}
                 className="fg-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-lg fg-shrink-0 fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)]"
               >
-                <div className="fg-text-[10px] fg-font-black fg-text-[var(--fg-text)] fg-opacity-40  fg-tracking-[0.08em] fg-whitespace-nowrap">
+                <div className="fg-text-[12px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-70 fg-whitespace-nowrap">
                   {entry.domain}
                 </div>
-                <div className="fg-flex fg-items-center fg-gap-1.5 fg-text-[11px] fg-font-black fg-text-[var(--fg-accent)] fg-whitespace-nowrap">
+                <div className="fg-flex fg-items-center fg-gap-1.5 fg-text-[12px] fg-font-black fg-text-[var(--fg-accent)] fg-whitespace-nowrap">
                   {clockSvg}
                   {formatCountdown(entry.expiresAt)}
                 </div>
@@ -326,7 +326,7 @@ function PopupApp() {
               border: '1px solid var(--fg-glass-border)',
             }}
             type="button"
-            title="Open Full Dashboard"
+            title="Open full dashboard"
           >
             <svg
               width="14"

@@ -163,7 +163,7 @@ export function DashboardShell<T extends string>({
               style={{
                 ...UI_TOKENS.TEXT.R.HEADING,
                 fontSize: '1.15rem',
-                letterSpacing: '-0.03em',
+                letterSpacing: '0',
               }}
             >
               StopAccess
@@ -214,9 +214,9 @@ export function DashboardShell<T extends string>({
             <div
               style={{
                 ...UI_TOKENS.TEXT.R.LABEL,
-                fontSize: '10px',
-                letterSpacing: '0.08em',
-                opacity: 0.6,
+                fontSize: '12px',
+                letterSpacing: '0',
+                opacity: 0.75,
               }}
             >
               Theme
@@ -252,7 +252,7 @@ export function DashboardShell<T extends string>({
                   ? 'fg-text-[var(--fg-black)]'
                   : 'fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)]'
               }`}
-              title="Light Mode"
+              title="Light mode"
             >
               <svg
                 width="15"
@@ -283,7 +283,7 @@ export function DashboardShell<T extends string>({
                   ? 'fg-text-[var(--fg-text)]'
                   : 'fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)]'
               }`}
-              title="System Default"
+              title="System default"
             >
               <svg
                 width="15"
@@ -308,7 +308,7 @@ export function DashboardShell<T extends string>({
                   ? 'fg-text-[var(--fg-text)]'
                   : 'fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)]'
               }`}
-              title="Dark Mode"
+              title="Dark mode"
             >
               <svg
                 width="15"

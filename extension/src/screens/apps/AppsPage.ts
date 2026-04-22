@@ -295,7 +295,14 @@ export async function renderAppsPage(container: HTMLElement) {
             : 'Disable DNS Hard Mode?',
           body: targetState
             ? 'This activates protocol-level protection via NextDNS. Websites will be blocked at the DNS layer, making bypasses much harder.'
-            : 'Warning: DNS changes are not instant. Due to system and browser DNS caching, sites may remain blocked for several minutes even after turning this off. Clearing your browser cache or restarting may be required.',
+            : `<div style="text-align: left;">
+                 <p style="margin-bottom: 12px;"><strong>Propagation Delay:</strong> DNS changes are not instant. Due to system caching, sites may remain blocked for several minutes.</p>
+                 <div style="background: color-mix(in srgb, ${COLORS.black}, transparent 80%); padding: 12px; border-radius: 8px; font-size: 12px; font-family: monospace; border: 1px solid ${COLORS.glassBorder};">
+                   <strong>To unblock instantly:</strong><br>
+                   1. Run: <span style="color: ${COLORS.red};">ipconfig /flushdns</span> in terminal<br>
+                   2. Visit: <span style="color: ${COLORS.red};">chrome://net-internals/#dns</span> and click "Clear host cache"
+                 </div>
+               </div>`,
           confirmLabel: targetState ? 'Enable Mode' : 'Disable Mode',
           isDestructive: !targetState,
         });
@@ -307,10 +314,28 @@ export async function renderAppsPage(container: HTMLElement) {
         currentIsAppsDnsHardMode = targetState;
         masterToggle.classList.toggle('active', targetState);
 
+        if (!targetState) {
+          const offText = masterToggle.querySelector('.off-text');
+          if (offText) {
+            const original = offText.textContent;
+            offText.textContent = 'WAITING';
+            setTimeout(() => {
+              offText.textContent = original;
+            }, 5000);
+          }
+        }
+
         await setAppsDnsHardMode(extensionAdapter, targetState);
         await appsController.reconcileAppsDnsMode(targetState, rules);
 
         chrome.runtime.sendMessage({ action: 'manualSync' });
+
+        if (!targetState) {
+          toast.info(
+            'Syncing cloud... Sites may take 2-5m to unblock. Run ipconfig /flushdns to speed up.',
+          );
+        }
+
         setTimeout(() => refreshListOnly(), 300);
       });
     }
@@ -647,7 +672,9 @@ async function renderSubTab(
           COLORS.surface
         }] fg-border fg-border-[${
       COLORS.glassBorder
-    }] fg-rounded-[32px] fg-shadow-[0_32px_64px_var(--fg-shadow-strong)] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
+    }] fg-rounded-[32px] fg-shadow-[0_32px_64px_${
+      COLORS.shadowStrong
+    }] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
           
           <!-- Header -->
           <div class="fg-px-8 fg-pt-8 fg-pb-6 fg-border-b fg-border-[${
@@ -866,6 +893,16 @@ async function renderSubTab(
                   searchTerm
                     ? 'No matching apps or domains found.'
                     : 'Your block list is empty.',
+                  searchTerm
+                    ? []
+                    : [
+                        { id: 'youtube', label: 'YouTube' },
+                        { id: 'instagram', label: 'Instagram' },
+                        { id: 'facebook', label: 'Facebook' },
+                        { id: 'tiktok', label: 'TikTok' },
+                        { id: 'twitter', label: 'Twitter' },
+                        { id: 'netflix', label: 'Netflix' },
+                      ],
                 );
               }
 
@@ -917,11 +954,11 @@ async function renderSubTab(
       </div>
 
       <div style="position: fixed; bottom: 32px; right: 32px; z-index: 100;">
-        <button class="btn-premium fg-transition-transform hover:fg-scale-110 active:fg-scale-95" id="btnOpenTargetDrawer" style="width: 64px; height: 64px; font-size: 28px; display:flex; align-items:center; justify-content:center; border-radius: 12px; padding: 0; box-shadow: 0 10px 25px var(--fg-shadow-strong); cursor: pointer; background: ${
-          COLORS.inAppActiveBg
-        }; color: ${COLORS.inAppActiveText}; border: 1px solid ${
-      COLORS.inAppActiveBorder
-    };">+</button>
+        <button class="btn-premium fg-transition-transform hover:fg-scale-110 active:fg-scale-95" id="btnOpenTargetDrawer" style="width: 64px; height: 64px; font-size: 28px; display:flex; align-items:center; justify-content:center; border-radius: 12px; padding: 0; box-shadow: 0 10px 25px ${
+          COLORS.shadowStrong
+        }; cursor: pointer; background: ${COLORS.inAppActiveBg}; color: ${
+      COLORS.inAppActiveText
+    }; border: 1px solid ${COLORS.inAppActiveBorder};">+</button>
       </div>
     `;
   }
@@ -1028,7 +1065,7 @@ function renderCategoryCard(
     ">
       <div style="display:flex; align-items:center; gap: 10px; justify-content:space-between; width: 100%; padding: 14px 16px;">
         <div style="display:flex; align-items:center; gap: 10px; min-width: 0; flex: 1;">
-       <div style="width: 40px; height: 40px; border-radius: 12px; background: ${theme}15; color: ${theme}; border: 1px solid ${theme}25; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
+       <div style="width: 40px; height: 40px; border-radius: 12px; background: color-mix(in srgb, ${theme}, transparent 85%); color: ${theme}; border: 1px solid color-mix(in srgb, ${theme}, transparent 75%); display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);">
          ${badge}
        </div>
            <div style="display:flex; flex-direction:column; min-width:0; flex:1;">
@@ -1067,7 +1104,138 @@ function renderCategoryCard(
   `;
 }
 
+/**
+ * Attaches the main event delegation listener to the container exactly once.
+ * This prevents duplicate listeners from triggering multiple actions (and multiple PIN prompts).
+ */
+function setupGlobalClickHandlers(container: HTMLElement) {
+  if ((container as any).__clickListenerAttached) {
+    return;
+  }
+  (container as any).__clickListenerAttached = true;
+
+  const openDrawer = () => {
+    const overlay = container.querySelector(
+      '#targetDrawerOverlay',
+    ) as HTMLElement;
+    const drawer = container.querySelector('#targetDrawer') as HTMLElement;
+    if (!overlay || !drawer) {
+      return;
+    }
+    overlay.style.display = 'flex';
+    setTimeout(() => {
+      drawer.style.opacity = '1';
+      drawer.style.transform = 'scale(1)';
+    }, 10);
+  };
+
+  container.addEventListener('click', async (e) => {
+    const target = e.target as HTMLElement;
+    const currentRules = (container as any).currentRules || [];
+
+    // 1. Quick Add Button Handler (from empty state suggestions)
+    const quickAddBtn = target.closest('.quick-add-btn') as HTMLButtonElement;
+    if (quickAddBtn) {
+      const id = quickAddBtn.dataset.id;
+      if (id) {
+        quickAddBtn.disabled = true;
+        quickAddBtn.innerHTML =
+          '<svg class="fg-animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
+        try {
+          await appsController.addDomainRule(id);
+          chrome.runtime.sendMessage({ action: 'manualSync' });
+        } catch (err) {
+          console.error('[AppsPage] Quick add failed:', err);
+          quickAddBtn.disabled = false;
+          quickAddBtn.textContent = `+ ${id}`;
+        }
+      }
+      return;
+    }
+
+    // 2. Open Target Drawer
+    const openBtn_ = target.closest('#btnOpenTargetDrawer');
+    if (openBtn_) {
+      openDrawer();
+      return;
+    }
+
+    // 3. Toggle Switch Handler
+    const toggleBtn = target.closest('.toggle-switch-btn') as HTMLElement;
+    if (toggleBtn) {
+      const kind = toggleBtn.getAttribute('data-kind');
+      const id =
+        toggleBtn.getAttribute('data-id') || toggleBtn.getAttribute('data-pkg');
+      const activeStateStr = toggleBtn.getAttribute('aria-checked');
+      const wasActive =
+        activeStateStr !== null
+          ? activeStateStr === 'true'
+          : toggleBtn.classList.contains('active');
+
+      const targetState = !wasActive;
+      const name = toggleBtn.getAttribute('data-name') || id;
+
+      if (!kind || !id) {
+        return;
+      }
+
+      toggleBtn.classList.toggle('active', targetState);
+      toggleBtn.setAttribute('aria-checked', String(targetState));
+      toggleBtn.style.opacity = '0.5';
+
+      const performAction = async () => {
+        try {
+          const result = await appsController.toggleRule(
+            kind,
+            id,
+            name || id,
+            targetState,
+            currentRules,
+          );
+          if (result.ok) {
+            toggleBtn.style.opacity = '1';
+            const action = targetState ? 'blocked' : 'allowed';
+            toast.success(`${name || id} ${kind} is now ${action}`);
+          } else {
+            toggleBtn.classList.toggle('active', wasActive);
+            toggleBtn.setAttribute('aria-checked', String(wasActive));
+            toggleBtn.style.opacity = '1';
+          }
+        } catch (err: any) {
+          toast.error(`Sync Error: ${err.message}`);
+          toggleBtn.classList.toggle('active', wasActive);
+          toggleBtn.style.opacity = '1';
+        }
+      };
+
+      if (!targetState) {
+        toggleBtn.classList.toggle('active', wasActive);
+        toggleBtn.style.opacity = '1';
+
+        const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
+        const confirmed = await confirmGuardianAction({
+          title: 'Unlock Block',
+          body: `Verify your security to unblock ${name || id}.`,
+        });
+
+        if (confirmed) {
+          await performAction();
+        }
+        return;
+      }
+
+      await performAction();
+    }
+  });
+}
+
 async function setupHandlers(container: HTMLElement, rules: any[]) {
+  // Store latest rules on the container so the singleton listener can access them
+  (container as any).currentRules = rules;
+
+  // Initialize the singleton click listener if needed
+  setupGlobalClickHandlers(container);
+
   const overlay = container.querySelector(
     '#targetDrawerOverlay',
   ) as HTMLElement;
@@ -1076,7 +1244,8 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
   const closeBtn = container.querySelector('#btnCloseTargetDrawer');
   const addBtn = container.querySelector('#btnAddDomainUnified');
 
-  if (addBtn) {
+  if (addBtn && !(addBtn as any).__listenerAttached) {
+    (addBtn as any).__listenerAttached = true;
     addBtn.addEventListener('click', handleAddDomain);
   }
 
@@ -1153,86 +1322,31 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
   });
 
   container.querySelectorAll('.quick-add-service').forEach((btn) => {
+    if ((btn as any).__listenerAttached) {
+      return;
+    }
+    (btn as any).__listenerAttached = true;
     btn.addEventListener('click', async () => {
       const id = btn.getAttribute('data-id');
       const name = btn.getAttribute('data-name');
+      const currentRules = (container as any).currentRules || [];
       if (id && name) {
-        await appsController.toggleRule('service', id, name, true, rules);
-        await refreshListOnly();
+        await appsController.toggleRule(
+          'service',
+          id,
+          name,
+          true,
+          currentRules,
+        );
       }
-    });
-  });
-
-  container.querySelectorAll('.toggle-switch-btn').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const btnEl = btn as HTMLElement;
-      const kind = btnEl.getAttribute('data-kind');
-      const id =
-        btnEl.getAttribute('data-id') || btnEl.getAttribute('data-pkg');
-      const activeStateStr = btnEl.getAttribute('aria-checked');
-      const wasActive =
-        activeStateStr !== null
-          ? activeStateStr === 'true'
-          : btnEl.classList.contains('active');
-
-      const targetState = !wasActive;
-      const name = btnEl.getAttribute('data-name') || id;
-
-      if (!kind || !id) {
-        return;
-      }
-
-      btnEl.classList.toggle('active', targetState);
-      btnEl.setAttribute('aria-checked', String(targetState));
-      btnEl.style.opacity = '0.5';
-
-      const performAction = async () => {
-        try {
-          const result = await appsController.toggleRule(
-            kind,
-            id,
-            name || id,
-            targetState,
-            rules,
-          );
-          if (result.ok) {
-            btnEl.style.opacity = '1';
-            const action = targetState ? 'blocked' : 'allowed';
-            toast.success(`${name || id} ${kind} is now ${action}`);
-          } else {
-            btnEl.classList.toggle('active', wasActive);
-            btnEl.setAttribute('aria-checked', String(wasActive));
-            btnEl.style.opacity = '1';
-          }
-        } catch (err: any) {
-          toast.error(`Sync Error: ${err.message}`);
-          btnEl.classList.toggle('active', wasActive);
-          btnEl.style.opacity = '1';
-        }
-      };
-
-      // Unified Guard for unblocking
-      if (!targetState) {
-        btnEl.classList.toggle('active', wasActive); // Revert UI until challenged
-        btnEl.style.opacity = '1';
-
-        const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
-        const confirmed = await confirmGuardianAction({
-          title: 'Unlock Block',
-          body: `Verify your security to unblock ${name || id}.`,
-        });
-
-        if (confirmed) {
-          await performAction();
-        }
-        return;
-      }
-
-      await performAction();
     });
   });
 
   container.querySelectorAll('.delete-rule').forEach((btn) => {
+    if ((btn as any).__listenerAttached) {
+      return;
+    }
+    (btn as any).__listenerAttached = true;
     btn.addEventListener('click', async () => {
       const pkg = btn.getAttribute('data-pkg');
       if (pkg) {
@@ -1286,6 +1400,10 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
 
   // Custom Select Global Interaction
   container.querySelectorAll('.fg-select-trigger').forEach((trigger) => {
+    if ((trigger as any).__listenerAttached) {
+      return;
+    }
+    (trigger as any).__listenerAttached = true;
     trigger.addEventListener('click', (e) => {
       e.stopPropagation();
       const menu = trigger.nextElementSibling as HTMLElement;

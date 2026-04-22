@@ -1,40 +1,18 @@
-import {
-  extensionAdapter as storage,
-  STORAGE_KEYS,
-} from '../../background/platformAdapter';
+import { STORAGE_KEYS } from '../../background/platformAdapter';
 import { FocusSessionRecord } from '@stopaccess/types';
 import { escapeHtml } from '@stopaccess/core';
 import { UI_TOKENS, getBrandLogoUrl } from '../../lib/ui';
 import { COLORS } from '../../lib/designTokens';
+import {
+  getEffectiveElapsed,
+  getRemainingMs,
+  getProgress,
+  formatTime,
+  formatMinutes,
+} from '../../lib/sessionTimer';
 
 declare var chrome: any;
 declare var window: any;
-
-function formatTime(ms: number): string {
-  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-  const h = Math.floor(totalSeconds / 3600);
-  const m = Math.floor((totalSeconds % 3600) / 60);
-  const s = totalSeconds % 60;
-  const parts: string[] = [];
-  if (h > 0) {
-    parts.push(h.toString().padStart(2, '0'));
-  }
-  parts.push(m.toString().padStart(2, '0'));
-  parts.push(s.toString().padStart(2, '0'));
-  return parts.join(':');
-}
-
-function formatMinutes(totalMinutes: number): string {
-  if (totalMinutes <= 0) {
-    return '0m';
-  }
-  if (totalMinutes < 60) {
-    return `${totalMinutes}m`;
-  }
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
-}
 
 function isSameDay(leftTs: number, rightTs: number): boolean {
   const left = new Date(leftTs);
@@ -51,22 +29,30 @@ function getTodayHistory(): FocusSessionRecord[] {
     ((window as any).__focusHistory as FocusSessionRecord[]) || [];
   const now = Date.now();
   return history
-    .filter((session) => session.endedAt && isSameDay(session.endedAt, now))
+    .filter(
+      (session) =>
+        session && session.startedAt && isSameDay(session.startedAt, now),
+    )
     .sort((a, b) => (a.startedAt || 0) - (b.startedAt || 0));
 }
 
-function getTodayFocusMinutes(): number {
-  return getTodayHistory()
-    .filter((session) => session.status === 'completed')
-    .reduce(
-      (sum, session) =>
-        sum +
-        Math.min(
-          session.actualMinutes || session.duration || 0,
-          session.duration || 0,
-        ),
-      0,
-    );
+function getTodayFocusMinutes(
+  activeSession?: FocusSessionRecord | null,
+): number {
+  const history = getTodayHistory();
+  const historyMins = history
+    .filter((session) => session?.status === 'completed')
+    .reduce((sum, s) => sum + (s.actualMinutes || s.duration || 0), 0);
+
+  let activeMins = 0;
+  if (
+    activeSession &&
+    (activeSession.status === 'focusing' || activeSession.status === 'paused')
+  ) {
+    activeMins = Math.floor(getEffectiveElapsed(activeSession) / 60);
+  }
+
+  return historyMins + activeMins;
 }
 
 function renderTodayRecords(): string {
@@ -93,9 +79,9 @@ function renderTodayRecords(): string {
         ),
       );
       const tone =
-        session.status === 'completed'
+        session?.status === 'completed'
           ? COLORS.text
-          : session.status === 'cancelled'
+          : session?.status === 'cancelled'
           ? COLORS.red
           : COLORS.muted;
 
@@ -275,17 +261,24 @@ function renderFocusDetails(
   focusStart: number,
   focusEnd: number,
   blockedDomains: string[],
+  isPaused: boolean = false,
 ): string {
   const startedAt = new Date(focusStart).toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
   });
-  const endsAt = new Date(focusEnd).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 
-  const details = [`Started ${startedAt}`, `Ends ${endsAt}`];
+  const details = [`Started ${startedAt}`];
+  if (isPaused) {
+    details.push('Status: PAUSED');
+  } else {
+    const endsAt = new Date(focusEnd).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+    details.push(`Ends ${endsAt}`);
+  }
+
   if (blockedDomains.length > 0) {
     details.push(`Blocking ${blockedDomains.slice(0, 2).join(', ')}`);
   }
@@ -293,7 +286,11 @@ function renderFocusDetails(
   return renderSessionNotes(details);
 }
 
-function renderSidePanels(title: string, body: string): string {
+function renderSidePanels(
+  title: string,
+  body: string,
+  activeSession?: FocusSessionRecord | null,
+): string {
   return `
     <div class="fg-p-6 fg-rounded-[22px]" style="background:${
       COLORS.glassBg
@@ -301,9 +298,9 @@ function renderSidePanels(title: string, body: string): string {
       <div style="${
         UI_TOKENS.TEXT.LABEL
       }; margin-bottom: 14px;">Today's Focus Time</div>
-      <div style="font-size:42px; font-weight:300; line-height:1; color:${
-        COLORS.text
-      };">${formatMinutes(getTodayFocusMinutes())}</div>
+      <div style="${UI_TOKENS.TEXT.STAT}">${formatMinutes(
+    getTodayFocusMinutes(activeSession),
+  )}</div>
     </div>
     <div class="fg-p-6 fg-rounded-[22px]" style="background:${
       COLORS.glassBg
@@ -344,27 +341,17 @@ export async function renderFocusPage(
   (window as any).__focusHistory =
     (historyRes[STORAGE_KEYS.SESSION_HISTORY] as FocusSessionRecord[]) || [];
 
-  const focusEnd =
-    activeSession?.status === 'focusing'
-      ? activeSession.startedAt + activeSession.duration * 60000
-      : await storage.getNumber(STORAGE_KEYS.FOCUS_END, 0);
-
-  const focusStart =
-    activeSession?.status === 'focusing'
-      ? activeSession.startedAt
-      : (await storage.getNumber('fg_focus_session_start', 0)) ||
-        focusEnd - 1500000;
-
-  const now = Date.now();
-  const isFocusing = focusEnd > now;
+  const isSessionActive =
+    activeSession &&
+    (activeSession.status === 'focusing' || activeSession.status === 'paused');
 
   if (window.__focusInterval) {
     clearInterval(window.__focusInterval);
     window.__focusInterval = null;
   }
 
-  if (isFocusing) {
-    _renderActive(container, context, focusEnd, focusStart, activeSession);
+  if (isSessionActive) {
+    _renderActive(container, context, activeSession!);
   } else {
     _renderIdle(container, context);
   }
@@ -393,36 +380,16 @@ export async function renderFocusPage(
 async function _renderActive(
   container: HTMLElement,
   context: 'page' | 'popup',
-  focusEnd: number,
-  focusStart: number,
-  activeSession: FocusSessionRecord | null,
+  activeSession: FocusSessionRecord,
 ): Promise<void> {
-  const now = Date.now();
-  const totalDuration = focusEnd - focusStart;
-  const remaining = Math.max(0, focusEnd - now);
-  const timeDisplay = formatTime(remaining);
-  const progress = Math.max(0, Math.min(1, 1 - remaining / totalDuration));
+  const remainingMs = getRemainingMs(activeSession);
+  const timeDisplay = formatTime(remainingMs);
+  const progress = getProgress(activeSession);
 
   if (context === 'page') {
-    await _renderActivePage(
-      container,
-      timeDisplay,
-      progress,
-      focusEnd,
-      focusStart,
-      totalDuration,
-      activeSession,
-    );
+    await _renderActivePage(container, timeDisplay, progress, activeSession);
   } else {
-    await _renderActivePopup(
-      container,
-      timeDisplay,
-      progress,
-      focusEnd,
-      focusStart,
-      totalDuration,
-      activeSession,
-    );
+    await _renderActivePopup(container, timeDisplay, progress, activeSession);
   }
 }
 
@@ -430,14 +397,24 @@ async function _renderActivePage(
   container: HTMLElement,
   timeDisplay: string,
   progress: number,
-  focusEnd: number,
-  focusStart: number,
-  totalDuration: number,
-  activeSession: FocusSessionRecord | null,
+  activeSession: FocusSessionRecord,
 ): Promise<void> {
-  const currentFocus = activeSession?.blockedDomains?.length
+  const currentFocus = activeSession.blockedDomains?.length
     ? activeSession.blockedDomains.slice(0, 2).join(' / ')
     : 'Focus session active';
+
+  const remainingMs = getRemainingMs(activeSession);
+  const dynamicEnd = Date.now() + remainingMs;
+  const elapsedMins = Math.floor(getEffectiveElapsed(activeSession) / 60);
+  const sublabel = `Focused for ${elapsedMins}m • ${Math.round(
+    progress * 100,
+  )}% through`;
+
+  const isPaused = activeSession?.status === 'paused';
+  const mainActionId = isPaused ? 'resumeFocus' : 'pauseFocus';
+  const mainActionLabel = isPaused ? 'Resume' : 'Pause';
+  const ringLabel = isPaused ? 'Paused' : 'Session Running';
+
   const allBlocked = [
     ...(activeSession?.blockedDomains || []),
     ...(activeSession?.blockedAtStart?.services || []),
@@ -456,31 +433,53 @@ async function _renderActivePage(
         .join('')
     : '<div style="font-size:15px; color:${COLORS.text}; line-height:1.6;">Focus session active</div>';
 
-  const sublabel = `${Math.round(progress * 100)}% complete`;
-
   const centerContent = `
     ${renderActiveStateSummary(currentFocusHtml, uniqueBlocked.length)}
-    ${renderRingMarkup(timeDisplay, progress, 'Session Running', sublabel)}
-    <button class="btn-premium" id="stopFocus" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:${
-      COLORS.text
-    }; border:1px solid ${
+    ${renderRingMarkup(timeDisplay, progress, ringLabel, sublabel)}
+    <div class="fg-flex fg-gap-3 fg-mt-3">
+      <button class="btn-premium" id="${mainActionId}" style="min-width:110px; justify-content:center; background:${
+    isPaused ? COLORS.accent : 'transparent'
+  }; color:${isPaused ? COLORS.onAccent : COLORS.text}; border:1px solid ${
     COLORS.glassBorder
   }; border-radius:999px; box-shadow:none; ${
     UI_TOKENS.TEXT.LABEL
   } padding:10px 24px;">
-      Pause
-    </button>
+        ${mainActionLabel}
+      </button>
+      <button class="btn-premium" id="stopFocus" style="min-width:110px; justify-content:center; background:transparent; color:${
+        COLORS.red
+      }; border:1px solid ${
+    COLORS.glassBorder
+  }; border-radius:999px; box-shadow:none; ${
+    UI_TOKENS.TEXT.LABEL
+  } padding:10px 24px;">
+        Stop
+      </button>
+    </div>
     ${renderFocusDetails(
-      focusStart,
-      focusEnd,
-      activeSession?.blockedDomains || [],
+      activeSession.startedAt,
+      dynamicEnd,
+      activeSession.blockedDomains || [],
+      isPaused,
     )}
   `;
 
   container.innerHTML = renderAmbientShell(
     centerContent,
-    renderSidePanels('Current Focus', escapeHtml(currentFocus)),
+    renderSidePanels('Current Focus', escapeHtml(currentFocus), activeSession),
   );
+
+  container.querySelector('#pauseFocus')?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'pauseFocus' }, () =>
+      renderFocusPage(container, 'page'),
+    );
+  });
+
+  container.querySelector('#resumeFocus')?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'resumeFocus' }, () =>
+      renderFocusPage(container, 'page'),
+    );
+  });
 
   container.querySelector('#stopFocus')?.addEventListener('click', () => {
     _showAbortModal(container, 'page', () =>
@@ -488,31 +487,35 @@ async function _renderActivePage(
     );
   });
 
-  window.__focusInterval = setInterval(() => {
-    const activeTab = document.querySelector('[data-tab="focus"].active');
-    if (!activeTab) {
-      return;
-    }
-    const remaining = Math.max(0, focusEnd - Date.now());
-    if (remaining <= 0) {
-      clearInterval(window.__focusInterval);
-      renderFocusPage(container, 'page');
-      return;
-    }
-    const timerEl = container.querySelector('#liveTimerDisplay');
-    if (timerEl) {
-      timerEl.textContent = formatTime(remaining);
-    }
-    const currentProgress = Math.max(
-      0,
-      Math.min(1, 1 - remaining / totalDuration),
-    );
-    const subLabelEl = container.querySelector('#liveSublabelDisplay');
-    if (subLabelEl) {
-      subLabelEl.textContent = `${Math.round(currentProgress * 100)}% complete`;
-    }
-    _updateActiveTicks(container, currentProgress);
-  }, 1000);
+  if (activeSession.status === 'focusing') {
+    window.__focusInterval = setInterval(() => {
+      const activeTab = document.querySelector('[data-tab="focus"].active');
+      if (!activeTab) {
+        return;
+      }
+      const liveRemainingMs = getRemainingMs(activeSession);
+      const liveElapsed = getEffectiveElapsed(activeSession);
+      const liveProgress = getProgress(activeSession);
+
+      if (liveRemainingMs <= 0) {
+        clearInterval(window.__focusInterval);
+        renderFocusPage(container, 'page');
+        return;
+      }
+      const timerEl = container.querySelector('#liveTimerDisplay');
+      if (timerEl) {
+        timerEl.textContent = formatTime(liveRemainingMs);
+      }
+      const subLabelEl = container.querySelector('#liveSublabelDisplay');
+      if (subLabelEl) {
+        const liveMins = Math.floor(liveElapsed / 60);
+        subLabelEl.textContent = `${liveMins}m focused • ${Math.round(
+          liveProgress * 100,
+        )}% complete`;
+      }
+      _updateActiveTicks(container, liveProgress);
+    }, 1000);
+  }
 }
 
 function _updateActiveTicks(container: HTMLElement, progress: number): void {
@@ -536,29 +539,60 @@ async function _renderActivePopup(
   container: HTMLElement,
   timeDisplay: string,
   progress: number,
-  focusEnd: number,
-  focusStart: number,
-  totalDuration: number,
-  activeSession: FocusSessionRecord | null, // eslint-disable-line @typescript-eslint/no-unused-vars
+  activeSession: FocusSessionRecord,
 ): Promise<void> {
   const sublabel = `${Math.round(progress * 100)}% complete`;
 
+  const isPaused = activeSession?.status === 'paused';
+  const mainActionId = isPaused ? 'resumeFocusPopup' : 'pauseFocusPopup';
+  const mainActionLabel = isPaused ? 'RESUME' : 'PAUSE';
+
   const centerContent = `
     <div style="transform: scale(0.8); margin: -20px 0;">
-      ${renderRingMarkup(timeDisplay, progress, 'Active Focus', sublabel)}
+      ${renderRingMarkup(
+        timeDisplay,
+        progress,
+        isPaused ? 'Paused' : 'Active Focus',
+        sublabel,
+      )}
     </div>
-    <button class="btn-premium" id="stopFocusPopup" style="margin-top:10px; min-width:110px; justify-content:center; background:transparent; color:${
-      COLORS.text
-    }; border:1px solid ${
+    <div class="fg-flex fg-gap-2 fg-mt-2">
+      <button class="btn-premium" id="${mainActionId}" style="min-width:90px; justify-content:center; background:${
+    isPaused ? COLORS.accent : 'transparent'
+  }; color:${isPaused ? COLORS.onAccent : COLORS.text}; border:1px solid ${
     COLORS.glassBorder
   }; border-radius:999px; box-shadow:none; ${
     UI_TOKENS.TEXT.SUBTEXT
-  } padding:8px 20px;">
-      ABORT SESSION
-    </button>
+  } padding:8px 16px;">
+        ${mainActionLabel}
+      </button>
+      <button class="btn-premium" id="stopFocusPopup" style="min-width:90px; justify-content:center; background:transparent; color:${
+        COLORS.red
+      }; border:1px solid ${
+    COLORS.glassBorder
+  }; border-radius:999px; box-shadow:none; ${
+    UI_TOKENS.TEXT.SUBTEXT
+  } padding:8px 16px;">
+        STOP
+      </button>
+    </div>
   `;
 
   container.innerHTML = renderAmbientShell(centerContent, null, 'popup');
+
+  container.querySelector('#pauseFocusPopup')?.addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'pauseFocus' }, () =>
+      renderFocusPage(container, 'popup'),
+    );
+  });
+
+  container
+    .querySelector('#resumeFocusPopup')
+    ?.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'resumeFocus' }, () =>
+        renderFocusPage(container, 'popup'),
+      );
+    });
 
   container.querySelector('#stopFocusPopup')?.addEventListener('click', () => {
     _showAbortModal(container, 'popup', () =>
@@ -566,24 +600,31 @@ async function _renderActivePopup(
     );
   });
 
-  window.__focusInterval = setInterval(() => {
-    const rem = Math.max(0, focusEnd - Date.now());
-    if (rem <= 0) {
-      clearInterval(window.__focusInterval);
-      renderFocusPage(container, 'popup');
-      return;
-    }
-    const timerEl = container.querySelector('#liveTimerDisplay');
-    if (timerEl) {
-      timerEl.textContent = formatTime(rem);
-    }
-    const liveProgress = Math.max(0, Math.min(1, 1 - rem / totalDuration));
-    const subLabelEl = container.querySelector('#liveSublabelDisplay');
-    if (subLabelEl) {
-      subLabelEl.textContent = `${Math.round(liveProgress * 100)}% complete`;
-    }
-    _updateActiveTicks(container, liveProgress);
-  }, 1000);
+  if (activeSession.status === 'focusing') {
+    window.__focusInterval = setInterval(() => {
+      const liveRemainingMs = getRemainingMs(activeSession);
+      const liveElapsed = getEffectiveElapsed(activeSession);
+      const liveProgress = getProgress(activeSession);
+
+      if (liveRemainingMs <= 0) {
+        clearInterval(window.__focusInterval);
+        renderFocusPage(container, 'popup');
+        return;
+      }
+      const timerEl = container.querySelector('#liveTimerDisplay');
+      if (timerEl) {
+        timerEl.textContent = formatTime(liveRemainingMs);
+      }
+      const subLabelEl = container.querySelector('#liveSublabelDisplay');
+      if (subLabelEl) {
+        const liveMins = Math.floor(liveElapsed / 60);
+        subLabelEl.textContent = `${liveMins}m focused • ${Math.round(
+          liveProgress * 100,
+        )}% complete`;
+      }
+      _updateActiveTicks(container, liveProgress);
+    }, 1000);
+  }
 }
 
 function _renderIdle(container: HTMLElement, context: 'page' | 'popup'): void {
@@ -608,7 +649,7 @@ function _renderIdlePage(container: HTMLElement): void {
 
   container.innerHTML = renderAmbientShell(
     centerContent,
-    renderSidePanels('Focus State', 'No active focus session'),
+    renderSidePanels('Focus State', 'No active focus session', null),
   );
 
   container.querySelectorAll('.start-focus').forEach((el) => {

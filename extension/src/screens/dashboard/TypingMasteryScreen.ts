@@ -28,7 +28,7 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
           }; font-size: 26px; letter-spacing: -0.03em;">Typing Mastery</div>
           <div style="${
             UI_TOKENS.TEXT.LABEL
-          }; font-size: 15px;">Detailed focus & performance metrics</div>
+          }; font-size: 15px;">Detailed typing & performance metrics</div>
         </div>
       </div>
 
@@ -43,9 +43,9 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
           COLORS.blue,
         )}
         ${_renderStat(
-          'Total Focused',
+          'Total Tests',
           `${stats.totalSessions}`,
-          'Sessions',
+          'Tests',
           COLORS.muted,
         )}
       </div>
@@ -135,7 +135,7 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
                   <div class="fg-w-16 fg-h-16 fg-rounded-full fg-bg-[var(--fg-glass-bg)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-muted)]">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
                   </div>
-                  <div style="${UI_TOKENS.TEXT.SUBTEXT}; font-size: 13px; max-width: 200px; line-height: 1.6;">Complete more focus sessions to visualize your speed trend.</div>
+                  <div style="${UI_TOKENS.TEXT.SUBTEXT}; font-size: 13px; max-width: 200px; line-height: 1.6;">Complete more typing tests to visualize your speed trend.</div>
                 </div>
              `
                  : '<canvas id="typingTrendChart"></canvas>'
@@ -160,78 +160,81 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
     });
 
   // Initialize Chart
-  const ctx = container.querySelector('#typingTrendChart') as HTMLCanvasElement;
-  if (ctx) {
-    const chartData = [...history].reverse(); // Oldest first for chart
-    new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: chartData.map((s) =>
-          new Date(s.timestamp).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit',
-          }),
-        ),
-        datasets: [
-          {
-            label: 'WPM',
-            data: chartData.map((s) => s.wpm),
-            borderColor: COLORS.accent,
-            borderWidth: 3,
-            tension: 0.4, // Smooth curve
-            pointRadius: 4,
-            pointBackgroundColor: COLORS.accent,
-            fill: true,
-            backgroundColor: (context) => {
-              const chart = context.chart;
-              const { ctx, chartArea } = chart;
-              if (!chartArea) {
-                return null;
-              }
-              const gradient = ctx.createLinearGradient(
-                0,
-                chartArea.top,
-                0,
-                chartArea.bottom,
-              );
-              gradient.addColorStop(0, `${COLORS.accent}33`);
-              gradient.addColorStop(1, 'transparent');
-              return gradient;
+  const canvas = container.querySelector(
+    '#typingTrendChart',
+  ) as HTMLCanvasElement;
+  if (canvas) {
+    // Explicitly set dimensions to ensure ChartJS has space
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+
+    canvas.style.minHeight = '320px';
+    canvas.style.border = '1px solid rgba(255,0,0,0.05)';
+
+    setTimeout(() => {
+      if (!document.contains(canvas)) {
+        return;
+      }
+
+      const chartData = [...history].reverse();
+
+      if ((window as any).__typingTrendChart) {
+        (window as any).__typingTrendChart.destroy();
+        (window as any).__typingTrendChart = null;
+      }
+
+      (window as any).__typingTrendChart = new Chart(canvas, {
+        type: 'line',
+        data: {
+          labels: chartData.map((s) =>
+            new Date(s.timestamp).toLocaleTimeString([], {
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+          ),
+          datasets: [
+            {
+              label: 'WPM',
+              data: chartData.map((s) => s.wpm),
+              borderColor: '#4f46e5', // Indigo primary
+              backgroundColor: 'rgba(79, 70, 229, 0.08)', // Very subtle fill
+              borderWidth: 2,
+              tension: 0.1, // Sharp stock-market style
+              pointRadius: 3,
+              pointBackgroundColor: '#4f46e5',
+              fill: true,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: {
+            legend: { display: false },
+          },
+          scales: {
+            x: {
+              display: true,
+              grid: { display: false },
+              ticks: {
+                color: '#94a3b8',
+                font: { size: 10, weight: '600' as any },
+              },
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: {
+                color: '#64748b',
+                font: { size: 10, weight: '600' as any },
+                padding: 8,
+              },
             },
           },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            mode: 'index',
-            intersect: false,
-            backgroundColor: `${COLORS.glassBg}ee`,
-            titleColor: COLORS.text,
-            bodyColor: COLORS.text,
-            borderColor: COLORS.glassBorder,
-            borderWidth: 1,
-            padding: 12,
-            displayColors: false,
-          },
         },
-        scales: {
-          x: { display: false },
-          y: {
-            beginAtZero: true,
-            grid: { color: `${COLORS.glassBorder}44` },
-            ticks: {
-              color: COLORS.text,
-              font: { size: 10 },
-              padding: 8,
-            },
-          },
-        },
-      },
-    });
+      });
+    }, 100);
   }
 
   // Live Update Listener

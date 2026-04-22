@@ -1,4 +1,4 @@
-import { UI_TOKENS } from '../../../lib/ui';
+import { UI_TOKENS, UI_ICONS } from '../../../lib/ui';
 import { toast } from '../../../lib/toast';
 import { COLORS } from '../../../lib/designTokens';
 
@@ -176,7 +176,9 @@ export function attachDiagnosticsListeners(
       <div class="fg-bg-[var(--fg-surface)] fg-w-full fg-max-w-xl fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-flex fg-flex-col fg-max-h-[85vh] fg-shadow-2xl">
         <div class="fg-p-8 fg-border-b fg-border-[var(--fg-glass-border)] fg-flex fg-justify-between fg-items-center">
           <div class="fg-font-black fg-tracking-widest fg-text-xs fg-opacity-50">Audit Trail History</div>
-          <button id="close_logs" class="fg-opacity-40 hover:fg-opacity-100 transition text-2xl">×</button>
+          <button id="close_logs" class="fg-opacity-40 hover:fg-opacity-100 transition fg-flex fg-items-center fg-justify-center">${
+            UI_ICONS.CLOSE
+          }</button>
         </div>
         <div class="fg-flex-1 fg-overflow-y-auto fg-p-6 fg-space-y-4">
           ${

@@ -1,7 +1,7 @@
 import { nextDNSApi } from '../../background/platformAdapter';
 import { buildDashboardTabPath } from '@stopaccess/core';
 import { toast } from '../../lib/toast';
-import { renderCloudBanner, UI_TOKENS } from '../../lib/ui';
+import { renderCloudBanner, UI_TOKENS, UI_ICONS } from '../../lib/ui';
 import { COLORS } from '../../lib/designTokens';
 import type { NextDNSRecreationTime } from '@stopaccess/types';
 
@@ -157,7 +157,9 @@ function _renderPage(
                    
                    <span class="fg-text-[${
                      COLORS.muted
-                   }] fg-opacity-30 fg-font-light fg-text-xl">→</span>
+                   }] fg-opacity-30 fg-font-light fg-text-xl fg-flex fg-items-center">${
+               UI_ICONS.ARROW_RIGHT
+             }</span>
  
                    <input type="time" class="time-input fg-px-3" value="${
                      data.end
@@ -213,7 +215,7 @@ function _renderPage(
         border-color: ${COLORS.accent};
       }
       .custom-check:checked::after {
-        content: '✓';
+        content: '';
         position: absolute;
         top: 50%;
         left: 50%;
@@ -221,6 +223,15 @@ function _renderPage(
         color: ${COLORS.onAccent};
         font-weight: 900;
         font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .custom-check:checked {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+        background-size: 14px;
+        background-position: center;
+        background-repeat: no-repeat;
       }
       
       .time-input {
@@ -328,7 +339,7 @@ function _attachHandlers(container: HTMLElement): void {
         if (res.ok) {
           toast.success('NextDNS Synchronized');
           chrome.storage.local.set({ fg_nextdns_schedule: payload });
-          btn.innerText = 'Saved ✓';
+          btn.innerHTML = `Saved <span style="display:inline-flex; vertical-align:middle; margin-left:4px; transform:scale(1.2);">${UI_ICONS.CHECK}</span>`;
           setTimeout(() => {
             btn.innerText = originalText;
             btn.style.opacity = '1';

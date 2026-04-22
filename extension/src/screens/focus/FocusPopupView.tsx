@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { getRemainingMs } from '../../lib/sessionTimer';
 import { UI_TOKENS } from '../../lib/ui';
 import {
   extensionAdapter as storage,
@@ -16,24 +17,28 @@ const PRESETS = [
 export function FocusPopupView() {
   const [rem, setRem] = useState(0);
   const [total, setTotal] = useState(0);
+  const [status, setStatus] = useState<string>('idle');
   const [abortModal, setAbortModal] = useState(false);
   const [wait, setWait] = useState<number | null>(null);
 
   const fetchState = async () => {
     const res = await chrome.storage.local.get(['fg_active_session']);
     const session = res.fg_active_session as any;
-    let end = 0,
-      start = 0;
-    if (session?.status === 'focusing') {
-      end = session.startedAt + session.duration * 60000;
-      start = session.startedAt;
+    if (session?.status === 'focusing' || session?.status === 'paused') {
+      const remainingMs = getRemainingMs(session);
+      const totalMs = session.duration * 60000;
+
+      setRem(remainingMs);
+      setTotal(totalMs);
+      setStatus(session.status);
     } else {
-      end = await storage.getNumber(STORAGE_KEYS.FOCUS_END, 0);
-      start =
+      const end = await storage.getNumber(STORAGE_KEYS.FOCUS_END, 0);
+      const start =
         (await storage.getNumber('fg_focus_session_start', 0)) || end - 1500000;
+      setRem(Math.max(0, end - Date.now()));
+      setTotal(end - start || 1);
+      setStatus('idle');
     }
-    setRem(Math.max(0, end - Date.now()));
-    setTotal(end - start || 1);
   };
 
   useEffect(() => {
@@ -170,18 +175,39 @@ export function FocusPopupView() {
             </div>
           </div>
         </div>
-        <button
-          onClick={() => setAbortModal(true)}
-          disabled={wait !== null}
-          className="btn-premium fg-rounded-full fg-border fg-border-[var(--fg-glass-border)] fg-bg-transparent fg-px-8 fg-py-3 fg-text-xs fg-font-black disabled:fg-opacity-50"
-          style={{
-            ...ringStyles.text,
-            letterSpacing: '1px',
-            boxShadow: 'none',
-          }}
-        >
-          {wait !== null ? `Ending In ${wait}s...` : 'Abort Session'}
-        </button>
+        <div className="fg-flex fg-gap-3">
+          <button
+            onClick={() => {
+              chrome.runtime.sendMessage(
+                { action: status === 'paused' ? 'resumeFocus' : 'pauseFocus' },
+                fetchState,
+              );
+            }}
+            disabled={wait !== null}
+            className={`fg-rounded-full fg-border fg-border-[var(--fg-glass-border)] fg-px-8 fg-py-3 fg-text-[10px] fg-font-black disabled:fg-opacity-50 fg-transition-all ${
+              status === 'paused'
+                ? 'fg-bg-[var(--fg-accent)] fg-text-[var(--fg-on-accent)]'
+                : 'fg-bg-transparent fg-text-[var(--fg-text)]'
+            }`}
+            style={{
+              letterSpacing: '1px',
+              boxShadow: 'none',
+            }}
+          >
+            {status === 'paused' ? 'RESUME' : 'PAUSE'}
+          </button>
+          <button
+            onClick={() => setAbortModal(true)}
+            disabled={wait !== null}
+            className="fg-rounded-full fg-border fg-border-[var(--fg-glass-border)] fg-bg-transparent fg-px-8 fg-py-3 fg-text-[10px] fg-font-black fg-text-[var(--fg-red)] disabled:fg-opacity-50"
+            style={{
+              letterSpacing: '1px',
+              boxShadow: 'none',
+            }}
+          >
+            {wait !== null ? `ENDING IN ${wait}S...` : 'STOP'}
+          </button>
+        </div>
         {abortModal && (
           <div className="fg-fixed fg-inset-0 fg-z-[10000] fg-flex fg-items-center fg-justify-center fg-p-6">
             <div
@@ -234,7 +260,7 @@ export function FocusPopupView() {
             marginBottom: '4px',
           }}
         >
-          Ready
+          Focus Mode
         </div>
         <div
           style={{

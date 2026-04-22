@@ -6,23 +6,32 @@ import React, { useEffect, useRef } from 'react';
  */
 interface LegacyBridgeProps {
   renderFn: (container: HTMLElement) => Promise<void> | void;
+  isVisible?: boolean;
 }
 
-export function LegacyBridge({ renderFn }: LegacyBridgeProps) {
+export function LegacyBridge({
+  renderFn,
+  isVisible = true,
+}: LegacyBridgeProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef<boolean>(false);
   const lastFnRef = useRef<any>(null);
+  const lastVisibleRef = useRef<boolean>(false);
 
   useEffect(() => {
     if (containerRef.current) {
-      // If the function changed OR we haven't initialized this container yet
-      if (lastFnRef.current !== renderFn || !initializedRef.current) {
+      const fnChanged = lastFnRef.current !== renderFn;
+      const becameVisible = isVisible && !lastVisibleRef.current;
+
+      // If the function changed OR we haven't initialized this container yet OR it just became visible
+      if (fnChanged || !initializedRef.current || becameVisible) {
         lastFnRef.current = renderFn;
+        lastVisibleRef.current = isVisible;
         initializedRef.current = true;
         renderFn(containerRef.current);
       }
     }
-  }, [renderFn]);
+  }, [renderFn, isVisible]);
 
   return (
     <div
