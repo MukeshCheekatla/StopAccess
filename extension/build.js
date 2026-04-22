@@ -109,6 +109,28 @@ async function build() {
     }
   }
 
+  // --- LOCALES COPY ---
+  try {
+    const localeDir = resolve(__dirname, '_locales');
+    if (existsSync(localeDir)) {
+      const distLocaleDir = resolve(DIST_DIR, '_locales');
+      const lang = 'en'; // Current default
+      const langSrc = resolve(localeDir, lang);
+      const langDest = resolve(distLocaleDir, lang);
+
+      if (existsSync(langSrc)) {
+        mkdirSync(langDest, { recursive: true });
+        copyFileSync(
+          resolve(langSrc, 'messages.json'),
+          resolve(langDest, 'messages.json'),
+        );
+        console.log(`[Build] Copied ${lang} locales.`);
+      }
+    }
+  } catch (e) {
+    console.warn(`[Build] Locales copy failed: ${e.message}`);
+  }
+
   // --- MANIFEST RE-MAPPING FOR DIST FOLDER ---
   try {
     const rawManifest = JSON.parse(
