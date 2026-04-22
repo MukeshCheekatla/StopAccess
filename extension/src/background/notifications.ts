@@ -157,7 +157,7 @@ export async function checkUsageMilestones(
 export function notifyFocusComplete(durationMinutes: number): void {
   _notify(
     'focus_complete',
-    '✅ Focus Session Complete!',
+    'Focus Session Complete!',
     `You stayed focused for ${formatMinutes(
       durationMinutes,
     )}. Great work — take a break.`,
@@ -178,6 +178,7 @@ export function notifyFocusStopped(minutesDone: number): void {
 export async function notifyLimitApproaching(
   appName: string,
   remainingMins: number,
+  limitMins?: number,
 ): Promise<void> {
   const key = `limit_near_${appName}_${Math.floor(remainingMins)}`;
   if (await _hasSent(key)) {
@@ -187,10 +188,10 @@ export async function notifyLimitApproaching(
   await _markSent(key);
   _notify(
     key,
-    `⚠️ ${appName}: Limit Approaching`,
-    `You have ${formatMinutes(
-      remainingMins,
-    )} left for ${appName} today. Mind your focus!`,
+    `${appName}: Limit Approaching`,
+    `You have ${formatMinutes(remainingMins)} left (Limit: ${formatMinutes(
+      limitMins || 0,
+    )}) for ${appName} today. Mind your focus!`,
     1,
   );
 }
@@ -207,7 +208,7 @@ export async function notifyServiceDistraction(
   await _markSent(key);
   _notify(
     key,
-    '🧘 Time for a break?',
+    'Time for a break?',
     `You've been on ${appName} for over ${formatMinutes(
       sessionMins,
     )}. A short walk might help your focus.`,

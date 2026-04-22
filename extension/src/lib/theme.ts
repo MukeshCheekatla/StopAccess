@@ -29,15 +29,22 @@ export function setupThemeListener() {
       applyTheme('system');
     }
   };
+  const handleRuntimeThemeChange = (msg: {
+    action?: string;
+    theme?: string;
+  }) => {
+    if (msg.action === 'themeChanged') {
+      applyTheme(msg.theme);
+    }
+  };
 
   mediaQuery.addEventListener('change', handleSystemChange);
 
   // Listen for internal messages (from SettingsPage)
-  chrome.runtime.onMessage.addListener((msg) => {
-    if (msg.action === 'themeChanged') {
-      applyTheme(msg.theme);
-    }
-  });
+  chrome.runtime.onMessage.addListener(handleRuntimeThemeChange);
 
-  return () => mediaQuery.removeEventListener('change', handleSystemChange);
+  return () => {
+    mediaQuery.removeEventListener('change', handleSystemChange);
+    chrome.runtime.onMessage.removeListener(handleRuntimeThemeChange);
+  };
 }

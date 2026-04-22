@@ -1,12 +1,12 @@
 {
   "name": "stopaccess-extension",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "type": "module",
   "scripts": {
-    "tw:build": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --config ./tailwind.config.js --minify",
+    "tw:build": "set BROWSERSLIST_IGNORE_OLD_DATA=true && tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --config ./tailwind.config.js --minify",
     "tw:watch": "tailwindcss -i ./src/styles/tailwind.css -o ./dist/tailwind.css --config ./tailwind.config.js --watch",
-    "build": "npm run typecheck && node build.js && npm run tw:build",
+    "build": "npm run lint && npm run typecheck && node build.js && npm run tw:build",
     "watch": "npm run tw:watch & node build.js --watch",
     "check": "node ../scripts/check-extension.mjs",
     "lint": "eslint . --fix",

@@ -1,0 +1,34 @@
+{
+  "extension_name": {
+    "message": "StopAccess - Website & App Blocker"
+  },
+  "extension_description": {
+    "message": "Block distracting sites with browser rules, NextDNS sync, schedules, focus sessions, strict mode, privacy, and diagnostics."
+  },
+  "whats_new_title": {
+    "message": "What's New in v$VERSION$",
+    "placeholders": {
+      "version": {
+        "content": "$1"
+      }
+    }
+  },
+  "whats_new_kicker": {
+    "message": "System Update Discovery"
+  },
+  "whats_new_cta": {
+    "message": "Explore Features"
+  },
+  "ghost_blocking_title": {
+    "message": "Propagation Delay Identified"
+  },
+  "ghost_blocking_desc": {
+    "message": "DNS changes are not instant. Due to system caching, sites may remain blocked for several minutes."
+  },
+  "flush_dns_instruction": {
+    "message": "To unblock instantly"
+  },
+  "back_to_safety": {
+    "message": "Back To Safety"
+  }
+}

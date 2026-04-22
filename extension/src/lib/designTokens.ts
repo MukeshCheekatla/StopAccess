@@ -37,7 +37,9 @@ export const COLORS = {
   overlayTint: 'var(--fg-overlay-tint)',
   shadow: 'var(--fg-shadow)',
   shadowSoft: 'var(--fg-shadow-soft)',
+  shadowStrong: 'var(--fg-shadow-strong)',
   white: 'var(--fg-white)',
+  black: 'var(--fg-black)',
 } as const;
 
 export const COLOR_CLASSES = {

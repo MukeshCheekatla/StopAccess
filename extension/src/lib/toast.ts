@@ -62,7 +62,7 @@ class ToastManager {
       .fg-toast.success { border-left: 4px solid var(--fg-on-accent); }
       .fg-toast .toast-icon { 
         font-weight: 900; 
-        font-size: 11px; 
+        font-size: 12px; 
         background: var(--fg-white-wash); 
         width: 24px; height: 24px; 
         display:flex; align-items:center; justify-content:center; 

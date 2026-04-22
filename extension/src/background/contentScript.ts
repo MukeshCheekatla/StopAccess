@@ -12,11 +12,14 @@ const BLOCKED_DOMAINS_KEY = 'blocked_domains';
 const RULES_KEY = 'rules';
 const TEMP_PASSES_KEY = 'fg_temp_passes';
 const EXT_COUNTS_KEY = 'fg_extension_counts';
-const CONTENT_DEBUG_KEY = 'fg_content_debug';
+const CONTENT_DEBUG_KEY = 'fg_block_debug';
+const REDIRECT_URL_KEY = 'fg_redirect_url';
+const FOCUS_END_KEY = 'focus_mode_end_time';
+const STRICT_MODE_KEY = 'strict_mode_enabled';
 const OVERLAY_ID = '__fg_block_overlay__';
 const DEFAULT_MAX_DAILY_PASSES = 3;
 const PASS_DURATION_MINUTES = 5;
-const OVERLAY_DELAY_MS = 2500;
+const OVERLAY_DELAY_MS = 2500; // NOTE: Do NOT remove or reduce this delay. It prevents race conditions during page load and avoids breaking site scripts.
 const PREBLOCK_ID = '__fg_block_prewarn__';
 
 let overlayActive = false;
@@ -58,7 +61,9 @@ function findMatchingRule(rules: AppRule[], domain: string) {
 }
 
 function todayKey() {
-  return new Date().toISOString().split('T')[0];
+  // Use en-CA for ISO-like local date string (YYYY-MM-DD)
+  // MUST match the date format used in lifecycle.ts to avoid timezone drift.
+  return new Date().toLocaleDateString('en-CA');
 }
 
 // ── Temp Pass System ──────────────────────────────
@@ -192,10 +197,10 @@ function buildOverlayMarkup(domain, options: any = {}) {
   const ringColor = pct >= 100 ? 'var(--fg-red)' : 'var(--fg-accent)';
 
   const statusText = isFocusActive
-    ? 'FOCUS SESSION ACTIVE'
+    ? 'Focus session active'
     : isLimitMode
-    ? 'DAILY ACCESS LIMIT EXCEEDED'
-    : 'ACCESS DENIED BY STOPACCESS';
+    ? 'Daily access limit exceeded'
+    : 'Access denied by StopAccess';
   const remaining = isLimitMode ? Math.max(0, limitMinutes - usedMinutes) : 0;
 
   const clockSvg =
@@ -211,7 +216,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
   return `
     <div class="fg-h-[100vh] fg-w-[100vw] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-host-bg)] fg-text-[var(--fg-on-accent)] fg-font-sans fg-overflow-y-auto fg-px-4 fg-py-6 sm:fg-p-8">
       <div class="fg-w-full fg-max-w-[440px] fg-flex fg-flex-col fg-items-center fg-p-4 sm:fg-p-6">
-        <div class="fg-text-[12px] sm:fg-text-[13px] fg-font-black fg-tracking-[0.24em] fg-text-[var(--fg-on-accent)] fg-mb-5 sm:fg-mb-8">STOPACCESS</div>
+        <div class="fg-text-[13px] fg-font-black fg-text-[var(--fg-on-accent)] fg-mb-5 sm:fg-mb-8">StopAccess</div>
 
         <div class="fg-relative fg-w-[150px] fg-h-[150px] sm:fg-w-[180px] sm:fg-h-[180px] fg-mb-6 sm:fg-mb-8">
           <svg class="fg-w-full fg-h-full fg--rotate-90" viewBox="0 0 180 180">
@@ -221,28 +226,28 @@ function buildOverlayMarkup(domain, options: any = {}) {
               style="stroke-dasharray: ${C}; stroke-dashoffset: ${offset}; transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);" />
           </svg>
           <div class="fg-absolute fg-inset-0 fg-flex fg-flex-col fg-items-center fg-justify-center fg-gap-1">
-            <div class="${timeFontSize} fg-font-bold fg-tracking-tight fg-tabular-nums" id="__fg_live_time">${timeStr}</div>
-            <div class="fg-text-[10px] fg-font-semibold fg-text-zinc-500 fg-tracking-widest">
-              ${isLimitMode ? 'TIME USED' : 'SCREEN TIME'}
+            <div class="${timeFontSize} fg-font-bold fg-tabular-nums" id="__fg_live_time">${timeStr}</div>
+            <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-muted)]">
+              ${isLimitMode ? 'Time Used' : 'Screen Time'}
             </div>
           </div>
         </div>
 
-        <div class="fg-w-full fg-break-words fg-text-center fg-text-[22px] sm:fg-text-2xl fg-font-bold fg-tracking-tight fg-mb-1 fg-text-[var(--fg-on-accent)] fg-opacity-90">${safeDomain}</div>
-        <div class="fg-text-[13px] sm:fg-text-sm fg-text-zinc-500 fg-mb-6 sm:fg-mb-8 fg-text-center fg-leading-relaxed">${statusText}</div>
+        <div class="fg-w-full fg-break-words fg-text-center fg-text-[22px] sm:fg-text-2xl fg-font-bold fg-mb-1 fg-text-[var(--fg-on-accent)] fg-opacity-90">${safeDomain}</div>
+        <div class="fg-text-[13px] sm:fg-text-sm fg-text-[var(--fg-muted)] fg-mb-6 sm:fg-mb-8 fg-text-center fg-leading-relaxed">${statusText}</div>
 
         <div class="fg-grid fg-grid-cols-3 fg-gap-px fg-w-full fg-bg-zinc-800 fg-rounded-2xl fg-overflow-hidden fg-mb-6 sm:fg-mb-8 fg-border fg-border-zinc-800">
           <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${sessions}</div>
-            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600 fg-tracking-wider">Sessions</div>
+            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-[var(--fg-text)]">${sessions}</div>
+            <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)]">Sessions</div>
           </div>
           <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${remaining}m</div>
-            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600 fg-tracking-wider">Time left</div>
+            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-[var(--fg-text)]">${remaining}m</div>
+            <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)]">Time left</div>
           </div>
           <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-zinc-200">${remainingPasses}</div>
-            <div class="fg-text-[10px] fg-font-bold fg-text-zinc-600 fg-tracking-wider">Passes left</div>
+            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-[var(--fg-text)]">${remainingPasses}</div>
+            <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)]">Passes left</div>
           </div>
         </div>
 
@@ -252,7 +257,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
           <div class="fg-w-full fg-p-4 sm:fg-p-5 fg-bg-zinc-900/50 fg-border fg-border-zinc-800 fg-rounded-[20px] fg-mb-4">
             <div class="fg-flex fg-items-center fg-justify-between fg-mb-4">
               <div class="fg-text-[13px] sm:fg-text-sm fg-font-black fg-text-zinc-300">Temporary Access</div>
-              <div class="fg-text-[10px] fg-font-bold fg-text-zinc-500 fg-bg-zinc-800/50 fg-px-2 fg-py-0.5 fg-rounded-full">
+              <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)] fg-bg-zinc-800/50 fg-px-2 fg-py-0.5 fg-rounded-full">
                 ${remainingPasses} available
               </div>
             </div>
@@ -505,11 +510,11 @@ async function checkAndBlock() {
       BLOCKED_DOMAINS_KEY,
       RULES_KEY,
       'usage',
-      'fg_redirect_url',
-      'strict_mode_enabled',
-      'fg_focus_end',
+      REDIRECT_URL_KEY,
+      STRICT_MODE_KEY,
+      FOCUS_END_KEY,
     ]);
-    const focusEnd = Number(res.fg_focus_end || 0);
+    const focusEnd = Number(res[FOCUS_END_KEY] || 0);
     const isFocusActive = focusEnd > Date.now();
     const blockedDomains = Array.isArray(res[BLOCKED_DOMAINS_KEY])
       ? res[BLOCKED_DOMAINS_KEY]
@@ -525,9 +530,10 @@ async function checkAndBlock() {
         .filter((rule) => {
           const isManuallyBlocked = rule.mode === 'block';
           const isLimitReached =
-            rule.blockedToday === true ||
-            (rule.dailyLimitMinutes > 0 &&
-              (rule.usedMinutesToday || 0) >= rule.dailyLimitMinutes);
+            rule.mode === 'limit' &&
+            (rule.blockedToday === true ||
+              (rule.dailyLimitMinutes > 0 &&
+                (rule.usedMinutesToday || 0) >= rule.dailyLimitMinutes));
           return isManuallyBlocked || isLimitReached;
         })
         .map((rule) => getDomainForRule(rule))
@@ -570,7 +576,7 @@ async function checkAndBlock() {
       .catch(() => {});
 
     if (isBlocked) {
-      const redirectUrl = res.fg_redirect_url as string | undefined;
+      const redirectUrl = res[REDIRECT_URL_KEY] as string | undefined;
       if (redirectUrl) {
         let finalUrl = redirectUrl;
         if (!finalUrl.startsWith('http')) {
@@ -663,21 +669,23 @@ function startPersistence() {
 checkAndBlock();
 startPersistence();
 
-const _pushState = history.pushState.bind(history);
-const _replaceState = history.replaceState.bind(history);
-
-history.pushState = function (...args) {
-  _pushState(...args);
-  checkAndBlock();
-};
-
-history.replaceState = function (...args) {
-  _replaceState(...args);
-  checkAndBlock();
-};
-
 window.addEventListener('popstate', checkAndBlock);
 window.addEventListener('hashchange', checkAndBlock);
+
+// SPA Navigation Observer
+// Since pushState/replaceState can't be monkey-patched from an isolated world,
+// we observe URL changes via polling or mutation triggers to ensure blocks
+// are enforced when navigating within an SPA (e.g. YouTube, Facebook).
+let __fg_last_href = window.location.href;
+setInterval(() => {
+  if (
+    document.visibilityState === 'visible' &&
+    window.location.href !== __fg_last_href
+  ) {
+    __fg_last_href = window.location.href;
+    checkAndBlock();
+  }
+}, 800);
 
 // Re-check on visibility change (prevents bypasses when switching tabs)
 document.addEventListener('visibilitychange', () => {
@@ -694,9 +702,9 @@ chrome.storage.onChanged.addListener((changes) => {
     changes[BLOCKED_DOMAINS_KEY] ||
     changes[RULES_KEY] ||
     changes[TEMP_PASSES_KEY] ||
-    changes.fg_redirect_url ||
+    changes[REDIRECT_URL_KEY] ||
     changes.inAppRules ||
-    changes.fg_focus_end
+    changes[FOCUS_END_KEY]
   ) {
     checkAndBlock();
   }
@@ -825,9 +833,9 @@ if (window.location.hostname.includes('nextdns.io')) {
       card.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
         <img src="${iconUrl}" style="width:20px;height:20px;border-radius:6px;border:1px solid var(--fg-guide-icon-border);" />
-        <span style="font-size:10px;font-weight:800;letter-spacing:0.18em;text-transform:uppercase;color:var(--fg-guide-label);">StopAccess Guide</span>
+        <span style="font-size:12px;font-weight:800;letter-spacing:0;color:var(--fg-guide-label);">StopAccess guide</span>
       </div>
-      <div style="font-size:12px;color:var(--fg-guide-muted);line-height:1.6;font-weight:600;">
+      <div style="font-size:13px;color:var(--fg-guide-muted);line-height:1.6;font-weight:600;">
         Scroll down to the <strong style="color:var(--fg-guide-text)">API</strong> section. Generate a dedicated key, copy it, then return to StopAccess to paste it.
       </div>
     `;

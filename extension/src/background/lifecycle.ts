@@ -9,6 +9,7 @@ import {
   SyncOrchestrator,
   buildExtensionPagePath,
   getDomainForRule,
+  formatMinutes,
 } from '@stopaccess/core';
 import { NextDNSConfig } from '@stopaccess/types';
 import { getRules, saveRules } from '@stopaccess/state/rules';
@@ -21,7 +22,10 @@ import {
   endSession,
   updateBadge,
   startSession,
+  pauseSession,
+  resumeSession,
 } from './sessionManager';
+import { getEffectiveElapsed } from '../lib/sessionTimer';
 // import { initPeerSync, broadcastDiff, getPeerSyncStatus } from './peerSync';
 // import { broadcastDiff, getPeerSyncStatus } from './peerSync'; // initPeerSync remains disabled
 import {
@@ -130,6 +134,9 @@ async function sanitizeUsageData() {
       }
     }
 
+    if (usageChanged) {
+      await chrome.storage.local.set({ [STORAGE_KEYS.USAGE]: u });
+    }
     if (historyChanged) {
       await chrome.storage.local.set({ [STORAGE_KEYS.USAGE_HISTORY]: history });
     }
@@ -183,11 +190,22 @@ function getDomain(url) {
     if (
       !url ||
       url.startsWith('chrome://') ||
-      url.startsWith('chrome-extension://')
+      url.startsWith('chrome-extension://') ||
+      url.startsWith('edge://') ||
+      url.startsWith('about:')
     ) {
       return null;
     }
-    return new URL(url).hostname.replace('www.', '');
+    const hostname = new URL(url).hostname.replace('www.', '');
+
+    // Technical metadata pages to ignore
+    const ignored = ['newtab', 'extensions', 'localhost'];
+
+    if (ignored.some((d) => hostname === d || hostname.endsWith('.' + d))) {
+      return null;
+    }
+
+    return hostname;
   } catch {
     return null;
   }
@@ -298,6 +316,7 @@ async function syncRulesWithUsage() {
           notifyLimitApproaching(
             rules[i].appName || rules[i].packageName,
             limit - used,
+            limit,
           ).catch(() => {});
         }
       }
@@ -448,28 +467,30 @@ async function performDailyReset(): Promise<boolean> {
     isResetting = true;
     extensionLogger.add('info', `Resetting day: ${lastReset} -> ${todayStr}`);
 
-    // 1. Archive previous day usage before clearing
-    const archiveRes = await chrome.storage.local.get([
-      STORAGE_KEYS.USAGE,
-      STORAGE_KEYS.USAGE_HISTORY,
-    ]);
-    const oldUsage = archiveRes[STORAGE_KEYS.USAGE] || {};
-    const usageHistory = archiveRes[STORAGE_KEYS.USAGE_HISTORY] || {};
+    await withStorageLock(async () => {
+      // 1. Archive previous day usage before clearing
+      const archiveRes = await chrome.storage.local.get([
+        STORAGE_KEYS.USAGE,
+        STORAGE_KEYS.USAGE_HISTORY,
+      ]);
+      const oldUsage = archiveRes[STORAGE_KEYS.USAGE] || {};
+      const usageHistory = archiveRes[STORAGE_KEYS.USAGE_HISTORY] || {};
 
-    usageHistory[lastReset] = oldUsage;
+      usageHistory[lastReset] = oldUsage;
 
-    // Prune history to keep only last 30 days
-    const historyKeys = Object.keys(usageHistory).sort();
-    if (historyKeys.length > 30) {
-      delete usageHistory[historyKeys[0]];
-    }
+      // Prune history to keep only last 30 days
+      const historyKeys = Object.keys(usageHistory).sort();
+      if (historyKeys.length > 30) {
+        delete usageHistory[historyKeys[0]];
+      }
 
-    // 2. Clear current day buckets
-    await chrome.storage.local.set({
-      [STORAGE_KEYS.USAGE]: {},
-      [STORAGE_KEYS.USAGE_HISTORY]: usageHistory,
-      [STORAGE_KEYS.TEMP_PASSES]: {},
-      [STORAGE_KEYS.EXTENSION_COUNTS]: {},
+      // 2. Clear current day buckets
+      await chrome.storage.local.set({
+        [STORAGE_KEYS.USAGE]: {},
+        [STORAGE_KEYS.USAGE_HISTORY]: usageHistory,
+        [STORAGE_KEYS.TEMP_PASSES]: {},
+        [STORAGE_KEYS.EXTENSION_COUNTS]: {},
+      });
     });
 
     // 3. Reset Rule State & Update Streaks
@@ -560,6 +581,13 @@ async function runCycle(forceSync = false) {
     ) as number;
     checkUsageMilestones(totalUsageMs).catch(() => {});
 
+    // Final check for data consistency (ensure we aren't displaying yesterday's data as today's)
+    const today = new Date().toLocaleDateString('en-CA');
+    const lastReset = await extensionAdapter.getString(STORAGE_KEYS.LAST_RESET);
+    if (lastReset !== today && lastReset !== '') {
+      await performDailyReset();
+    }
+
     // Distraction nudge for long uninterrupted sessions
     const activeState = await getActiveTabState();
     if (activeState && activeState.domain) {
@@ -588,12 +616,14 @@ async function runCycle(forceSync = false) {
       api: client,
       logger: extensionLogger,
       notifications: {
-        notifyBlocked: (name) => {
+        notifyBlocked: (name, limit, used) => {
+          const limitText = limit ? formatMinutes(limit) : 'your';
+          const usedText = used ? formatMinutes(used) : 'your focus time';
           chrome.notifications.create({
             type: 'basic',
             iconUrl: chrome.runtime.getURL('assets/icon-128.png'),
-            title: `⚠️ Limit Reached: ${name}`,
-            message: `You've used up your focus time for ${name} today. We're keeping you on track!`,
+            title: `Limit Reached: ${name}`,
+            message: `You've used ${usedText} (Limit: ${limitText}) for ${name} today. We're keeping you on track!`,
           });
         },
       },
@@ -886,6 +916,32 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     return true;
   }
 
+  if (msg.action === 'pauseFocus') {
+    (async () => {
+      try {
+        await pauseSession();
+        await runCycle();
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true;
+  }
+
+  if (msg.action === 'resumeFocus') {
+    (async () => {
+      try {
+        await resumeSession();
+        await runCycle();
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true;
+  }
+
   if (msg.action === 'stopFocus') {
     (async () => {
       try {
@@ -903,9 +959,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           return;
         }
 
-        const minutesDone = Math.round(
-          (Date.now() - (session?.startedAt ?? Date.now())) / 60000,
-        );
+        const minutesDone = Math.round(getEffectiveElapsed(session) / 60);
         await endSession('cancelled');
         await runCycle();
         notifyFocusStopped(minutesDone);

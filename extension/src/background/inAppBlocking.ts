@@ -14,8 +14,6 @@ export const SELECTORS: Record<string, Record<string, string>> = {
       "a[title='Explore'], ytd-guide-entry-renderer:has(a[title='Explore']) { display: none !important; }",
     hide_top_bar: 'ytd-masthead#masthead { display: none !important; }',
     disable_end_cards: '.ytp-ce-element { display: none !important; }',
-    disable_autoplay:
-      '.ytp-autonav-toggle-button { display: none !important; }',
     black_white: 'html { filter: grayscale(100%) !important; }',
   },
   tiktok: {
@@ -38,8 +36,6 @@ export const SELECTORS: Record<string, Record<string, string>> = {
       "a[href*='/explore/'], [aria-label='Explore'] { display: none !important; }",
     hide_comments:
       "ul[class*='Xp1'], section:has(form[method='POST']) { display: none !important; }",
-    hide_suggested:
-      "article:has(span:contains('Suggested for you')) { display: none !important; }",
     black_white: 'html { filter: grayscale(100%) !important; }',
   },
   facebook: {

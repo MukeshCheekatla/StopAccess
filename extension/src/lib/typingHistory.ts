@@ -5,6 +5,7 @@ export interface TypingSession {
   timestamp: number;
   duration: number; // in seconds
   wpm: number;
+  netWpm?: number;
   accuracy: number;
   textLength: number;
   mistakes: number;
@@ -52,14 +53,33 @@ export async function getTypingStats() {
   }
 
   const peakWpm = Math.max(...history.map((s) => s.wpm));
-  const totalWpm = history.reduce((sum, s) => sum + s.wpm, 0);
-  const totalAccuracy = history.reduce((sum, s) => sum + s.accuracy, 0);
   const totalTimeSeconds = history.reduce((sum, s) => sum + s.duration, 0);
+
+  // Time-weighted averages (long tests carry more weight)
+  const avgWpm = Math.round(
+    history.reduce((sum, s) => sum + s.wpm * s.duration, 0) / totalTimeSeconds,
+  );
+
+  const avgAccuracy = Math.round(
+    history.reduce((sum, s) => sum + s.accuracy * s.duration, 0) /
+      totalTimeSeconds,
+  );
+
+  // Average Net WPM (ignoring sessions where it's missing)
+  const netSessions = history.filter((s) => s.netWpm !== undefined);
+  const avgNetWpm =
+    netSessions.length > 0
+      ? Math.round(
+          netSessions.reduce((sum, s) => sum + (s.netWpm as number), 0) /
+            netSessions.length,
+        )
+      : 0;
 
   return {
     peakWpm,
-    avgWpm: Math.round(totalWpm / history.length),
-    avgAccuracy: Math.round(totalAccuracy / history.length),
+    avgWpm,
+    avgNetWpm,
+    avgAccuracy,
     totalSessions: history.length,
     totalTimeSeconds,
   };

@@ -15,14 +15,14 @@ const TOKEN_DEFS = {
     fontSize: '1rem',
     fontWeight: '600',
     color: 'var(--fg-text)',
-    letterSpacing: '-0.01em',
+    letterSpacing: '0',
     lineHeight: '1.4',
   },
   HERO: {
     fontSize: '1.25rem',
     fontWeight: '700',
     color: 'var(--fg-text)',
-    letterSpacing: '-0.02em',
+    letterSpacing: '0',
     lineHeight: '1.3',
   },
   /** Section / widget labels — NOT uppercase by default. Callers add uppercase if needed. */
@@ -30,11 +30,11 @@ const TOKEN_DEFS = {
     fontSize: '14px',
     fontWeight: '600',
     color: 'var(--fg-text)',
-    letterSpacing: '0.02em',
+    letterSpacing: '0',
     lineHeight: '1.4',
   },
   SUBTEXT: {
-    fontSize: '12px',
+    fontSize: '13px',
     fontWeight: '500',
     color: 'var(--fg-muted)',
     lineHeight: '1.5',
@@ -48,21 +48,21 @@ const TOKEN_DEFS = {
   },
   /** Pill badges — uppercase is intentional here */
   BADGE: {
-    fontSize: '10px',
+    fontSize: '12px',
     fontWeight: '700',
-    letterSpacing: '0.04em',
+    letterSpacing: '0',
   },
   STAT: {
     fontSize: '24px',
     fontWeight: '700',
-    letterSpacing: '-0.5px',
+    letterSpacing: '0',
     color: 'var(--fg-text)',
     lineHeight: '1.1',
   },
   STAT_LARGE: {
     fontSize: '48px',
     fontWeight: '800',
-    letterSpacing: '-2px',
+    letterSpacing: '0',
     color: 'var(--fg-text)',
     lineHeight: '1',
   },
@@ -71,7 +71,7 @@ const TOKEN_DEFS = {
     fontSize: '14px',
     fontWeight: '600',
     color: 'var(--fg-muted)',
-    letterSpacing: '0.06em',
+    letterSpacing: '0',
     lineHeight: '1.4',
   },
   BANNER_HEADING: {
@@ -91,7 +91,7 @@ const TOKEN_DEFS = {
   ERROR: {
     fontSize: '14px',
     fontWeight: '600',
-    color: 'var(--red)',
+    color: 'var(--fg-red)',
     letterSpacing: '0',
     lineHeight: '1.4',
   },
@@ -101,6 +101,41 @@ const TOKEN_DEFS = {
     color: 'var(--fg-muted)',
     lineHeight: '1.6',
   },
+};
+
+/**
+ * UI_ICONS — centralized SVG icon system to replace all emojis.
+ */
+export const UI_ICONS = {
+  FIRE: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.254 1.189-3.188a4.82 4.82 0 0 0 3.311 3.188z"/></svg>',
+  CHECK:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  ARROW_RIGHT:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+  TRENDS:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>',
+  SHIELD:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+  ZAP: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+  LOCK: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  RULER:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21.3 15.3a2.8 2.8 0 1 1-4-4l-3.9 3.9-3.9-3.9 3.9-3.9a2.8 2.8 0 1 1 4-4L2 14.7l3 3 16.3-16.3"/></svg>',
+  ROCKET:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>',
+  TARGET:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>',
+  SPARKLES:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.912 5.813a2 2 0 0 0 1.275 1.275L21 12l-5.813 1.912a2 2 0 0 0-1.275 1.275L12 21l-1.912-5.813a2 2 0 0 0-1.275-1.275L3 12l5.813-1.912a2 2 0 0 0 1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
+  TURTLE:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 10V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2Z"/><path d="M16 10V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2Z"/><path d="M2 14h20"/><path d="M20 18v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2"/></svg>',
+  CHART:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+  LIGHTBULB:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A5 5 0 0 0 8 8c0 1.3.5 2.6 1.5 3.5.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>',
+  KEYBOARD:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><line x1="6" y1="8" x2="6" y2="8"/><line x1="10" y1="8" x2="10" y2="8"/><line x1="14" y1="8" x2="14" y2="8"/><line x1="18" y1="8" x2="18" y2="8"/><line x1="6" y1="12" x2="6" y2="12"/><line x1="10" y1="12" x2="10" y2="12"/><line x1="14" y1="12" x2="14" y2="12"/><line x1="18" y1="12" x2="18" y2="12"/><line x1="7" y1="16" x2="17" y2="16"/></svg>',
+  CLOSE:
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
 };
 
 /** Helper to convert React style object to CSS string for template literals */
@@ -172,10 +207,10 @@ export function setupDateSelectorWidget(
       <div style="display: flex; flex-direction: column; align-items: center; min-width: 80px; cursor:pointer;" class="date-picker-trigger" id="sa-date-trigger">
         <div style="${UI_TOKENS.TEXT.CARD_TITLE}; color:${
     COLORS.text
-  }; font-weight:800; font-size: 12px;">${friendly}</div>
+  }; font-weight:800; font-size: 13px;">${friendly}</div>
         <div style="${UI_TOKENS.TEXT.BADGE} color:${
     COLORS.muted
-  }; text-transform: uppercase; margin-top: -1px;">${targetDate}</div>
+  }; margin-top: -1px;">${targetDate}</div>
       </div>
 
       <button class="date-nav-next" ${
@@ -439,9 +474,9 @@ export function renderStreakBadge(streak: number) {
 
   return `
     <div style="display: flex; align-items: center; gap: 6px; padding: 5px 10px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 12px; color: ${color}; font-weight: 700;">
-      <svg width="13" height="13" viewBox="0 0 448 512" fill="currentColor" style="opacity: ${
+      <span style="opacity: ${
         isZero ? 0.5 : 1
-      };"><path d="M159.3 5.4c7.8-7.3 19.9-7.2 27.7 .1c27.6 25.9 53.5 53.8 77.7 84c11-14.4 23.5-30.1 37-42.9c7.9-7.4 20.1-7.4 28 .1c34.6 33 63.9 76.6 84.5 118c20.3 40.8 33.8 82.5 33.8 111.9C448 404.2 348.2 512 224 512C98.4 512 0 404.1 0 276.5c0-38.4 17.8-85.3 45.4-131.7C73.3 97.7 112.7 48.6 159.3 5.4zM225.7 416c25.3 0 47.7-7 68.8-21c42.1-29.4 53.4-88.2 28.1-134.4c-4.5-9-16-9.6-22.5-2l-25.2 29.3c-6.6 7.6-18.5 7.4-24.7-.5c-16.5-21-46-58.5-62.8-79.8c-6.3-8-18.3-8.1-24.7-.1c-33.8 42.5-50.8 69.3-50.8 99.4C112 375.4 162.6 416 225.7 416z"/></svg>
+      }; display: flex; align-items: center;">${UI_ICONS.FIRE}</span>
       <span style="font-size: 12px; font-weight: 700; letter-spacing: 0;">${streak}d</span>
     </div>
   `;
@@ -452,9 +487,11 @@ export function renderCompactStreak(streak: number) {
   const color = isZero ? COLORS.muted : COLORS.fire;
   return `
     <div style="display: flex; align-items: center; gap: 4px; color: ${color}; font-weight: 600; font-size: 12px;">
-      <svg width="10" height="10" viewBox="0 0 448 512" fill="currentColor" style="opacity: ${
+      <span style="opacity: ${
         isZero ? 0.3 : 1
-      };"><path d="M159.3 5.4c7.8-7.3 19.9-7.2 27.7 .1c27.6 25.9 53.5 53.8 77.7 84c11-14.4 23.5-30.1 37-42.9c7.9-7.4 20.1-7.4 28 .1c34.6 33 63.9 76.6 84.5 118c20.3 40.8 33.8 82.5 33.8 111.9C448 404.2 348.2 512 224 512C98.4 512 0 404.1 0 276.5c0-38.4 17.8-85.3 45.4-131.7C73.3 97.7 112.7 48.6 159.3 5.4zM225.7 416c25.3 0 47.7-7 68.8-21c42.1-29.4 53.4-88.2 28.1-134.4c-4.5-9-16-9.6-22.5-2l-25.2 29.3c-6.6 7.6-18.5 7.4-24.7-.5c-16.5-21-46-58.5-62.8-79.8c-6.3-8-18.3-8.1-24.7-.1c-33.8 42.5-50.8 69.3-50.8 99.4C112 375.4 162.6 416 225.7 416z"/></svg>
+      }; display: flex; align-items: center; transform: scale(0.8);">${
+    UI_ICONS.FIRE
+  }</span>
       <span>${streak}d</span>
     </div>
   `;
@@ -478,14 +515,14 @@ export function renderTableProgress(
 
   if (used <= 0) {
     percent = 0;
-    color = 'var(--green)';
+    color = 'var(--fg-green)';
   } else if (limit <= 0) {
     percent = 100;
-    color = 'var(--red)';
+    color = 'var(--fg-red)';
   } else {
     percent = Math.min(100, Math.max(0, (used / limit) * 100));
     if (percent >= 80) {
-      color = 'var(--red)';
+      color = 'var(--fg-red)';
     } else if (percent >= 50) {
       color = 'var(--fg-progress-yellow)';
     }
@@ -545,13 +582,15 @@ export function renderAppTableRow(
         <div style="font-size: 15px; font-weight: 600; color: var(--fg-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.3;">${escapeHtml(
           rule.appName || identifier,
         )}</div>
-        <div style="margin-top: 3px; font-size: 12px; font-weight: 500; color: var(--fg-muted);">${
-          streak > 0
-            ? `🔥 ${streak}d streak`
-            : type === 'service'
-            ? 'App'
-            : 'Domain'
-        }</div>
+        <div style="margin-top: 3px; font-size: 12px; font-weight: 500; color: var(--fg-muted); display: flex; align-items: center; gap: 4px;">
+          ${
+            streak > 0
+              ? `<span style="color: ${COLORS.fire}; display: flex; align-items: center; transform: scale(0.75);">${UI_ICONS.FIRE}</span> ${streak}d streak`
+              : type === 'service'
+              ? 'App'
+              : 'Domain'
+          }
+        </div>
       </div>
 
       <!-- 3. Usage & Progress -->
@@ -631,7 +670,7 @@ export function renderCloudBanner(
 export function renderErrorCard(message: string, retryBtnId: string): string {
   return `
     <div class="app-card" style="text-align: center; padding: 40px 24px; background: var(--fg-glass-bg); border-color: var(--fg-glass-border);">
-      <div style="color: var(--red); margin-bottom: 12px; display: flex; justify-content: center;">
+      <div style="color: var(--fg-red); margin-bottom: 12px; display: flex; justify-content: center;">
         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
       </div>
       <div style="${UI_TOKENS.TEXT.ERROR}; margin-bottom: 8px;">Failed to Load</div>
@@ -651,7 +690,7 @@ export function renderSectionHeader(
 ): string {
   const badge =
     count !== undefined && count > 0
-      ? `<span style="font-size: 11px; font-weight: 700; padding: 2px 10px; border-radius: 100px; background: var(--fg-danger-badge); color: var(--red); border: 1px solid var(--fg-danger-badge-border);">${count}</span>`
+      ? `<span style="font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 100px; background: var(--fg-danger-badge); color: var(--fg-red); border: 1px solid var(--fg-danger-badge-border);">${count}</span>`
       : '';
   return `
     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
@@ -691,8 +730,10 @@ export function renderToggleSwitch(
       aria-checked="${active}"
       role="switch"
       style="width: 32px; height: 18px; border-radius: 9px; border: none;
-        background: ${active ? 'var(--green)' : 'var(--fg-toggle-bg)'};
-        border: 1px solid ${active ? 'var(--green)' : 'var(--fg-glass-border)'};
+        background: ${active ? 'var(--fg-green)' : 'var(--fg-toggle-bg)'};
+        border: 1px solid ${
+          active ? 'var(--fg-green)' : 'var(--fg-glass-border)'
+        };
         transition: background 0.2s ease; outline: none;"
     >
       <span style="position: absolute; top: 2px; left: ${
@@ -726,8 +767,10 @@ export function renderPillToggle(
       aria-checked="${active}"
       role="switch"
       style="width: 36px; height: 20px; border-radius: 10px; border: none;
-        background: ${active ? 'var(--green)' : 'var(--fg-toggle-bg)'};
-        border: 1px solid ${active ? 'var(--green)' : 'var(--fg-glass-border)'};
+        background: ${active ? 'var(--fg-green)' : 'var(--fg-toggle-bg)'};
+        border: 1px solid ${
+          active ? 'var(--fg-green)' : 'var(--fg-glass-border)'
+        };
         transition: background 0.2s; outline: none;"
     >
       <span style="position: absolute; top: 2px; left: ${
@@ -749,8 +792,8 @@ export function applyToggleUI(btn: HTMLElement, active: boolean): void {
   btn.setAttribute('data-active', String(active));
   if (active) {
     btn.classList.add('active');
-    btn.style.background = 'var(--green)';
-    btn.style.border = '1px solid var(--green)';
+    btn.style.background = 'var(--fg-green)';
+    btn.style.border = '1px solid var(--fg-green)';
   } else {
     btn.classList.remove('active');
     btn.style.background = 'var(--fg-toggle-bg)';
@@ -779,7 +822,7 @@ export function applyCardToggleUI(
   btn.style.borderColor = active
     ? 'var(--fg-emerald-border-strong)'
     : COLORS.glassBorder;
-  btn.style.color = active ? 'var(--green)' : 'var(--muted)';
+  btn.style.color = active ? 'var(--fg-green)' : 'var(--fg-muted)';
   if (active) {
     btn.classList.add('active');
   } else {
@@ -800,7 +843,7 @@ export function applyCardToggleUI(
  */
 export function renderLoader(label = '', padding = 'fg-p-10'): string {
   const text = label
-    ? `<div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-4  fg-tracking-[2px] fg-animate-pulse">${label}</div>`
+    ? `<div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-70 fg-mt-4 fg-animate-pulse">${label}</div>`
     : '';
   return `
     <div class="fg-flex fg-flex-col fg-items-center fg-justify-center ${padding}">
@@ -820,10 +863,37 @@ export function renderLoader(label = '', padding = 'fg-p-10'): string {
  *
  * @param message  The message to display.
  */
-export function renderEmptyState(message: string): string {
+export function renderEmptyState(
+  message: string,
+  suggestions?: { id: string; label: string }[],
+): string {
+  let suggestionsHtml = '';
+  if (suggestions && suggestions.length > 0) {
+    suggestionsHtml = `
+      <div style="margin-top: 24px; border-top: 1px dashed var(--fg-glass-border); padding-top: 20px;">
+        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.5; margin-bottom: 12px;">Quick Suggestions</div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
+          ${suggestions
+            .map(
+              (s) => `
+            <button class="quick-add-btn fg-px-4 fg-py-2 fg-rounded-xl fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-text)] fg-text-[12px] fg-font-bold hover:fg-bg-[var(--fg-surface-hover)] hover:fg-border-[var(--fg-muted)] fg-transition-all fg-cursor-pointer fg-flex fg-items-center fg-gap-2" data-id="${
+              s.id
+            }">
+              ${renderBrandLogo(s.id, s.label, 16)}
+              <span>+ ${s.label}</span>
+            </button>
+          `,
+            )
+            .join('')}
+        </div>
+      </div>
+    `;
+  }
+
   return `
     <div style="padding: 28px 20px; border: 1px dashed var(--fg-glass-border); border-radius: 16px; color: var(--fg-muted); font-size: 13px; font-weight: 600; text-align: center; background: var(--fg-glass-bg); width: 100%; line-height: 1.5;">
-      ${message}
+      <div>${message}</div>
+      ${suggestionsHtml}
     </div>
   `;
 }
@@ -846,13 +916,13 @@ export function renderSectionBadge(
   const styles: Record<string, string> = {
     default:
       'background: var(--fg-glass-bg); color: var(--fg-text); border: 1px solid var(--fg-glass-border); opacity: 0.8;',
-    red: 'background: var(--fg-danger-badge); color: var(--red); border: 1px solid var(--fg-danger-badge-border);',
+    red: 'background: var(--fg-danger-badge); color: var(--fg-red); border: 1px solid var(--fg-danger-badge-border);',
     green:
-      'background: var(--fg-emerald-soft); color: var(--green); border: 1px solid var(--fg-emerald-border);',
+      'background: var(--fg-emerald-soft); color: var(--fg-green); border: 1px solid var(--fg-emerald-border);',
     accent:
       'background: var(--fg-indigo-soft); color: var(--fg-accent); border: 1px solid var(--fg-nav-border);',
   };
-  return `<span style="font-size: 10px; font-weight: 800; letter-spacing: 0.06em;  padding: 3px 10px; border-radius: 100px; ${styles[color]}">${label}</span>`;
+  return `<span style="font-size: 12px; font-weight: 800; letter-spacing: 0; padding: 3px 10px; border-radius: 100px; ${styles[color]}">${label}</span>`;
 }
 
 // ─────────────────────────────────────────────
@@ -943,6 +1013,10 @@ export async function showConfirmDialog(
     cancelLabel = 'Cancel',
     isDestructive = false,
   } = options;
+  const safeTitle = escapeHtml(title);
+  const safeBody = escapeHtml(body);
+  const safeConfirmLabel = escapeHtml(confirmLabel);
+  const safeCancelLabel = escapeHtml(cancelLabel);
 
   return new Promise((resolve) => {
     const dialogId = `__fg_dialog_${Date.now()}`;
@@ -953,18 +1027,20 @@ export async function showConfirmDialog(
 
     overlay.innerHTML = `
       <div class="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[32px] fg-p-8 fg-max-w-[420px] fg-w-full fg-shadow-2xl">
-        <div style="${UI_TOKENS.TEXT.HERO}; margin-bottom: 12px;">${title}</div>
+        <div style="${
+          UI_TOKENS.TEXT.HERO
+        }; margin-bottom: 12px;">${safeTitle}</div>
         <div style="${
           UI_TOKENS.TEXT.SUBTEXT
-        }; font-size: 14px; margin-bottom: 32px; opacity: 0.8; line-height: 1.6;">${body}</div>
+        }; font-size: 14px; margin-bottom: 32px; opacity: 0.8; line-height: 1.6;">${safeBody}</div>
         
         <div class="fg-flex fg-gap-3 fg-justify-end">
-          <button class="dialog-cancel-btn fg-px-6 fg-py-3 fg-rounded-2xl fg-text-sm fg-font-bold fg-text-[var(--fg-muted)] hover:fg-bg-[var(--fg-surface-hover)] fg-transition-all">${cancelLabel}</button>
+          <button class="dialog-cancel-btn fg-px-6 fg-py-3 fg-rounded-2xl fg-text-sm fg-font-bold fg-text-[var(--fg-muted)] hover:fg-bg-[var(--fg-surface-hover)] fg-transition-all">${safeCancelLabel}</button>
           <button class="dialog-confirm-btn btn-premium fg-px-6 fg-py-3 fg-rounded-2xl fg-text-sm" 
                   style="font-weight: 800; background: ${
-                    isDestructive ? 'var(--red)' : 'var(--fg-text)'
+                    isDestructive ? 'var(--fg-red)' : 'var(--fg-text)'
                   }; color: ${isDestructive ? COLORS.onAccent : COLORS.bg};">
-            ${confirmLabel}
+            ${safeConfirmLabel}
           </button>
         </div>
       </div>
@@ -1045,6 +1121,8 @@ export function showPinModal(
   onVerify: (pin: string) => Promise<boolean>,
   onCancel?: () => void,
 ) {
+  const safeTitle = escapeHtml(title);
+  const safeBody = escapeHtml(body);
   const overlay = document.createElement('div');
   overlay.className =
     'fg-fixed fg-inset-0 fg-z-[2000] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay-strong)] fg-backdrop-blur-xl fg-transition-all fg-duration-300 fg-opacity-0';
@@ -1054,8 +1132,8 @@ export function showPinModal(
       <div class="fg-mb-6 fg-mx-auto fg-w-12 fg-h-12 fg-rounded-2xl fg-bg-[var(--fg-accent-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-accent)]">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
       </div>
-      <div style="${UI_TOKENS.TEXT.HEADING}; font-size: 18px; margin-bottom: 8px;">${title}</div>
-      <div style="${UI_TOKENS.TEXT.SUBTEXT}; margin-bottom: 24px;">${body}</div>
+      <div style="${UI_TOKENS.TEXT.HEADING}; font-size: 18px; margin-bottom: 8px;">${safeTitle}</div>
+      <div style="${UI_TOKENS.TEXT.SUBTEXT}; margin-bottom: 24px;">${safeBody}</div>
       
       <div class="fg-flex fg-justify-center fg-gap-3 fg-mb-8">
         <input type="password" maxlength="1" class="pin-digit-input" autofocus>
@@ -1086,7 +1164,7 @@ export function showPinModal(
           transform: translateY(-2px);
         }
         .pin-digit-input.error {
-          border-color: var(--red);
+          border-color: var(--fg-red);
           animation: shake 0.4s;
         }
         @keyframes shake {
@@ -1098,10 +1176,10 @@ export function showPinModal(
 
       <div class="fg-flex fg-flex-col fg-gap-3">
         <div class="fg-flex fg-gap-3">
-          <button class="fg-flex-1 fg-rounded-2xl fg-py-3.5 fg-text-[11px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-50 fg-uppercase fg-tracking-[0.15em] hover:fg-bg-[var(--fg-white-wash)] fg-transition-all" id="pin_cancel_btn">Cancel</button>
-          <button class="btn-premium fg-flex-1 fg-py-3.5 fg-text-[11px] fg-font-black fg-uppercase fg-tracking-[0.15em]" id="pin_verify_btn">Verify</button>
+          <button class="fg-flex-1 fg-rounded-2xl fg-py-3.5 fg-text-[13px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-70 hover:fg-bg-[var(--fg-white-wash)] fg-transition-all" id="pin_cancel_btn">Cancel</button>
+          <button class="btn-premium fg-flex-1 fg-py-3.5 fg-text-[13px] fg-font-black" id="pin_verify_btn">Verify</button>
         </div>
-        <button id="pin_forgot_link" class="fg-text-[9px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-40 hover:fg-opacity-80 fg-uppercase fg-tracking-widest fg-transition-all fg-mt-2">Forgot PIN?</button>
+        <button id="pin_forgot_link" class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-65 hover:fg-opacity-90 fg-transition-all fg-mt-2">Forgot PIN?</button>
       </div>
     </div>
   `;
@@ -1217,27 +1295,40 @@ export async function showWhatsNew(version: string, features: any[]) {
     'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay)] fg-backdrop-blur-[20px] fg-opacity-0 fg-transition-all fg-duration-500';
 
   const featureList = features
-    .map(
-      (f) => `
+    .map((f) => {
+      const iconKey = f.iconId as keyof typeof UI_ICONS;
+      const iconSvg = UI_ICONS[iconKey] || f.icon || '';
+      return `
     <div class="fg-flex fg-gap-5 fg-p-6 fg-rounded-[32px] fg-bg-[var(--fg-white-wash)] fg-border fg-border-[var(--fg-white-wash)] fg-transition-all hover:fg-bg-[var(--fg-surface-hover)]">
-      <div class="fg-text-4xl fg-shrink-0">${f.icon}</div>
+      <div class="fg-text-4xl fg-shrink-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-accent)]" style="width: 48px; height: 48px;">
+        <div style="transform: scale(2.5);">${iconSvg}</div>
+      </div>
       <div>
-        <div class="fg-text-[16px] fg-font-bold fg-text-[var(--fg-text)] fg-tracking-tight">${f.label}</div>
-        <div class="fg-text-[12px] fg-text-[var(--fg-muted)] fg-mt-1 fg-line-height-1.4 fg-font-medium">${f.desc}</div>
+        <div class="fg-text-[16px] fg-font-bold fg-text-[var(--fg-text)]">${escapeHtml(
+          f.label,
+        )}</div>
+        <div class="fg-text-[13px] fg-text-[var(--fg-muted)] fg-mt-1 fg-font-medium" style="line-height: 1.5;">${escapeHtml(
+          f.desc,
+        )}</div>
       </div>
     </div>
-  `,
-    )
+  `;
+    })
     .join('');
 
   overlay.innerHTML = `
     <div class="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[48px] fg-p-12 fg-max-w-[1000px] fg-w-[90%] fg-shadow-2xl fg-scale-95 fg-transition-all fg-duration-500 fg-flex fg-flex-col">
       <div class="fg-mb-10 fg-flex fg-items-end fg-justify-between">
         <div>
-          <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-accent)] fg-tracking-wide fg-mb-2">System Update Discovery</div>
-          <h2 class="fg-text-4xl fg-font-black fg-text-[var(--fg-text)] fg-tracking-tighter">What's New in v${version}</h2>
+          <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-accent)] fg-mb-2">${chrome.i18n.getMessage(
+            'whats_new_kicker',
+          )}</div>
+          <h2 class="fg-text-4xl fg-font-black fg-text-[var(--fg-text)]">${chrome.i18n.getMessage(
+            'whats_new_title',
+            [version],
+          )}</h2>
         </div>
-        <div class="fg-text-[11px] fg-font-bold fg-text-[var(--fg-muted)] fg-opacity-50 fg-tracking-tight">Build 1.0.7 Stable</div>
+        <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)] fg-opacity-70">Build ${version}</div>
       </div>
       
       <div class="fg-grid fg-grid-cols-2 fg-gap-5 fg-mb-12">
@@ -1245,7 +1336,9 @@ export async function showWhatsNew(version: string, features: any[]) {
       </div>
       
       <div class="fg-flex fg-justify-center">
-        <button id="btn_close_whats_new" class="btn-premium fg-px-20 fg-h-16 fg-rounded-3xl fg-font-bold fg-tracking-tight fg-text-base">Explore Features</button>
+        <button id="btn_close_whats_new" class="btn-premium fg-px-20 fg-h-16 fg-rounded-3xl fg-font-bold fg-text-base">${chrome.i18n.getMessage(
+          'whats_new_cta',
+        )}</button>
       </div>
     </div>
   `;
@@ -1308,15 +1401,17 @@ export async function showTypingChallenge(
           </button>
           
           <div class="fg-text-center fg-mb-10">
-            <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-accent)] fg-tracking-[0.4em] fg-mb-2">Mastery Challenge</div>
+            <div class="fg-text-[13px] fg-font-bold fg-text-[var(--fg-accent)] fg-mb-2">Mastery Challenge</div>
             <h2 class="fg-text-2xl fg-font-black fg-text-[var(--fg-text)]">Unblock Challenge</h2>
             <p class="fg-text-[13px] fg-text-[var(--fg-muted)] fg-mt-1">Prove your focus by typing the paragraph below.</p>
           </div>
           
-          <div id="challenge_display" class="fg-text-[26px] fg-line-height-1.6 fg-mb-12 fg-text-left fg-select-none" style="font-family: 'JetBrains Mono', monospace; word-break: break-word; white-space: pre-wrap; letter-spacing: 0.02em;">
+      <div id="challenge_display" class="fg-text-[26px] fg-mb-12 fg-text-left fg-select-none" style="font-family: 'JetBrains Mono', monospace; word-break: break-word; white-space: pre-wrap; letter-spacing: 0; line-height: 1.6;">
             ${targetText
               .split('')
-              .map((char) => `<span class="char-unit">${char}</span>`)
+              .map(
+                (char) => `<span class="char-unit">${escapeHtml(char)}</span>`,
+              )
               .join('')}
           </div>
           
@@ -1369,9 +1464,9 @@ export async function showTypingChallenge(
             opacity: 1; 
           }
           .char-unit.error { 
-            color: var(--red); 
+            color: var(--fg-red); 
             opacity: 1; 
-            border-bottom: 2px solid var(--red);
+            border-bottom: 2px solid var(--fg-red);
           }
         </style>
       `;
@@ -1482,17 +1577,19 @@ export async function showTypingChallenge(
             const elapsed = startTime ? (Date.now() - startTime) / 1000 : 0;
             if (elapsed > 0) {
               import('./typingHistory').then(({ saveTypingSession }) => {
-                const wpm = Math.round(targetText.length / 5 / (elapsed / 60));
-                const attempts = targetText.length + mistakeCount;
-                const accuracy = Math.round(
-                  (targetText.length / attempts) * 100,
-                );
+                const timeMinutes = elapsed / 60;
+                const grossWPM = targetText.length / 5 / timeMinutes;
+                const accuracy =
+                  ((targetText.length - mistakeCount) / targetText.length) *
+                  100;
+                const netWPM = grossWPM - mistakeCount / timeMinutes;
 
                 saveTypingSession({
                   timestamp: Date.now(),
                   duration: elapsed,
-                  wpm,
-                  accuracy,
+                  wpm: Math.round(grossWPM),
+                  netWpm: Math.max(0, Math.round(netWPM)),
+                  accuracy: Math.round(accuracy),
                   textLength: targetText.length,
                   mistakes: mistakeCount,
                 });

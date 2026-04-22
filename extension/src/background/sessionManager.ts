@@ -1,5 +1,6 @@
 import { FocusSessionRecord } from '@stopaccess/types';
 import { syncDNRRules } from './dnrAdapter';
+import { getEffectiveElapsed } from '../lib/sessionTimer';
 import { nextDNSApi } from './platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
 import { RAW_COLORS } from '../lib/designTokens';
@@ -56,6 +57,7 @@ export async function startSession(config: {
     blockedAtStart,
     blockBypassEnabled: config.enableBlockBypass ?? false,
     elapsed: 0,
+    lastActivatedAt: Date.now(),
   };
 
   // 3. Centralized Save
@@ -116,6 +118,8 @@ export async function endSession(
     []) as FocusSessionRecord[];
 
   const endedAt = Date.now();
+  const focusElapsedMins = Math.round(getEffectiveElapsed(session) / 60);
+
   history.push({
     ...session,
     status: reason,
@@ -123,10 +127,7 @@ export async function endSession(
     actualMinutes:
       reason === 'completed'
         ? session.duration
-        : Math.min(
-            session.duration,
-            Math.round((endedAt - session.startedAt) / 60000),
-          ),
+        : Math.min(session.duration, focusElapsedMins),
   });
 
   await chrome.storage.local.set({
@@ -138,6 +139,61 @@ export async function endSession(
 
   // Clear badge
   await chrome.action.setBadgeText({ text: '' });
+}
+
+/**
+ * Pauses the current focus session.
+ */
+export async function pauseSession() {
+  const session = await getActiveSession();
+  if (!session || session.status !== 'focusing') {
+    return;
+  }
+
+  session.elapsed = getEffectiveElapsed(session);
+  session.lastActivatedAt = undefined;
+  session.status = 'paused';
+  await chrome.storage.local.set({ [STORAGE_KEYS.SESSION]: session });
+
+  // Clear DNR rules while paused
+  await syncDNRRules([]);
+
+  // Clear alarms
+  await chrome.alarms.clear('fg_session_tick');
+  await chrome.alarms.clear('fg_session_end');
+
+  // Update badge
+  await chrome.action.setBadgeText({ text: '||' });
+}
+
+/**
+ * Resumes a paused focus session.
+ */
+export async function resumeSession() {
+  const session = await getActiveSession();
+  if (!session || session.status !== 'paused') {
+    return;
+  }
+
+  session.status = 'focusing';
+  session.lastActivatedAt = Date.now();
+  const remainingSecs = session.duration * 60 - session.elapsed;
+
+  await chrome.storage.local.set({
+    [STORAGE_KEYS.SESSION]: session,
+    [STORAGE_KEYS.FOCUS_END]: Date.now() + remainingSecs * 1000,
+  });
+
+  // Re-activate DNR rules
+  await syncDNRRules(session.blockedDomains);
+
+  // Restart alarms
+  await chrome.alarms.create('fg_session_tick', { periodInMinutes: 1 });
+  await chrome.alarms.create('fg_session_end', {
+    delayInMinutes: remainingSecs / 60,
+  });
+
+  await updateBadge(session);
 }
 
 /**
@@ -157,8 +213,7 @@ export async function handleAlarm(
 ): Promise<boolean> {
   if (alarm.name === 'fg_session_tick') {
     const session = await getActiveSession();
-    if (session) {
-      session.elapsed = Math.round((Date.now() - session.startedAt) / 1000);
+    if (session && session.status === 'focusing') {
       await chrome.storage.local.set({ [STORAGE_KEYS.SESSION]: session });
       await updateBadge(session);
     }
@@ -177,7 +232,8 @@ export async function handleAlarm(
 }
 
 export async function updateBadge(session: FocusSessionRecord) {
-  const remaining = session.duration - Math.floor(session.elapsed / 60);
+  const elapsed = getEffectiveElapsed(session);
+  const remaining = session.duration - Math.floor(elapsed / 60);
   const text = remaining > 0 ? `${remaining}m` : 'OK';
   await chrome.action.setBadgeText({ text });
   await chrome.action.setBadgeBackgroundColor({
