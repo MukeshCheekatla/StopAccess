@@ -98,7 +98,7 @@ function summarizeFocusSessions(
   targetDate: string,
 ) {
   const matching = sessions.filter((session) => {
-    if (!session.startedAt) {
+    if (!session || !session.startedAt) {
       return false;
     }
     const day = new Date(session.startedAt).toLocaleDateString('en-CA');
@@ -137,16 +137,16 @@ export async function loadDashboardData(selectedDate?: string) {
     rules = (await loadAppsData()).rules;
   } catch {}
 
-  const today = getTodayKey();
-  const targetDate = selectedDate || today;
-  const isToday = targetDate === today;
-
   const storageData = (await chrome.storage.local.get([
     STORAGE_KEYS.USAGE,
     'fg_logs',
     STORAGE_KEYS.USAGE_HISTORY,
     STORAGE_KEYS.SESSION_HISTORY,
   ])) as any;
+
+  const today = getTodayKey();
+  const targetDate = selectedDate || today;
+  const isToday = targetDate === today;
 
   const fgLogs = ((storageData.fg_logs || []) as any[]).slice(-3).reverse();
   const usageHistory = (storageData[STORAGE_KEYS.USAGE_HISTORY] ||
@@ -173,7 +173,7 @@ export async function loadDashboardData(selectedDate?: string) {
     }))
     .filter((d) => d.timeMs > 0)
     .sort((a, b) => b.timeMs - a.timeMs)
-    .slice(0, 8);
+    .slice(0, 40);
 
   const syncStatus = await storage.getString('nextdns_connection_status');
   const lastSync = await storage.getString('fg_last_sync_at');

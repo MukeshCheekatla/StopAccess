@@ -4,6 +4,7 @@
 export type SessionStatus =
   | 'idle'
   | 'focusing'
+  | 'paused'
   | 'break'
   | 'completed'
   | 'cancelled';
@@ -29,7 +30,8 @@ export interface FocusSessionRecord {
   actualMinutes?: number;
   breakDuration: number;
   blockedDomains: string[];
-  elapsed: number; // seconds elapsed
+  elapsed: number; // total seconds focusing before current segment
+  lastActivatedAt?: number; // timestamp when current focusing segment started
   blockedAtStart?: {
     denylist: string[];
     services: string[];

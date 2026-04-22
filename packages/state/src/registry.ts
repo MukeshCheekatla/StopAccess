@@ -26,4 +26,5 @@ export const STORAGE_KEYS = {
   ONBOARDING_DONE: 'fg_onboarding_done',
   ENGINE_HEARTBEAT: 'fg_last_engine_heartbeat',
   TYPING_MASTERY_LOG: 'fg_typing_mastery_log',
+  REDIRECT_URL: 'fg_redirect_url',
 };

@@ -113,7 +113,11 @@ export async function runFullEngineCycle(ctx: SyncContext, now = new Date()) {
       for (const rule of updatedRules) {
         const original = rules.find((r) => r.packageName === rule.packageName);
         if (rule.isLimitHit && !original?.isLimitHit && rule.mode === 'limit') {
-          notifications.notifyBlocked(rule.appName);
+          notifications.notifyBlocked(
+            rule.appName,
+            rule.dailyLimitMinutes,
+            rule.usedMinutesToday,
+          );
         }
       }
     }

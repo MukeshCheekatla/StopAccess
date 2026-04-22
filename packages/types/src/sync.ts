@@ -49,7 +49,11 @@ export interface SyncContext {
     ) => void;
   };
   notifications?: {
-    notifyBlocked: (appName: string) => void;
+    notifyBlocked: (
+      appName: string,
+      limitMinutes?: number,
+      usedMinutes?: number,
+    ) => void;
   };
   usage?: {
     refreshUsage: (rules: AppRule[]) => Promise<AppRule[]>;

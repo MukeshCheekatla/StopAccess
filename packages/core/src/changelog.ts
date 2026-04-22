@@ -1,30 +1,61 @@
 export const CHANGELOG = [
   {
+    version: '1.0.8',
+    title: 'Mastery & Stability Update',
+    features: [
+      {
+        iconId: 'TRENDS',
+        label: 'Realistic Mastery Score',
+        desc: 'A new typing score that rewards accuracy over just speed, giving you a better picture of your real progress.',
+      },
+      {
+        iconId: 'CHART',
+        label: 'Smarter Progress Stats',
+        desc: 'Your stats now prioritize longer focus sessions, making your long-term trends much more accurate.',
+      },
+      {
+        iconId: 'ZAP',
+        label: 'Smoother Controls',
+        desc: 'Fixed an issue that sometimes caused extra "Unlock" popups when turning on app blocks.',
+      },
+      {
+        iconId: 'SPARKLES',
+        label: 'Easier App Blocking',
+        desc: 'Added clear icons for popular apps so you can find and block distractions even faster.',
+      },
+      {
+        iconId: 'SHIELD',
+        label: 'Reliable Site Release',
+        desc: 'Fixed a bug where sites sometimes stayed blocked even after you turned protection off.',
+      },
+    ],
+  },
+  {
     version: '1.0.7',
     title: 'Mastery & Protection Refinement',
     features: [
       {
-        icon: '📈',
+        iconId: 'TRENDS',
         label: 'Typing Mastery Trends',
         desc: 'New real-time analytics for your focus sessions, tracking WPM and accuracy directly in your dashboard.',
       },
       {
-        icon: '🛡️',
+        iconId: 'SHIELD',
         label: 'Deep In-App Protection',
         desc: 'Advanced path-based blocking that can target specific sections like YouTube Shorts or Instagram Reels.',
       },
       {
-        icon: '⚡',
+        iconId: 'ZAP',
         label: 'Zero-Delay Site Release',
         desc: 'Optimized unblocking engine that restores site access the millisecond your focus session ends.',
       },
       {
-        icon: '🔒',
+        iconId: 'LOCK',
         label: 'Privacy Logic Fix',
         desc: 'Ensured that rules never sync to your cloud NextDNS profile unless DNS Hard Mode is explicitly enabled.',
       },
       {
-        icon: '📐',
+        iconId: 'RULER',
         label: 'Aligned Site Stability',
         desc: 'Synchronized network and UI delays (2.5s) to allow complex sites to load metadata before blocking kicks in.',
       },
@@ -35,27 +66,27 @@ export const CHANGELOG = [
     title: 'High-Fidelity Synthesis Update',
     features: [
       {
-        icon: '🚀',
+        iconId: 'ROCKET',
         label: 'Instant UI Loading',
         desc: 'Eliminated all loading flickers. The extension now renders instantly using local data while syncing changes silently in the background.',
       },
       {
-        icon: '🎯',
+        iconId: 'TARGET',
         label: 'Unified Focus Experience',
         desc: 'The extension popup now features the same premium focus controls as the dashboard, perfectly scaled for your browser window.',
       },
       {
-        icon: '📐',
+        iconId: 'RULER',
         label: 'Optimized App Management',
         desc: 'New fluid layout for service categories that removes cluttered scrollbars and makes managing your blocklists much easier.',
       },
       {
-        icon: '🛡️',
+        iconId: 'SHIELD',
         label: 'Rock-Solid Blocking',
         desc: 'Enhanced the core blocking engine for more reliable protection and faster synchronization with your NextDNS rules.',
       },
       {
-        icon: '✨',
+        iconId: 'SPARKLES',
         label: 'Visual Polish',
         desc: 'Systematically fixed overlapping text, tooltip flickering, and transparency issues across the entire security dashboard.',
       },
@@ -66,22 +97,22 @@ export const CHANGELOG = [
     title: 'Guardian Security & Patience Update',
     features: [
       {
-        icon: '🐢',
+        iconId: 'TURTLE',
         label: 'Unblock Challenge',
         desc: 'New real-time typing challenge to prevent impulsive setting changes.',
       },
       {
-        icon: '🛡️',
+        iconId: 'SHIELD',
         label: 'Guardian Lock',
         desc: 'Unified security flow that synchronizes PIN and Typing challenges.',
       },
       {
-        icon: '📊',
+        iconId: 'CHART',
         label: 'Balanced Dashboard',
         desc: 'Optimized settings layout with side-by-side security controls.',
       },
       {
-        icon: '💡',
+        iconId: 'LIGHTBULB',
         label: 'Helpful Insights',
         desc: 'New informative tooltips for all security and protection layers.',
       },
@@ -92,22 +123,22 @@ export const CHANGELOG = [
     title: 'Precision & Recovery Update',
     features: [
       {
-        icon: '🛡️',
+        iconId: 'SHIELD',
         label: '12-Hour Master Reset',
         desc: 'New "Forgot PIN" safety valve with 12-hour cooling-off period.',
       },
       {
-        icon: '⌨️',
+        iconId: 'KEYBOARD',
         label: 'Enter to Save',
         desc: 'Full keyboard support for PIN entry and settings management.',
       },
       {
-        icon: '✨',
+        iconId: 'SPARKLES',
         label: 'Simplified Language',
         desc: 'Clearer, approachable terms for protection rules and status.',
       },
       {
-        icon: '🎯',
+        iconId: 'TARGET',
         label: 'Focus Flow UX',
         desc: 'Auto-focusing PIN inputs and side-by-side modal actions.',
       },
