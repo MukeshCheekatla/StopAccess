@@ -1,5 +1,26 @@
 export const CHANGELOG = [
   {
+    version: '1.0.9',
+    title: 'Precision & Security Update',
+    features: [
+      {
+        iconId: 'CHART',
+        label: 'Accurate Focus Tracking',
+        desc: 'Precision counting for your focus sessions. Aborted or interrupted sessions now record exact active time instead of full duration.',
+      },
+      {
+        iconId: 'LOCK',
+        label: 'Strict Mode Fix',
+        desc: 'Resolved a circular lock that prevented turning off Strict Mode. You can now adjust your security settings after a successful PIN verification.',
+      },
+      {
+        iconId: 'ZAP',
+        label: 'Intelligent Persistence',
+        desc: 'Session timing now intelligently pauses when your computer sleeps or the browser is closed, preventing "ghost" focus minutes.',
+      },
+    ],
+  },
+  {
     version: '1.0.8',
     title: 'Mastery & Stability Update',
     features: [
