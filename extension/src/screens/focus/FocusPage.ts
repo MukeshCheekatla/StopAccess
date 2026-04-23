@@ -1,7 +1,11 @@
 import { STORAGE_KEYS } from '../../background/platformAdapter';
 import { FocusSessionRecord } from '@stopaccess/types';
 import { escapeHtml } from '@stopaccess/core';
-import { UI_TOKENS, getBrandLogoUrl } from '../../lib/ui';
+import {
+  UI_TOKENS,
+  renderBrandLogo,
+  attachGlobalIconListeners,
+} from '../../lib/ui';
 import { COLORS } from '../../lib/designTokens';
 import {
   getEffectiveElapsed,
@@ -40,9 +44,15 @@ function getTodayFocusMinutes(
   activeSession?: FocusSessionRecord | null,
 ): number {
   const history = getTodayHistory();
-  const historyMins = history
-    .filter((session) => session?.status === 'completed')
-    .reduce((sum, s) => sum + (s.actualMinutes || s.duration || 0), 0);
+  const historyMins = history.reduce((sum, s) => {
+    const mins =
+      s.actualMinutes !== undefined
+        ? s.actualMinutes
+        : s.status === 'completed'
+        ? s.duration
+        : 0;
+    return sum + (mins || 0);
+  }, 0);
 
   let activeMins = 0;
   if (
@@ -72,11 +82,14 @@ function renderTodayRecords(): string {
         hour: '2-digit',
         minute: '2-digit',
       });
+      const actualMins =
+        session.actualMinutes !== undefined
+          ? session.actualMinutes
+          : session.status === 'completed'
+          ? session.duration
+          : 0;
       const duration = formatMinutes(
-        Math.min(
-          session.actualMinutes || session.duration || 0,
-          session.duration || 0,
-        ),
+        Math.min(actualMins, session.duration || 0),
       );
       const tone =
         session?.status === 'completed'
@@ -224,20 +237,7 @@ function renderIdleStateSummary(): string {
 }
 
 function renderDomainIcon(domain: string, size = 32): string {
-  const iconUrl = getBrandLogoUrl(domain, 128);
-  return `
-    <div style="width:${size}px; height:${size}px; border-radius:10px; background:${
-    COLORS.glassBg
-  }; border:1px solid ${
-    COLORS.glassBorder
-  }; display:flex; align-items:center; justify-content:center; overflow:hidden;">
-      <img src="${iconUrl}" style="width:${Math.round(
-    size * 0.6,
-  )}px; height:${Math.round(
-    size * 0.6,
-  )}px; opacity:0.95;" onerror="this.style.display='none';" alt="">
-    </div>
-  `;
+  return renderBrandLogo(domain, undefined, size);
 }
 
 function renderActiveStateSummary(
@@ -355,6 +355,8 @@ export async function renderFocusPage(
   } else {
     _renderIdle(container, context);
   }
+
+  attachGlobalIconListeners(container);
 
   (window as any).__focusActiveContainer = container;
 

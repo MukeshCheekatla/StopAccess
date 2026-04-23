@@ -129,7 +129,7 @@ function PopupApp() {
         if (nextStatus === 'connected') {
           setStatus({ label: 'Sync', tone: 'active' });
         } else if (nextStatus === 'error') {
-          setStatus({ label: 'Error', tone: 'error' });
+          setStatus({ label: 'Offline', tone: 'error' });
         } else {
           setStatus({ label: 'Local', tone: 'muted' });
         }

@@ -134,7 +134,7 @@ export async function renderSettingsPage(container) {
   )}</h2>
                     <p style="${
                       UI_TOKENS.TEXT.SUBTEXT
-                    }; margin-top: 2px;">Add friction before rules can be weakened.</p>
+                    }; margin-top: 2px;">Immutable during active focus sessions.</p>
                   </div>
                 </div>
                 <label class="switch-toggle">
@@ -180,11 +180,15 @@ export async function renderSettingsPage(container) {
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                     </div>
                     <div>
-                      <h2 style="${
-                        UI_TOKENS.TEXT.HEADING
-                      }">Unblock Challenge ${renderInfoTooltip(
-    'Requires you to type a specific paragraph perfectly before settings can be unlocked. Adds mental friction to prevent impulsive changes.',
-  )}</h2>
+                      <div class="fg-flex fg-items-center fg-gap-2">
+                        <h2 style="${
+                          UI_TOKENS.TEXT.HEADING
+                        }">Unblock Challenge</h2>
+                        <span class="fg-text-[8px] fg-font-black fg-bg-emerald-500/10 fg-text-emerald-500 fg-px-1.5 fg-py-0.5 fg-rounded-md fg-tracking-widest">RECOMMENDED</span>
+                        ${renderInfoTooltip(
+                          'Requires you to type a specific paragraph perfectly before settings can be unlocked. Adds mental friction to prevent impulsive changes.',
+                        )}
+                      </div>
                       <p style="${
                         UI_TOKENS.TEXT.SUBTEXT
                       }; margin-top: 2px;">Type a paragraph perfectly to unlock settings.</p>
@@ -198,9 +202,7 @@ export async function renderSettingsPage(container) {
                   </label>
                 </div>
                 
-                <div id="challenge_settings_box" class="${
-                  challengeEnabled ? '' : 'fg-hidden'
-                } fg-flex-1 fg-flex fg-flex-col">
+                <div id="challenge_settings_box" class="fg-flex-1 fg-flex fg-flex-col">
                   <div style="${
                     UI_TOKENS.TEXT.LABEL
                   }; font-size: 11px; color: var(--fg-muted); letter-spacing: 0.1em; margin-bottom: 8px;">Target Paragraph</div>
@@ -503,6 +505,7 @@ export async function renderSettingsPage(container) {
         const confirmed = await confirmGuardianAction({
           title: 'Disable Strict Mode',
           body: 'Verify your security to weaken your protection.',
+          action: 'change_settings',
         });
 
         if (confirmed) {
@@ -646,6 +649,7 @@ export async function renderSettingsPage(container) {
         const confirmed = await confirmGuardianAction({
           title: 'Disable PIN',
           body: 'Verify your identity to remove rule protection.',
+          action: 'change_settings',
         });
         if (confirmed) {
           const { removeGuardianPinAction } = await import(
@@ -665,7 +669,7 @@ export async function renderSettingsPage(container) {
   const chkChallenge = container.querySelector(
     '#chk_patience_challenge',
   ) as HTMLInputElement;
-  const challengeBox = container.querySelector('#challenge_settings_box');
+
   const txtChallenge = container.querySelector(
     '#txt_challenge_body',
   ) as HTMLTextAreaElement;
@@ -674,13 +678,7 @@ export async function renderSettingsPage(container) {
   chkChallenge?.addEventListener('change', async () => {
     const enabled = chkChallenge.checked;
     await toggleChallengeAction(enabled);
-    if (enabled) {
-      challengeBox?.classList.remove('fg-hidden');
-      toast.info('Unblock Challenge Enabled');
-    } else {
-      challengeBox?.classList.add('fg-hidden');
-      toast.info('Unblock Challenge Disabled');
-    }
+    toast.info(`Unblock Challenge ${enabled ? 'Enabled' : 'Disabled'}`);
   });
 
   btnSaveChallenge?.addEventListener('click', async () => {

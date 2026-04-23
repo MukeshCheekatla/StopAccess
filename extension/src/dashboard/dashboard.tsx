@@ -308,7 +308,7 @@ function DashboardApp() {
         } else if (connection === 'browser_mode') {
           setStatus({ label: 'Local', tone: 'muted' });
         } else if (connection === 'error') {
-          setStatus({ label: 'Error', tone: 'error' });
+          setStatus({ label: 'Offline', tone: 'error' });
         } else {
           setStatus({ label: 'Syncing...', tone: 'default' });
         }

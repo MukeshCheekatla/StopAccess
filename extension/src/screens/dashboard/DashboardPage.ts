@@ -188,14 +188,14 @@ export async function renderDashboardPage(
                    <div style="display: flex; align-items: center; gap: 6px;">
                      <button id="btn_toggle_focus" style="width: 24px; height: 24px; border-radius: 8px; background: transparent; border: none; color: ${
                        COLORS.text
-                     }; cursor: pointer; display: flex; align-items: center; justify-content: center; opacity: 0.7; transition: all 0.2s;" onmouseover="this.style.opacity='1'; this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.opacity='0.7'; this.style.background='transparent'">
+                     }; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" class="timer-control-btn timer-control-btn-toggle">
                         ${isFocusing ? iconPause : iconPlay}
                      </button>
                      <button id="btn_stop_focus" style="width: 24px; height: 24px; border-radius: 8px; background: transparent; border: none; color: ${
                        COLORS.red
                      }; cursor: pointer; display: ${
         isFocusing ? 'flex' : 'none'
-      }; align-items: center; justify-content: center; opacity: 0.7; transition: all 0.2s;" onmouseover="this.style.opacity='1'; this.style.background='rgba(255,0,0,0.05)'" onmouseout="this.style.opacity='0.7'; this.style.background='transparent'">
+      }; align-items: center; justify-content: center; transition: all 0.2s;" class="timer-control-btn timer-control-btn-stop">
                         ${iconStop}
                      </button>
                    </div>
@@ -872,12 +872,7 @@ export async function renderDashboardPage(
           typingChanged
         ) {
           if (activeContainer && document.contains(activeContainer)) {
-            const isDashActive = !!document.querySelector(
-              '.nav-item[data-tab="dash"].active',
-            );
-            if (isDashActive) {
-              renderDashboardPage(activeContainer, lastViewedDate);
-            }
+            renderDashboardPage(activeContainer, lastViewedDate);
           }
         }
       };

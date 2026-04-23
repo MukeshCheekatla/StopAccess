@@ -429,12 +429,7 @@ export async function renderAppsPage(container: HTMLElement) {
         const activeContainer =
           (window as any).appsCurrentContainer || globalContainer;
         if (activeContainer && document.contains(activeContainer)) {
-          const isAppsActive = !!document.querySelector(
-            '.nav-item[data-tab="apps"].active',
-          );
-          if (isAppsActive) {
-            renderAppsPage(activeContainer);
-          }
+          refreshListOnly();
         }
       }
     };
@@ -1193,6 +1188,8 @@ function setupGlobalClickHandlers(container: HTMLElement) {
             currentRules,
           );
           if (result.ok) {
+            toggleBtn.classList.toggle('active', targetState);
+            toggleBtn.setAttribute('aria-checked', String(targetState));
             toggleBtn.style.opacity = '1';
             const action = targetState ? 'blocked' : 'allowed';
             toast.success(`${name || id} ${kind} is now ${action}`);
@@ -1210,6 +1207,7 @@ function setupGlobalClickHandlers(container: HTMLElement) {
 
       if (!targetState) {
         toggleBtn.classList.toggle('active', wasActive);
+        toggleBtn.setAttribute('aria-checked', String(wasActive));
         toggleBtn.style.opacity = '1';
 
         const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
