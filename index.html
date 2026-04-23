@@ -5,7 +5,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StopAccess - Stay Focused</title>
-    <link rel="icon" type="image/png" href="extension/assets/icon-32.png">
+    <meta name="description" content="StopAccess is a simple, powerful browser extension to block distractions, master focus, and reclaim your time with PIN protection and focus modes.">
+    
+    <!-- Icons -->
+    <link rel="icon" href="/favicon.png">
+    <link rel="shortcut icon" href="/favicon.png">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://stopaccess.pages.dev">
+    <meta property="og:title" content="StopAccess - Control your time, Master focus">
+    <meta property="og:description" content="A simple, powerful way to block distractions and get your work done. PIN protection, Focus Mode, and Cloud Sync.">
+    <meta property="og:image" content="https://res.cloudinary.com/dgdrh9yar/image/upload/v1776922193/Frame_3_2_srkhlo.png">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://stopaccess.pages.dev">
+    <meta name="twitter:title" content="StopAccess - Control your time, Master focus">
+    <meta name="twitter:description" content="A simple, powerful way to block distractions and get your work done. PIN protection, Focus Mode, and Cloud Sync.">
+    <meta name="twitter:image" content="https://res.cloudinary.com/dgdrh9yar/image/upload/v1776922193/Frame_3_2_srkhlo.png">
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
         rel="stylesheet">
     <style>
@@ -453,6 +472,25 @@
 
             .features, .showcase, .privacy {
                 padding: 6rem 1.5rem;
+            }
+
+            .download-buttons {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0.75rem;
+                max-width: 400px;
+                margin-left: auto;
+                margin-right: auto;
+            }
+
+            .download-buttons a:last-child {
+                grid-column: span 2;
+            }
+
+            .download-buttons .btn {
+                padding: 0.75rem 1rem;
+                font-size: 0.85rem;
+                justify-content: center;
             }
         }
     </style>
