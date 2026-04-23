@@ -261,8 +261,7 @@ async function saveUsage(domain, durationMs) {
     await recordDailySnapshot(extensionAdapter, totalMins, blockedCount);
   });
 
-  // Re-sync UI with new data
-  runCycle().catch(() => {});
+  // Re-sync UI with new data (Removed redundant runCycle call to prevent infinite loop)
 }
 
 async function syncRulesWithUsage() {
@@ -348,60 +347,70 @@ async function incrementSession(domain) {
 }
 
 async function flushActiveTabUsage() {
-  const current = await getActiveTabState();
-  if (current && current.domain) {
-    const now = Date.now();
-    const duration = now - current.start;
-    if (duration > 1000) {
-      try {
-        await saveUsage(current.domain, duration);
-        current.start = now;
-        await setActiveTabState(current);
-      } catch (error) {
-        recordRuntimeError('flush_active_tab', error);
+  await withStorageLock(async () => {
+    const current = await getActiveTabState();
+    if (current && current.domain) {
+      const now = Date.now();
+      const duration = now - current.start;
+      if (duration > 1000) {
+        try {
+          await saveUsage(current.domain, duration);
+          current.start = now;
+          await setActiveTabState(current);
+        } catch (error) {
+          recordRuntimeError('flush_active_tab', error);
+        }
       }
     }
-  }
+  });
 }
 
 async function switchTab(tabId) {
   const now = Date.now();
-  const current = await getActiveTabState();
 
-  if (tabId === -1) {
-    if (current && current.domain) {
-      const duration = now - current.start;
-      if (duration > 50) {
-        await saveUsage(current.domain, duration);
+  await withStorageLock(async () => {
+    const current = await getActiveTabState();
+
+    if (tabId === -1) {
+      if (current && current.domain) {
+        const duration = now - current.start;
+        if (duration > 50) {
+          await saveUsage(current.domain, duration);
+        }
       }
-    }
-    await setActiveTabState(null);
-    return;
-  }
-
-  try {
-    const tab = await chrome.tabs.get(tabId);
-    const domain = getDomain(tab.url);
-
-    if (current && current.domain === domain) {
+      await setActiveTabState(null);
       return;
     }
 
-    if (current && current.domain) {
-      const duration = now - current.start;
-      if (duration > 50) {
-        await saveUsage(current.domain, duration);
-      }
-    }
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      const domain = getDomain(tab.url);
 
-    const nextState = { domain, start: now, tabId };
-    await setActiveTabState(nextState);
-    if (domain) {
-      await incrementSession(domain);
+      if (current && current.domain === domain) {
+        // Still on same domain — just update tabId if it changed (e.g. switched to another tab of same site)
+        if (current.tabId !== tabId) {
+          current.tabId = tabId;
+          await setActiveTabState(current);
+        }
+        return;
+      }
+
+      if (current && current.domain) {
+        const duration = now - current.start;
+        if (duration > 50) {
+          await saveUsage(current.domain, duration);
+        }
+      }
+
+      const nextState = { domain, start: now, tabId };
+      await setActiveTabState(nextState);
+      if (domain) {
+        await incrementSession(domain);
+      }
+    } catch (e) {
+      await setActiveTabState(null);
     }
-  } catch (e) {
-    await setActiveTabState(null);
-  }
+  });
 }
 
 async function initActiveTab() {
@@ -491,6 +500,13 @@ async function performDailyReset(): Promise<boolean> {
         [STORAGE_KEYS.TEMP_PASSES]: {},
         [STORAGE_KEYS.EXTENSION_COUNTS]: {},
       });
+
+      // 3. Reset Active Tab Start Time to NOW (prevents yesterday's time leakage)
+      const current = await getActiveTabState();
+      if (current) {
+        current.start = Date.now();
+        await setActiveTabState(current);
+      }
     });
 
     // 3. Reset Rule State & Update Streaks

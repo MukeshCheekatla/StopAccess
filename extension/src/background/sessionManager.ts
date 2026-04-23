@@ -118,16 +118,18 @@ export async function endSession(
     []) as FocusSessionRecord[];
 
   const endedAt = Date.now();
-  const focusElapsedMins = Math.round(getEffectiveElapsed(session) / 60);
+  const actualSeconds = getEffectiveElapsed(session);
+  const actualMinutes = Math.floor(actualSeconds / 60);
 
   history.push({
     ...session,
     status: reason,
     endedAt,
+    elapsed: actualSeconds,
     actualMinutes:
       reason === 'completed'
         ? session.duration
-        : Math.min(session.duration, focusElapsedMins),
+        : Math.min(session.duration, actualMinutes),
   });
 
   await chrome.storage.local.set({
@@ -214,6 +216,9 @@ export async function handleAlarm(
   if (alarm.name === 'fg_session_tick') {
     const session = await getActiveSession();
     if (session && session.status === 'focusing') {
+      // Sync the computed elapsed time to storage so it survives restarts/sleep
+      session.elapsed = getEffectiveElapsed(session);
+      session.lastActivatedAt = Date.now();
       await chrome.storage.local.set({ [STORAGE_KEYS.SESSION]: session });
       await updateBadge(session);
     }
@@ -222,9 +227,24 @@ export async function handleAlarm(
 
   if (alarm.name === 'fg_session_end') {
     const session = await getActiveSession();
-    const duration = session?.duration ?? 0;
+    if (!session) {
+      return false;
+    }
+
+    const actualSeconds = getEffectiveElapsed(session);
+    const targetSeconds = session.duration * 60;
+
+    // Safety: If the alarm fires but we haven't actually focused enough (e.g. sleep),
+    // don't auto-complete. Wait for the next tick or manual check.
+    if (actualSeconds < targetSeconds - 5) {
+      console.log(
+        '[StopAccess] Session end alarm ignored: Insufficient elapsed time.',
+      );
+      return false;
+    }
+
     await endSession('completed');
-    notifyFocusComplete(duration);
+    notifyFocusComplete(session.duration);
     return true;
   }
 
