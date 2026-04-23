@@ -1,5 +1,31 @@
 export const CHANGELOG = [
   {
+    version: '1.1.0',
+    title: 'High-Grade Stability Update',
+    features: [
+      {
+        iconId: 'ROCKET',
+        label: 'Zero-Flicker Blocking',
+        desc: 'Implemented a high-precision handoff between the blur pre-warn and the full block screen. No more unstyled flashes or layout shifts.',
+      },
+      {
+        iconId: 'SPARKLES',
+        label: 'Branded Focus UI',
+        desc: 'New premium block screen featuring the StopAccess brand at the top and the blocked app icon paired directly with the domain name.',
+      },
+      {
+        iconId: 'ZAP',
+        label: 'Atomic Usage Sync',
+        desc: 'Advanced storage-locking engine prevents data collisions during rapid tab switching, ensuring your focus minutes are always recorded perfectly.',
+      },
+      {
+        iconId: 'SHIELD',
+        label: 'Intelligent Persistence',
+        desc: 'Enhanced observer-based blocking that remains active even on single-page applications and complex background navigations.',
+      },
+    ],
+  },
+  {
     version: '1.0.8',
     title: 'Mastery & Stability Update',
     features: [
