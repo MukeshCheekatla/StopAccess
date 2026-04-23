@@ -1,4 +1,4 @@
-import { getDomainForRule } from '@stopaccess/core';
+import { getDomainForRule, resolveFaviconUrl } from '@stopaccess/core';
 import { AppRule } from '@stopaccess/types';
 import { EXTENSION_COLOR_VAR_DECLARATIONS } from '../lib/designTokens';
 import { checkInAppFeatures, checkInAppUrlBlock } from './inAppBlocking';
@@ -16,20 +16,21 @@ const CONTENT_DEBUG_KEY = 'fg_block_debug';
 const REDIRECT_URL_KEY = 'fg_redirect_url';
 const FOCUS_END_KEY = 'focus_mode_end_time';
 const STRICT_MODE_KEY = 'strict_mode_enabled';
+const OVERLAY_DELAY_MS = 2500; // NOTE: Do NOT remove or reduce this delay. It prevents race conditions during page load and avoids breaking site scripts.
+const PREBLOCK_ID = '__fg_block_prewarn__';
 const OVERLAY_ID = '__fg_block_overlay__';
 const DEFAULT_MAX_DAILY_PASSES = 3;
 const PASS_DURATION_MINUTES = 5;
-const OVERLAY_DELAY_MS = 2500; // NOTE: Do NOT remove or reduce this delay. It prevents race conditions during page load and avoids breaking site scripts.
-const PREBLOCK_ID = '__fg_block_prewarn__';
 
 let overlayActive = false;
+let prewarnActive = false;
 let overlayEl = null;
-let preblockEl = null;
+let prewarnEl = null;
+let prewarnTimeout = null;
 let previousBodyOverflow = '';
 let previousHtmlOverflow = '';
 let liveTimerInterval = null;
 let passCountdownInterval = null;
-let pendingOverlayTimer = null;
 
 function currentDomain() {
   return window.location.hostname.replace(/^www\./, '');
@@ -212,14 +213,19 @@ function buildOverlayMarkup(domain, options: any = {}) {
     ? 'fg-text-xl sm:fg-text-2xl'
     : 'fg-text-2xl sm:fg-text-3xl';
   const remainingPasses = Math.max(0, maxExtensions - extensionCount);
+  const iconUrl = resolveFaviconUrl(domain);
+  const logoUrl = chrome.runtime.getURL('assets/icon-128.png');
 
   return `
-    <div class="fg-h-[100vh] fg-w-[100vw] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-host-bg)] fg-text-[var(--fg-on-accent)] fg-font-sans fg-overflow-y-auto fg-px-4 fg-py-6 sm:fg-p-8">
-      <div class="fg-w-full fg-max-w-[440px] fg-flex fg-flex-col fg-items-center fg-p-4 sm:fg-p-6">
-        <div class="fg-text-[13px] fg-font-black fg-text-[var(--fg-on-accent)] fg-mb-5 sm:fg-mb-8">StopAccess</div>
+    <div class="fg-anim-overlay" style="display: flex; align-items: center; justify-content: center; height: 100vh; width: 100vw; background-color: var(--fg-host-bg); color: var(--fg-on-accent); font-family: sans-serif; overflow-y: auto; padding: 24px;">
+      <div class="fg-anim-card" style="display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 440px;">
+        <div class="fg-flex fg-flex-col fg-items-center fg-mb-8">
+          <img src="${logoUrl}" style="width: 48px; height: 48px; margin-bottom: 8px;" alt="StopAccess" />
+          <div class="fg-text-[11px] fg-font-black fg-tracking-[0.1em] fg-uppercase fg-opacity-40">StopAccess</div>
+        </div>
 
-        <div class="fg-relative fg-w-[150px] fg-h-[150px] sm:fg-w-[180px] sm:fg-h-[180px] fg-mb-6 sm:fg-mb-8">
-          <svg class="fg-w-full fg-h-full fg--rotate-90" viewBox="0 0 180 180">
+        <div style="position: relative; width: 160px; height: 160px; margin-bottom: 32px;">
+          <svg style="width: 100%; height: 100%; transform: rotate(-90deg);" viewBox="0 0 180 180">
             <circle class="fg-fill-none fg-stroke-zinc-800" cx="90" cy="90" r="${R}" stroke-width="8" />
             <circle class="fg-fill-none" cx="90" cy="90" r="${R}" 
               stroke="${ringColor}" stroke-width="8" stroke-linecap="round"
@@ -233,20 +239,23 @@ function buildOverlayMarkup(domain, options: any = {}) {
           </div>
         </div>
 
-        <div class="fg-w-full fg-break-words fg-text-center fg-text-[22px] sm:fg-text-2xl fg-font-bold fg-mb-1 fg-text-[var(--fg-on-accent)] fg-opacity-90">${safeDomain}</div>
+        <div class="fg-flex fg-items-center fg-justify-center fg-gap-3 fg-mb-2">
+          <img src="${iconUrl}" style="width: 28px; height: 28px; border-radius: 6px; background: #222; border: 1px solid #333;" alt="" />
+          <div class="fg-break-words fg-text-[22px] sm:fg-text-2xl fg-font-bold fg-text-[var(--fg-on-accent)] fg-opacity-90">${safeDomain}</div>
+        </div>
         <div class="fg-text-[13px] sm:fg-text-sm fg-text-[var(--fg-muted)] fg-mb-6 sm:fg-mb-8 fg-text-center fg-leading-relaxed">${statusText}</div>
 
         <div class="fg-grid fg-grid-cols-3 fg-gap-px fg-w-full fg-bg-zinc-800 fg-rounded-2xl fg-overflow-hidden fg-mb-6 sm:fg-mb-8 fg-border fg-border-zinc-800">
           <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-[var(--fg-text)]">${sessions}</div>
+            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-[var(--fg-text)]" id="__fg_session_count">${sessions}</div>
             <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)]">Sessions</div>
           </div>
           <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-[var(--fg-text)]">${remaining}m</div>
+            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-[var(--fg-text)]" id="__fg_remaining_time">${remaining}m</div>
             <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)]">Time left</div>
           </div>
           <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-[var(--fg-text)]">${remainingPasses}</div>
+            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-[var(--fg-text)]" id="__fg_passes_left">${remainingPasses}</div>
             <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)]">Passes left</div>
           </div>
         </div>
@@ -285,43 +294,6 @@ function buildOverlayMarkup(domain, options: any = {}) {
   `;
 }
 
-function showPreBlockSignal() {
-  if (preblockEl || overlayActive) {
-    return;
-  }
-
-  preblockEl = document.createElement('div');
-  preblockEl.id = PREBLOCK_ID;
-  const shadow = preblockEl.attachShadow({ mode: 'open' });
-
-  const styleLink = document.createElement('link');
-  styleLink.rel = 'stylesheet';
-  styleLink.href = chrome.runtime.getURL('tailwind.css');
-  shadow.appendChild(styleLink);
-
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = `
-    <div class="fg-fixed fg-inset-0 fg-z-[2147483646] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay-tint)] fg-backdrop-blur-[1px]">
-      <div class="fg-flex fg-h-36 fg-w-36 fg-items-center fg-justify-center fg-rounded-full fg-border fg-border-[var(--fg-red)]/40 fg-bg-[var(--fg-red)]/15 fg-shadow-[0_0_80px_var(--fg-red-glow)]">
-        <div class="fg-h-16 fg-w-16 fg-rounded-full fg-bg-[var(--fg-red)] fg-animate-pulse"></div>
-      </div>
-    </div>
-  `;
-  shadow.appendChild(wrapper);
-  document.documentElement.appendChild(preblockEl);
-}
-
-function removePreBlockSignal() {
-  if (pendingOverlayTimer) {
-    clearTimeout(pendingOverlayTimer);
-    pendingOverlayTimer = null;
-  }
-  if (preblockEl?.parentNode) {
-    preblockEl.parentNode.removeChild(preblockEl);
-  }
-  preblockEl = null;
-}
-
 // ── Overlay Inject / Remove ───────────────────────
 
 function injectOverlay(domain, options: any = {}) {
@@ -330,7 +302,6 @@ function injectOverlay(domain, options: any = {}) {
   }
 
   overlayActive = true;
-  removePreBlockSignal();
   window.stop();
 
   previousHtmlOverflow = document.documentElement.style.overflow;
@@ -365,6 +336,29 @@ function injectOverlay(domain, options: any = {}) {
       z-index: 2147483647 !important;
       display: block !important;
       background-color: var(--fg-host-bg) !important;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif !important;
+    }
+    @keyframes fgFadeIn {
+      0% { opacity: 0; }
+      100% { opacity: 1; }
+    }
+    .fg-anim-overlay { 
+      animation: fgFadeIn 0.3s ease-out forwards;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      height: 100vh !important;
+      width: 100vw !important;
+      background-color: var(--fg-host-bg) !important;
+      overflow-y: auto !important;
+    }
+    .fg-anim-card { 
+       animation: fgFadeIn 0.4s ease-out forwards;
+       display: flex !important;
+       flex-direction: column !important;
+       align-items: center !important;
+       width: 100% !important;
+       max-width: 440px !important;
     }
   `;
   shadow.appendChild(baseStyle);
@@ -373,8 +367,63 @@ function injectOverlay(domain, options: any = {}) {
   wrapper.style.width = '100%';
   wrapper.style.height = '100%';
   wrapper.innerHTML = buildOverlayMarkup(domain, options);
-  shadow.appendChild(wrapper);
 
+  attachOverlayListeners(shadow, domain, options);
+  // Once attached and styleLink is loaded, ensure everything is visible
+  styleLink.onload = () => {
+    shadow.appendChild(wrapper);
+    requestAnimationFrame(() => {
+      wrapper.style.opacity = '1';
+    });
+
+    restartLiveTimer(
+      shadow,
+      options.usedMs || (options.usedMinutes || 0) * 60000,
+    );
+  };
+
+  const root = document.body || document.documentElement;
+  if (root) {
+    root.appendChild(overlayEl);
+  }
+}
+
+/**
+ * Starts (or restarts) the overlay live timer from `startMs`.
+ * Pauses automatically when the tab is hidden; resumes on visibility.
+ * Safe to call multiple times — always clears any previous interval.
+ */
+function restartLiveTimer(shadow: ShadowRoot, startMs: number) {
+  if (liveTimerInterval) {
+    clearInterval(liveTimerInterval);
+  }
+  let currentMs = startMs;
+  let lastTick = Date.now();
+
+  liveTimerInterval = setInterval(() => {
+    const el = shadow.getElementById('__fg_live_time');
+    if (!el) {
+      clearInterval(liveTimerInterval);
+      liveTimerInterval = null;
+      return;
+    }
+    // Suspend entirely when the tab is not visible — no wasted ticks.
+    if (document.visibilityState !== 'visible') {
+      lastTick = Date.now(); // reset so we don't jump when returning
+      return;
+    }
+    const now = Date.now();
+    currentMs += now - lastTick;
+    lastTick = now;
+    el.textContent = formatTime(currentMs);
+  }, 1000);
+}
+
+function attachOverlayListeners(
+  shadow: ShadowRoot,
+  domain: string,
+  options: any,
+) {
   shadow.querySelector('.fg-back')?.addEventListener('click', () => {
     window.location.href = chrome.runtime.getURL('dashboard.html');
   });
@@ -405,44 +454,30 @@ function injectOverlay(domain, options: any = {}) {
       }
     });
   });
-
-  document.documentElement.appendChild(overlayEl);
-
-  // Live timer
-  const startMs = options.usedMs || (options.usedMinutes || 0) * 60000;
-  let currentMs = startMs;
-  let lastTick = Date.now();
-
-  if (liveTimerInterval) {
-    clearInterval(liveTimerInterval);
-  }
-  liveTimerInterval = setInterval(() => {
-    const el = shadow.getElementById('__fg_live_time');
-    if (!el) {
-      clearInterval(liveTimerInterval);
-      return;
-    }
-    const now = Date.now();
-    if (document.visibilityState === 'visible') {
-      currentMs += now - lastTick;
-      el.textContent = formatTime(currentMs);
-    }
-    lastTick = now;
-  }, 1000);
 }
 
 function removeOverlay() {
-  if (!overlayActive) {
-    removePreBlockSignal();
+  // Clear any pending transition from pre-warn to full block
+  if (prewarnTimeout) {
+    clearTimeout(prewarnTimeout);
+    prewarnTimeout = null;
+  }
+
+  const existingOverlay = document.getElementById(OVERLAY_ID);
+  const existingPrewarn = document.getElementById(PREBLOCK_ID);
+
+  if (
+    !overlayActive &&
+    !prewarnActive &&
+    !existingOverlay &&
+    !existingPrewarn
+  ) {
     return;
   }
 
   overlayActive = false;
-  removePreBlockSignal();
-  if (pendingOverlayTimer) {
-    clearTimeout(pendingOverlayTimer);
-    pendingOverlayTimer = null;
-  }
+  prewarnActive = false;
+
   if (liveTimerInterval) {
     clearInterval(liveTimerInterval);
     liveTimerInterval = null;
@@ -451,15 +486,87 @@ function removeOverlay() {
     clearInterval(passCountdownInterval);
     passCountdownInterval = null;
   }
-  if (overlayEl?.parentNode) {
+
+  // Cleanup full overlay
+  if (existingOverlay && existingOverlay.parentNode) {
+    existingOverlay.parentNode.removeChild(existingOverlay);
+  } else if (overlayEl?.parentNode) {
     overlayEl.parentNode.removeChild(overlayEl);
   }
   overlayEl = null;
 
-  document.documentElement.style.overflow = previousHtmlOverflow;
-  if (document.body) {
-    document.body.style.overflow = previousBodyOverflow;
+  // Cleanup pre-warn overlay
+  if (existingPrewarn && existingPrewarn.parentNode) {
+    existingPrewarn.parentNode.removeChild(existingPrewarn);
+  } else if (prewarnEl?.parentNode) {
+    prewarnEl.parentNode.removeChild(prewarnEl);
   }
+  prewarnEl = null;
+
+  document.documentElement.style.overflow = previousHtmlOverflow || '';
+  if (document.body) {
+    document.body.style.overflow = previousBodyOverflow || '';
+  }
+}
+
+function injectPrewarn(domain: string, options: any) {
+  if (overlayActive || prewarnActive) {
+    return;
+  }
+  prewarnActive = true;
+
+  // Store current overflow to restore later
+  previousHtmlOverflow = document.documentElement.style.overflow;
+  previousBodyOverflow = document.body?.style.overflow || '';
+  document.documentElement.style.overflow = 'hidden';
+  if (document.body) {
+    document.body.style.overflow = 'hidden';
+  }
+
+  prewarnEl = document.createElement('div');
+  prewarnEl.id = PREBLOCK_ID;
+  prewarnEl.setAttribute(
+    'style',
+    `
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 2147483646 !important;
+    background: rgba(0, 0, 0, 0.4) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: opacity 0.5s ease !important;
+  `,
+  );
+
+  prewarnEl.innerHTML = `
+    <div style="text-align: center; color: white; font-family: sans-serif;">
+      <div style="width: 60px; height: 60px; border: 3px solid #ef4444; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; opacity: 0.8;">
+         <div style="width: 24px; height: 24px; background: #ef4444; border-radius: 50%;"></div>
+      </div>
+      <div style="font-size: 20px; font-weight: bold; opacity: 0.9;">StopAccess</div>
+      <div style="font-size: 13px; opacity: 0.6; margin-top: 8px;">Securing your focus...</div>
+    </div>
+  `;
+
+  const root = document.body || document.documentElement;
+  if (root) {
+    root.appendChild(prewarnEl);
+  }
+
+  prewarnTimeout = setTimeout(() => {
+    prewarnActive = false;
+    if (prewarnEl?.parentNode) {
+      prewarnEl.parentNode.removeChild(prewarnEl);
+    }
+    prewarnEl = null;
+    injectOverlay(domain, options);
+  }, OVERLAY_DELAY_MS);
 }
 
 // ── Core Check ────────────────────────────────────
@@ -608,22 +715,55 @@ async function checkAndBlock() {
       );
       const sessions = domainUsage?.sessions || 0;
 
-      if (!overlayActive && !pendingOverlayTimer) {
-        showPreBlockSignal();
-        pendingOverlayTimer = setTimeout(() => {
-          pendingOverlayTimer = null;
-          injectOverlay(domain, {
-            canExtend,
-            extensionCount,
-            maxExtensions: maxDailyPasses,
-            ruleMode: matchingRule?.mode || 'block',
-            usedMinutes: effectiveUsed,
-            usedMs: effectiveMs,
-            limitMinutes: matchingRule?.dailyLimitMinutes || 0,
-            sessions,
-            isFocusActive,
-          });
-        }, OVERLAY_DELAY_MS);
+      if (overlayActive && overlayEl) {
+        const shadow = overlayEl.shadowRoot;
+        if (shadow) {
+          // Targeted updates to prevent flickering (no innerHTML replacement)
+          const liveTime = shadow.getElementById('__fg_live_time');
+          if (liveTime) {
+            liveTime.textContent = formatTime(effectiveMs);
+          }
+
+          const sessionEl = shadow.getElementById('__fg_session_count');
+          if (sessionEl) {
+            sessionEl.textContent = String(sessions);
+          }
+
+          const remainingEl = shadow.getElementById('__fg_remaining_time');
+          if (remainingEl) {
+            remainingEl.textContent =
+              String(
+                Math.max(
+                  0,
+                  (matchingRule?.dailyLimitMinutes || 0) - effectiveUsed,
+                ),
+              ) + 'm';
+          }
+
+          const passesEl = shadow.getElementById('__fg_passes_left');
+          if (passesEl) {
+            passesEl.textContent = String(
+              Math.max(0, maxDailyPasses - extensionCount),
+            );
+          }
+
+          // Ensure the timer is in sync with the latest flushed background data
+          restartLiveTimer(shadow, effectiveMs);
+        }
+      }
+
+      if (!overlayActive && !prewarnActive) {
+        injectPrewarn(domain, {
+          canExtend,
+          extensionCount,
+          maxExtensions: maxDailyPasses,
+          ruleMode: matchingRule?.mode || 'block',
+          usedMinutes: effectiveUsed,
+          usedMs: effectiveMs,
+          limitMinutes: matchingRule?.dailyLimitMinutes || 0,
+          sessions,
+          isFocusActive,
+        });
       }
     } else {
       removeOverlay();
