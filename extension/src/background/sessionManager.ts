@@ -21,15 +21,13 @@ export async function startSession(config: {
     throw new Error('A focus session is already active.');
   }
 
-  // 1. Snapshot current NextDNS state for the guard
+  // 1. Snapshot current NextDNS state for the guard (best-effort — don't block focus if offline)
   const snapshotRes = await nextDNSApi.getRemoteSnapshot();
-  if (!snapshotRes.ok) {
-    throw new Error(
-      'Failed to snapshot NextDNS state. Session aborted for safety.',
-    );
-  }
+  const snapshotData = snapshotRes.ok
+    ? snapshotRes.data
+    : { denylist: [], services: [], categories: [] };
 
-  const data = snapshotRes.data;
+  const data = snapshotData;
   const blockedAtStart = {
     denylist: (data.denylist || [])
       .filter((d: any) => d.active)

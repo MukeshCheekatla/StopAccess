@@ -27,8 +27,7 @@ let prewarnActive = false;
 let overlayEl = null;
 let prewarnEl = null;
 let prewarnTimeout = null;
-let previousBodyOverflow = '';
-let previousHtmlOverflow = '';
+
 let liveTimerInterval = null;
 let passCountdownInterval = null;
 
@@ -304,8 +303,15 @@ function injectOverlay(domain, options: any = {}) {
   overlayActive = true;
   window.stop();
 
-  previousHtmlOverflow = document.documentElement.style.overflow;
-  previousBodyOverflow = document.body?.style.overflow || '';
+  // Pause all playing media (fixes YouTube audio continuing after block)
+  try {
+    document.querySelectorAll('video, audio').forEach((el: any) => {
+      if (!el.paused) {
+        el.pause();
+      }
+    });
+  } catch (e) {}
+
   document.documentElement.style.overflow = 'hidden';
   if (document.body) {
     document.body.style.overflow = 'hidden';
@@ -503,9 +509,11 @@ function removeOverlay() {
   }
   prewarnEl = null;
 
-  document.documentElement.style.overflow = previousHtmlOverflow || '';
+  // Always clear to empty string — restoring the site's own saved value
+  // (e.g. X sets overflow:hidden during modals) causes permanent scroll lock.
+  document.documentElement.style.overflow = '';
   if (document.body) {
-    document.body.style.overflow = previousBodyOverflow || '';
+    document.body.style.overflow = '';
   }
 }
 
@@ -515,9 +523,6 @@ function injectPrewarn(domain: string, options: any) {
   }
   prewarnActive = true;
 
-  // Store current overflow to restore later
-  previousHtmlOverflow = document.documentElement.style.overflow;
-  previousBodyOverflow = document.body?.style.overflow || '';
   document.documentElement.style.overflow = 'hidden';
   if (document.body) {
     document.body.style.overflow = 'hidden';
