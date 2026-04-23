@@ -24,6 +24,10 @@
   </table>
 </div>
 
+<p align="center">
+  <img src="https://res.cloudinary.com/dgdrh9yar/image/upload/v1776963615/preview_card_ehydkv.png" width="100%" alt="StopAccess Preview">
+</p>
+
 ---
 
 ## About
