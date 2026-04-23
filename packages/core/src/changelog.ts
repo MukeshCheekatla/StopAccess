@@ -1,5 +1,31 @@
 export const CHANGELOG = [
   {
+    version: '1.1.1',
+    title: 'Professional Reliability Update',
+    features: [
+      {
+        iconId: 'SPARKLES',
+        label: 'High-Res Branding',
+        desc: 'Standardized favicon support and added a professional social preview card for better visibility across the web.',
+      },
+      {
+        iconId: 'CHART',
+        label: 'Accurate Tracking',
+        desc: 'Fixed session double-counting and service worker restart bugs to ensure your usage data is 100% accurate.',
+      },
+      {
+        iconId: 'SHIELD',
+        label: 'Silent Media Blocking',
+        desc: 'Blocked sites now automatically pause audio and video (like YouTube) the moment the overlay appears.',
+      },
+      {
+        iconId: 'ZAP',
+        label: 'Reliable Site Release',
+        desc: 'Fixed scroll-lock issues on sites like X (Twitter) and improved NextDNS connection resilience during focus.',
+      },
+    ],
+  },
+  {
     version: '1.1.0',
     title: 'High-Grade Stability Update',
     features: [
