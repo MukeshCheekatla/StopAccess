@@ -367,18 +367,28 @@ export async function initActiveTab() {
     const now = Date.now();
     const todayStr = new Date().toLocaleDateString('en-CA');
     const lastReset = await extensionAdapter.getString(STORAGE_KEYS.LAST_RESET);
-    const staleThreshold = 10 * 60 * 1000;
 
+    // If same tab & domain is still active, just reset the start time to now
+    // so we don't accumulate phantom time during service worker restarts.
     if (
       existing &&
       existing.tabId === tabs[0].id &&
       existing.domain === domain &&
-      lastReset === todayStr &&
-      now - existing.start < staleThreshold
+      lastReset === todayStr
     ) {
+      // Flush whatever real time has passed, then restart the clock.
+      const duration = now - existing.start;
+      if (duration > 50 && duration < SAFETY_MAX_DURATION) {
+        await saveUsage(existing.domain, duration);
+      }
+      existing.start = now;
+      await setActiveTabState(existing);
+      // Do NOT increment session — this is a restart, not a new visit.
       return;
     }
 
+    // Genuine domain change (e.g. browser restarted on a different tab).
+    // Flush old time if valid.
     if (existing && existing.domain) {
       const duration = now - existing.start;
       if (duration > 50 && duration < SAFETY_MAX_DURATION) {
@@ -388,7 +398,8 @@ export async function initActiveTab() {
 
     const nextState = { domain, start: now, tabId: tabs[0].id };
     await setActiveTabState(nextState);
-    if (domain) {
+    // Only count a session here if the domain actually changed.
+    if (domain && domain !== existing?.domain) {
       await incrementSession(domain);
     }
   } catch {

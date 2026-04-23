@@ -31,7 +31,8 @@ console.log('[StopAccess] TRACKER INITIALIZING');
 
 chrome.tabs.onActivated.addListener(({ tabId }) => switchTab(tabId));
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (tab.active && (changeInfo.status === 'complete' || changeInfo.url)) {
+  // Only fire on 'complete' to avoid double-counting per navigation (url change fires before complete)
+  if (tab.active && changeInfo.status === 'complete') {
     switchTab(tabId);
   }
 });
