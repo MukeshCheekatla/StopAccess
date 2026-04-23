@@ -445,6 +445,20 @@
     transform: translateY(-2px);
     border-color: var(--fg-text);
   }
+
+  /* ── Dashboard Timer Controls ── */
+  .timer-control-btn {
+    @apply fg-opacity-70 fg-transition-all fg-duration-200;
+  }
+  .timer-control-btn:hover {
+    @apply fg-opacity-100;
+  }
+  .timer-control-btn-toggle:hover {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .timer-control-btn-stop:hover {
+    background: rgba(255, 0, 0, 0.05);
+  }
 }
 
 /* ── Light Theme: Fix hardcoded white text ── */

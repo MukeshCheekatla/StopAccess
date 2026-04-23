@@ -1651,6 +1651,11 @@ export async function confirmGuardianAction(options: {
   title: string;
   body: string;
   isDestructive?: boolean;
+  action?:
+    | 'remove_app'
+    | 'disable_blocking'
+    | 'modify_blocklist'
+    | 'change_settings';
 }): Promise<boolean> {
   const { extensionAdapter: storage } = await import(
     '../background/platformAdapter'
@@ -1660,9 +1665,10 @@ export async function confirmGuardianAction(options: {
 
   // 1. System Lock Check (Focus Session / Strict Mode)
   // We check this FIRST so we don't annoy the user with a challenge that won't work.
-  const guard = await checkGuard(
-    options.isDestructive ? 'remove_app' : 'modify_blocklist',
-  );
+  const action =
+    options.action ||
+    (options.isDestructive ? 'remove_app' : 'modify_blocklist');
+  const guard = await checkGuard(action);
   if (!guard.allowed) {
     toast.error((guard as any).reason);
     return false;
