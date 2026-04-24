@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<body style="background: #000; color: #fff; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh;">
+    <div style="text-align: center;">
+        <p>Authenticating with StopAccess...</p>
+        <script>
+            const hash = window.location.hash;
+            const params = new URLSearchParams(window.location.search);
+            const extId = params.get('ext');
+
+            if (hash && extId) {
+                // Redirect back to the dynamic extension ID
+                window.location.href = `chrome-extension://${extId}/dashboard.html${hash}`;
+            } else {
+                document.body.innerText = "Auth failed. Missing session data or extension ID.";
+                console.error("Missing data:", { hash: !!hash, extId });
+            }
+        </script>
+    </div>
+</body>
+</html>
