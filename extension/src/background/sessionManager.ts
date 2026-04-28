@@ -22,10 +22,18 @@ export async function startSession(config: {
   }
 
   // 1. Snapshot current NextDNS state for the guard (best-effort — don't block focus if offline)
-  const snapshotRes = await nextDNSApi.getRemoteSnapshot();
-  const snapshotData = snapshotRes.ok
-    ? snapshotRes.data
-    : { denylist: [], services: [], categories: [] };
+  // Use a race to prevent hanging the whole 'Start Focus' flow if NextDNS is unreachable
+  const snapshotRes = await Promise.race([
+    nextDNSApi.getRemoteSnapshot(),
+    new Promise<{ ok: false; error: string }>((resolve) =>
+      setTimeout(() => resolve({ ok: false, error: 'timeout' }), 3000),
+    ),
+  ]);
+
+  const snapshotData =
+    snapshotRes.ok && snapshotRes.data
+      ? snapshotRes.data
+      : { denylist: [], services: [], categories: [] };
 
   const data = snapshotData;
   const blockedAtStart = {
@@ -201,7 +209,13 @@ export async function resumeSession() {
  */
 async function toggleBlockBypass(enabled: boolean) {
   try {
-    await nextDNSApi.patchParentalControl({ blockBypass: enabled });
+    // 3-second timeout for blockBypass toggle to prevent hanging session start/end
+    await Promise.race([
+      nextDNSApi.patchParentalControl({ blockBypass: enabled }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 3000),
+      ),
+    ]);
     console.log(`[StopAccess] NextDNS blockBypass set to: ${enabled}`);
   } catch (e) {
     console.warn('[StopAccess] Failed to toggle blockBypass:', e);
