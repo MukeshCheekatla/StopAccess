@@ -5,6 +5,7 @@ import {
   fmtTime,
   findServiceIdByDomain,
   resolveFaviconUrl,
+  resolveTargetInput,
 } from '@stopaccess/core';
 
 type UsageEntry = {
@@ -14,6 +15,7 @@ type UsageEntry = {
 type Rule = {
   blockedToday?: boolean;
   customDomain?: string;
+  desiredBlockingState?: boolean;
   mode?: string;
   packageName?: string;
   type?: string;
@@ -21,6 +23,7 @@ type Rule = {
 
 type ActivityRow = {
   domain: string;
+  displayName: string;
   isBlocked: boolean;
   timeMs: number;
 };
@@ -43,7 +46,9 @@ export function DashboardPopupView() {
       }
 
       setUsage(nextUsage as Record<string, UsageEntry>);
-      setRules(JSON.parse(rulesRaw as string) as Rule[]);
+      const parsedRules: Rule[] =
+        typeof rulesRaw === 'string' ? JSON.parse(rulesRaw) : rulesRaw || [];
+      setRules(parsedRules);
       setLoading(false);
     };
 
@@ -90,26 +95,33 @@ export function DashboardPopupView() {
   const activityRows = useMemo<ActivityRow[]>(
     () =>
       Object.entries(usage)
-        .map(([domain, entry]) => ({
-          domain,
-          timeMs: entry?.time || 0,
-          isBlocked: rules.some((rule) => {
-            const active = rule.blockedToday || rule.mode === 'block';
-            if (!active) {
+        .map(([domain, entry]) => {
+          const resolved = resolveTargetInput(domain);
+          return {
+            domain,
+            displayName: resolved.displayName,
+            timeMs: entry?.time || 0,
+            isBlocked: rules.some((rule) => {
+              const active =
+                rule.desiredBlockingState !== false &&
+                rule.mode !== 'allow' &&
+                (rule.blockedToday || rule.mode === 'block');
+              if (!active) {
+                return false;
+              }
+
+              if ((rule.customDomain || rule.packageName) === domain) {
+                return true;
+              }
+
+              if (rule.type === 'service') {
+                return findServiceIdByDomain(domain) === rule.packageName;
+              }
+
               return false;
-            }
-
-            if ((rule.customDomain || rule.packageName) === domain) {
-              return true;
-            }
-
-            if (rule.type === 'service') {
-              return findServiceIdByDomain(domain) === rule.packageName;
-            }
-
-            return false;
-          }),
-        }))
+            }),
+          };
+        })
         .filter((entry) => entry.timeMs >= 60000)
         .sort((a, b) => b.timeMs - a.timeMs)
         .slice(0, 8),
@@ -147,7 +159,9 @@ export function DashboardPopupView() {
             <ActivitySkeleton />
           </>
         ) : activityRows.length > 0 ? (
-          activityRows.map((row) => <ActivityCard key={row.domain} row={row} />)
+          activityRows.map((row, index) => (
+            <ActivityCard key={row.domain} row={row} index={index} />
+          ))
         ) : (
           <div className="fg-panel-muted fg-rounded-[18px] fg-px-4 fg-py-10 fg-text-center">
             <div style={{ ...UI_TOKENS.TEXT.R.LABEL, opacity: 0.6 }}>
@@ -185,7 +199,7 @@ function StatTile({
   );
 }
 
-function ActivityCard({ row }: { row: ActivityRow }) {
+function ActivityCard({ row, index }: { row: ActivityRow; index: number }) {
   const faviconUrl = resolveFaviconUrl(row.domain);
   const domainPart = row.domain.split('.')[0];
   const rawLabel = domainPart.slice(0, 2);
@@ -195,7 +209,10 @@ function ActivityCard({ row }: { row: ActivityRow }) {
       : '?';
 
   return (
-    <div className="fg-flex fg-items-center fg-gap-4 fg-rounded-[12px] fg-bg-[var(--fg-glass-bg)] fg-p-3 fg-border fg-border-[var(--fg-glass-border)]">
+    <div
+      className="fg-flex fg-items-center fg-gap-4 fg-rounded-[12px] fg-bg-[var(--fg-glass-bg)] fg-p-3 fg-border fg-border-[var(--fg-glass-border)] fg-animate-fade-in-up"
+      style={{ animationDelay: `${index * 30}ms`, opacity: 0 }}
+    >
       <div className="fg-relative fg-flex fg-h-9 fg-w-9 fg-shrink-0 fg-items-center fg-justify-center">
         {row.isBlocked ? (
           <div className="fg-absolute -fg-bottom-0.5 -fg-right-0.5 fg-z-10 fg-flex fg-h-3.5 fg-w-3.5 fg-items-center fg-justify-center fg-rounded-full fg-border-2 fg-border-[var(--fg-surface)] fg-bg-[var(--fg-red)] fg-text-[8px] fg-font-black fg-text-[var(--fg-on-accent)]">
@@ -229,7 +246,7 @@ function ActivityCard({ row }: { row: ActivityRow }) {
             color: row.isBlocked ? 'var(--fg-muted)' : 'var(--fg-text)',
           }}
         >
-          {row.domain}
+          {row.displayName}
         </div>
       </div>
 

@@ -34,6 +34,9 @@ type DashboardShellProps<T extends string> = {
   tabs: Array<ShellTab<T>>;
   theme?: 'dark' | 'light' | 'system';
   onThemeChange?: (theme: 'dark' | 'light' | 'system') => void;
+  user?: { name?: string; email?: string; image?: string } | null;
+  onSignOut?: () => void;
+  onSignIn?: () => void;
 };
 
 export function PopupShell<T extends string>({
@@ -127,6 +130,9 @@ export function DashboardShell<T extends string>({
   tabs,
   theme = 'system',
   onThemeChange,
+  user,
+  onSignOut,
+  onSignIn,
 }: DashboardShellProps<T>) {
   const [isInitializing, setIsInitializing] = React.useState(true);
 
@@ -323,6 +329,92 @@ export function DashboardShell<T extends string>({
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
             </button>
+          </div>
+        </div>
+
+        {/* Cloud Sync Section - Pushed to bottom */}
+        <div className="fg-mt-auto fg-px-2 fg-mb-2">
+          <div className="fg-px-2 fg-py-3 fg-rounded-[14px] fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)]">
+            {!user ? (
+              <div className="fg-flex fg-flex-col fg-gap-2">
+                <div
+                  style={{
+                    ...UI_TOKENS.TEXT.R.LABEL,
+                    fontSize: '11px',
+                    opacity: 0.6,
+                    lineHeight: '1.4',
+                  }}
+                >
+                  Backup your stats & rules.
+                </div>
+                <button
+                  onClick={onSignIn}
+                  className="fg-mt-1 fg-w-full fg-py-2 fg-rounded-[8px] fg-bg-[var(--accent)] fg-text-[var(--fg-on-accent)] fg-text-[12px] fg-font-bold hover:fg-opacity-90 fg-transition-opacity"
+                >
+                  Sign In
+                </button>
+              </div>
+            ) : (
+              <div className="fg-flex fg-items-center fg-gap-3">
+                <div className="fg-relative fg-flex-shrink-0">
+                  <div className="fg-w-9 fg-h-9 fg-rounded-full fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-overflow-hidden">
+                    {user.image ? (
+                      <img
+                        src={user.image}
+                        alt=""
+                        className="fg-w-full fg-h-full fg-object-cover"
+                      />
+                    ) : (
+                      <div className="fg-w-full fg-h-full fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-muted)] fg-font-bold fg-text-[14px]">
+                        {(user.name || '?').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  {/* Status Dot */}
+                  <div className="fg-absolute -fg-bottom-0.5 -fg-right-0.5 fg-w-3 fg-h-3 fg-rounded-full fg-bg-[var(--fg-green)] fg-border-2 fg-border-[var(--fg-sidebar-bg)] fg-animate-pulse" />
+                </div>
+
+                <div className="fg-flex fg-flex-col fg-min-w-0 fg-flex-1">
+                  <div
+                    className="fg-truncate"
+                    style={{
+                      ...UI_TOKENS.TEXT.R.CARD_TITLE,
+                      fontSize: '13px',
+                      lineHeight: '1.2',
+                    }}
+                  >
+                    {user.name || 'Cloud User'}
+                  </div>
+                  <div
+                    className="fg-truncate"
+                    style={{
+                      ...UI_TOKENS.TEXT.R.LABEL,
+                      fontSize: '10px',
+                      opacity: 0.5,
+                    }}
+                  >
+                    {user.email}
+                  </div>
+                </div>
+
+                <button
+                  onClick={onSignOut}
+                  className="fg-p-1.5 fg-rounded-lg fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-red)] hover:fg-bg-[var(--fg-red-wash)] fg-transition-colors fg-shrink-0"
+                  title="Sign Out"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

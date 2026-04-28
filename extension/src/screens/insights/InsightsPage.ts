@@ -185,7 +185,7 @@ async function _renderPage(container: HTMLElement): Promise<void> {
       .querySelector('#btn_upgrade_cloud_insights')
       ?.addEventListener('click', () => {
         chrome.tabs.create({
-          url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
+          url: chrome.runtime.getURL(buildDashboardTabPath('nextdns_account')),
         });
       });
   }

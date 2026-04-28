@@ -4,6 +4,7 @@ import {
   formatMinutes,
   buildDashboardTabPath,
   findServiceIdByDomain,
+  resolveTargetInput,
 } from '@stopaccess/core';
 import { appsController } from '../../lib/appsController';
 import { getCachedIcon } from '../../lib/iconCache';
@@ -172,11 +173,7 @@ export async function renderDashboardPage(
                 <div class="fg-hidden"></div>
                 
                 <!-- Expanded Timer Card -->
-                <div class="glass-card" style="padding: 8px 18px; display: flex; align-items: center; gap: 14px; background: ${
-                  COLORS.glassBg
-                }; border: 1px solid ${
-        COLORS.glassBorder
-      }; border-radius: 14px; height: 42px;">
+                <div class="fg-panel fg-rounded-[14px] fg-px-[18px] fg-flex fg-items-center fg-gap-[14px] fg-h-[42px] fg-border fg-border-[var(--fg-glass-border)]">
                    <div id="timerDot" style="width: 8px; height: 8px; border-radius: 50%; background: ${timerDotColor}; transition: all 0.3s; box-shadow: 0 0 10px ${timerDotColor}44;"></div>
                    <div id="focusStatusLabel" style="font-size: 18px; font-weight: 700; color: ${
                      isPaused ? COLORS.yellow : COLORS.text
@@ -201,16 +198,14 @@ export async function renderDashboardPage(
                    </div>
                 </div>
               </div>
-             <div id="dateSelectorWidget" style="padding: 2px; display: flex; align-items: center; gap: 4px; border-radius: 10px; background: ${
-               COLORS.glassBg
-             }; border: 1px solid ${COLORS.glassBorder};"></div>
+             <div id="dateSelectorWidget" class="fg-panel fg-rounded-[10px] fg-p-[2px] fg-flex fg-items-center fg-gap-[4px] fg-border fg-border-[var(--fg-glass-border)]"></div>
           </div>
 
-          <div class="widget-grid" style="grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px;">
-            <div class="glass-card widget-card" id="avgUsageWidget"></div>
-            <div class="glass-card widget-card" id="engagementWidget"></div>
-            <div class="glass-card widget-card" id="sessionsWidget"></div>
-            <div class="glass-card widget-card" id="timerWidget"></div>
+          <div class="fg-grid fg-grid-cols-4 fg-gap-4 fg-mb-6">
+            <div class="fg-panel fg-rounded-[18px] fg-p-4" id="avgUsageWidget"></div>
+            <div class="fg-panel fg-rounded-[18px] fg-p-4" id="engagementWidget"></div>
+            <div class="fg-panel fg-rounded-[18px] fg-p-4" id="sessionsWidget"></div>
+            <div class="fg-panel fg-rounded-[18px] fg-p-4" id="timerWidget"></div>
           </div>
 
           <div class="fg-grid fg-gap-8" style="grid-template-columns: 1fr 1fr; align-items: start;">
@@ -226,11 +221,7 @@ export async function renderDashboardPage(
                <div class="section-label" style="${
                  UI_TOKENS.TEXT.LABEL
                } margin-bottom: 20px;">Usage Breakdown</div>
-               <div class="glass-card fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center" id="chartSlot" style="border-radius: 20px; background: ${
-                 COLORS.glassBg
-               }; border: 1px solid ${
-        COLORS.glassBorder
-      }; height: 280px; transition: opacity 0.4s ease-out; opacity: 1;">
+               <div class="fg-panel fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center fg-rounded-[20px] fg-h-[280px] fg-transition-opacity fg-duration-400 fg-ease-out fg-opacity-100 fg-border fg-border-[var(--fg-glass-border)]" id="chartSlot">
                   <canvas id="liveUsageChart" style="width: 100% !important; height: 230px !important;"></canvas>
                </div>
                <div class="fg-mt-5 fg-text-xs fg-text-[${
@@ -438,12 +429,11 @@ export async function renderDashboardPage(
       )}</div>
 
           </div>
-          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--fg-white-wash);">
-             <div style="${
-               UI_TOKENS.TEXT.LABEL
-             } opacity: 0.8; font-size: 12px;">${Math.round(
+          <div style="${
+            UI_TOKENS.TEXT.LABEL
+          } opacity: 0.8; font-size: 12px;">${Math.round(
         globalAvgSessions || 0,
-      )} <span style="opacity: 0.5; font-weight: 400;">sessions/day</span></div>
+      )} <span class="fg-opacity-50 fg-font-normal">sessions/day</span></div>
           </div>
         </div>
       `;
@@ -619,7 +609,7 @@ export async function renderDashboardPage(
     if (activityG) {
       if (domainList.length === 0) {
         activityG.innerHTML = `
-        <div class="glass-card activity-empty-state fg-text-center fg-p-10 fg-text-[13px] fg-text-[var(--muted)]" style="border-style: dashed; background: transparent;">
+        <div class="fg-panel fg-panel-muted fg-text-center fg-p-10 fg-text-[13px] fg-text-[var(--fg-muted)] fg-border-dashed">
           No activity found for this period.
         </div>`;
       } else {
@@ -658,12 +648,13 @@ export async function renderDashboardPage(
             `.rule-item[data-domain="${d.domain}"]`,
           ) as HTMLElement;
           const badgeHtml = isBlocked
-            ? `<div style="${UI_TOKENS.TEXT.BADGE} color:var(--red); background:${COLORS.glassBg}; border:1px solid ${COLORS.glassBorder}; border-radius:6px; padding:3px 7px; text-transform:uppercase;">Blocked</div>`
-            : `<button class="quick-block-btn" data-domain="${d.domain}" title="Block ${d.domain}" style="width:26px; height:26px; border-radius:8px; background:${COLORS.glassBg}; border:1px solid ${COLORS.glassBorder}; color:var(--accent); font-size:16px; font-weight:900; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; flex-shrink:0;">+</button>`;
+            ? '<div class="fg-text-[var(--fg-red)] fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[6px] fg-px-[7px] fg-py-[3px] fg-uppercase fg-text-[10px] fg-font-black">Blocked</div>'
+            : `<button class="quick-block-btn fg-w-[26px] fg-h-[26px] fg-rounded-[8px] fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-accent)] fg-text-[16px] fg-font-black fg-cursor-pointer fg-flex fg-items-center fg-justify-center fg-shrink-0" data-domain="${d.domain}" title="Block ${d.domain}">+</button>`;
           const statusLabelHtml = `<span style="opacity: 0.7;">${
             d.sessions || 0
           } Session${d.sessions !== 1 ? 's' : ''}</span>`;
 
+          const resolved = resolveTargetInput(d.domain);
           const cardInner = `
                  <div class="fg-flex fg-items-center fg-gap-3 fg-min-w-0">
                     <div style="position: relative; flex-shrink: 0;">
@@ -673,7 +664,7 @@ export async function renderDashboardPage(
                      <div style="${
                        UI_TOKENS.TEXT.CARD_TITLE
                      }; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${
-            d.domain
+            resolved.displayName
           }</div>
                      <div class="row-status" style="${
                        UI_TOKENS.TEXT.LABEL
@@ -719,16 +710,12 @@ export async function renderDashboardPage(
               : 'transparent';
           } else {
             const div = document.createElement('div');
-            div.className = 'rule-item domain-activity-card';
+            div.className =
+              'rule-item domain-activity-card fg-panel fg-p-4 fg-rounded-[12px] fg-mb-2 fg-transition-all fg-cursor-pointer fg-max-w-full';
             div.setAttribute('data-domain', d.domain);
-            div.setAttribute(
-              'style',
-              `padding: 12px 16px; background: ${
-                COLORS.glassBg
-              }; border-radius: 12px; margin-bottom: 8px; border-left: 3px solid ${
-                isBlocked ? 'var(--red)' : 'transparent'
-              }; transition: all 0.2s; cursor: pointer; max-width: 100%;`,
-            );
+            div.style.borderLeft = `3px solid ${
+              isBlocked ? 'var(--fg-red)' : 'transparent'
+            }`;
             div.innerHTML = cardInner;
             activityG.appendChild(div);
           }

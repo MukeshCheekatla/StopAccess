@@ -90,7 +90,7 @@ export function FocusPopupView() {
   if (rem > 0) {
     return (
       <div
-        className="fg-flex fg-h-full fg-flex-col fg-items-center fg-justify-center fg-p-6"
+        className="fg-flex fg-h-full fg-flex-col fg-items-center fg-justify-center fg-p-6 fg-animate-fade-in-up"
         style={{ background: ringStyles.bg }}
       >
         <div className="fg-relative fg-mb-6 fg-flex fg-h-80 fg-w-80 fg-items-center fg-justify-center">
@@ -122,7 +122,9 @@ export function FocusPopupView() {
                   y1={y1}
                   x2={x2}
                   y2={y2}
-                  stroke={active ? 'var(--fg-accent)' : 'rgba(255,255,255,0.1)'}
+                  stroke={
+                    active ? 'var(--fg-accent)' : 'var(--fg-glass-border)'
+                  }
                   strokeWidth={i % 5 === 0 ? 3.5 : 2.5}
                   strokeLinecap="round"
                 />
@@ -215,23 +217,28 @@ export function FocusPopupView() {
               className="fg-absolute fg-inset-0 fg-bg-[rgba(0,0,0,0.6)] fg-backdrop-blur-md"
             />
             <div className="fg-relative fg-w-full fg-max-w-[280px] fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-surface)] fg-p-8 fg-text-center fg-shadow-[0_40px_80px_rgba(0,0,0,0.7)] focus-modal-anim">
-              <div className="fg-mb-3 fg-text-sm fg-font-black fg-tracking-[2px] fg-text-[var(--fg-text)]">
+              <div style={UI_TOKENS.TEXT.R.MODAL_TITLE} className="fg-mb-3">
                 Abort Session?
               </div>
-              <div className="fg-mb-8 fg-text-[11px] fg-font-medium fg-leading-relaxed fg-text-[var(--fg-muted)]">
+              <div style={UI_TOKENS.TEXT.R.MODAL_BODY} className="fg-mb-8">
                 Quitting early will end your current shield protection
                 immediately.
               </div>
               <div className="fg-flex fg-gap-3">
                 <button
                   onClick={() => setAbortModal(false)}
-                  className="fg-flex-1 fg-rounded-2xl fg-bg-[var(--fg-glass-bg)] fg-py-3.5 fg-text-[10px] fg-font-black fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-text)] fg-transition-all hover:fg-bg-[var(--fg-surface-hover)]"
+                  className="fg-flex-1 fg-rounded-2xl fg-bg-[var(--fg-glass-bg)] fg-py-3.5 fg-border fg-border-[var(--fg-glass-border)] fg-transition-all hover:fg-bg-[var(--fg-surface-hover)]"
+                  style={UI_TOKENS.TEXT.R.BUTTON_TEXT}
                 >
                   Cancel
                 </button>
                 <button
                   onClick={stopFocus}
-                  className="fg-flex-1 fg-rounded-2xl fg-bg-[var(--fg-red)] fg-py-3.5 fg-text-[10px] fg-font-black fg-text-white fg-transition-all hover:fg-scale-[1.05] active:fg-scale-[0.95] fg-shadow-[0_0_20px_var(--fg-red-glow)]"
+                  className="fg-flex-1 fg-rounded-2xl fg-bg-[var(--fg-red)] fg-py-3.5 fg-transition-all hover:fg-scale-[1.05] active:fg-scale-[0.95] fg-shadow-[0_0_20px_var(--fg-red-glow)]"
+                  style={{
+                    ...UI_TOKENS.TEXT.R.BUTTON_TEXT,
+                    color: 'var(--fg-on-accent)',
+                  }}
                 >
                   Abort
                 </button>
@@ -245,7 +252,7 @@ export function FocusPopupView() {
 
   return (
     <div
-      className="fg-flex fg-h-full fg-flex-col fg-items-center fg-justify-center fg-p-4 fg-animate-fade-in"
+      className="fg-flex fg-h-full fg-flex-col fg-items-center fg-justify-center fg-p-4 fg-animate-fade-in-up"
       style={{
         background: 'linear-gradient(160deg, var(--fg-surface), var(--fg-bg))',
         position: 'relative',
@@ -267,8 +274,8 @@ export function FocusPopupView() {
             ...UI_TOKENS.TEXT.R.SUBTEXT,
             fontSize: '12px',
             lineHeight: '1.5',
-            opacity: 0.7,
           }}
+          className="fg-opacity-90"
         >
           Pick a session length and Focus will start a real countdown.
         </div>
@@ -305,18 +312,17 @@ export function FocusPopupView() {
                 stroke="var(--fg-glass-border)"
                 strokeWidth={i % 5 === 0 ? 3.5 : 2.5}
                 strokeLinecap="round"
-                opacity="0.3"
+                className="fg-opacity-40"
               />
             );
           })}
         </svg>
         <div className="fg-text-center fg-z-10">
           <div
-            className="fg-text-3xl fg-font-light fg-tracking-tighter"
+            className="fg-text-4xl fg-font-bold fg-tracking-tighter fg-opacity-40"
             style={{
               color: 'var(--fg-text)',
               fontVariantNumeric: 'tabular-nums',
-              opacity: 0.25,
             }}
           >
             --:--
@@ -338,8 +344,8 @@ export function FocusPopupView() {
                 height: '4px',
                 borderRadius: '50%',
                 background: 'var(--fg-accent)',
-                opacity: 0.4,
               }}
+              className="fg-opacity-60"
             />
           </div>
         </div>
@@ -370,7 +376,7 @@ export function FocusPopupView() {
               {p.m}m
             </span>
             <span
-              className="fg-text-[8px] fg-font-black fg-tracking-[0.05em] fg-opacity-60"
+              className="fg-text-[9px] fg-font-black fg-tracking-[0.05em] fg-opacity-80"
               style={{ color: 'var(--fg-muted)' }}
             >
               {p.t}

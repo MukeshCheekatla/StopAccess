@@ -5,6 +5,7 @@ import {
   nextDNSApi,
 } from '../background/platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
+import { getBrandLogoUrl } from '../lib/ui';
 import {
   PopupShell,
   type ShellStatus,
@@ -297,9 +298,19 @@ function PopupApp() {
                 key={entry.domain}
                 className="fg-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-lg fg-shrink-0 fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)]"
               >
-                <div className="fg-text-[12px] fg-font-bold fg-text-[var(--fg-text)] fg-opacity-70 fg-whitespace-nowrap">
-                  {entry.domain}
-                </div>
+                <img
+                  src={getBrandLogoUrl(entry.domain, 48)}
+                  className="fg-h-5 fg-w-5 fg-rounded-sm fg-object-contain"
+                  alt=""
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                    const fallback = document.createElement('div');
+                    fallback.className =
+                      'fg-text-[10px] fg-font-bold fg-opacity-50';
+                    fallback.innerText = entry.domain.slice(0, 2).toUpperCase();
+                    e.currentTarget.parentElement?.prepend(fallback);
+                  }}
+                />
                 <div className="fg-flex fg-items-center fg-gap-1.5 fg-text-[12px] fg-font-black fg-text-[var(--fg-accent)] fg-whitespace-nowrap">
                   {clockSvg}
                   {formatCountdown(entry.expiresAt)}

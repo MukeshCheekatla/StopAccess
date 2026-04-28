@@ -1,19 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { UI_TOKENS, getBrandLogoUrl, resolveIconDomain } from '../../lib/ui';
-import { COLORS } from '../../lib/designTokens';
 import { appsController } from '../../lib/appsController';
 import { toast } from '../../lib/toast';
 import {
   findServiceIdByDomain,
   getDomainForRule,
   formatMinutes,
+  resolveTargetInput,
 } from '@stopaccess/core';
 import { STORAGE_KEYS } from '@stopaccess/state';
 import {
   loadAppsRuntimeState,
   subscribeAppsRuntimeState,
 } from '../../lib/appsRuntimeState';
-import { checkGuard } from '../../background/sessionGuard';
 
 type UsageMap = Record<string, { time?: number }>;
 
@@ -50,68 +49,36 @@ function ruleMatchesDomain(rule: any, domain: string | null) {
   return false;
 }
 
-function getTodayKey() {
-  return new Date().toISOString().split('T')[0];
-}
-
-async function grantTempPassForDomain(
-  domain: string,
-  minutes: number,
-  maxDailyPasses: number,
-  skipLimit = false,
-) {
-  const guard = await checkGuard('disable_blocking');
-  if (!guard.allowed) {
-    return { ok: false, error: (guard as any).reason };
+function isRuleBlockingEnabled(rule: any, passes: Record<string, any> = {}) {
+  if (rule?.desiredBlockingState === false || rule?.mode === 'allow') {
+    return false;
   }
 
-  const storageRes = await chrome.storage.local.get([
-    STORAGE_KEYS.TEMP_PASSES,
-    STORAGE_KEYS.EXTENSION_COUNTS,
-  ]);
-
-  const passes = storageRes[STORAGE_KEYS.TEMP_PASSES] || {};
-  const counts = storageRes[STORAGE_KEYS.EXTENSION_COUNTS] || {};
-  const today = getTodayKey();
-
-  if (!counts[today]) {
-    counts[today] = {};
+  const pkg = rule?.packageName || rule?.appName;
+  if (pkg && passes[pkg]) {
+    const pass = passes[pkg];
+    if (pass && Number(pass.expiresAt) > Date.now()) {
+      return false;
+    }
   }
 
-  const currentCount = counts[today][domain] || 0;
-  if (!skipLimit && currentCount >= maxDailyPasses) {
-    return { ok: false, error: 'No more passes left today' };
-  }
-
-  passes[domain] = {
-    expiresAt: Date.now() + minutes * 60000,
-    grantedMinutes: minutes,
-    grantedAt: Date.now(),
-  };
-
-  // Only increment the counter for limited passes
-  if (!skipLimit) {
-    counts[today][domain] = currentCount + 1;
-  }
-
-  await chrome.storage.local.set({
-    [STORAGE_KEYS.TEMP_PASSES]: passes,
-    [STORAGE_KEYS.EXTENSION_COUNTS]: counts,
-  });
-
-  chrome.runtime.sendMessage({ action: 'manualSync' });
-  return { ok: true };
+  return Boolean(
+    rule?.blockedToday ||
+      rule?.mode === 'block' ||
+      rule?.mode === 'limit' ||
+      rule?.desiredBlockingState,
+  );
 }
 
 function getPassCountdown(pass: any) {
   const diff = Math.max(0, Number(pass?.expiresAt || 0) - Date.now());
   const mins = Math.floor(diff / 60000);
-  const secs = Math.floor((diff % 60000) / 1000);
 
   if (mins >= 60) {
     return formatMinutes(mins);
   }
 
+  const secs = Math.floor((diff % 60000) / 1000);
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
@@ -123,8 +90,6 @@ export const AppsPopupView: React.FC = () => {
   const [currentDomain, setCurrentDomain] = useState<string | null>(null);
   const [usage, setUsage] = useState<UsageMap>({});
   const [passes, setPasses] = useState<Record<string, any>>({});
-  const [pauseTarget, setPauseTarget] = useState<any | null>(null);
-
   const refresh = async () => {
     try {
       const [runtimeState, activeDomain] = await Promise.all([
@@ -156,6 +121,28 @@ export const AppsPopupView: React.FC = () => {
     };
   }, []);
 
+  const currentSiteBlocked = useMemo(() => {
+    if (!currentDomain) {
+      return false;
+    }
+
+    return rules.some((rule: any) => {
+      const active = isRuleBlockingEnabled(rule, passes);
+      return active && ruleMatchesDomain(rule, currentDomain);
+    });
+  }, [currentDomain, rules, passes]);
+
+  const currentSitePass = useMemo(() => {
+    if (!currentDomain) {
+      return null;
+    }
+    const pass = passes[currentDomain];
+    if (pass && Number(pass.expiresAt) > Date.now()) {
+      return pass;
+    }
+    return null;
+  }, [currentDomain, passes]);
+
   const query = searchTerm.trim().toLowerCase();
 
   const activeRules = useMemo(
@@ -164,12 +151,17 @@ export const AppsPopupView: React.FC = () => {
         .filter(
           (rule: any) =>
             (rule.type === 'service' || rule.type === 'domain' || !rule.type) &&
-            (rule.blockedToday ||
-              rule.mode === 'block' ||
-              rule.mode === 'limit' ||
-              rule.desiredBlockingState),
+            (isRuleBlockingEnabled(rule, passes) ||
+              passes[getDomainForRule(rule) || '']?.expiresAt > Date.now()),
         )
         .filter((rule: any) => {
+          const isCurrentSite =
+            currentDomain && ruleMatchesDomain(rule, currentDomain);
+          // Only filter out the current site if it is being shown in the Current Site card.
+          if (isCurrentSite && (!currentSiteBlocked || currentSitePass)) {
+            return false;
+          }
+
           const name = (rule.appName || '').toLowerCase();
           const domain = (
             rule.customDomain ||
@@ -186,46 +178,65 @@ export const AppsPopupView: React.FC = () => {
           }
           return (right.streakDays || 0) - (left.streakDays || 0);
         }),
-    [rules, query, currentDomain],
+    [rules, query, currentDomain, passes, currentSiteBlocked, currentSitePass],
   );
-
-  const currentSiteBlocked = useMemo(() => {
-    if (!currentDomain) {
-      return false;
-    }
-
-    return rules.some((rule: any) => {
-      const active = Boolean(
-        rule.blockedToday ||
-          rule.mode === 'block' ||
-          rule.mode === 'limit' ||
-          rule.desiredBlockingState,
-      );
-      return active && ruleMatchesDomain(rule, currentDomain);
-    });
-  }, [currentDomain, rules]);
-
   const recentActivity = useMemo(
     () =>
       Object.entries(usage)
-        .map(([domain, entry]) => ({ domain, time: (entry as any)?.time || 0 }))
+        .map(([domain, entry]) => {
+          const resolved = resolveTargetInput(domain);
+          return {
+            domain,
+            time: (entry as any)?.time || 0,
+            displayName: resolved.displayName,
+          };
+        })
         .filter(({ domain, time }) => {
-          const alreadyBlocked = rules.some((rule: any) => {
-            const active = Boolean(
-              rule.blockedToday ||
-                rule.mode === 'block' ||
-                rule.mode === 'limit' ||
-                rule.desiredBlockingState,
-            );
-            return active && ruleMatchesDomain(rule, domain);
+          const alreadyBlockedOrActivePass = rules.some((rule: any) => {
+            const active = isRuleBlockingEnabled(rule, passes);
+            const domainForRule = getDomainForRule(rule);
+            const pass = domainForRule ? passes[domainForRule] : null;
+            const hasPass = pass && Number(pass.expiresAt) > Date.now();
+            return (active || hasPass) && ruleMatchesDomain(rule, domain);
           });
 
-          return time > 60000 && !alreadyBlocked;
+          return (
+            time > 60000 &&
+            !alreadyBlockedOrActivePass &&
+            domain !== currentDomain
+          );
         })
         .sort((a, b) => b.time - a.time)
         .slice(0, 3),
-    [rules, usage],
+    [rules, usage, currentDomain, passes],
   );
+
+  const handleResumeBlock = async (target: string | any) => {
+    const newPasses = { ...passes };
+
+    if (typeof target === 'string') {
+      delete newPasses[target];
+    } else {
+      const pkg = target.packageName || target.appName;
+      const domain = getDomainForRule(target);
+      if (pkg) {
+        delete newPasses[pkg];
+      }
+      if (domain) {
+        delete newPasses[domain];
+      }
+      if (currentDomain) {
+        delete newPasses[currentDomain];
+      }
+    }
+
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.TEMP_PASSES]: newPasses,
+    });
+    chrome.runtime.sendMessage({ action: 'manualSync' });
+    toast.success('Block resumed');
+    refresh();
+  };
 
   const handleAddDomain = async (value?: string) => {
     const domainValue = (value || searchTerm)
@@ -259,59 +270,39 @@ export const AppsPopupView: React.FC = () => {
 
     const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
     const confirmed = await confirmGuardianAction({
-      title: 'Pause Protection',
-      body: `Verify your security to pause ${rule.appName || targetDomain}.`,
+      title: 'Turn off for 40 mins?',
+      body: `Verify your security to pause ${
+        rule.appName || targetDomain
+      } for the next 40 minutes.`,
     });
 
     if (confirmed) {
-      setPauseTarget({ ...rule, _unblockDomain: targetDomain });
-    }
-  };
-
-  const handlePauseSelect = async (minutes: number) => {
-    if (!pauseTarget) {
-      return;
-    }
-    const targetDomain = pauseTarget._unblockDomain;
-    if (!targetDomain) {
-      return;
-    }
-
-    setPauseTarget(null);
-    // Any pass longer than 2 hours (like Turn off for today) skips the limit check
-    const result = await grantTempPassForDomain(
-      targetDomain,
-      minutes,
-      Number(pauseTarget.maxDailyPasses ?? 3),
-      minutes > 120,
-    );
-    if (!result.ok) {
-      toast.error(result.error);
-      return;
-    }
-
-    if (minutes >= 1440) {
-      const { updateRule } = await import('@stopaccess/state/rules');
-      const { extensionAdapter } = await import(
-        '../../background/platformAdapter'
+      const minutes = 40;
+      const result = await appsController.grantTempPass(
+        targetDomain,
+        minutes,
+        Number(rule.maxDailyPasses ?? 3),
+        true, // Always skip limit for temporary passes from popup
       );
-      await updateRule(extensionAdapter, {
-        ...(pauseTarget as any),
-        streakDays: 0,
-        streakStartedAt: Date.now(),
-      });
+
+      if (result.ok) {
+        // Reset streak for unblocking
+        const { updateRule } = await import('@stopaccess/state/rules');
+        const { extensionAdapter } = await import(
+          '../../background/platformAdapter'
+        );
+        await updateRule(extensionAdapter, {
+          ...(rule as any),
+          streakDays: 0,
+          streakStartedAt: Date.now(),
+        });
+
+        toast.success('Turned off for 40 minutes');
+        refresh();
+      } else {
+        toast.error(result.error);
+      }
     }
-
-    const label = minutes >= 1440 ? 'rest of today' : formatMinutes(minutes);
-    toast.success(`Paused for ${label}`);
-    refresh();
-  };
-
-  const minutesTillMidnight = () => {
-    const now = new Date();
-    const midnight = new Date(now);
-    midnight.setHours(24, 0, 0, 0);
-    return Math.ceil((midnight.getTime() - now.getTime()) / 60000);
   };
 
   if (loading) {
@@ -324,103 +315,6 @@ export const AppsPopupView: React.FC = () => {
 
   return (
     <div className="fg-flex fg-w-full fg-flex-col fg-gap-[14px] fg-p-[14px]">
-      {/* Pause Duration Bottom Sheet */}
-      {pauseTarget && (
-        <div
-          className="fg-fixed fg-inset-0 fg-z-50 fg-flex fg-items-end fg-justify-center"
-          style={{
-            background: COLORS.overlay,
-            backdropFilter: 'blur(8px)',
-          }}
-          onClick={() => setPauseTarget(null)}
-        >
-          <div
-            className="fg-w-full fg-rounded-t-[24px] fg-p-5 fg-pb-6"
-            style={{
-              background: 'var(--fg-surface)',
-              border: '1px solid var(--fg-glass-border)',
-              borderBottom: 'none',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="fg-mb-4 fg-flex fg-items-center fg-gap-3">
-              <img
-                src={getBrandLogoUrl(
-                  resolveIconDomain(
-                    pauseTarget.customDomain || pauseTarget.packageName,
-                    pauseTarget.appName,
-                  ),
-                  64,
-                )}
-                className="fg-h-7 fg-w-7 fg-rounded-[20%]"
-                alt=""
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-              <div>
-                <div
-                  style={{
-                    ...UI_TOKENS.TEXT.R.CARD_TITLE,
-                    color: 'var(--fg-text)',
-                  }}
-                >
-                  {pauseTarget.appName || pauseTarget.packageName}
-                </div>
-                <div style={UI_TOKENS.TEXT.R.LABEL}>Pause for how long?</div>
-              </div>
-            </div>
-
-            <div className="fg-grid fg-grid-cols-4 fg-gap-2 fg-mb-3">
-              {[5, 10, 15, 30].map((mins) => (
-                <button
-                  key={mins}
-                  type="button"
-                  className="fg-flex fg-flex-col fg-items-center fg-justify-center fg-rounded-[14px] fg-py-3"
-                  style={{
-                    background: 'var(--fg-glass-bg)',
-                    border: '1px solid var(--fg-glass-border)',
-                  }}
-                  onClick={() => handlePauseSelect(mins)}
-                >
-                  <span
-                    style={{
-                      ...UI_TOKENS.TEXT.R.STAT,
-                      fontSize: '18px',
-                      color: 'var(--fg-text)',
-                    }}
-                  >
-                    {mins}
-                  </span>
-                  <span style={UI_TOKENS.TEXT.R.LABEL}>min</span>
-                </button>
-              ))}
-            </div>
-
-            <button
-              type="button"
-              className="fg-w-full fg-rounded-[14px] fg-py-3 fg-text-[11px] fg-font-black  fg-tracking-widest"
-              style={{
-                background: 'var(--accent-soft)',
-                border: '1px solid var(--fg-glass-border)',
-                color: 'var(--fg-red)',
-              }}
-              onClick={() => handlePauseSelect(minutesTillMidnight())}
-            >
-              Turn off for today
-            </button>
-
-            <div
-              className="fg-mt-3 fg-text-center fg-text-[11px] fg-font-semibold  fg-tracking-wider"
-              style={{ color: 'var(--muted)' }}
-            >
-              {Number(pauseTarget.maxDailyPasses ?? 3)} passes/day · tap outside
-              to cancel
-            </div>
-          </div>
-        </div>
-      )}
-
       <div className="fg-flex fg-gap-2">
         <div className="fg-relative fg-flex-1">
           <input
@@ -445,7 +339,7 @@ export const AppsPopupView: React.FC = () => {
         </button>
       </div>
 
-      {currentDomain && !currentSiteBlocked ? (
+      {currentDomain && (!currentSiteBlocked || currentSitePass) ? (
         <div className="fg-flex fg-items-center fg-justify-between fg-gap-3 fg-rounded-[16px] fg-bg-[var(--fg-glass-bg)] fg-px-[14px] fg-py-3">
           <div className="fg-flex fg-items-center fg-gap-3">
             <div className="fg-flex fg-h-8 fg-w-8 fg-items-center fg-justify-center">
@@ -456,39 +350,57 @@ export const AppsPopupView: React.FC = () => {
               />
             </div>
             <div className="fg-min-w-0">
-              <div className="fg-truncate fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)]">
-                {currentDomain}
-              </div>
-              <div className="fg-text-[11px] fg-font-semibold  fg-text-[var(--muted)]">
+              {currentSitePass ? (
+                <div className="fg-flex fg-items-center fg-gap-1.5 fg-text-[14px] fg-font-bold fg-text-[var(--fg-accent)]">
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                  >
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M12 7v5l3 3" />
+                  </svg>
+                  {getPassCountdown(currentSitePass)}
+                </div>
+              ) : null}
+              <div className="fg-text-[12px] fg-font-bold fg-text-[var(--muted)]">
                 Current Site
               </div>
             </div>
           </div>
           <button
-            className="fg-inline-flex fg-items-center fg-rounded-[8px] fg-bg-[var(--fg-surface-hover)] fg-px-[10px] fg-py-[6px] fg-text-[12px] fg-font-semibold fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface)]"
-            onClick={() => handleAddDomain(currentDomain)}
+            className="fg-inline-flex fg-items-center fg-rounded-[8px] fg-bg-[var(--fg-accent)] fg-px-[12px] fg-py-[7px] fg-text-[13px] fg-font-bold fg-text-white hover:fg-opacity-90"
+            onClick={() => {
+              if (currentSitePass) {
+                // If there's a pass on the current domain, we can resume by domain
+                handleResumeBlock(currentDomain!);
+              } else {
+                handleAddDomain(currentDomain);
+              }
+            }}
             type="button"
           >
-            Block
+            {currentSitePass ? 'Resume' : 'Block'}
           </button>
         </div>
       ) : null}
 
       <div className="fg-px-[2px]">
-        <div style={UI_TOKENS.TEXT.R.LABEL}>Enforcement Rules</div>
+        <div style={UI_TOKENS.TEXT.R.LABEL}>Active Blocks</div>
       </div>
 
       <div className="fg-flex fg-min-h-0 fg-flex-1 fg-flex-col fg-gap-2 fg-overflow-y-auto">
         {activeRules.map((rule: any) => {
           const primaryDomain = getDomainForRule(rule);
           const matchesCurrent = ruleMatchesDomain(rule, currentDomain);
-          const activePassDomain =
-            matchesCurrent && currentDomain && passes[currentDomain]
-              ? currentDomain
-              : primaryDomain && passes[primaryDomain]
-              ? primaryDomain
-              : null;
-          const activePass = activePassDomain ? passes[activePassDomain] : null;
+          const pkg = rule.packageName || rule.appName;
+          const activePass =
+            (pkg && passes[pkg]) ||
+            (primaryDomain && passes[primaryDomain]) ||
+            (matchesCurrent && currentDomain && passes[currentDomain]);
           const isTemporarilyOff =
             activePass && Number(activePass.expiresAt) > Date.now();
 
@@ -571,9 +483,7 @@ export const AppsPopupView: React.FC = () => {
                   transformOrigin: 'right center',
                 }}
                 className={`toggle-switch-btn ${
-                  rule.desiredBlockingState === false || isTemporarilyOff
-                    ? ''
-                    : 'active'
+                  isRuleBlockingEnabled(rule, passes) ? 'active' : ''
                 }`}
                 data-kind={rule.type || 'domain'}
                 disabled={lockedDomains.includes(
@@ -581,17 +491,7 @@ export const AppsPopupView: React.FC = () => {
                 )}
                 onClick={async () => {
                   if (isTemporarilyOff) {
-                    const targetDomain = activePassDomain;
-                    if (targetDomain) {
-                      const newPasses = { ...passes };
-                      delete newPasses[targetDomain];
-                      await chrome.storage.local.set({
-                        [STORAGE_KEYS.TEMP_PASSES]: newPasses,
-                      });
-                      chrome.runtime.sendMessage({ action: 'manualSync' });
-                      toast.success('Block resumed');
-                      refresh();
-                    }
+                    handleResumeBlock(rule);
                   } else {
                     handleTemporaryDisable(rule);
                   }
@@ -621,7 +521,7 @@ export const AppsPopupView: React.FC = () => {
       {recentActivity.length > 0 ? (
         <div>
           <div className="fg-mb-[10px] fg-px-[2px]">
-            <div className="fg-text-[11px] fg-font-extrabold  fg-tracking-[1px] fg-text-[var(--muted)]">
+            <div className="fg-text-[12px] fg-font-bold fg-tracking-wider fg-text-[var(--muted)]">
               Recent Activity
             </div>
           </div>
@@ -629,7 +529,7 @@ export const AppsPopupView: React.FC = () => {
             {recentActivity.map((item) => (
               <div
                 key={item.domain}
-                className="fg-panel-muted fg-flex fg-items-center fg-justify-between fg-gap-3 fg-rounded-[12px] fg-px-[14px] fg-py-[10px] fg-opacity-80"
+                className="fg-panel-muted fg-flex fg-items-center fg-justify-between fg-gap-3 fg-rounded-[12px] fg-px-[14px] fg-py-[10px]"
               >
                 <div className="fg-flex fg-min-w-0 fg-flex-1 fg-items-center fg-gap-[10px]">
                   <img
@@ -637,12 +537,12 @@ export const AppsPopupView: React.FC = () => {
                     className="fg-h-5 fg-w-5 fg-rounded-[20%]"
                     alt=""
                   />
-                  <div className="fg-truncate fg-text-[13px] fg-font-semibold fg-text-[var(--fg-text)]">
-                    {item.domain}
+                  <div className="fg-truncate fg-text-[14px] fg-font-semibold fg-text-[var(--fg-text)]">
+                    {item.displayName}
                   </div>
                 </div>
                 <button
-                  className="fg-rounded-[6px] fg-bg-[var(--fg-glass-bg)] fg-px-[10px] fg-py-1 fg-text-[10px] fg-font-extrabold fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface-hover)]"
+                  className="fg-rounded-[6px] fg-bg-[var(--fg-surface-hover)] fg-px-[10px] fg-py-1.5 fg-text-[12px] fg-font-bold fg-text-white hover:fg-bg-[var(--fg-surface)]"
                   onClick={() => handleAddDomain(item.domain)}
                   type="button"
                 >

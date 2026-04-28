@@ -141,7 +141,7 @@ export function attachDiagnosticsListeners(
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'application/json';
-      input.onchange = async (e) => {
+      input.addEventListener('change', async (e) => {
         const file = (e.target as HTMLInputElement).files?.[0];
         if (!file) {
           return;
@@ -154,7 +154,7 @@ export function attachDiagnosticsListeners(
         } catch (err) {
           toast.error('State Corruption');
         }
-      };
+      });
       input.click();
     });
 

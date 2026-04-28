@@ -76,7 +76,9 @@ export async function renderSecurityPage(
         .querySelector('#btn_upgrade_cloud')
         ?.addEventListener('click', () => {
           chrome.tabs.create({
-            url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
+            url: chrome.runtime.getURL(
+              buildDashboardTabPath('nextdns_account'),
+            ),
           });
         });
     }

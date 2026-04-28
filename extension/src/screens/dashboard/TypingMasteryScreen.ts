@@ -25,10 +25,10 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
         <div>
           <div style="${
             UI_TOKENS.TEXT.HERO
-          }; font-size: 26px; letter-spacing: -0.03em;">Typing Mastery</div>
+          }" class="fg-text-[26px] fg-tracking-tight">Typing Mastery</div>
           <div style="${
             UI_TOKENS.TEXT.LABEL
-          }; font-size: 15px;">Detailed typing & performance metrics</div>
+          }" class="fg-text-sm">Detailed typing & performance metrics</div>
         </div>
       </div>
 
@@ -57,27 +57,27 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
           <div class="fg-px-8 fg-py-6 fg-border-b fg-border-[var(--fg-glass-border)]">
              <div style="${
                UI_TOKENS.TEXT.LABEL
-             }; font-weight: 800; letter-spacing: 0.05em; font-size: 16px;">Session log</div>
+             }" class="fg-font-extrabold fg-tracking-widest fg-text-base">Session log</div>
           </div>
           
           <table class="fg-w-full fg-border-collapse">
             <thead>
               <tr style="background: ${COLORS.glassBg};">
-                <th class="fg-text-left fg-px-8 fg-py-4" style="${
+                <th class="fg-text-left fg-px-8 fg-py-4 fg-text-[11px]" style="${
                   UI_TOKENS.TEXT.LABEL
-                }; font-size: 11px;">Time</th>
-                <th class="fg-text-left fg-px-8 fg-py-4" style="${
+                }">Time</th>
+                <th class="fg-text-left fg-px-8 fg-py-4 fg-text-[11px]" style="${
                   UI_TOKENS.TEXT.LABEL
-                }; font-size: 11px;">WPM</th>
-                <th class="fg-text-left fg-px-8 fg-py-4" style="${
+                }">WPM</th>
+                <th class="fg-text-left fg-px-8 fg-py-4 fg-text-[11px]" style="${
                   UI_TOKENS.TEXT.LABEL
-                }; font-size: 11px;">Accuracy</th>
-                <th class="fg-text-left fg-px-8 fg-py-4" style="${
+                }">Accuracy</th>
+                <th class="fg-text-left fg-px-8 fg-py-4 fg-text-[11px]" style="${
                   UI_TOKENS.TEXT.LABEL
-                }; font-size: 11px;">Duration</th>
-                <th class="fg-text-right fg-px-8 fg-py-4" style="${
+                }">Duration</th>
+                <th class="fg-text-right fg-px-8 fg-py-4 fg-text-[11px]" style="${
                   UI_TOKENS.TEXT.LABEL
-                }; font-size: 11px;">Mistakes</th>
+                }">Mistakes</th>
               </tr>
             </thead>
             <tbody>
@@ -87,22 +87,22 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
                       .map(
                         (s) => `
                 <tr class="fg-border-b fg-border-[var(--fg-glass-border)] hover:fg-bg-[var(--fg-white-wash-border)]/20 fg-transition-colors">
-                  <td class="fg-px-8 fg-py-5" style="${
+                  <td class="fg-px-8 fg-py-5 fg-text-[13px]" style="${
                     UI_TOKENS.TEXT.CARD_TITLE
-                  }; font-size: 13px;">${_formatTs(s.timestamp)}</td>
+                  }">${_formatTs(s.timestamp)}</td>
                   <td class="fg-px-8 fg-py-5">
                     <div style="${UI_TOKENS.TEXT.CARD_TITLE}; color: ${
                           s.wpm > 65 ? COLORS.green : COLORS.text
                         }">${s.wpm}</div>
                   </td>
-                  <td class="fg-px-8 fg-py-5" style="${
+                  <td class="fg-px-8 fg-py-5 fg-font-bold" style="${
                     UI_TOKENS.TEXT.LABEL
-                  }; font-weight: 700; color: ${
-                          s.accuracy > 95 ? COLORS.green : COLORS.text
-                        }">${s.accuracy}%</td>
-                  <td class="fg-px-8 fg-py-5" style="${
+                  }; color: ${s.accuracy > 95 ? COLORS.green : COLORS.text}">${
+                          s.accuracy
+                        }%</td>
+                  <td class="fg-px-8 fg-py-5 fg-opacity-80" style="${
                     UI_TOKENS.TEXT.LABEL
-                  }; opacity: 0.8;">${_formatDuration(s.duration)}</td>
+                  }">${_formatDuration(s.duration)}</td>
                   <td class="fg-px-8 fg-py-5 fg-text-right" style="${
                     UI_TOKENS.TEXT.LABEL
                   }; color: ${s.mistakes > 5 ? COLORS.red : COLORS.muted}">${
@@ -126,7 +126,7 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
         <div class="fg-col-span-12 lg:fg-col-span-5 glass-card fg-p-8 fg-flex fg-flex-col" style="border-radius: 24px; min-height: 480px;">
            <div style="${
              UI_TOKENS.TEXT.LABEL
-           }; font-weight: 800; letter-spacing: 0.05em; font-size: 16px; margin-bottom: 24px;">Performance trend</div>
+           }" class="fg-font-extrabold fg-tracking-widest fg-text-base fg-mb-6">Performance trend</div>
            <div class="fg-flex-1 fg-relative fg-flex fg-items-center fg-justify-center">
              ${
                history.length < 2
@@ -270,14 +270,14 @@ function _renderStat(
     <div class="glass-card fg-p-6 fg-flex fg-flex-col fg-gap-3" style="border-radius: 20px;">
       <div style="${
         UI_TOKENS.TEXT.LABEL
-      }; font-size: 13px; font-weight: 800;">${label}</div>
+      }" class="fg-text-[13px] fg-font-extrabold">${label}</div>
       <div class="fg-flex fg-items-baseline fg-gap-1.5">
         <div style="${UI_TOKENS.TEXT.STAT}; color: ${
     value === '0' ? COLORS.muted : color
   }">${value}</div>
         <div style="${
           UI_TOKENS.TEXT.LABEL
-        }; font-size: 11px; font-weight: 800; opacity: 0.7;">${unit}</div>
+        }" class="fg-text-[11px] fg-font-extrabold fg-opacity-70">${unit}</div>
       </div>
     </div>
   `;

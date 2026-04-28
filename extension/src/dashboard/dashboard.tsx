@@ -25,6 +25,7 @@ import { renderDomainUsageScreen } from '../screens/dashboard/DomainUsageScreen'
 import { renderInAppBlockingPage } from '../screens/in_app/InAppBlockingPage';
 import { renderTypingMasteryScreen } from '../screens/dashboard/TypingMasteryScreen';
 import { applyTheme, setupThemeListener } from '../lib/theme';
+import { supabase } from '../lib/supabase';
 import {
   setThemeAction,
   loadSettingsData,
@@ -41,7 +42,10 @@ type TabId =
   | 'settings'
   | 'domain_usage'
   | 'typing_mastery'
-  | 'in_app';
+  | 'in_app'
+  | 'account'
+  | 'cloud_account'
+  | 'nextdns_account';
 
 const TABS: Array<ShellTab<TabId>> = [
   {
@@ -206,13 +210,80 @@ function DashboardApp() {
   const [currentTheme, setCurrentTheme] = useState<'dark' | 'light' | 'system'>(
     () => (localStorage.getItem('sa_theme') as any) || 'system',
   );
+  const [authVersion, setAuthVersion] = useState(0);
+  const [user, setUser] = useState<{
+    name?: string;
+    email?: string;
+    image?: string;
+  } | null>(null);
 
   useEffect(() => {
     document.body.classList.add('is-full-page');
     applyTheme();
     const cleanup = setupThemeListener();
-    return cleanup;
-  }, []);
+
+    // Catch Supabase session from URL hash
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        console.log('[Supabase] Auth state changed, refreshing UI...');
+        setAuthVersion((v) => v + 1);
+      }
+    });
+
+    // Listen for postMessage from auth callback page
+    const handleAuthMessage = async (event: MessageEvent) => {
+      if (event.data?.type === 'SUPABASE_AUTH') {
+        const { setSessionFromUrl } = await import('../background/authManager');
+        const { error } = await setSessionFromUrl(
+          window.location.origin + '#' + event.data.hash,
+        );
+        if (!error) {
+          console.log('[Supabase] Session set via postMessage');
+        }
+      }
+    };
+    window.addEventListener('message', handleAuthMessage);
+
+    // Also check for tokens in the current URL (direct redirect)
+    if (window.location.hash.includes('access_token')) {
+      import('../background/authManager').then(({ setSessionFromUrl }) => {
+        setSessionFromUrl(window.location.href).then(({ error }) => {
+          if (!error) {
+            console.log('[Supabase] Session detected in URL, restored.');
+            window.history.replaceState(
+              {},
+              document.title,
+              window.location.pathname,
+            );
+          }
+        });
+      });
+    }
+
+    const fetchUser = async () => {
+      const { getCloudUserSafe } = await import('../lib/supabase');
+      const u = await getCloudUserSafe();
+      if (u) {
+        setUser({
+          name: u.user_metadata?.full_name || u.email?.split('@')[0],
+          email: u.email,
+          image: u.user_metadata?.avatar_url,
+        });
+      } else {
+        setUser(null);
+      }
+    };
+
+    fetchUser();
+
+    return () => {
+      cleanup();
+      subscription.unsubscribe();
+      window.removeEventListener('message', handleAuthMessage);
+    };
+  }, [authVersion]);
 
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -272,6 +343,10 @@ function DashboardApp() {
         setActiveTab('domain_usage');
       } else if (tab === 'typing_mastery') {
         setActiveTab('typing_mastery');
+      } else if (tab === 'cloud_account') {
+        setActiveTab('cloud_account');
+      } else if (tab === 'nextdns_account') {
+        setActiveTab('nextdns_account');
       } else if (TAB_SET.has(tab)) {
         setActiveTab(tab as TabId);
       }
@@ -336,6 +411,9 @@ function DashboardApp() {
       ...TABS,
       { id: 'domain_usage' as TabId, label: 'Usage' },
       { id: 'typing_mastery' as TabId, label: 'Mastery' },
+      { id: 'account' as TabId, label: 'Account' },
+      { id: 'cloud_account' as TabId, label: 'Cloud' },
+      { id: 'nextdns_account' as TabId, label: 'NextDNS' },
     ].map((tab) => {
       let renderFn: any = null;
       switch (tab.id) {
@@ -371,6 +449,23 @@ function DashboardApp() {
           break;
         case 'typing_mastery':
           renderFn = renderTypingMasteryScreen;
+          break;
+        case 'account':
+        case 'cloud_account':
+          renderFn = async (container: HTMLElement) => {
+            const { renderCloudAccountPage } = await import(
+              '../screens/settings/components/CloudAccountPage'
+            );
+            return renderCloudAccountPage(container);
+          };
+          break;
+        case 'nextdns_account':
+          renderFn = async (container: HTMLElement) => {
+            const { renderNextDNSAccountPage } = await import(
+              '../screens/settings/components/NextDNSAccountPage'
+            );
+            return renderNextDNSAccountPage(container);
+          };
           break;
       }
       return { ...tab, renderFn };
@@ -415,7 +510,12 @@ function DashboardApp() {
                 activeTab === tab.id ? 'fg-block' : 'fg-hidden'
               }`}
             >
-              <LegacyBridge renderFn={tab.renderFn} />
+              <LegacyBridge
+                key={`bridge-${tab.id}`}
+                renderFn={tab.renderFn}
+                isVisible={activeTab === tab.id}
+                refreshKey={authVersion}
+              />
             </div>
           );
         })}
@@ -435,6 +535,36 @@ function DashboardApp() {
         setCurrentTheme(theme);
         await setThemeAction(theme);
         applyTheme(theme);
+      }}
+      user={user}
+      onSignOut={async () => {
+        const { showConfirmDialog } = await import('../lib/ui');
+        const confirmed = await showConfirmDialog({
+          title: 'Sign Out',
+          body: 'Are you sure you want to sign out? Your settings will no longer be backed up to the cloud.',
+          confirmLabel: 'Sign Out',
+          cancelLabel: 'Keep Signed In',
+          isDestructive: true,
+        });
+
+        if (!confirmed) {
+          return;
+        }
+
+        const { signOutAction } = await import(
+          '../../../packages/viewmodels/src/useSettingsVM'
+        );
+        await signOutAction();
+
+        // Force update everything
+        setUser(null);
+        setAuthVersion((v) => v + 1);
+
+        // Notify other parts of the app
+        window.postMessage({ type: 'SA_AUTH_CHANGED' }, '*');
+      }}
+      onSignIn={() => {
+        setActiveTab('account');
       }}
     >
       {renderCurrentContent()}

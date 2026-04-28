@@ -176,12 +176,9 @@ function getBestIconUrl(list: any): string | null {
   const n = (name || '').toLowerCase();
   const i = (id || '').toLowerCase();
 
-  // High-Resolution Research Overrides
+  // Professional Logo Overrides (Avoid developer avatars as they can be confusing for 'all' blocks)
   if (i === 'oisd' || n.includes('oisd')) {
     return 'https://oisd.nl/favicon.ico';
-  }
-  if (i === 'easylist' || n.includes('easylist') || i.includes('easyprivacy')) {
-    return 'https://avatars.githubusercontent.com/u/1018861?s=64&v=4';
   }
   if (i.includes('adguard') || n.includes('adguard')) {
     return 'https://cdn.adguard.com/public/Adguard/logos/favicon.ico';
@@ -190,23 +187,11 @@ function getBestIconUrl(list: any): string | null {
     return 'https://abpvn.com/icon.png';
   }
   if (i.includes('hagezi') || n.includes('hagezi')) {
-    return 'https://avatars.githubusercontent.com/u/74640102?s=64&v=4';
+    // Hagezi's distinctive logo if available, or just fallback
+    return 'https://raw.githubusercontent.com/hagezi/dns-blocklists/main/logo.png';
   }
-  if (i.includes('1hosts') || n.includes('1hosts')) {
-    return 'https://avatars.githubusercontent.com/u/61344401?s=64&v=4';
-  }
-  if (i.includes('lightswitch05') || n.includes('lightswitch05')) {
-    return 'https://www.github.developerdan.com/img/GitHub-Mark-120px-plus.png';
-  }
-  if (
-    i.includes('steven-black') ||
-    n.includes('steven black') ||
-    i.includes('stevenblack')
-  ) {
-    return 'https://avatars.githubusercontent.com/u/36511?s=64&v=4';
-  }
-  if (i === 'hblock' || n.includes('hblock')) {
-    return 'https://icon.horse/icon/hblock.molinero.dev';
+  if (i === 'nextdns-recommended' || n.includes('nextdns recommended')) {
+    return 'https://nextdns.io/static/favicon/favicon-32x32.png';
   }
 
   // Fallback to domain scraping
@@ -267,7 +252,6 @@ function getIconHtml(
 ): string {
   const cachedUrl = domainCandidate ? getCachedIconSync(domainCandidate) : null;
   const primaryUrl = cachedUrl || iconUrl;
-  const hasCache = !!cachedUrl;
 
   return `
     <div class="global-brand-logo fg-relative fg-flex fg-items-center fg-justify-center" data-domain="${
@@ -275,15 +259,15 @@ function getIconHtml(
     }" style="width: ${sizePx}px; height: ${sizePx}px;">
       <div class="logo-fallback placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[${
         COLORS.text
-      }]" style="opacity: ${hasCache ? '0' : '0.5'}; z-index: 1;">
+      }]" style="opacity: ${primaryUrl ? '0' : '0.5'}; z-index: 1;">
         ${iconDatabase}
       </div>
-      <img src="${primaryUrl}" 
-           data-domain="${domainCandidate || ''}" 
-           class="brand-logo-image" 
+      <img src="${primaryUrl || ''}"
+           data-domain="${domainCandidate || ''}"
+           class="brand-logo-image"
            style="width: ${imgSizePx}px; height: ${imgSizePx}px; object-fit: contain; z-index: 2; border-radius: 20%; opacity: ${
-    hasCache ? '1' : '0'
-  }; display: ${hasCache ? 'block' : 'none'};" 
+    primaryUrl ? '1' : '0'
+  }; display: ${primaryUrl ? 'block' : 'none'};"
            crossorigin="anonymous">
     </div>
   `;
@@ -309,6 +293,8 @@ function renderBlocklistCard(list: any, active: boolean): string {
       class="blocklist-card fg-flex fg-flex-col fg-p-4 fg-rounded-3xl fg-cursor-pointer fg-transition-all fg-duration-200"
       data-id="${list.id}"
       data-active="${active}"
+      data-name="${escapeHtml((list.name || '').toLowerCase())}"
+      data-desc="${escapeHtml((list.description || '').toLowerCase())}"
       style="background: ${COLORS.glassBg}; border: 1px solid ${
     COLORS.glassBorder
   }; min-height: 110px;"

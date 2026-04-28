@@ -21,6 +21,7 @@ import {
   renderAppTableRow,
   renderInfoTooltip,
   showConfirmDialog,
+  showUnblockDurationDialog,
   attachGlobalIconListeners,
 } from '../../lib/ui';
 import {
@@ -62,6 +63,51 @@ export async function renderAppsPage(container: HTMLElement) {
   const initialIsEditing = !currentRedirectUrl;
   const editIcon =
     '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+
+  // Propagation Timer Logic
+  const updateTimer = async () => {
+    const timerEl = document.getElementById('dnsPropagationTimer');
+    if (!timerEl) {
+      return;
+    }
+
+    const disabledAt = await extensionAdapter.getNumber('fg_dns_disabled_at');
+    if (!disabledAt || currentIsAppsDnsHardMode) {
+      timerEl.style.display = 'none';
+      return;
+    }
+
+    const elapsed = Date.now() - disabledAt;
+    const duration = 3 * 60 * 1000; // 3 minutes
+    const remaining = Math.max(0, duration - elapsed);
+
+    if (remaining <= 0) {
+      timerEl.innerText = 'Propagation Complete';
+      timerEl.style.color = COLORS.green;
+      timerEl.style.display = 'block';
+      return;
+    }
+
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    timerEl.innerText = `Unblocks in ${mins}:${secs
+      .toString()
+      .padStart(2, '0')}`;
+    timerEl.style.display = 'block';
+    timerEl.style.color = COLORS.yellow;
+  };
+
+  const timerInterval = setInterval(updateTimer, 1000);
+  updateTimer();
+
+  // Cleanup interval when container is removed
+  const cleanupObserver = new MutationObserver(() => {
+    if (!document.contains(container)) {
+      clearInterval(timerInterval);
+      cleanupObserver.disconnect();
+    }
+  });
+  cleanupObserver.observe(document.body, { childList: true, subtree: true });
 
   if (currentIsConfigured) {
     // Initial fetch in background, then re-render if needed
@@ -180,7 +226,7 @@ export async function renderAppsPage(container: HTMLElement) {
           <!-- DNS Hard Mode -->
           <div class="glass-card" style="padding: 20px;">
             <div class="apps-layout-header">
-              Full Protection ${renderInfoTooltip(
+              DNS Hard Mode ${renderInfoTooltip(
                 'Forces blocking at the network protocol layer via NextDNS, preventing browser-level bypasses.',
               )}
             </div>
@@ -189,7 +235,16 @@ export async function renderAppsPage(container: HTMLElement) {
             }; border: 1px solid ${
       COLORS.glassBorder
     }; border-radius: 12px; padding: 10px 14px;">
-              <span style="${UI_TOKENS.TEXT.CARD_TITLE}">Hard Block</span>
+              <div style="display: flex; flex-direction: column;">
+                <span style="${UI_TOKENS.TEXT.CARD_TITLE}">Hard Block</span>
+                <div id="dnsPropagationTimer" style="${
+                  UI_TOKENS.TEXT.LABEL
+                }; font-size: 10px; color: ${
+      COLORS.yellow
+    }; opacity: 0.8; margin-top: 2px; display: ${
+      !currentIsAppsDnsHardMode ? 'block' : 'none'
+    };">Checking sync...</div>
+              </div>
               <button class="toggle-switch-btn ${
                 currentIsAppsDnsHardMode ? 'active' : ''
               }" id="masterDnsToggle" ${
@@ -305,6 +360,7 @@ export async function renderAppsPage(container: HTMLElement) {
                </div>`,
           confirmLabel: targetState ? 'Enable Mode' : 'Disable Mode',
           isDestructive: !targetState,
+          allowHtml: !targetState,
         });
 
         if (!confirmed) {
@@ -318,23 +374,28 @@ export async function renderAppsPage(container: HTMLElement) {
           const offText = masterToggle.querySelector('.off-text');
           if (offText) {
             const original = offText.textContent;
-            offText.textContent = 'WAITING';
-            setTimeout(() => {
-              offText.textContent = original;
-            }, 5000);
+            let countdown = 5;
+            offText.textContent = `WAITING (${countdown}s)`;
+            const interval = setInterval(() => {
+              countdown--;
+              if (countdown > 0) {
+                offText.textContent = `WAITING (${countdown}s)`;
+              } else {
+                clearInterval(interval);
+                offText.textContent = original;
+              }
+            }, 1000);
           }
+          // Set propagation timestamp
+          await extensionAdapter.set('fg_dns_disabled_at', Date.now());
+        } else {
+          await extensionAdapter.delete('fg_dns_disabled_at');
         }
 
         await setAppsDnsHardMode(extensionAdapter, targetState);
         await appsController.reconcileAppsDnsMode(targetState, rules);
 
         chrome.runtime.sendMessage({ action: 'manualSync' });
-
-        if (!targetState) {
-          toast.info(
-            'Syncing cloud... Sites may take 2-5m to unblock. Run ipconfig /flushdns to speed up.',
-          );
-        }
 
         setTimeout(() => refreshListOnly(), 300);
       });
@@ -1137,7 +1198,14 @@ function setupGlobalClickHandlers(container: HTMLElement) {
         quickAddBtn.innerHTML =
           '<svg class="fg-animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>';
         try {
-          await appsController.addDomainRule(id);
+          // Quick suggestions are always known services (apps)
+          await appsController.toggleRule(
+            'service',
+            id,
+            id,
+            true,
+            currentRules,
+          );
           chrome.runtime.sendMessage({ action: 'manualSync' });
         } catch (err) {
           console.error('[AppsPage] Quick add failed:', err);
@@ -1210,14 +1278,54 @@ function setupGlobalClickHandlers(container: HTMLElement) {
         toggleBtn.setAttribute('aria-checked', String(wasActive));
         toggleBtn.style.opacity = '1';
 
+        const choice = await showUnblockDurationDialog(name || id);
+        if (!choice) {
+          return;
+        }
+
         const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
         const confirmed = await confirmGuardianAction({
-          title: 'Unlock Block',
-          body: `Verify your security to unblock ${name || id}.`,
+          title: 'Verify Security',
+          body: `Please verify to unblock ${name || id}.`,
+          skipSimpleConfirm: true,
         });
 
         if (confirmed) {
-          await performAction();
+          let minutes = 40;
+          if (choice === 'today') {
+            minutes = appsController.minutesTillMidnight();
+          }
+
+          const rule = currentRules.find(
+            (r: any) => (r.customDomain || r.packageName) === id,
+          );
+          const maxPasses = rule?.maxDailyPasses ?? 3;
+
+          const res = await appsController.grantTempPass(
+            id,
+            minutes,
+            maxPasses,
+            true,
+          );
+          if (res.ok) {
+            // Reset streak
+            const { updateRule } = await import('@stopaccess/state/rules');
+            if (rule) {
+              await updateRule(extensionAdapter, {
+                ...rule,
+                streakDays: 0,
+                streakStartedAt: Date.now(),
+              });
+            }
+            toast.success(
+              `Unblocked for ${
+                choice === '40mins' ? '40 minutes' : 'the rest of today'
+              }`,
+            );
+            await refreshListOnly();
+          } else {
+            toast.error(res.error);
+          }
         }
         return;
       }

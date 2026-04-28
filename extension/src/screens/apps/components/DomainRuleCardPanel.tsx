@@ -18,7 +18,9 @@ export const DomainRuleCard: React.FC<DomainRuleCardProps> = ({
 }) => {
   const domain = rule.customDomain || rule.packageName;
   const active = Boolean(
-    rule.blockedToday || rule.mode === 'block' || rule.mode === 'limit',
+    rule.desiredBlockingState !== false &&
+      rule.mode !== 'allow' &&
+      (rule.blockedToday || rule.mode === 'block' || rule.mode === 'limit'),
   );
   const isLocked = lockedDomains.includes(rule.packageName);
   // For service rules, use the service ID to resolve; for domain rules use the domain directly.

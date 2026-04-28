@@ -94,7 +94,7 @@ export async function renderPrivacyPage(container: HTMLElement): Promise<void> {
       .querySelector('#btn_upgrade_cloud_privacy')
       ?.addEventListener('click', () => {
         chrome.tabs.create({
-          url: chrome.runtime.getURL(buildDashboardTabPath('settings')),
+          url: chrome.runtime.getURL(buildDashboardTabPath('nextdns_account')),
         });
       });
   }
@@ -116,9 +116,9 @@ function attachHandlers(container: HTMLElement): void {
       const q = searchMain.value.toLowerCase().trim();
       const cards = gridMain.querySelectorAll('.blocklist-card');
       cards.forEach((card: any) => {
-        const nameEl = card.querySelector('.fg-font-bold') as HTMLElement;
-        const name = nameEl ? (nameEl.textContent || '').toLowerCase() : '';
-        if (name.includes(q)) {
+        const name = card.getAttribute('data-name') || '';
+        const desc = card.getAttribute('data-desc') || '';
+        if (name.includes(q) || desc.includes(q)) {
           card.style.display = 'flex';
         } else {
           card.style.display = 'none';
