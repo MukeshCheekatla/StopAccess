@@ -9,8 +9,8 @@
     "build": "npm run lint && npm run typecheck && node build.js && npm run tw:build",
     "watch": "npm run tw:watch & node build.js --watch",
     "check": "node ../scripts/check-extension.mjs",
-    "lint": "eslint . --fix",
-    "typecheck": "tsc --noEmit"
+    "lint": "eslint . --fix --cache",
+    "typecheck": "tsc --noEmit --incremental"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.38",
@@ -24,6 +24,7 @@
     "@stopaccess/state": "file:../packages/state",
     "@stopaccess/sync": "file:../packages/sync",
     "@stopaccess/types": "file:../packages/types",
+    "@supabase/supabase-js": "^2.104.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "chart.js": "^4.5.1",

@@ -36,6 +36,7 @@ const DIST_DIR = resolve(__dirname, 'dist');
 rmSync(DIST_DIR, { recursive: true, force: true });
 mkdirSync(DIST_DIR, { recursive: true });
 mkdirSync(resolve(DIST_DIR, 'popup'), { recursive: true });
+mkdirSync(resolve(DIST_DIR, 'blocked'), { recursive: true });
 mkdirSync(resolve(DIST_DIR, 'assets'), { recursive: true });
 
 const baseConfig = {
@@ -87,12 +88,19 @@ async function build() {
       outfile: resolve(DIST_DIR, 'contentScript.js'),
       format: 'iife', // Content scripts must be IIFE
     }),
+    // Dedicated Block Screen (DNS Hard Mode)
+    esbuild.build({
+      ...baseConfig,
+      entryPoints: [resolve(SRC_DIR, 'blocked/blocked.ts')],
+      outfile: resolve(DIST_DIR, 'blocked/blocked.js'),
+    }),
   ]);
 
   // Wiring and Static Assets
   const statics = [
     ['src/popup/popup.html', 'dist/popup/popup.html'],
     ['src/dashboard/index.html', 'dist/dashboard.html'],
+    ['src/blocked/blocked.html', 'dist/blocked/blocked.html'],
     ['assets/icon.png', 'dist/assets/icon.png'],
     ['assets/icon-16.png', 'dist/assets/icon-16.png'],
     ['assets/icon-32.png', 'dist/assets/icon-32.png'],
