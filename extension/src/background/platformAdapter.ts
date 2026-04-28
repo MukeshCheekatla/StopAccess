@@ -103,15 +103,25 @@ export const extensionAdapter: StorageAdapter = {
       STORAGE_KEYS.RULES,
       STORAGE_KEYS.SCHEDULES,
       STORAGE_KEYS.FOCUS_END,
+      STORAGE_KEYS.TEMP_PASSES,
     ]);
+    const rawRules = res[STORAGE_KEYS.RULES];
+    const rawSchedules = res[STORAGE_KEYS.SCHEDULES];
     return {
-      rules: res[STORAGE_KEYS.RULES]
-        ? JSON.parse(res[STORAGE_KEYS.RULES] as string)
-        : [],
-      schedules: res[STORAGE_KEYS.SCHEDULES]
-        ? JSON.parse(res[STORAGE_KEYS.SCHEDULES] as string)
-        : [],
+      rules:
+        typeof rawRules === 'string'
+          ? JSON.parse(rawRules)
+          : Array.isArray(rawRules)
+          ? rawRules
+          : [],
+      schedules:
+        typeof rawSchedules === 'string'
+          ? JSON.parse(rawSchedules)
+          : Array.isArray(rawSchedules)
+          ? rawSchedules
+          : [],
       focusEndTime: Number(res[STORAGE_KEYS.FOCUS_END]) || 0,
+      passes: res[STORAGE_KEYS.TEMP_PASSES] || {},
     };
   },
 
@@ -125,7 +135,9 @@ export const extensionAdapter: StorageAdapter = {
     const res = await chrome.storage.local.get(STORAGE_KEYS.SYNC_STATE);
     const raw = res[STORAGE_KEYS.SYNC_STATE];
     return raw
-      ? JSON.parse(raw as string)
+      ? typeof raw === 'string'
+        ? JSON.parse(raw)
+        : raw
       : {
           status: 'idle',
           lastSyncAt: null,
@@ -176,6 +188,34 @@ export const extensionLogger = {
   },
 };
 
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Simple Cache for API Requests
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const apiCache = new Map<string, { data: any; timestamp: number }>();
+const CACHE_TTL = 60000; // 60 seconds
+
+async function withCache(key: string, fn: () => Promise<any>, ttl = CACHE_TTL) {
+  const cached = apiCache.get(key);
+  if (cached && Date.now() - cached.timestamp < ttl) {
+    return cached.data;
+  }
+  const data = await fn();
+  apiCache.set(key, { data, timestamp: Date.now() });
+  return data;
+}
+
+function clearCache(keyPrefix?: string) {
+  if (!keyPrefix) {
+    apiCache.clear();
+    return;
+  }
+  for (const key of apiCache.keys()) {
+    if (key.startsWith(keyPrefix)) {
+      apiCache.delete(key);
+    }
+  }
+}
+
 export const nextDNSApi = {
   isConfigured: async () => {
     const res = await chrome.storage.local.get([
@@ -201,13 +241,17 @@ export const nextDNSApi = {
   },
 
   getParentalControlServices: async () => {
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getParentalControlServices(cfg, extensionLogger.add);
+    return withCache('parental_services', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getParentalControlServices(cfg, extensionLogger.add);
+    });
   },
 
   getParentalControlCategories: async () => {
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getParentalControlCategories(cfg, extensionLogger.add);
+    return withCache('parental_categories', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getParentalControlCategories(cfg, extensionLogger.add);
+    });
   },
 
   syncParentalControlServices: async (services: NextDNSService[]) => {
@@ -232,11 +276,13 @@ export const nextDNSApi = {
     }
 
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.syncParentalControlServices(
+    const res = await ndnsCore.syncParentalControlServices(
       services,
       cfg,
       extensionLogger.add,
     );
+    clearCache('parental_services');
+    return res;
   },
 
   syncParentalControlCategories: async (categories: NextDNSCategory[]) => {
@@ -260,11 +306,13 @@ export const nextDNSApi = {
     }
 
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.syncParentalControlCategories(
+    const res = await ndnsCore.syncParentalControlCategories(
       categories,
       cfg,
       extensionLogger.add,
     );
+    clearCache('parental_categories');
+    return res;
   },
 
   setParentalControlServiceState: async (
@@ -279,12 +327,14 @@ export const nextDNSApi = {
     }
 
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.setParentalControlServiceState(
+    const res = await ndnsCore.setParentalControlServiceState(
       serviceId,
       active,
       cfg,
       extensionLogger.add,
     );
+    clearCache('parental_services');
+    return res;
   },
   setServiceState: async (serviceId: string, active: boolean) => {
     return nextDNSApi.setParentalControlServiceState(serviceId, active);
@@ -302,12 +352,14 @@ export const nextDNSApi = {
     }
 
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.setParentalControlCategoryState(
+    const res = await ndnsCore.setParentalControlCategoryState(
       categoryId,
       active,
       cfg,
       extensionLogger.add,
     );
+    clearCache('parental_categories');
+    return res;
   },
   setCategoryState: async (categoryId: string, active: boolean) => {
     return nextDNSApi.setParentalControlCategoryState(categoryId, active);
@@ -322,34 +374,44 @@ export const nextDNSApi = {
     }
 
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.setDenylistDomainState(
+    const res = await ndnsCore.setDenylistDomainState(
       domain,
       active,
       cfg,
       extensionLogger.add,
     );
+    clearCache('snapshot');
+    return res;
   },
 
   getLogs: async (status: string, limit: number) => {
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getLogs(cfg, extensionLogger.add, status, limit);
+    return withCache(`logs_${status}_${limit}`, async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getLogs(cfg, extensionLogger.add, status, limit);
+    });
   },
 
   getTopBlockedDomains: async (limit: number) => {
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getTopBlockedDomains(cfg, extensionLogger.add, limit);
+    return withCache(`top_blocked_${limit}`, async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getTopBlockedDomains(cfg, extensionLogger.add, limit);
+    });
   },
   getAnalyticsCounters: async () => {
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getAnalyticsCounters(cfg, extensionLogger.add);
+    return withCache('analytics_counters', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getAnalyticsCounters(cfg, extensionLogger.add);
+    });
   },
 
   getRemoteSnapshot: async () => {
     if (!(await nextDNSApi.shouldSync())) {
       return { ok: true, data: { denylist: [], services: [], categories: [] } };
     }
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getRemoteSnapshot(cfg, extensionLogger.add);
+    return withCache('snapshot', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getRemoteSnapshot(cfg, extensionLogger.add);
+    });
   },
 
   refreshNextDNSMetadata: async () => {
@@ -390,33 +452,40 @@ export const nextDNSApi = {
     }
 
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.setTargetState(
+    const res = await ndnsCore.setTargetState(
       kind as any,
       id,
       active,
       cfg,
       extensionLogger.add,
     );
+    clearCache('snapshot');
+    clearCache('parental');
+    return res;
   },
 
   addResolvedTarget: async (target: any) => {
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.setResolvedTargetState(
+    const res = await ndnsCore.setResolvedTargetState(
       target,
       true,
       cfg,
       extensionLogger.add,
     );
+    clearCache('snapshot');
+    return res;
   },
 
   resolveAndAddTarget: async (input: string) => {
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.resolveAndSetTargetState(
+    const res = await ndnsCore.resolveAndSetTargetState(
       input,
       true,
       cfg,
       extensionLogger.add,
     );
+    clearCache('snapshot');
+    return res;
   },
 
   testConnection: async () => {
@@ -428,8 +497,10 @@ export const nextDNSApi = {
   },
 
   getSecurity: async () => {
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getSecuritySettings(cfg, extensionLogger.add);
+    return withCache('security_settings', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getSecuritySettings(cfg, extensionLogger.add);
+    });
   },
   patchSecurity: async (patch: Partial<NextDNSSecuritySettings>) => {
     const check = await requireUnlocked('modify_blocklist');
@@ -437,11 +508,19 @@ export const nextDNSApi = {
       return check.result;
     }
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.patchSecuritySettings(patch, cfg, extensionLogger.add);
+    const res = await ndnsCore.patchSecuritySettings(
+      patch,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('security_settings');
+    return res;
   },
   getParentalControl: async () => {
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getParentalControlSettings(cfg, extensionLogger.add);
+    return withCache('parental_settings', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getParentalControlSettings(cfg, extensionLogger.add);
+    });
   },
   patchParentalControl: async (
     patch: Partial<NextDNSParentalControlSettings>,
@@ -451,15 +530,19 @@ export const nextDNSApi = {
       return check.result;
     }
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.patchParentalControlSettings(
+    const res = await ndnsCore.patchParentalControlSettings(
       patch,
       cfg,
       extensionLogger.add,
     );
+    clearCache('parental_settings');
+    return res;
   },
   getBlockedTlds: async () => {
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getBlockedTldsForProfile(cfg, extensionLogger.add);
+    return withCache('blocked_tlds', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getBlockedTldsForProfile(cfg, extensionLogger.add);
+    });
   },
   addBlockedTld: async (id: string) => {
     const check = await requireUnlocked('modify_blocklist');
@@ -467,7 +550,13 @@ export const nextDNSApi = {
       return check.result;
     }
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.addBlockedTldToProfile(id, cfg, extensionLogger.add);
+    const res = await ndnsCore.addBlockedTldToProfile(
+      id,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('blocked_tlds');
+    return res;
   },
   removeBlockedTld: async (id: string) => {
     const check = await requireUnlocked('modify_blocklist');
@@ -475,12 +564,20 @@ export const nextDNSApi = {
       return check.result;
     }
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.removeBlockedTldFromProfile(id, cfg, extensionLogger.add);
+    const res = await ndnsCore.removeBlockedTldFromProfile(
+      id,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('blocked_tlds');
+    return res;
   },
 
   getPrivacy: async () => {
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getPrivacySettings(cfg, extensionLogger.add);
+    return withCache('privacy_settings', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getPrivacySettings(cfg, extensionLogger.add);
+    });
   },
   patchPrivacy: async (patch: Partial<NextDNSPrivacySettings>) => {
     const check = await requireUnlocked('modify_blocklist');
@@ -488,16 +585,26 @@ export const nextDNSApi = {
       return check.result;
     }
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.patchPrivacySettings(patch, cfg, extensionLogger.add);
+    const res = await ndnsCore.patchPrivacySettings(
+      patch,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('privacy_settings');
+    return res;
   },
   getBlocklists: async () => {
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getBlocklistsForProfile(cfg, extensionLogger.add);
+    return withCache('blocklists', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getBlocklistsForProfile(cfg, extensionLogger.add);
+    });
   },
   getAvailableBlocklists: async () => {
-    const cfg = await nextDNSApi.getConfig();
-    const client = ndnsCore.createClient(cfg, extensionLogger.add);
-    return ndnsCore.getAvailableBlocklists(client);
+    return withCache('available_blocklists', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      const client = ndnsCore.createClient(cfg, extensionLogger.add);
+      return ndnsCore.getAvailableBlocklists(client);
+    });
   },
   addBlocklist: async (id: string) => {
     const check = await requireUnlocked('modify_blocklist');
@@ -505,7 +612,13 @@ export const nextDNSApi = {
       return check.result;
     }
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.addBlocklistToProfile(id, cfg, extensionLogger.add);
+    const res = await ndnsCore.addBlocklistToProfile(
+      id,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('blocklists');
+    return res;
   },
   removeBlocklist: async (id: string) => {
     const check = await requireUnlocked('modify_blocklist');
@@ -513,11 +626,19 @@ export const nextDNSApi = {
       return check.result;
     }
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.removeBlocklistFromProfile(id, cfg, extensionLogger.add);
+    const res = await ndnsCore.removeBlocklistFromProfile(
+      id,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('blocklists');
+    return res;
   },
   getNativeTracking: async () => {
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getNativeTrackingForProfile(cfg, extensionLogger.add);
+    return withCache('native_tracking', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getNativeTrackingForProfile(cfg, extensionLogger.add);
+    });
   },
   addNativeTracking: async (id: string) => {
     const check = await requireUnlocked('modify_blocklist');
@@ -525,7 +646,13 @@ export const nextDNSApi = {
       return check.result;
     }
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.addNativeTrackingToProfile(id, cfg, extensionLogger.add);
+    const res = await ndnsCore.addNativeTrackingToProfile(
+      id,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('native_tracking');
+    return res;
   },
   removeNativeTracking: async (id: string) => {
     const check = await requireUnlocked('modify_blocklist');
@@ -533,11 +660,13 @@ export const nextDNSApi = {
       return check.result;
     }
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.removeNativeTrackingFromProfile(
+    const res = await ndnsCore.removeNativeTrackingFromProfile(
       id,
       cfg,
       extensionLogger.add,
     );
+    clearCache('native_tracking');
+    return res;
   },
 
   unblockAll: async () => {
@@ -547,20 +676,26 @@ export const nextDNSApi = {
     }
 
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.unblockAll(cfg, extensionLogger.add);
+    const res = await ndnsCore.unblockAll(cfg, extensionLogger.add);
+    clearCache(); // Full wipe on unblock all
+    return res;
   },
 
   getSchedules: async () => {
-    const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.getQuietHoursSync(cfg, extensionLogger.add);
+    return withCache('schedules', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getQuietHoursSync(cfg, extensionLogger.add);
+    });
   },
 
   updateSchedules: async (recreationTime: any) => {
     const cfg = await nextDNSApi.getConfig();
-    return ndnsCore.updateQuietHoursSync(
+    const res = await ndnsCore.updateQuietHoursSync(
       recreationTime,
       cfg,
       extensionLogger.add,
     );
+    clearCache('schedules');
+    return res;
   },
 };
