@@ -75,7 +75,7 @@ export async function renderSettingsPage(container) {
                   <img src="${safeAvatarUrl}" class="fg-w-4 fg-h-4 fg-rounded-full">
                   <span style="${UI_TOKENS.TEXT.LABEL}; font-size: 12px; opacity: 0.6;" class="fg-truncate">${safeDisplayName}</span>
                 `
-                    : '<span class="fg-text-[10px] fg-font-bold fg-opacity-40 fg-tracking-wider">OFFLINE</span>'
+                    : '<span class="fg-text-[10px] fg-font-bold fg-opacity-40 fg-tracking-wider">Offline</span>'
                 }
               </div>
             </div>
@@ -96,8 +96,8 @@ export async function renderSettingsPage(container) {
               <div class="fg-mt-1 fg-flex fg-items-center fg-gap-2">
                 ${
                   profileId && apiKey
-                    ? '<span class="fg-text-emerald-500 fg-text-[10px] fg-font-black fg-tracking-wider">CONNECTED</span>'
-                    : '<span class="fg-text-rose-500 fg-text-[10px] fg-font-black fg-tracking-wider">NOT LINKED</span>'
+                    ? '<span class="fg-text-[var(--fg-green)] fg-text-[10px] fg-font-black fg-tracking-wider">Connected</span>'
+                    : '<span class="fg-text-[var(--fg-red)] fg-text-[10px] fg-font-black fg-tracking-wider">Not Linked</span>'
                 }
               </div>
             </div>
@@ -114,13 +114,13 @@ export async function renderSettingsPage(container) {
           <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-flex-col fg-gap-6 fg-h-full">
             <div class="fg-flex fg-items-center fg-justify-between">
               <div class="fg-flex fg-gap-3">
-                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-orange-500/10 fg-flex fg-items-center fg-justify-center fg-text-orange-500">
+                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-amber-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-amber-text)]">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 </div>
                 <div>
                   <div class="fg-flex fg-items-center fg-gap-2">
                     <h2 style="${UI_TOKENS.TEXT.HEADING}">Unblock Challenge</h2>
-                    <span class="fg-text-[8px] fg-font-black fg-bg-emerald-500/10 fg-text-emerald-500 fg-px-1.5 fg-py-0.5 fg-rounded-md fg-tracking-widest">RECOMMENDED</span>
+                    <span class="fg-text-[8px] fg-font-black fg-bg-[var(--fg-emerald-soft)] fg-text-[var(--fg-green)] fg-px-1.5 fg-py-0.5 fg-rounded-md fg-tracking-widest">Recommended</span>
                     ${renderInfoTooltip(
                       'Requires you to type a specific paragraph perfectly before settings can be unlocked.',
                     )}
@@ -167,7 +167,7 @@ export async function renderSettingsPage(container) {
           <div class="fg-flex fg-flex-col fg-gap-6">
             <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-items-center fg-justify-between">
               <div class="fg-flex fg-gap-3">
-                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-amber-500/10 fg-flex fg-items-center fg-justify-center fg-text-amber-500">
+                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-amber-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-amber-text)]">
                   ${iconLock}
                 </div>
                 <div>
@@ -192,7 +192,7 @@ export async function renderSettingsPage(container) {
             <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-flex-col fg-gap-4">
               <div class="fg-flex fg-items-center fg-justify-between">
                 <div class="fg-flex fg-gap-3">
-                  <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-emerald-500/10 fg-flex fg-items-center fg-justify-center fg-text-emerald-500">
+                  <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-emerald-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-green)]">
                     ${iconShield}
                   </div>
                   <div>
@@ -296,7 +296,7 @@ export async function renderSettingsPage(container) {
       if (!pin) {
         setupContainer.innerHTML = `
           <div class="fg-flex fg-flex-col fg-gap-3 fg-mt-2">
-            <div class="fg-text-[10px] fg-font-black fg-text-[var(--fg-muted)] fg-uppercase fg-tracking-widest fg-opacity-50">Enter 4-Digit PIN to Enable</div>
+            <div class="fg-text-[10px] fg-font-black fg-text-[var(--fg-muted)] fg-uppercase fg-tracking-widest fg-opacity-50">Enter 4-Digit PIN to enable</div>
             <div class="fg-flex fg-gap-2.5">
               <input type="password" maxlength="1" class="pin-digit-setup fg-w-10 fg-h-12 fg-bg-[var(--fg-surface-hover)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-xl fg-text-center fg-text-lg fg-font-black fg-text-[var(--fg-text)] fg-outline-none focus:fg-border-[var(--fg-accent)] fg-transition-all">
               <input type="password" maxlength="1" class="pin-digit-setup fg-w-10 fg-h-12 fg-bg-[var(--fg-surface-hover)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-xl fg-text-center fg-text-lg fg-font-black fg-text-[var(--fg-text)] fg-outline-none focus:fg-border-[var(--fg-accent)] fg-transition-all">
@@ -338,9 +338,9 @@ export async function renderSettingsPage(container) {
         const { fmtTime } = await import(
           '../../../../packages/core/src/utils/time'
         );
-        resetContainer.innerHTML = `<div class="fg-bg-[var(--red)]/10 fg-border fg-border-[var(--red)]/20 fg-rounded-2xl fg-px-4 fg-py-3 fg-flex fg-items-center fg-justify-between">
+        resetContainer.innerHTML = `<div class="fg-bg-[var(--fg-danger-soft)] fg-border fg-border-[var(--fg-danger-border)] fg-rounded-2xl fg-px-4 fg-py-3 fg-flex fg-items-center fg-justify-between">
           <div class="fg-flex fg-items-center fg-gap-4">
-            <div class="fg-text-[10px] fg-font-black fg-text-[var(--red)] fg-uppercase fg-tracking-widest">Active Recovery</div>
+            <div class="fg-text-[10px] fg-font-black fg-text-[var(--fg-red)] fg-uppercase fg-tracking-widest">Active Recovery</div>
             <div class="fg-text-[12px] fg-font-bold countdown-timer">${fmtTime(
               status.remainingMs!,
             )}</div>

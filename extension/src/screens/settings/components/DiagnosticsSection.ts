@@ -12,7 +12,7 @@ export function renderDiagnosticsSection(syncState: any) {
     <div class="fg-grid fg-grid-cols-2 fg-gap-6">
       <section class="fg-panel-premium fg-p-6 fg-rounded-[28px]">
         <div class="fg-mb-6 fg-flex fg-gap-3">
-          <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-blue-500/10 fg-flex fg-items-center fg-justify-center fg-text-blue-500">
+          <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-blue-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-blue)]">
             ${iconSearch}
           </div>
           <div>
@@ -36,7 +36,7 @@ export function renderDiagnosticsSection(syncState: any) {
       <section class="fg-panel-premium fg-p-6 fg-rounded-[28px]">
         <div class="fg-flex fg-items-center fg-justify-between fg-mb-5">
           <div class="fg-flex fg-gap-3">
-            <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-rose-500/10 fg-flex fg-items-center fg-justify-center fg-text-rose-500">
+            <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-danger-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-red)]">
               ${iconActivity}
             </div>
             <div>
@@ -49,19 +49,21 @@ export function renderDiagnosticsSection(syncState: any) {
           <button class="fg-text-[9px] fg-font-black fg-text-[var(--fg-in-app-active-text)] fg-bg-[var(--fg-in-app-active-bg)] fg-px-3 fg-py-1.5 fg-rounded-lg hover:fg-opacity-70" id="btn_force_sync">Push</button>
         </div>
         <div id="sync_stats" class="fg-text-[10px] fg-font-mono fg-space-y-2 fg-text-[var(--fg-text)] fg-mb-5">
-           <div class="fg-flex fg-justify-between fg-opacity-70"><span>Engine Health</span> <span class="${
-             syncState.status === 'error'
-               ? 'fg-text-[var(--fg-red)]'
-               : 'fg-text-[var(--fg-green)]'
-           } fg-font-black">${syncState.status.toUpperCase()}</span></div>
-           <div class="fg-flex fg-justify-between fg-opacity-70"><span>Telemetry Cycle</span> <span class="fg-font-black">${
-             syncState.lastSyncAt
-               ? new Date(syncState.lastSyncAt).toLocaleTimeString()
-               : 'INACTIVE'
-           }</span></div>
-           <div class="fg-flex fg-justify-between fg-opacity-70"><span>Pending Blobs</span> <span class="fg-text-[var(--fg-accent)] fg-font-black">${
-             syncState.pendingOps || 0
-           } UNITS</span></div>
+            <div class="fg-flex fg-justify-between fg-opacity-70"><span>Engine Health</span> <span class="${
+              syncState.status === 'error'
+                ? 'fg-text-[var(--fg-red)]'
+                : 'fg-text-[var(--fg-green)]'
+            } fg-font-black">${
+    syncState.status === 'error' ? 'Error' : 'Healthy'
+  }</span></div>
+            <div class="fg-flex fg-justify-between fg-opacity-70"><span>Telemetry Cycle</span> <span class="fg-font-black">${
+              syncState.lastSyncAt
+                ? new Date(syncState.lastSyncAt).toLocaleTimeString()
+                : 'Inactive'
+            }</span></div>
+            <div class="fg-flex fg-justify-between fg-opacity-70"><span>Pending Blobs</span> <span class="fg-text-[var(--fg-accent)] fg-font-black">${
+              syncState.pendingOps || 0
+            } Units</span></div>
         </div>
         <div class="fg-grid fg-grid-cols-3 fg-gap-3 fg-pt-4 fg-border-t fg-border-[var(--fg-glass-border)]">
           <button class="btn-secondary-v2 fg-py-3 fg-text-[9px] fg-tracking-widest" id="btn_view_logs">History</button>
@@ -101,7 +103,7 @@ export function attachDiagnosticsListeners(
       }
 
       resultDiv.classList.remove('fg-hidden');
-      resultDiv.innerText = 'SCANNING...';
+      resultDiv.innerText = 'Scanning...';
       const { localMatch, dnrMatch } = await vm.testDomainCoverageAction(
         domain,
         dnrRules,
@@ -109,14 +111,14 @@ export function attachDiagnosticsListeners(
 
       if (localMatch || dnrMatch) {
         resultDiv.className =
-          'fg-p-4 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black fg-bg-[var(--fg-green)]/20 fg-text-[var(--fg-green)] fg-border fg-border-[var(--fg-green)]/20';
+          'fg-p-4 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black fg-bg-[var(--fg-emerald-soft)] fg-text-[var(--fg-green)] fg-border fg-border-[var(--fg-emerald-border)]';
         resultDiv.innerText = localMatch
-          ? 'Block EVENT: PERSISTENT'
-          : 'Block EVENT: VIRTUAL';
+          ? 'Block Event: Persistent'
+          : 'Block Event: Virtual';
       } else {
         resultDiv.className =
-          'fg-p-4 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black fg-bg-[var(--fg-red)]/20 fg-text-[var(--fg-red)] fg-border fg-border-[var(--fg-red)]/20';
-        resultDiv.innerText = 'TRAFFIC CLEAN';
+          'fg-p-4 fg-rounded-2xl fg-text-center fg-text-xs fg-font-black fg-bg-[var(--fg-danger-soft)] fg-text-[var(--fg-red)] fg-border fg-border-[var(--fg-danger-border)]';
+        resultDiv.innerText = 'Traffic Clean';
       }
     });
 
@@ -193,7 +195,9 @@ export function attachDiagnosticsListeners(
                 l.level === 'error'
                   ? 'fg-text-[var(--fg-red)]'
                   : 'fg-text-[var(--fg-green)]'
-              } fg-font-black">[${l.level.toUpperCase()}]</span>
+              } fg-font-black">[${
+                  l.level.charAt(0).toUpperCase() + l.level.slice(1)
+                }]</span>
               <span class="fg-opacity-80">${l.message}</span>
             </div>
           `,

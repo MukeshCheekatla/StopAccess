@@ -27,29 +27,29 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
   const getStatus = () => {
     if (isOffline) {
       return {
-        label: 'OFFLINE',
-        color: 'fg-text-amber-500',
-        bg: 'fg-bg-amber-500/10',
+        label: 'Offline',
+        color: 'fg-text-[var(--fg-amber-text)]',
+        bg: 'fg-bg-[var(--fg-amber-soft)]',
       };
     }
     if (syncState.status === 'syncing') {
       return {
-        label: 'SYNCING...',
-        color: 'fg-text-blue-500',
-        bg: 'fg-bg-blue-500/10',
+        label: 'Syncing...',
+        color: 'fg-text-[var(--fg-blue)]',
+        bg: 'fg-bg-[var(--fg-blue-soft)]',
       };
     }
     if (syncState.status === 'error') {
       return {
-        label: 'ERROR',
-        color: 'fg-text-rose-500',
-        bg: 'fg-bg-rose-500/10',
+        label: 'Error',
+        color: 'fg-text-[var(--fg-red)]',
+        bg: 'fg-bg-[var(--fg-danger-soft)]',
       };
     }
     return {
-      label: 'CONNECTED',
-      color: 'fg-text-emerald-500',
-      bg: 'fg-bg-emerald-500/10',
+      label: 'Connected',
+      color: 'fg-text-[var(--fg-green)]',
+      bg: 'fg-bg-[var(--fg-emerald-soft)]',
     };
   };
 
@@ -108,7 +108,7 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
                         isSetupActive ? 'readonly-input' : ''
                       }" ${isSetupActive ? 'readonly' : ''} maxlength="12">
                     <button id="btn_open_nextdns_setup" class="fg-h-12 fg-px-4 fg-bg-[var(--fg-surface-hover)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-xl fg-flex fg-items-center fg-justify-center fg-text-[10px] fg-font-black fg-tracking-widest fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-white-wash)] fg-transition-all fg-whitespace-nowrap">
-                      <span>FIND ID</span>
+                      <span>Find ID</span>
                       ${iconExternal}
                     </button>
                   </div>
@@ -124,7 +124,7 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
                         isSetupActive ? 'readonly-input' : ''
                       }" ${isSetupActive ? 'readonly' : ''}>
                     <button id="btn_open_nextdns_account" class="fg-h-12 fg-px-4 fg-bg-[var(--fg-surface-hover)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-xl fg-flex fg-items-center fg-justify-center fg-text-[10px] fg-font-black fg-tracking-widest fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-white-wash)] fg-transition-all fg-whitespace-nowrap">
-                      <span>GET KEY</span>
+                      <span>Get Key</span>
                       ${iconExternal}
                     </button>
                   </div>
@@ -140,17 +140,17 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
     COLORS.inAppActiveBg
   }; color: ${COLORS.inAppActiveText}; border: 1px solid ${
     COLORS.inAppActiveBorder
-  };">VERIFY & LINK</button>
+  };">Verify & Link</button>
                 <button id="btn_edit_credentials" class="btn-secondary-v2 fg-flex-1 fg-justify-center fg-h-12 fg-rounded-xl fg-text-[10px] fg-font-black fg-tracking-widest ${
                   isSetupActive ? '' : 'fg-hidden'
-                }">MODIFY CREDENTIALS</button>
+                }">Modify Credentials</button>
               </div>
             </div>
 
             <!-- DNS Coverage Section -->
             <div class="fg-panel-premium fg-p-8 fg-rounded-[32px] fg-flex fg-flex-col fg-gap-6">
               <div class="fg-flex fg-gap-4">
-                <div class="fg-text-violet-500">
+                <div class="fg-text-[var(--fg-indigo)]">
                   ${renderBrandLogo('nextdns.io', 'NextDNS', 32)}
                 </div>
                 <div>
@@ -195,7 +195,7 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
                         <div class="fg-text-[11px] fg-font-medium fg-opacity-60">3. Select "Custom" Provider</div>
                         <div class="fg-text-[11px] fg-font-medium fg-opacity-60">4. Paste your DoH URL</div>
                       </div>
-                      <button id="btn_open_chrome_dns" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[9px] fg-tracking-widest fg-whitespace-nowrap fg-shrink-0">OPEN CHROME SETTINGS</button>
+                      <button id="btn_open_chrome_dns" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[9px] fg-tracking-widest fg-whitespace-nowrap fg-shrink-0">Open Chrome Settings</button>
                     </div>
                   </div>
                   
@@ -207,7 +207,7 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
                         <div class="fg-text-[11px] fg-font-medium fg-opacity-60">3. Enable DNS over HTTPS</div>
                         <div class="fg-text-[11px] fg-font-medium fg-opacity-60">4. Paste DoH URL</div>
                       </div>
-                      <button id="btn_open_firefox_dns" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[9px] fg-tracking-widest fg-whitespace-nowrap fg-shrink-0">OPEN FIREFOX SETTINGS</button>
+                      <button id="btn_open_firefox_dns" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[9px] fg-tracking-widest fg-whitespace-nowrap fg-shrink-0">Open Firefox Settings</button>
                     </div>
                   </div>
                   
@@ -218,7 +218,7 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
                         <div class="fg-text-[11px] fg-font-medium fg-opacity-60">2. Use Config ID</div>
                         <div class="fg-text-[11px] fg-font-medium fg-opacity-60">3. Global protection</div>
                       </div>
-                      <button id="btn_open_nextdns_download" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[9px] fg-tracking-widest fg-whitespace-nowrap fg-shrink-0">DOWNLOAD DESKTOP APP</button>
+                      <button id="btn_open_nextdns_download" class="btn-secondary-v2 fg-px-5 fg-py-3 fg-text-[9px] fg-tracking-widest fg-whitespace-nowrap fg-shrink-0">Download Desktop App</button>
                     </div>
                   </div>
                 </div>
@@ -264,7 +264,7 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
     const isEditing = editBtn.classList.contains('active-edit');
     if (isEditing) {
       editBtn.classList.remove('active-edit');
-      editBtn.innerText = 'MODIFY CREDENTIALS';
+      editBtn.innerText = 'Modify Credentials';
       saveBtn?.classList.add('fg-hidden');
       profileInput.readOnly = true;
       profileInput.classList.add('readonly-input');
@@ -272,7 +272,7 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
       apiKeyInput.classList.add('readonly-input');
     } else {
       editBtn.classList.add('active-edit');
-      editBtn.innerText = 'CANCEL EDIT';
+      editBtn.innerText = 'Cancel Edit';
       saveBtn?.classList.remove('fg-hidden');
       profileInput.readOnly = false;
       profileInput.classList.remove('readonly-input');
@@ -297,7 +297,7 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
       return;
     }
 
-    saveBtn.innerText = 'VERIFYING...';
+    saveBtn.innerText = 'Verifying...';
     saveBtn.disabled = true;
     feedback.classList.remove('fg-hidden');
     feedback.className =
@@ -308,7 +308,7 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
       const result = await connectNextDNSAction(pid, key);
       if (result.ok) {
         feedback.className =
-          'fg-p-5 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-green-500/10 fg-text-green-500';
+          'fg-p-5 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-[var(--fg-emerald-soft)] fg-text-[var(--fg-green)]';
         feedback.innerText = 'Account Linked Successfully';
         toast.success('NextDNS account linked');
         setTimeout(() => renderNextDNSAccountPage(container), 1000);
@@ -317,9 +317,9 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
       }
     } catch (err: any) {
       feedback.className =
-        'fg-p-5 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-red-500/10 fg-text-red-500';
+        'fg-p-5 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-[var(--fg-danger-soft)] fg-text-[var(--fg-red)]';
       feedback.innerText = err.message;
-      saveBtn.innerText = 'RETRY';
+      saveBtn.innerText = 'Retry';
       saveBtn.disabled = false;
     }
   });

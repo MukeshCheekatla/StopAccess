@@ -153,13 +153,13 @@ function Alert({ msg, tone }: { msg: string; tone: 'error' | 'success' }) {
     <div
       className={`fg-rounded-[14px] fg-px-5 fg-py-4 fg-text-[13px] fg-font-semibold fg-border fg-flex fg-items-center fg-gap-3 fg-animate-in fg-fade-in fg-slide-in-from-top-2 ${
         tone === 'error'
-          ? 'fg-bg-red-500/10 fg-text-red-400 fg-border-red-500/20'
-          : 'fg-bg-emerald-500/10 fg-text-emerald-400 fg-border-emerald-500/20'
+          ? 'fg-bg-[var(--fg-danger-soft)] fg-text-[var(--fg-red)] fg-border-[var(--fg-danger-border)]'
+          : 'fg-bg-[var(--fg-emerald-soft)] fg-text-[var(--fg-green)] fg-border-[var(--fg-emerald-border)]'
       }`}
     >
       <div
         className={`fg-w-1.5 fg-h-1.5 fg-rounded-full ${
-          tone === 'error' ? 'fg-bg-red-500' : 'fg-bg-emerald-500'
+          tone === 'error' ? 'fg-bg-[var(--fg-red)]' : 'fg-bg-[var(--fg-green)]'
         }`}
       />
       {msg}
@@ -369,7 +369,7 @@ export const OnboardingReact: React.FC<{
                 Don't have an account? Create one for free at{' '}
                 <button
                   onClick={() => openWithIntent('https://nextdns.io', 'setup')}
-                  className="fg-text-emerald-500 hover:fg-underline fg-bg-transparent fg-border-0 fg-p-0 fg-font-bold fg-cursor-pointer"
+                  className="fg-text-[var(--fg-green)] hover:fg-underline fg-bg-transparent fg-border-0 fg-p-0 fg-font-bold fg-cursor-pointer"
                 >
                   nextdns.io
                 </button>
@@ -468,7 +468,7 @@ export const OnboardingReact: React.FC<{
       <div className="fg-relative fg-w-full fg-max-w-[1000px] fg-mx-auto">
         {/* HEADER - CENTERED */}
         <div className="fg-text-center fg-mb-6">
-          <div className="fg-text-[14px] fg-font-bold fg-text-emerald-500 fg-mb-1">
+          <div className="fg-text-[14px] fg-font-bold fg-text-[var(--fg-green)] fg-mb-1">
             Almost Finished
           </div>
           <h1 className="fg-text-[28px] fg-font-black fg-text-[var(--fg-text)] fg-mb-2 fg-tracking-tight">
@@ -526,7 +526,7 @@ export const OnboardingReact: React.FC<{
                   }
                   className="fg-flex fg-items-center fg-gap-3 fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-p-3 fg-rounded-[14px] hover:fg-bg-[var(--fg-surface-hover)] hover:fg-border-[var(--fg-text)] fg-transition-all active:fg-scale-[0.98] fg-group"
                 >
-                  <div className="fg-w-8 fg-h-8 fg-bg-emerald-500/10 fg-rounded-lg fg-flex fg-items-center fg-justify-center fg-text-emerald-500 group-hover:fg-bg-emerald-500/20 fg-transition-colors">
+                  <div className="fg-w-8 fg-h-8 fg-bg-[var(--fg-emerald-soft)] fg-rounded-lg fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-green)] group-hover:fg-bg-[var(--fg-emerald-border)] fg-transition-colors">
                     <svg
                       width="16"
                       height="16"
@@ -558,7 +558,7 @@ export const OnboardingReact: React.FC<{
                   }
                   className="fg-flex fg-items-center fg-gap-3 fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-p-3 fg-rounded-[14px] hover:fg-bg-[var(--fg-surface-hover)] hover:fg-border-[var(--fg-text)] fg-transition-all active:fg-scale-[0.98] fg-group"
                 >
-                  <div className="fg-w-8 fg-h-8 fg-bg-orange-500/10 fg-rounded-lg fg-flex fg-items-center fg-justify-center fg-text-orange-500 group-hover:fg-bg-orange-500/20 fg-transition-colors">
+                  <div className="fg-w-8 fg-h-8 fg-bg-[var(--fg-amber-soft)] fg-rounded-lg fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-amber-text)] group-hover:fg-bg-[var(--fg-amber-border)] fg-transition-colors">
                     <svg
                       width="16"
                       height="16"

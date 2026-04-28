@@ -58,8 +58,8 @@ export async function renderCloudAccountPage(container: HTMLElement) {
         <div class="fg-panel-premium fg-rounded-[32px] fg-max-w-4xl fg-w-full fg-overflow-hidden fg-flex fg-flex-col lg:fg-flex-row">
           
           <!-- Left Side: Info -->
-          <div class="fg-flex-1 fg-p-10 lg:fg-p-12 fg-bg-blue-500/[0.03] fg-border-b lg:fg-border-b-0 lg:fg-border-r fg-border-[var(--fg-glass-border)] fg-flex fg-flex-col fg-justify-center">
-            <div class="fg-mb-8 fg-text-blue-500">
+          <div class="fg-flex-1 fg-p-10 lg:fg-p-12 fg-bg-[var(--fg-blue-soft)] fg-border-b lg:fg-border-b-0 lg:fg-border-r fg-border-[var(--fg-glass-border)] fg-flex fg-flex-col fg-justify-center">
+            <div class="fg-mb-8 fg-text-[var(--fg-blue)]">
               ${
                 user
                   ? renderBrandLogo(userDomain, 'Email', 48)
@@ -73,8 +73,8 @@ export async function renderCloudAccountPage(container: HTMLElement) {
               ${
                 user
                   ? `
-                <div class="fg-bg-emerald-500/10 fg-text-emerald-500 fg-px-3 fg-py-1 fg-rounded-full fg-text-[9px] fg-font-black fg-tracking-widest">
-                  ACTIVE
+                <div class="fg-bg-[var(--fg-emerald-soft)] fg-text-[var(--fg-green)] fg-px-3 fg-py-1 fg-rounded-full fg-text-[9px] fg-font-black fg-tracking-widest">
+                  Active
                 </div>
               `
                   : ''
@@ -105,28 +105,17 @@ export async function renderCloudAccountPage(container: HTMLElement) {
                   </div>
                 </div>
                 
-                <button id="btn_cloud_signout" class="btn-secondary-v2 fg-h-12 fg-px-6 fg-rounded-xl fg-text-[11px] fg-font-black fg-tracking-widest hover:fg-text-rose-500">
-                  SIGN OUT FROM CLOUD
+                <button id="btn_cloud_signout" class="btn-secondary-v2 fg-h-12 fg-px-6 fg-rounded-xl fg-text-[11px] fg-font-black fg-tracking-widest hover:fg-text-[var(--fg-red)]">
+                  Sign Out From Cloud
                 </button>
               </div>
             `
                 : `
               <div class="fg-flex fg-flex-col fg-gap-5">
-                <button id="btn_cloud_google" class="fg-w-full fg-h-14 fg-rounded-2xl fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-glass-bg)] hover:fg-bg-[var(--fg-surface-hover)] fg-flex fg-items-center fg-justify-center fg-gap-4 fg-transition-all fg-text-[var(--fg-text)]">
-                  ${renderBrandLogo('google.com', 'Google', 24)}
-                  <span class="fg-text-[12px] fg-font-black fg-tracking-widest">CONTINUE WITH GOOGLE</span>
-                </button>
-
-                <div class="fg-flex fg-items-center fg-gap-4 fg-my-1">
-                  <div class="fg-h-[1px] fg-flex-1 fg-bg-[var(--fg-glass-border)]"></div>
-                  <span class="fg-text-[10px] fg-font-black fg-opacity-30">OR</span>
-                  <div class="fg-h-[1px] fg-flex-1 fg-bg-[var(--fg-glass-border)]"></div>
-                </div>
-
                 <div class="fg-flex fg-flex-col fg-gap-2">
                   <label style="${
                     UI_TOKENS.TEXT.LABEL
-                  }; font-size: 11px; opacity: 0.5;">EMAIL ADDRESS</label>
+                  }; font-size: 11px; opacity: 0.5;">Email Address</label>
                   <input type="email" id="cloud_email_input" placeholder="user@example.com" 
                     class="input-premium fg-h-12 fg-px-5 fg-text-sm fg-font-bold">
                 </div>
@@ -135,7 +124,18 @@ export async function renderCloudAccountPage(container: HTMLElement) {
                   COLORS.inAppActiveBg
                 }; color: ${COLORS.inAppActiveText}; border: 1px solid ${
                     COLORS.inAppActiveBorder
-                  };">SEND MAGIC LINK</button>
+                  };">Send Magic Link</button>
+
+                <div class="fg-flex fg-items-center fg-gap-4 fg-my-1">
+                  <div class="fg-h-[1px] fg-flex-1 fg-bg-[var(--fg-glass-border)]"></div>
+                  <span class="fg-text-[10px] fg-font-black fg-opacity-30">Or</span>
+                  <div class="fg-h-[1px] fg-flex-1 fg-bg-[var(--fg-glass-border)]"></div>
+                </div>
+
+                <button id="btn_cloud_google" class="fg-w-full fg-h-14 fg-rounded-2xl fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-glass-bg)] hover:fg-bg-[var(--fg-surface-hover)] fg-flex fg-items-center fg-justify-center fg-gap-4 fg-transition-all fg-text-[var(--fg-text)]">
+                  ${renderBrandLogo('google.com', 'Google', 24)}
+                  <span class="fg-text-[12px] fg-font-black fg-tracking-widest">Continue with Google</span>
+                </button>
               </div>
             `
             }
@@ -186,14 +186,14 @@ export async function renderCloudAccountPage(container: HTMLElement) {
         }
         const btn = e.currentTarget as HTMLButtonElement;
         btn.disabled = true;
-        btn.innerText = 'SENDING...';
+        btn.innerText = 'Sending...';
         try {
           await signInWithOtpAction(email);
           toast.success('Magic link sent!');
         } catch (err: any) {
           toast.error(err.message);
           btn.disabled = false;
-          btn.innerText = 'RETRY';
+          btn.innerText = 'Retry';
         }
       });
 

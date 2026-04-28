@@ -23,7 +23,13 @@ import {
 } from './sessionManager';
 import { getEffectiveElapsed } from '../lib/sessionTimer';
 import { notifyFocusComplete, notifyFocusStopped } from './notifications';
-import { getCloudUser, signOut } from './authManager';
+import {
+  getCloudUser,
+  signOut,
+  signInWithGoogle,
+  signInWithOtp,
+  setSessionFromUrl,
+} from './authManager';
 
 console.log('[StopAccess] TRACKER INITIALIZING');
 
@@ -31,6 +37,19 @@ console.log('[StopAccess] TRACKER INITIALIZING');
 
 chrome.tabs.onActivated.addListener(({ tabId }) => switchTab(tabId));
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (
+    changeInfo.url &&
+    changeInfo.url.includes('stopaccess.pages.dev/auth/callback')
+  ) {
+    (async () => {
+      const { error } = await setSessionFromUrl(changeInfo.url);
+      if (!error) {
+        chrome.tabs.remove(tabId).catch(() => {});
+        await runCycle(true);
+      }
+    })();
+  }
+
   // Only fire on 'complete' to avoid double-counting per navigation (url change fires before complete)
   if (tab.active && changeInfo.status === 'complete') {
     switchTab(tabId);
@@ -337,6 +356,27 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     signOut()
       .then(() => sendResponse({ ok: true }))
       .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
+  if (msg.action === 'signInWithGoogle') {
+    signInWithGoogle()
+      .then((res) => sendResponse({ ok: !res.error, error: res.error }))
+      .catch((err) => sendResponse({ ok: false, error: err }));
+    return true;
+  }
+
+  if (msg.action === 'signInWithOtp') {
+    signInWithOtp(msg.email)
+      .then((res) => sendResponse({ ok: !res.error, error: res.error }))
+      .catch((err) => sendResponse({ ok: false, error: err }));
+    return true;
+  }
+
+  if (msg.action === 'setSessionFromUrl') {
+    setSessionFromUrl(msg.url)
+      .then((res) => sendResponse({ ok: !res.error, error: res.error }))
+      .catch((err) => sendResponse({ ok: false, error: err }));
     return true;
   }
 

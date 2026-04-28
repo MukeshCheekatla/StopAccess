@@ -236,7 +236,7 @@ export function renderEmptyState(
   if (suggestions && suggestions.length > 0) {
     suggestionsHtml = `
       <div style="margin-top: 24px; border-top: 1px dashed var(--fg-glass-border); padding-top: 20px;">
-        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.5; margin-bottom: 12px;">Quick Suggestions</div>
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.05em; opacity: 0.5; margin-bottom: 12px;">Quick Suggestions</div>
         <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;">
           ${suggestions
             .map(

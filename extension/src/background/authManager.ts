@@ -102,23 +102,22 @@ export async function signOut(): Promise<void> {
  */
 export async function setSessionFromUrl(url: string): Promise<{ error: any }> {
   try {
-    const hash = url.split('#')[1];
-    if (!hash) {
-      return { error: new Error('No hash found in URL') };
-    }
-
-    const params = new URLSearchParams(hash);
-    const access_token = params.get('access_token');
-    const refresh_token = params.get('refresh_token');
+    const urlObj = new URL(url.replace('#', '?'));
+    const access_token = urlObj.searchParams.get('access_token');
+    const refresh_token = urlObj.searchParams.get('refresh_token');
 
     if (!access_token || !refresh_token) {
-      return { error: new Error('Missing tokens') };
+      return { error: new Error('Missing tokens in URL') };
     }
 
     const { error } = await supabase.auth.setSession({
       access_token,
       refresh_token,
     });
+
+    if (!error) {
+      extensionLogger.add('info', 'Cloud session established successfully');
+    }
 
     return { error };
   } catch (err: any) {

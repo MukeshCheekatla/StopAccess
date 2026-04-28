@@ -220,7 +220,7 @@ function buildOverlayMarkup(domain, options: any = {}) {
       <div class="fg-anim-card" style="display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 440px;">
         <div class="fg-flex fg-flex-col fg-items-center fg-mb-8">
           <img src="${logoUrl}" style="width: 48px; height: 48px; margin-bottom: 8px;" alt="StopAccess" />
-          <div class="fg-text-[11px] fg-font-black fg-tracking-[0.1em] fg-uppercase fg-opacity-40">StopAccess</div>
+          <div class="fg-text-[11px] fg-font-black fg-tracking-[0.1em] fg-opacity-40">StopAccess</div>
         </div>
 
         <div style="position: relative; width: 160px; height: 160px; margin-bottom: 32px;">
