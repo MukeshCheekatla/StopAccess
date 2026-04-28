@@ -60,6 +60,7 @@ export interface GlobalState {
   rules: AppRule[];
   schedules: ScheduleRule[];
   focusEndTime: number;
+  passes?: Record<string, any>;
   theme?: 'dark' | 'light' | 'system';
   updatedAt?: number;
   deviceId?: string;

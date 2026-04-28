@@ -6,11 +6,13 @@ export function evaluateRules({
   rules,
   schedules,
   focusEndTime,
+  passes,
   now = new Date(),
 }: {
   rules: AppRule[];
   schedules: ScheduleRule[];
   focusEndTime: number;
+  passes?: Record<string, any>;
   now?: Date;
 }): { masterBlockList: Map<string, AppRule>; updatedRules: AppRule[] } {
   const masterBlockList = new Map<string, AppRule>();
@@ -48,9 +50,19 @@ export function evaluateRules({
       shouldBlock = true;
     }
 
-    const updated = { ...r, blockedToday: shouldBlock, isLimitHit };
-    if (shouldBlock) {
-      masterBlockList.set(r.packageName || r.appName, updated);
+    // Pass Override Logic
+    let finalBlocked = shouldBlock;
+    const pkg = r.packageName || r.appName;
+    if (passes && passes[pkg]) {
+      const pass = passes[pkg];
+      if (pass && pass.expiresAt > now.getTime()) {
+        finalBlocked = false;
+      }
+    }
+
+    const updated = { ...r, blockedToday: finalBlocked, isLimitHit };
+    if (finalBlocked) {
+      masterBlockList.set(pkg, updated);
     }
     updatedRules.push(updated);
   }
@@ -106,6 +118,7 @@ export async function runFullEngineCycle(ctx: SyncContext, now = new Date()) {
       rules,
       schedules,
       focusEndTime,
+      passes: (await storage.loadGlobalState()).passes,
       now,
     });
 

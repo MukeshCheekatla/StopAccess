@@ -1,5 +1,46 @@
 export const CHANGELOG = [
   {
+    version: '1.1.2',
+    title: 'Total Transformation Update',
+    features: [
+      {
+        iconId: 'CLOUDSYNC',
+        label: 'Cloud Sync (Supabase)',
+        desc: 'Built a robust synchronization engine to sync your rules, schedules, and usage data across all devices automatically.',
+      },
+      {
+        iconId: 'LOCK',
+        label: 'Advanced Auth System',
+        desc: 'New secure login via Google and Magic Link, featuring automatic session recovery and encrypted token storage.',
+      },
+      {
+        iconId: 'SHIELD',
+        label: 'Deep In-App Blocking',
+        desc: 'Surgical precision blocking for 6 major platforms: YouTube Shorts, Instagram Reels, TikTok, Twitter Trends, and more.',
+      },
+      {
+        iconId: 'CHART',
+        label: 'Heartbeat Usage Tracking',
+        desc: 'Fixed "phantom time" bugs using a new heartbeat system. Your stats now pause instantly when the computer sleeps or the browser is idle.',
+      },
+      {
+        iconId: 'ZAP',
+        label: 'API Performance 2.0',
+        desc: 'Integrated a global caching layer for NextDNS, reducing network overhead and eliminating "Too Many Requests" errors.',
+      },
+      {
+        iconId: 'SEARCH',
+        label: 'Refined Discovery',
+        desc: 'Fully restored the Ad & Tracker search engine and upgraded all blocklist branding with professional, high-res logos.',
+      },
+      {
+        iconId: 'SETTINGS',
+        label: 'Modernized Dashboard',
+        desc: 'A complete UI overhaul of the Settings and Account pages for a faster, more intuitive experience.',
+      },
+    ],
+  },
+  {
     version: '1.1.1',
     title: 'Professional Reliability Update',
     features: [

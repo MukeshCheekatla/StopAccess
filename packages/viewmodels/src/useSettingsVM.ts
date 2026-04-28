@@ -239,15 +239,30 @@ export async function updateChallengeTextAction(text: string) {
   await storage.set('challenge_text', text);
 }
 
-export async function signInAction(): Promise<boolean> {
+export async function signInWithGoogleAction(): Promise<boolean> {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage({ action: 'signInWithGoogle' }, (res: any) => {
       if (res?.error) {
-        reject(new Error(res.error));
+        reject(new Error(res.error.message || res.error));
       } else {
         resolve(!!res?.ok);
       }
     });
+  });
+}
+
+export async function signInWithOtpAction(email: string): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    chrome.runtime.sendMessage(
+      { action: 'signInWithOtp', email },
+      (res: any) => {
+        if (res?.error) {
+          reject(new Error(res.error.message || res.error));
+        } else {
+          resolve(!!res?.ok);
+        }
+      },
+    );
   });
 }
 

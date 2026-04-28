@@ -108,6 +108,14 @@ export class SyncOrchestrator {
     }
   }
 
+  async onLaunch() {
+    return this.performSync();
+  }
+
+  async onStateChange(forcePush = false) {
+    return this.performSync(forcePush);
+  }
+
   async onForeground() {
     return this.performSync();
   }

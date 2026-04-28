@@ -10,7 +10,7 @@ const APP_DOMAINS: Record<string, string> = {
   'com.snapchat.android': 'snapchat.com',
   'com.netflix.mediaclient': 'netflix.com',
   'com.whatsapp': 'whatsapp.net',
-  'org.telegram.messenger': 'telegram.org',
+  'org.telegram.messenger': 'web.telegram.org',
   'com.spotify.music': 'spotify.com',
   'com.amazon.mShop.android.shopping': 'amazon.com',
   'com.pinterest': 'pinterest.com',

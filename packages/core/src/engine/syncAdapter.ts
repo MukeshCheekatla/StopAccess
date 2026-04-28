@@ -25,6 +25,14 @@ export interface SyncPullResult {
 export class NextDNSSyncAdapter {
   api: NextDNSApiClient;
 
+  get client(): NextDNSApiClient {
+    return this.api;
+  }
+
+  set client(val: NextDNSApiClient) {
+    this.api = val;
+  }
+
   constructor(api: NextDNSApiClient) {
     this.api = api;
   }

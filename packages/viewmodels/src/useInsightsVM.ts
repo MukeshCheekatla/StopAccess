@@ -16,8 +16,9 @@ export async function loadInsightsData() {
   let blockedLogs = [];
   let topBlocked = [];
   let counters = { blocked: 0, allowed: 0 };
+  const isOffline = !navigator.onLine;
 
-  if (isConfigured) {
+  if (isConfigured && !isOffline) {
     // We use individual try-catches to ensure one failing endpoint doesn't break the whole page
     try {
       const logsRes = await nextDNSApi.getLogs('blocked', 20).catch((e) => {
@@ -101,8 +102,6 @@ export async function loadInsightsData() {
     totalQueries > 0
       ? Math.round((Number(counters.blocked) / totalQueries) * 100)
       : 0;
-
-  const isOffline = !navigator.onLine;
 
   return {
     isConfigured,
