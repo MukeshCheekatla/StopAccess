@@ -24,6 +24,7 @@
     "@stopaccess/state": "file:../packages/state",
     "@stopaccess/sync": "file:../packages/sync",
     "@stopaccess/types": "file:../packages/types",
+    "@stopaccess/viewmodels": "file:../packages/viewmodels",
     "@supabase/supabase-js": "^2.104.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
