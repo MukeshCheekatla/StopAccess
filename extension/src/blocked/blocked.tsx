@@ -1,11 +1,15 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
 import { getDomainForRule, resolveFaviconUrl } from '@stopaccess/core';
 import { AppRule } from '@stopaccess/types';
-import { EXTENSION_COLOR_VAR_DECLARATIONS } from '../lib/designTokens';
+import { EXTENSION_COLOR_VAR_DECLARATIONS } from '../ui/theme/designTokens';
+import { ByteCompanion } from '../ui/components/companion';
 
 // Constants
 const TEMP_PASSES_KEY = 'fg_temp_passes';
 const RULES_KEY = 'rules';
 const EXT_COUNTS_KEY = 'fg_extension_counts';
+const WILT_UNTIL_KEY = 'wilt_until';
 const DEFAULT_MAX_DAILY_PASSES = 3;
 const PASS_DURATION_MINUTES = 5;
 
@@ -137,6 +141,8 @@ function render() {
 
   root.innerHTML = `
     <div style="display: flex; align-items: center; justify-content: center; height: 100vh; width: 100vw; background-color: var(--fg-host-bg); color: white; font-family: sans-serif; overflow: hidden; position: relative;">
+      <!-- BOT MOUNT POINT -->
+      <div id="__fg_bot_mount" style="position: absolute; left: 40px; bottom: 40px; width: 280px; z-index: 20;"></div>
       
       <!-- DNS Card (Left Side) -->
       <div style="position: absolute; left: 40px; top: 50%; transform: translateY(-50%); width: 280px; background: rgba(39, 39, 42, 0.5); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 20px; padding: 24px; box-sizing: border-box; backdrop-filter: blur(20px);">
@@ -238,6 +244,19 @@ function render() {
   document.getElementById('btn-back')?.addEventListener('click', () => {
     window.location.href = chrome.runtime.getURL('dashboard.html');
   });
+
+  // Render Bot
+  const botMount = document.getElementById('__fg_bot_mount');
+  if (botMount) {
+    const reactRoot = createRoot(botMount);
+    reactRoot.render(
+      <ByteCompanion
+        mood="judging"
+        message={'Stay Focused!\nWork is priority.'}
+        variant="sidebar"
+      />,
+    );
+  }
 }
 
 async function handleUnblock() {
@@ -252,14 +271,21 @@ async function handleUnblock() {
   const counts = res[EXT_COUNTS_KEY] || {};
   const today = new Date().toLocaleDateString('en-CA');
 
-  // Grant pass to the rule package name if possible, else the domain
-  const targetId = matchingRule?.packageName || currentDomain;
+  // Grant pass to both the rule package name and the specific domain
+  // Package name is for the background engine, domain is for the content script
+  const pkgId = matchingRule?.packageName;
+  const domId = currentDomain;
 
-  passes[targetId] = {
+  const passData = {
     expiresAt: Date.now() + PASS_DURATION_MINUTES * 60000,
     grantedMinutes: PASS_DURATION_MINUTES,
     grantedAt: Date.now(),
   };
+
+  if (pkgId) {
+    passes[pkgId] = passData;
+  }
+  passes[domId] = passData;
 
   if (!counts[today]) {
     counts[today] = {};
@@ -269,6 +295,7 @@ async function handleUnblock() {
   await chrome.storage.local.set({
     [TEMP_PASSES_KEY]: passes,
     [EXT_COUNTS_KEY]: counts,
+    [WILT_UNTIL_KEY]: Date.now() + 60 * 60 * 1000,
   });
 
   // Sync to NextDNS immediately

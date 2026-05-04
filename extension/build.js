@@ -84,14 +84,14 @@ async function build() {
     // Content Script (SPA blocker)
     esbuild.build({
       ...baseConfig,
-      entryPoints: [resolve(SRC_DIR, 'background/contentScript.ts')],
+      entryPoints: [resolve(SRC_DIR, 'content/index.tsx')],
       outfile: resolve(DIST_DIR, 'contentScript.js'),
       format: 'iife', // Content scripts must be IIFE
     }),
     // Dedicated Block Screen (DNS Hard Mode)
     esbuild.build({
       ...baseConfig,
-      entryPoints: [resolve(SRC_DIR, 'blocked/blocked.ts')],
+      entryPoints: [resolve(SRC_DIR, 'blocked/blocked.tsx')],
       outfile: resolve(DIST_DIR, 'blocked/blocked.js'),
     }),
   ]);

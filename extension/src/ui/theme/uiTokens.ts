@@ -1,4 +1,4 @@
-import { COLORS } from '../lib/designTokens';
+import { COLORS } from './designTokens';
 
 const TOKEN_DEFS = {
   HEADING: {

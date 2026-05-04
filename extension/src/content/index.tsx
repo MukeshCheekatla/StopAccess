@@ -1,7 +1,13 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
 import { getDomainForRule, resolveFaviconUrl } from '@stopaccess/core';
 import { AppRule } from '@stopaccess/types';
-import { EXTENSION_COLOR_VAR_DECLARATIONS } from '../lib/designTokens';
-import { checkInAppFeatures, checkInAppUrlBlock } from './inAppBlocking';
+import { EXTENSION_COLOR_VAR_DECLARATIONS } from '../ui/theme/designTokens';
+import {
+  checkInAppFeatures,
+  checkInAppUrlBlock,
+} from '../background/inAppBlocking';
+import { ByteCompanion } from '../ui/components/companion';
 
 // Bail out immediately if this is a zombie script (context already invalidated)
 if (typeof chrome === 'undefined' || !chrome.runtime?.id) {
@@ -15,6 +21,7 @@ const EXT_COUNTS_KEY = 'fg_extension_counts';
 const CONTENT_DEBUG_KEY = 'fg_block_debug';
 const REDIRECT_URL_KEY = 'fg_redirect_url';
 const FOCUS_END_KEY = 'focus_mode_end_time';
+const WILT_UNTIL_KEY = 'wilt_until';
 const STRICT_MODE_KEY = 'strict_mode_enabled';
 const OVERLAY_DELAY_MS = 2500; // NOTE: Do NOT remove or reduce this delay. It prevents race conditions during page load and avoids breaking site scripts.
 const PREBLOCK_ID = '__fg_block_prewarn__';
@@ -122,16 +129,36 @@ async function grantTempPass(
   }
 
   // Create temp pass
-  const res = await chrome.storage.local.get([TEMP_PASSES_KEY, EXT_COUNTS_KEY]);
+  const res = await chrome.storage.local.get([
+    TEMP_PASSES_KEY,
+    EXT_COUNTS_KEY,
+    RULES_KEY,
+  ]);
   const passes = res[TEMP_PASSES_KEY] || {};
   const counts = res[EXT_COUNTS_KEY] || {};
   const today = todayKey();
 
-  passes[domain] = {
+  let rules: AppRule[] = [];
+  try {
+    rules =
+      typeof res[RULES_KEY] === 'string'
+        ? JSON.parse(res[RULES_KEY] || '[]')
+        : res[RULES_KEY] || [];
+  } catch {}
+
+  const matchingRule = findMatchingRule(rules, domain);
+  const pkgId = matchingRule?.packageName;
+
+  const passData = {
     expiresAt: Date.now() + minutes * 60000,
     grantedMinutes: minutes,
     grantedAt: Date.now(),
   };
+
+  if (pkgId) {
+    passes[pkgId] = passData;
+  }
+  passes[domain] = passData;
 
   if (!counts[today]) {
     counts[today] = {};
@@ -148,6 +175,7 @@ async function grantTempPass(
   await chrome.storage.local.set({
     [TEMP_PASSES_KEY]: passes,
     [EXT_COUNTS_KEY]: counts,
+    [WILT_UNTIL_KEY]: Date.now() + 60 * 60 * 1000,
   });
 
   return true;
@@ -216,8 +244,11 @@ function buildOverlayMarkup(domain, options: any = {}) {
   const logoUrl = chrome.runtime.getURL('assets/icon-128.png');
 
   return `
-    <div class="fg-anim-overlay" style="display: flex; align-items: center; justify-content: center; height: 100vh; width: 100vw; background-color: var(--fg-host-bg); color: var(--fg-on-accent); font-family: sans-serif; overflow-y: auto; padding: 24px;">
-      <div class="fg-anim-card" style="display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 440px;">
+    <div class="fg-anim-overlay" style="display: flex; align-items: center; justify-content: center; height: 100vh; width: 100vw; background-color: var(--fg-host-bg); color: var(--fg-on-accent); font-family: sans-serif; overflow-y: auto; padding: 24px; position: relative;">
+      <!-- BOT MOUNT POINT -->
+      <div id="__fg_bot_mount" class="fg-hidden lg:fg-block fg-absolute fg-left-12 fg-top-1/2 fg--translate-y-1/2 fg-w-[280px] fg-z-[2147483647]"></div>
+
+      <div class="fg-anim-card" style="display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 440px; position: relative; z-index: 10;">
         <div class="fg-flex fg-flex-col fg-items-center fg-mb-8">
           <img src="${logoUrl}" style="width: 48px; height: 48px; margin-bottom: 8px;" alt="StopAccess" />
           <div class="fg-text-[11px] fg-font-black fg-tracking-[0.1em] fg-opacity-40">StopAccess</div>
@@ -374,13 +405,27 @@ function injectOverlay(domain, options: any = {}) {
   wrapper.style.height = '100%';
   wrapper.innerHTML = buildOverlayMarkup(domain, options);
 
-  attachOverlayListeners(shadow, domain, options);
   // Once attached and styleLink is loaded, ensure everything is visible
   styleLink.onload = () => {
     shadow.appendChild(wrapper);
+    attachOverlayListeners(shadow, domain, options);
     requestAnimationFrame(() => {
       wrapper.style.opacity = '1';
     });
+
+    // Render Bot
+    const botMount = shadow.getElementById('__fg_bot_mount');
+    if (botMount) {
+      const root = createRoot(botMount);
+      root.render(
+        <ByteCompanion
+          mood="judging"
+          message="Stay Focused!
+Work is priority."
+          variant="sidebar"
+        />,
+      );
+    }
 
     restartLiveTimer(
       shadow,
@@ -637,7 +682,10 @@ async function checkAndBlock() {
     let rules: AppRule[] = [];
     let derivedBlockedDomains = [];
     try {
-      rules = JSON.parse((res[RULES_KEY] as string) || '[]');
+      rules =
+        typeof res[RULES_KEY] === 'string'
+          ? JSON.parse(res[RULES_KEY] || '[]')
+          : res[RULES_KEY] || [];
       derivedBlockedDomains = rules
         .filter((rule) => {
           const isManuallyBlocked = rule.mode === 'block';
@@ -669,6 +717,7 @@ async function checkAndBlock() {
     const maxDailyPasses = getMaxPasses(matchingRule);
     const canExtend =
       !strictEnabled &&
+      !isFocusActive &&
       matchingRule &&
       (matchingRule.mode === 'limit' || matchingRule.mode === 'block') &&
       extensionCount < maxDailyPasses;
@@ -772,6 +821,23 @@ async function checkAndBlock() {
       }
     } else {
       removeOverlay();
+
+      // ── 5-min companion warning (limit mode only) ──────────
+      if (
+        !companionWarningShown &&
+        matchingRule?.mode === 'limit' &&
+        matchingRule.dailyLimitMinutes > 0
+      ) {
+        const remainingMs =
+          Math.max(
+            0,
+            matchingRule.dailyLimitMinutes -
+              (matchingRule.usedMinutesToday || 0),
+          ) * 60000;
+        if (remainingMs > 0 && remainingMs <= 5 * 60 * 1000) {
+          injectCompanionWarning(remainingMs);
+        }
+      }
     }
   } catch (error: any) {
     if (error.message?.includes('Extension context invalidated')) {
@@ -780,6 +846,142 @@ async function checkAndBlock() {
     }
     console.error('[StopAccess] checkAndBlock error:', error);
   }
+}
+
+// ── Companion Warning (on-site 5-min warning) ────────────
+
+const COMPANION_ID = '__fg_companion_warn__';
+let companionWarningShown = false;
+
+function injectCompanionWarning(remainingMs: number) {
+  if (companionWarningShown || document.getElementById(COMPANION_ID)) {
+    return;
+  }
+  if (overlayActive || prewarnActive) {
+    return;
+  }
+  companionWarningShown = true;
+
+  const iconUrl = chrome.runtime.getURL('assets/icon-128.png');
+  const mins = Math.ceil(remainingMs / 60000);
+
+  const el = document.createElement('div');
+  el.id = COMPANION_ID;
+  el.setAttribute(
+    'style',
+    [
+      'position:fixed',
+      'bottom:0',
+      'right:-80px', // starts off-screen right
+      'z-index:2147483640',
+      'width:80px',
+      'pointer-events:none',
+      'transition:right 1.2s cubic-bezier(0.34,1.4,0.64,1)',
+      'font-family:monospace',
+    ].join(';'),
+  );
+
+  el.innerHTML = `
+    <style>
+      @keyframes __fg_walk { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
+      @keyframes __fg_legL  { 0%,100%{transform:rotate(18deg)} 50%{transform:rotate(-18deg)} }
+      @keyframes __fg_legR  { 0%{transform:rotate(-18deg)} 50%{transform:rotate(18deg)} 100%{transform:rotate(-18deg)} }
+      @keyframes __fg_armL  { 0%,100%{transform:rotate(-12deg)} 50%{transform:rotate(12deg)} }
+      @keyframes __fg_armR  { 0%{transform:rotate(12deg)} 50%{transform:rotate(-12deg)} 100%{transform:rotate(12deg)} }
+      @keyframes __fg_hold  { 0%,100%{transform:rotate(-65deg)} 50%{transform:rotate(-60deg)} }
+      @keyframes __fg_signbob { 0%,100%{transform:translateX(-50%) rotateY(0deg)} 50%{transform:translateX(-50%) rotateY(3deg)} }
+      @keyframes __fg_fadeout { 0%{opacity:1} 100%{opacity:0;transform:translateY(20px)} }
+    </style>
+    <div style="display:flex;flex-direction:column;align-items:center;animation:__fg_walk 0.55s infinite ease-in-out;">
+      <!-- Sign held above (shown while standing) -->
+      <div id="__fg_sign__" style="
+        position:absolute;
+        bottom:95px;
+        left:50%;
+        transform:translateX(-50%);
+        background:hsl(30,42%,26%);
+        border:2px solid hsl(30,24%,14%);
+        border-radius:7px;
+        padding:5px 8px;
+        text-align:center;
+        white-space:nowrap;
+        box-shadow:0 4px 12px rgba(0,0,0,0.45);
+        animation:__fg_signbob 2s infinite ease-in-out;
+        perspective:300px;
+      ">
+        <div style="font-size:9px;font-weight:700;color:hsl(40,62%,90%);line-height:1.35;">⚠️ ${mins}m left!</div>
+        <div style="font-size:8px;color:hsl(40,50%,70%);margin-top:1px;">on this site</div>
+        <div style="width:2px;height:8px;background:hsl(30,30%,20%);margin:2px auto 0;"></div>
+      </div>
+      <!-- SVG body -->
+      <svg viewBox="0 0 60 80" width="64" height="80" style="overflow:visible;transform:scaleX(-1);">
+        <!-- Left arm: holds sign -->
+        <g style="transform-origin:14px 41px;animation:__fg_hold 1.1s infinite ease-in-out;">
+          <rect x="4" y="38" width="10" height="7" rx="3.5" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1.5"/>
+          <circle cx="8" cy="47" r="3" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1.5"/>
+        </g>
+        <!-- Right arm: holds sign -->
+        <g style="transform-origin:46px 41px;animation:__fg_hold 1.1s infinite ease-in-out;">
+          <rect x="46" y="38" width="10" height="7" rx="3.5" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1.5"/>
+          <circle cx="52" cy="47" r="3" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1.5"/>
+        </g>
+        <!-- Torso -->
+        <rect x="14" y="36" width="32" height="21" rx="8" fill="#1e1e2e" stroke="#3a3a4a" stroke-width="2"/>
+        <!-- Icon badge on chest -->
+        <image href="${iconUrl}" x="22" y="42" width="16" height="16"/>
+        <!-- Left leg -->
+        <g style="transform-origin:22px 57px;animation:__fg_legL 0.55s infinite ease-in-out;">
+          <rect x="18" y="57" width="8" height="12" rx="3" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1.5"/>
+          <rect x="14" y="67" width="13" height="5" rx="2.5" fill="#1a1a2e"/>
+        </g>
+        <!-- Right leg -->
+        <g style="transform-origin:38px 57px;animation:__fg_legR 0.55s infinite ease-in-out;">
+          <rect x="34" y="57" width="8" height="12" rx="3" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1.5"/>
+          <rect x="33" y="67" width="13" height="5" rx="2.5" fill="#1a1a2e"/>
+        </g>
+        <!-- Head -->
+        <rect x="10" y="2" width="40" height="34" rx="13" fill="#1e1e2e" stroke="#3a3a4a" stroke-width="2.5"/>
+        <rect x="13" y="7" width="34" height="20" rx="6" fill="rgba(100,140,255,0.12)"/>
+        <!-- Eyes -->
+        <circle cx="21" cy="17" r="3.5" fill="#6366f1"/>
+        <circle cx="39" cy="17" r="3.5" fill="#6366f1"/>
+        <circle cx="22.5" cy="15.5" r="1" fill="white" opacity="0.7"/>
+        <circle cx="40.5" cy="15.5" r="1" fill="white" opacity="0.7"/>
+        <!-- Warning expression: eyebrows furrowed -->
+        <line x1="15" y1="8" x2="23" y2="10.5" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
+        <line x1="37" y1="10.5" x2="45" y2="8" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
+        <!-- Mouth: concerned -->
+        <path d="M22 32 Q30 27 38 32" stroke="#6366f1" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <!-- Antenna -->
+        <line x1="30" y1="2" x2="30" y2="-5" stroke="#3a3a4a" stroke-width="2"/>
+        <circle cx="30" cy="-7" r="2.8" fill="#f87171"/>
+      </svg>
+    </div>
+  `;
+
+  const root = document.body || document.documentElement;
+  if (!root) {
+    return;
+  }
+  root.appendChild(el);
+
+  // Walk in from right after a short delay
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      el.style.right = '12px';
+    });
+  });
+
+  // Disappear after 8 seconds
+  setTimeout(() => {
+    el.style.animation = '__fg_fadeout 0.6s ease-in forwards';
+    el.style.opacity = '0';
+    setTimeout(() => {
+      if (el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    }, 700);
+  }, 8000);
 }
 
 // ── Persistence Engine ──────────────────────────

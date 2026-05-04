@@ -40,6 +40,11 @@ export const COLORS = {
   shadowStrong: 'var(--fg-shadow-strong)',
   white: 'var(--fg-white)',
   black: 'var(--fg-black)',
+  botFill: 'var(--fg-bot-fill)',
+  botStroke: 'var(--fg-bot-stroke)',
+  botSignBg: 'var(--fg-bot-sign-bg)',
+  botSignBorder: 'var(--fg-bot-sign-border)',
+  botSignText: 'var(--fg-bot-sign-text)',
 } as const;
 
 export const COLOR_CLASSES = {
@@ -135,4 +140,9 @@ export const EXTENSION_COLOR_VAR_DECLARATIONS = `
   --fg-chart-purple: #bdb2ff;
   --fg-chart-pink: #ffc6ff;
   --fg-shadow-soft: rgba(0, 0, 0, 0.12);
+  --fg-bot-fill: #ffffff;
+  --fg-bot-stroke: #64748b;
+  --fg-bot-sign-bg: #f1f5f9;
+  --fg-bot-sign-border: #64748b;
+  --fg-bot-sign-text: #1e293b;
 `;
