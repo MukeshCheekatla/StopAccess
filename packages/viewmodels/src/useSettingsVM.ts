@@ -1,12 +1,17 @@
-import { CloudUser } from '@stopaccess/types';
-import { setStrictModePolicy } from '@stopaccess/state';
-declare var chrome: any;
+import { setStrictModePolicy, STORAGE_KEYS } from '@stopaccess/state';
+import { VMPlatformDependencies } from './types';
+import { getRules } from '@stopaccess/state/rules';
 import {
-  extensionAdapter as storage,
-  STORAGE_KEYS,
-} from '../../../extension/src/background/platformAdapter';
+  getSecuritySettings,
+  updateSecuritySettings,
+} from '@stopaccess/state/security';
+import {
+  getPrivacySettings,
+  updatePrivacySettings,
+} from '@stopaccess/state/privacy';
 
-export async function loadSettingsData() {
+export async function loadSettingsData(deps: VMPlatformDependencies) {
+  const { storage, getPlatformRules, sendCommand } = deps;
   const profileId = (await storage.getString(STORAGE_KEYS.PROFILE_ID)) || '';
   const apiKey = (await storage.getString(STORAGE_KEYS.API_KEY)) || '';
   const strict = await storage.getBoolean('strict_mode_enabled');
@@ -15,21 +20,18 @@ export async function loadSettingsData() {
     | 'light'
     | 'system';
 
-  const dnrRules = (await new Promise((resolve) => {
-    if (chrome?.declarativeNetRequest?.getDynamicRules) {
-      chrome.declarativeNetRequest.getDynamicRules(resolve);
-    } else {
-      resolve([]);
-    }
-  })) as any[];
+  const dnrRules = await getPlatformRules();
 
   const healthOk = !!(profileId && apiKey);
-  const syncState = await (storage as any).getSyncState();
+  const syncState = await storage.getSyncState();
   const profile = {
     name: (await storage.getString('fg_profile_name')) || '',
     handle: (await storage.getString('fg_profile_handle')) || '',
     bio: (await storage.getString('fg_profile_bio')) || '',
   };
+
+  const cloudUserRes = await sendCommand('getCloudUser');
+  const cloudUser = cloudUserRes?.user || null;
 
   return {
     profileId,
@@ -40,22 +42,18 @@ export async function loadSettingsData() {
     dnrRules,
     healthOk,
     syncState,
-    pinResetStatus: await checkPinResetStatus(),
+    pinResetStatus: await checkPinResetStatus(deps),
     challengeEnabled: await storage.getBoolean('challenge_enabled'),
+    showMascot: await storage.getBoolean('fg_show_mascot'),
     challengeText:
       (await storage.getString('challenge_text')) ||
       'Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions.',
-    cloudUser: await (async (): Promise<CloudUser | null> => {
-      return new Promise((resolve) => {
-        chrome.runtime.sendMessage({ action: 'getCloudUser' }, (res: any) => {
-          resolve(res?.user || null);
-        });
-      });
-    })(),
+    cloudUser,
   };
 }
 
-export async function checkPinResetStatus() {
+export async function checkPinResetStatus(deps: VMPlatformDependencies) {
+  const { storage } = deps;
   const resetAtStr = await storage.getString('guardian_pin_reset_at');
   if (!resetAtStr) {
     return { pending: false };
@@ -80,60 +78,76 @@ export async function checkPinResetStatus() {
   };
 }
 
-export async function requestPinResetAction() {
-  await storage.set('guardian_pin_reset_at', Date.now().toString());
+export async function requestPinResetAction(deps: VMPlatformDependencies) {
+  await deps.storage.set('guardian_pin_reset_at', Date.now().toString());
 }
 
-export async function cancelPinResetAction() {
-  await storage.delete('guardian_pin_reset_at');
+export async function cancelPinResetAction(deps: VMPlatformDependencies) {
+  await deps.storage.delete('guardian_pin_reset_at');
 }
 
-export async function saveProfileAction(profile: {
-  name: string;
-  handle: string;
-  bio: string;
-}) {
+export async function saveProfileAction(
+  deps: VMPlatformDependencies,
+  profile: {
+    name: string;
+    handle: string;
+    bio: string;
+  },
+) {
+  const { storage } = deps;
   await storage.set('fg_profile_name', profile.name.trim());
   await storage.set('fg_profile_handle', profile.handle.trim());
   await storage.set('fg_profile_bio', profile.bio.trim());
 }
 
-export async function connectNextDNSAction(pid: string, key: string) {
+export async function connectNextDNSAction(
+  deps: VMPlatformDependencies,
+  pid: string,
+  key: string,
+) {
   try {
+    const { storage, nextDNSApi, sendCommand } = deps;
     await storage.set(STORAGE_KEYS.PROFILE_ID, pid);
     await storage.set(STORAGE_KEYS.API_KEY, key);
 
-    const { nextDNSApi } = await import(
-      '../../../extension/src/background/platformAdapter'
-    );
-    const ok = await nextDNSApi.testConnection();
+    const res = await nextDNSApi.testConnection();
 
-    if (ok) {
-      chrome.runtime.sendMessage({ action: 'manualSync' });
+    if (res.ok) {
+      sendCommand('manualSync');
       return { ok: true };
     } else {
-      return { ok: false, error: 'Invalid Profile ID or API Key' };
+      return {
+        ok: false,
+        error: res.error?.message || 'Invalid Profile ID or API Key',
+      };
     }
   } catch (e: any) {
     return { ok: false, error: e.message };
   }
 }
 
-export async function setStrictModeAction(val: boolean) {
-  await setStrictModePolicy(storage, val);
-  chrome.runtime.sendMessage({ action: 'manualSync' });
+export async function setStrictModeAction(
+  deps: VMPlatformDependencies,
+  val: boolean,
+) {
+  await setStrictModePolicy(deps.storage, val);
+  deps.sendCommand('manualSync');
 }
 
-export async function setThemeAction(theme: string) {
-  await storage.set(STORAGE_KEYS.THEME, theme);
-  chrome.runtime.sendMessage({ action: 'themeChanged', theme });
+export async function setThemeAction(
+  deps: VMPlatformDependencies,
+  theme: string,
+) {
+  await deps.storage.set(STORAGE_KEYS.THEME, theme);
+  deps.sendCommand('themeChanged', { theme });
 }
 
 export async function testDomainCoverageAction(
+  deps: VMPlatformDependencies,
   domain: string,
   dnrRules: any[],
 ) {
-  const { getRules } = await import('@stopaccess/state/rules');
+  const { storage } = deps;
   const rules = await getRules(storage);
   const appRules = rules as any[];
 
@@ -147,48 +161,56 @@ export async function testDomainCoverageAction(
   return { localMatch, dnrMatch };
 }
 
-export async function exportRulesAction() {
-  const rulesStr = (await storage.getString(STORAGE_KEYS.RULES)) || '[]';
+export async function exportRulesAction(deps: VMPlatformDependencies) {
+  const rulesStr = (await deps.storage.getString(STORAGE_KEYS.RULES)) || '[]';
   return rulesStr;
 }
 
-export async function importRulesAction(text: string) {
+export async function importRulesAction(
+  deps: VMPlatformDependencies,
+  text: string,
+) {
+  const { storage, sendCommand } = deps;
   const parsed = JSON.parse(text);
   if (!Array.isArray(parsed)) {
     throw new Error('Invalid format: Rules must be an array.');
   }
   await storage.set(STORAGE_KEYS.RULES, JSON.stringify(parsed));
-  chrome.runtime.sendMessage({ action: 'manualSync' });
+  sendCommand('manualSync');
 }
 
-export async function setGuardianPinAction(pin: string) {
+export async function setGuardianPinAction(
+  deps: VMPlatformDependencies,
+  pin: string,
+) {
+  const { storage } = deps;
   await storage.set('guardian_pin', pin);
-  await storage.delete('guardian_pin_reset_at'); // Cancel any pending reset if a new PIN is set (unlikely scenario but good to have)
+  await storage.delete('guardian_pin_reset_at');
 }
 
-export async function removeGuardianPinAction() {
-  await storage.delete('guardian_pin');
+export async function removeGuardianPinAction(deps: VMPlatformDependencies) {
+  await deps.storage.delete('guardian_pin');
   return true;
 }
 
-export async function verifyAndRemoveGuardianPinAction(enteredPin: string) {
-  const current = await storage.getString('guardian_pin');
+export async function verifyAndRemoveGuardianPinAction(
+  deps: VMPlatformDependencies,
+  enteredPin: string,
+) {
+  const current = await deps.storage.getString('guardian_pin');
   if (current === enteredPin) {
-    await storage.delete('guardian_pin');
+    await deps.storage.delete('guardian_pin');
     return true;
   }
   return false;
 }
 
-export async function clearEngineLogsAction() {
-  await storage.set(STORAGE_KEYS.LOGS, JSON.stringify([]));
+export async function clearEngineLogsAction(deps: VMPlatformDependencies) {
+  await deps.storage.set(STORAGE_KEYS.LOGS, JSON.stringify([]));
 }
 
-export async function loadSecuritySettingsAction() {
-  const { getSecuritySettings } = await import('@stopaccess/state/security');
-  const { nextDNSApi } = await import(
-    '../../../extension/src/background/platformAdapter'
-  );
+export async function loadSecuritySettingsAction(deps: VMPlatformDependencies) {
+  const { storage, nextDNSApi } = deps;
 
   const security = await getSecuritySettings(storage);
   const isConfigured = await nextDNSApi.isConfigured();
@@ -196,24 +218,22 @@ export async function loadSecuritySettingsAction() {
   return { security, isConfigured };
 }
 
-export async function updateSecuritySettingsAction(nextSettings: any) {
+export async function updateSecuritySettingsAction(
+  deps: VMPlatformDependencies,
+  nextSettings: any,
+) {
   try {
-    const { updateSecuritySettings } = await import(
-      '@stopaccess/state/security'
-    );
+    const { storage, sendCommand } = deps;
     await updateSecuritySettings(storage, nextSettings);
-    chrome.runtime.sendMessage({ action: 'manualSync' });
+    sendCommand('manualSync');
     return { ok: true };
   } catch (e: any) {
     return { ok: false, error: e.message };
   }
 }
 
-export async function loadPrivacySettingsAction() {
-  const { getPrivacySettings } = await import('@stopaccess/state/privacy');
-  const { nextDNSApi } = await import(
-    '../../../extension/src/background/platformAdapter'
-  );
+export async function loadPrivacySettingsAction(deps: VMPlatformDependencies) {
+  const { storage, nextDNSApi } = deps;
 
   const privacy = await getPrivacySettings(storage);
   const isConfigured = await nextDNSApi.isConfigured();
@@ -221,55 +241,62 @@ export async function loadPrivacySettingsAction() {
   return { privacy, isConfigured };
 }
 
-export async function updatePrivacySettingsAction(nextSettings: any) {
+export async function updatePrivacySettingsAction(
+  deps: VMPlatformDependencies,
+  nextSettings: any,
+) {
   try {
-    const { updatePrivacySettings } = await import('@stopaccess/state/privacy');
+    const { storage, sendCommand } = deps;
     await updatePrivacySettings(storage, nextSettings);
-    chrome.runtime.sendMessage({ action: 'manualSync' });
+    sendCommand('manualSync');
     return { ok: true };
   } catch (e: any) {
     return { ok: false, error: e.message };
   }
 }
-export async function toggleChallengeAction(enabled: boolean) {
-  await storage.set('challenge_enabled', enabled);
+
+export async function toggleChallengeAction(
+  deps: VMPlatformDependencies,
+  enabled: boolean,
+) {
+  await deps.storage.set('challenge_enabled', enabled);
 }
 
-export async function updateChallengeTextAction(text: string) {
-  await storage.set('challenge_text', text);
+export async function toggleMascotAction(
+  deps: VMPlatformDependencies,
+  enabled: boolean,
+) {
+  await deps.storage.set('fg_show_mascot', enabled);
 }
 
-export async function signInWithGoogleAction(): Promise<boolean> {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage({ action: 'signInWithGoogle' }, (res: any) => {
-      if (res?.error) {
-        reject(new Error(res.error.message || res.error));
-      } else {
-        resolve(!!res?.ok);
-      }
-    });
-  });
+export async function updateChallengeTextAction(
+  deps: VMPlatformDependencies,
+  text: string,
+) {
+  await deps.storage.set('challenge_text', text);
 }
 
-export async function signInWithOtpAction(email: string): Promise<boolean> {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(
-      { action: 'signInWithOtp', email },
-      (res: any) => {
-        if (res?.error) {
-          reject(new Error(res.error.message || res.error));
-        } else {
-          resolve(!!res?.ok);
-        }
-      },
-    );
-  });
+export async function signInWithGoogleAction(
+  deps: VMPlatformDependencies,
+): Promise<boolean> {
+  const res = await deps.sendCommand('signInWithGoogle');
+  if (res?.error) {
+    throw new Error(res.error.message || res.error);
+  }
+  return !!res?.ok;
 }
 
-export async function signOutAction() {
-  return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ action: 'signOut' }, () => {
-      resolve(true);
-    });
-  });
+export async function signInWithOtpAction(
+  deps: VMPlatformDependencies,
+  email: string,
+): Promise<boolean> {
+  const res = await deps.sendCommand('signInWithOtp', { email });
+  if (res?.error) {
+    throw new Error(res.error.message || res.error);
+  }
+  return !!res?.ok;
+}
+
+export async function signOutAction(deps: VMPlatformDependencies) {
+  return deps.sendCommand('signOut');
 }

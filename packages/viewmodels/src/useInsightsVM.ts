@@ -1,11 +1,9 @@
-declare var chrome: any;
 import { getRecentSnapshots } from '@stopaccess/core';
-import {
-  extensionAdapter as storage,
-  nextDNSApi,
-} from '../../../extension/src/background/platformAdapter';
+import { STORAGE_KEYS } from '@stopaccess/state';
+import { VMPlatformDependencies } from './types';
 
-export async function loadInsightsData() {
+export async function loadInsightsData(deps: VMPlatformDependencies) {
+  const { storage, nextDNSApi } = deps;
   const isConfigured = await nextDNSApi.isConfigured();
 
   let snapshots = await getRecentSnapshots(storage, 14); // 2 weeks trend
@@ -16,12 +14,13 @@ export async function loadInsightsData() {
   let blockedLogs = [];
   let topBlocked = [];
   let counters = { blocked: 0, allowed: 0 };
-  const isOffline = !navigator.onLine;
+  const isOffline =
+    typeof navigator !== 'undefined' ? !navigator.onLine : false;
 
   if (isConfigured && !isOffline) {
     // We use individual try-catches to ensure one failing endpoint doesn't break the whole page
     try {
-      const logsRes = await nextDNSApi.getLogs('blocked', 20).catch((e) => {
+      const logsRes = await nextDNSApi.getLogs(20, 'blocked').catch((e) => {
         console.warn('[Insights] Logs fetch failed', e);
         return { ok: false };
       });
@@ -29,12 +28,10 @@ export async function loadInsightsData() {
     } catch (e) {}
 
     try {
-      const domainsRes = await nextDNSApi
-        .getTopBlockedDomains(10)
-        .catch((e) => {
-          console.warn('[Insights] Top domains fetch failed', e);
-          return { ok: false };
-        });
+      const domainsRes = await nextDNSApi.getAnalyticsDomains(10).catch((e) => {
+        console.warn('[Insights] Top domains fetch failed', e);
+        return { ok: false };
+      });
       topBlocked = (domainsRes as any).ok ? (domainsRes as any).data || [] : [];
     } catch (e) {}
 
@@ -81,7 +78,8 @@ export async function loadInsightsData() {
         )
       : 0;
 
-  const { usage = {} } = (await chrome.storage.local.get(['usage'])) as any;
+  const usage =
+    (await storage.getMultiple([STORAGE_KEYS.USAGE]))[STORAGE_KEYS.USAGE] || {};
   const allTotalMs = Object.values(usage).reduce(
     (a: number, b: any) => a + (Number(b.time) || 0),
     0,

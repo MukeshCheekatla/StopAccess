@@ -5,5 +5,5 @@
     "rootDir": "..",
     "outDir": "dist"
   },
-  "include": ["src", "../core/src"]
+  "include": ["src", "../core/src", "../types/src", "../state/src"]
 }

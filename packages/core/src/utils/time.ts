@@ -25,3 +25,28 @@ export function formatMinutes(m: number): string {
   const mins = total % 60;
   return mins > 0 ? `${h}h ${mins}m` : `${h}h`;
 }
+
+/**
+ * Format a duration in minutes into a human-readable string (e.g., "1h 30m" or "45m").
+ */
+export function formatDuration(minutes: number): string {
+  if (minutes <= 0) {
+    return '0m';
+  }
+  if (minutes < 60) {
+    return `${Math.round(minutes)}m`;
+  }
+  const hrs = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  return mins > 0 ? `${hrs}h ${mins}m` : `${hrs}h`;
+}
+
+/**
+ * Higher-level usage formatter that handles the "Not used today" case.
+ */
+export function formatUsage(minutes: number): string {
+  if (minutes < 1) {
+    return 'Not used today';
+  }
+  return formatDuration(minutes);
+}

@@ -1,10 +1,6 @@
-declare var chrome: any;
 import { loadAppsData } from './useAppsVM';
-import {
-  extensionAdapter as storage,
-  STORAGE_KEYS,
-  nextDNSApi,
-} from '../../../extension/src/background/platformAdapter';
+import { STORAGE_KEYS } from '@stopaccess/state';
+import { VMPlatformDependencies } from './types';
 import type { FocusSessionRecord } from '@stopaccess/types';
 
 type UsageEntry = {
@@ -131,18 +127,22 @@ function summarizeFocusSessions(
   };
 }
 
-export async function loadDashboardData(selectedDate?: string) {
+export async function loadDashboardData(
+  deps: VMPlatformDependencies,
+  selectedDate?: string,
+) {
+  const { storage, nextDNSApi } = deps;
   let rules: any[] = [];
   try {
-    rules = (await loadAppsData()).rules;
+    rules = (await loadAppsData(deps)).rules;
   } catch {}
 
-  const storageData = (await chrome.storage.local.get([
+  const storageData = await storage.getMultiple([
     STORAGE_KEYS.USAGE,
     'fg_logs',
     STORAGE_KEYS.USAGE_HISTORY,
     STORAGE_KEYS.SESSION_HISTORY,
-  ])) as any;
+  ]);
 
   const today = getTodayKey();
   const targetDate = selectedDate || today;
@@ -164,8 +164,9 @@ export async function loadDashboardData(selectedDate?: string) {
   const previousSummary = sumUsage(previousUsage);
 
   const domainList = Object.entries(usage as UsageMap)
-    .map(([domain, d]: [string, UsageEntry]) => ({
+    .map(([domain, d]: [string, any]) => ({
       domain,
+      appName: d.appName || domain,
       timeMs: d.time || 0,
       sessions: d.sessions || 0,
       sharePct:
@@ -262,13 +263,15 @@ export async function loadDashboardData(selectedDate?: string) {
 }
 
 export async function loadDomainUsageDetails(
+  deps: VMPlatformDependencies,
   domain: string,
   selectedDate?: string,
 ) {
-  const storageData = (await chrome.storage.local.get([
+  const { storage } = deps;
+  const storageData = await storage.getMultiple([
     STORAGE_KEYS.USAGE,
     STORAGE_KEYS.USAGE_HISTORY,
-  ])) as any;
+  ]);
 
   const usageHistory = (storageData[STORAGE_KEYS.USAGE_HISTORY] ||
     {}) as Record<string, UsageMap>;

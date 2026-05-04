@@ -27,4 +27,7 @@ export const STORAGE_KEYS = {
   ENGINE_HEARTBEAT: 'fg_last_engine_heartbeat',
   TYPING_MASTERY_LOG: 'fg_typing_mastery_log',
   REDIRECT_URL: 'fg_redirect_url',
+  TOTAL_FOCUS_XP: 'total_focus_xp',
+  SESSION_COMPLETED_EVENT: 'session_completed_event',
+  WILT_UNTIL: 'wilt_until',
 };

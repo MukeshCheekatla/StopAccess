@@ -25,18 +25,17 @@ import {
   HORIZONTAL_PADDING,
   CARD_RADIUS,
 } from '../constants/layout';
-import { refreshTodayUsage, getCachedUsage } from '../modules/usageStats';
+import { refreshTodayUsage } from '../modules/usageStats';
 import { DailySnapshot, AppRule, AppUsageStat } from '@stopaccess/types';
 import AppIcon from '../components/AppIcon';
 import { formatDuration } from '../utils/time';
 import { formatAppName } from '../utils/text';
-import { getRules, updateRule } from '@stopaccess/state/rules';
-import { getSnapshots } from '@stopaccess/state/insights';
+import { updateRule } from '@stopaccess/state/rules';
 import { storageAdapter } from '../store/storageAdapter';
-import { isConfigured } from '../api/nextdns';
+import { loadDashboardData } from '@stopaccess/viewmodels/useDashboardVM';
+import { mobileVMDeps } from '../utils/vmDeps';
 const { RuleEngine } = NativeModules;
-import { getFocusStreak } from '@stopaccess/core/insights';
-import { getLogs, LogEntry } from '../services/logger';
+import { LogEntry } from '../services/logger';
 
 // --- State Management ---
 
@@ -358,14 +357,16 @@ export default function DashboardScreen() {
     }
 
     try {
-      const isConfig = await isConfigured();
+      // 1. Refresh today's usage from Native module first
+      await refreshTodayUsage().catch(() => {});
+
+      // 2. Load all dashboard data via shared VM
+      const data = await loadDashboardData(mobileVMDeps);
+
       if (isCancelled.current) {
         return;
       }
 
-      const snapshots = await getSnapshots(storageAdapter);
-      const streak = await getFocusStreak(storageAdapter);
-      const logs = getLogs().slice(0, 5);
       let level = 'NONE';
       let a11y = true;
 
@@ -383,51 +384,46 @@ export default function DashboardScreen() {
         }
       }
 
-      if (isCancelled.current) {
-        return;
-      }
+      const { rules, allTotalMs, domainList } = data;
 
-      const updateData: Partial<DashboardState> = {
-        configured: isConfig,
-        weeklySnapshots: snapshots,
-        focusStreak: streak,
-        recentLogs: logs,
-        protectionLevel: level,
-        a11yEnabled: a11y,
-      };
+      const controlled = domainList
+        .filter((d) => rules.some((r) => r.packageName === d.domain))
+        .map((d) => ({
+          packageName: d.domain,
+          appName: d.appName,
+          totalMinutes: Math.round(d.timeMs / 60000),
+        }));
 
-      const stats = await refreshTodayUsage().catch(
-        () => getCachedUsage() as AppUsageStat[],
-      );
-      const currentRules = await getRules(storageAdapter);
-
-      if (isCancelled.current) {
-        return;
-      }
-
-      const total = stats.reduce((sum, a) => sum + a.totalMinutes, 0);
-      const controlled = stats
-        .filter((s) =>
-          currentRules.some((r: AppRule) => r.packageName === s.packageName),
-        )
-        .sort((a, b) => b.totalMinutes - a.totalMinutes);
-
-      const distracting = stats
-        .filter(
-          (s) =>
-            !currentRules.some((r: AppRule) => r.packageName === s.packageName),
-        )
-        .sort((a, b) => b.totalMinutes - a.totalMinutes)
+      const distracting = domainList
+        .filter((d) => !rules.some((r) => r.packageName === d.domain))
+        .map((d) => ({
+          packageName: d.domain,
+          appName: d.appName,
+          totalMinutes: Math.round(d.timeMs / 60000),
+        }))
         .slice(0, 5);
 
-      Object.assign(updateData, {
-        totalMins: total,
-        controlledUsage: controlled,
-        distractingApps: distracting,
-        rules: currentRules,
+      dispatch({
+        type: 'SET_DATA',
+        payload: {
+          configured: !!(data.syncStatus === 'connected'),
+          weeklySnapshots: data.dailySeries.map((s) => ({
+            date: s.date,
+            screenTimeMinutes: Math.round(s.totalMs / 60000),
+            focusMinutes: 0,
+            blockedAppsCount: 0,
+            focusSessions: 0,
+          })) as any,
+          focusStreak: 0,
+          recentLogs: data.fgLogs as any,
+          protectionLevel: level,
+          a11yEnabled: a11y,
+          totalMins: Math.round(allTotalMs / 60000),
+          controlledUsage: controlled as any,
+          distractingApps: distracting as any,
+          rules,
+        },
       });
-
-      dispatch({ type: 'SET_DATA', payload: updateData });
     } catch (err) {
       console.error('[Dashboard] Load failed', err);
     } finally {

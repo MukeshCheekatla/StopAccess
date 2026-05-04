@@ -1,10 +1,6 @@
 import { getRules } from '@stopaccess/state/rules';
-import {
-  extensionAdapter as storage,
-  nextDNSApi,
-} from '../../../extension/src/background/platformAdapter';
-
-declare var chrome: any;
+import { STORAGE_KEYS } from '@stopaccess/state';
+import { VMPlatformDependencies } from './types';
 
 export interface AppsScreenData {
   rules: any;
@@ -19,25 +15,29 @@ export interface AppsScreenData {
  * Unified ViewModel for Apps Screen.
  * Fetches everything in a single pass to avoid multiple UI flickers.
  */
-export async function loadAppsData(): Promise<AppsScreenData> {
-  const [rules, isConfigured, cached, storageRes] = await Promise.all([
+export async function loadAppsData(
+  deps: VMPlatformDependencies,
+): Promise<AppsScreenData> {
+  const { storage, nextDNSApi } = deps;
+
+  const [rules, isConfigured, storageRes] = await Promise.all([
     getRules(storage),
     nextDNSApi.isConfigured(),
-    (async () => {
-      const res = (await chrome.storage.local.get([
-        'cached_ndns_metadata',
-      ])) as any;
-      return res.cached_ndns_metadata || {};
-    })(),
-    chrome.storage.local.get(['fg_temp_passes', 'fg_usage_map']),
+    storage.getMultiple([
+      STORAGE_KEYS.CACHED_METADATA,
+      STORAGE_KEYS.TEMP_PASSES,
+      'fg_usage_map',
+    ]),
   ]);
+
+  const cached = storageRes[STORAGE_KEYS.CACHED_METADATA] || {};
 
   return {
     rules,
     isConfigured,
     availableServices: cached.services || [],
     availableCategories: cached.categories || [],
-    passes: storageRes.fg_temp_passes || {},
+    passes: storageRes[STORAGE_KEYS.TEMP_PASSES] || {},
     usage: storageRes.fg_usage_map || {},
   };
 }

@@ -42,6 +42,30 @@ export const storageAdapter: StorageAdapter = {
       return [];
     }
   },
+  getMultiple: async (keys: string[]): Promise<Record<string, any>> => {
+    const res: Record<string, any> = {};
+    for (const key of keys) {
+      const val = storage.getString(key);
+      if (val !== undefined) {
+        try {
+          res[key] = JSON.parse(val);
+        } catch {
+          res[key] = val;
+        }
+      } else {
+        const b = storage.getBoolean(key);
+        if (b !== undefined) {
+          res[key] = b;
+        } else {
+          const n = storage.getNumber(key);
+          if (n !== undefined) {
+            res[key] = n;
+          }
+        }
+      }
+    }
+    return res;
+  },
   set: async (key: string, val: string | number | boolean): Promise<void> => {
     storage.set(key, val);
   },

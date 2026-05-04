@@ -7,7 +7,11 @@ import {
   getPrivacySettings as getLocalPrivacy,
   saveLocalPrivacy,
 } from '@stopaccess/state/privacy';
-import type { NextDNSPrivacySettings, StorageAdapter } from '@stopaccess/types';
+import type {
+  NextDNSPrivacySettings,
+  StorageAdapter,
+  NextDNSApiClient,
+} from '@stopaccess/types';
 
 export interface PrivacyVMData {
   settings: NextDNSPrivacySettings | null;
@@ -33,14 +37,17 @@ export interface PrivacyVM {
   getActiveNativeCount(): Promise<number>;
 }
 
-export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
+export function createPrivacyVM(
+  storage: StorageAdapter,
+  api: NextDNSApiClient,
+): PrivacyVM {
   let cachedBlocklists: any[] | null = null;
 
   async function refreshLocal(): Promise<void> {
     const res = await api.getPrivacy();
     if (res && !res.error) {
-      const data = res.data ?? res;
-      if (data) {
+      const data = (res.data ?? res) as NextDNSPrivacySettings;
+      if (data && data.blocklists) {
         await saveLocalPrivacy(storage, data);
       }
     }
@@ -62,7 +69,7 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
       if (cached) {
         refreshLocal();
         return {
-          settings: cached,
+          settings: cached as NextDNSPrivacySettings,
           availableBlocklists: null,
           isConfigured: true,
           error: null,
@@ -72,7 +79,7 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
       try {
         const res = await api.getPrivacy();
         if (res && !res.error) {
-          const data = res.data ?? res;
+          const data = (res.data ?? res) as NextDNSPrivacySettings;
           if (data) {
             await saveLocalPrivacy(storage, data);
             return {
@@ -87,7 +94,8 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
           settings: null,
           availableBlocklists: null,
           isConfigured: true,
-          error: res?.error?.message ?? 'Failed to load privacy settings',
+          error:
+            (res as any)?.error?.message ?? 'Failed to load privacy settings',
         };
       } catch (e: any) {
         return {
@@ -106,7 +114,7 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
       try {
         const res = await api.getAvailableBlocklists();
         if (res && !res.error) {
-          cachedBlocklists = res.data ?? res;
+          cachedBlocklists = (res.data ?? res) as any[];
           return cachedBlocklists || [];
         }
         return [];
@@ -125,11 +133,11 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
           });
         }
         const res = await api.patchPrivacy({ disguisedTrackers: value });
-        if (res && res.error) {
+        if (res && !res.ok) {
           if (current) {
             await saveLocalPrivacy(storage, current);
           }
-          return { ok: false, error: res.error.message };
+          return { ok: false, error: (res as any).error.message };
         }
         return { ok: true };
       } catch (e: any) {
@@ -147,11 +155,11 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
           });
         }
         const res = await api.patchPrivacy({ allowAffiliate: value });
-        if (res && res.error) {
+        if (res && !res.ok) {
           if (current) {
             await saveLocalPrivacy(storage, current);
           }
-          return { ok: false, error: res.error.message };
+          return { ok: false, error: (res as any).error.message };
         }
         return { ok: true };
       } catch (e: any) {
@@ -162,8 +170,8 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
     async addBlocklist(id: string) {
       try {
         const res = await api.addBlocklist(id);
-        if (res && res.error) {
-          return { ok: false, error: res.error.message };
+        if (res && !res.ok) {
+          return { ok: false, error: (res as any).error.message };
         }
         const current = await getLocalPrivacy(storage);
         if (current) {
@@ -184,8 +192,8 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
     async removeBlocklist(id: string) {
       try {
         const res = await api.removeBlocklist(id);
-        if (res && res.error) {
-          return { ok: false, error: res.error.message };
+        if (res && !res.ok) {
+          return { ok: false, error: (res as any).error.message };
         }
         const current = await getLocalPrivacy(storage);
         if (current) {
@@ -203,8 +211,8 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
     async addNativeTracking(id: string) {
       try {
         const res = await api.addNativeTracking(id);
-        if (res && res.error) {
-          return { ok: false, error: res.error.message };
+        if (res && !res.ok) {
+          return { ok: false, error: (res as any).error.message };
         }
         const current = await getLocalPrivacy(storage);
         if (current) {
@@ -225,8 +233,8 @@ export function createPrivacyVM(storage: StorageAdapter, api: any): PrivacyVM {
     async removeNativeTracking(id: string) {
       try {
         const res = await api.removeNativeTracking(id);
-        if (res && res.error) {
-          return { ok: false, error: res.error.message };
+        if (res && !res.ok) {
+          return { ok: false, error: (res as any).error.message };
         }
         const current = await getLocalPrivacy(storage);
         if (current) {

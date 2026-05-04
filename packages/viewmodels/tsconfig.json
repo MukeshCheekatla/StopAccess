@@ -11,9 +11,5 @@
     "../state/src/**/*.ts",
     "../types/src/**/*.ts"
   ],
-  "files": [
-    "../../extension/src/background/platformAdapter.ts",
-    "../../extension/src/background/sessionGuard.ts"
-  ],
   "exclude": ["dist", "node_modules"]
 }

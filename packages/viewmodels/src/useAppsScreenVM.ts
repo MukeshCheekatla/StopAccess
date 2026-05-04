@@ -1,25 +1,19 @@
-declare var chrome: any;
 import { getRules } from '@stopaccess/state/rules';
-import {
-  extensionAdapter as storage,
-  nextDNSApi,
-  STORAGE_KEYS,
-} from '../../../extension/src/background/platformAdapter';
+import { STORAGE_KEYS } from '@stopaccess/state';
+import { VMPlatformDependencies } from './types';
 
-export async function loadAppsScreenData() {
+export async function loadAppsScreenData(deps: VMPlatformDependencies) {
+  const { storage, nextDNSApi } = deps;
   const rules = await getRules(storage);
   const isConfigured = await nextDNSApi.isConfigured();
 
   let availableServices = [];
   let availableCategories = [];
-  const cached = (await chrome.storage.local.get([
-    STORAGE_KEYS.CACHED_METADATA,
-  ])) as any;
+  const storageRes = await storage.getMultiple([STORAGE_KEYS.CACHED_METADATA]);
 
-  if (cached[STORAGE_KEYS.CACHED_METADATA]) {
-    availableServices = cached[STORAGE_KEYS.CACHED_METADATA].services || [];
-    availableCategories = cached[STORAGE_KEYS.CACHED_METADATA].categories || [];
-  }
+  const cached = storageRes[STORAGE_KEYS.CACHED_METADATA] || {};
+  availableServices = cached.services || [];
+  availableCategories = cached.categories || [];
 
   return {
     rules,

@@ -1,5 +1,5 @@
 /**
- * @deprecated Use @stopaccess/core/sync instead.
- * Moving logic to core to prevent engine drift.
+ * @stopaccess/sync — Unified Cross-Device Synchronization
  */
-export * from '@stopaccess/core/sync';
+
+export * from './manager';

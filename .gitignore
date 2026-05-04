@@ -37,3 +37,7 @@ yarn-error.log*
 .env.development
 .env.test
 .env.production
+
+# Build and Tooling
+.eslintcache
+*.tsbuildinfo

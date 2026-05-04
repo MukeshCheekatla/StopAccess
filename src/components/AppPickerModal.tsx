@@ -26,7 +26,7 @@ import { COLORS } from './theme';
 import { getInstalledApps, InstalledApp } from '../modules/installedApps';
 import AppIcon from './AppIcon';
 import { refreshTodayUsage, getCachedUsage } from '../modules/usageStats';
-import { AppUsageStat } from '@stopaccess/types';
+// import { AppUsageStat } from '@stopaccess/types';
 import { formatDuration } from '../utils/time';
 
 interface Props {
@@ -116,7 +116,7 @@ export const AppPickerModal: React.FC<Props> = ({
     try {
       const [installedApps, usageStats] = await Promise.all([
         getInstalledApps(),
-        refreshTodayUsage().catch(() => getCachedUsage() as AppUsageStat[]),
+        refreshTodayUsage().catch(() => getCachedUsage()),
       ]);
 
       const usageMap: Record<string, number> = {};

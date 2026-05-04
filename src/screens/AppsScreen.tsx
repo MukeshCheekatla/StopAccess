@@ -26,7 +26,7 @@ import {
   CARD_RADIUS,
   isTablet,
 } from '../constants/layout';
-import { getRules, updateRule, deleteRule } from '@stopaccess/state/rules';
+import { deleteRule, updateRule, getRules } from '@stopaccess/state/rules';
 import { storageAdapter } from '../store/storageAdapter';
 import { AppRule, RuleMode } from '@stopaccess/types';
 import * as nextDNS from '../api/nextdns';
@@ -58,6 +58,8 @@ import {
   SectionEyebrow,
   SurfaceCard,
 } from '../ui/mobile';
+import { loadAppsData } from '@stopaccess/viewmodels/useAppsVM';
+import { mobileVMDeps } from '../utils/vmDeps';
 
 export default function AppsScreen() {
   const insets = useSafeAreaInsets();
@@ -91,8 +93,9 @@ export default function AppsScreen() {
   const [configured, setConfigured] = useState(false);
 
   const load = useCallback(async () => {
-    const r = await getRules(storageAdapter);
-    setRules(r || []);
+    const data = await loadAppsData(mobileVMDeps);
+    setRules(data.rules || []);
+    setConfigured(data.isConfigured);
   }, []);
 
   // Precompute filtered rules to prevent redundant filtering on every render
@@ -123,7 +126,6 @@ export default function AppsScreen() {
   useFocusEffect(
     useCallback(() => {
       load();
-      nextDNS.isConfigured().then(setConfigured);
     }, [load]),
   );
 

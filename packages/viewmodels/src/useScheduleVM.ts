@@ -1,21 +1,26 @@
-declare var chrome: any;
 import {
   getSchedules,
   updateSchedule,
   deleteSchedule,
 } from '@stopaccess/state/schedules';
-import { extensionAdapter as storage } from '../../../extension/src/background/platformAdapter';
+import { VMPlatformDependencies } from './types';
 
-export async function loadScheduleData() {
-  return await getSchedules(storage);
+export async function loadScheduleData(deps: VMPlatformDependencies) {
+  return await getSchedules(deps.storage);
 }
 
-export async function createScheduleAction(scheduleObj: any) {
-  await updateSchedule(storage, scheduleObj);
-  chrome.runtime.sendMessage({ action: 'manualSync' });
+export async function createScheduleAction(
+  deps: VMPlatformDependencies,
+  scheduleObj: any,
+) {
+  await updateSchedule(deps.storage, scheduleObj);
+  deps.sendCommand('manualSync');
 }
 
-export async function deleteScheduleAction(id: string) {
-  await deleteSchedule(storage, id);
-  chrome.runtime.sendMessage({ action: 'manualSync' });
+export async function deleteScheduleAction(
+  deps: VMPlatformDependencies,
+  id: string,
+) {
+  await deleteSchedule(deps.storage, id);
+  deps.sendCommand('manualSync');
 }

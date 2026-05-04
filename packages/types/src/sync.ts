@@ -62,3 +62,9 @@ export interface SyncContext {
     applyBlockedPackages: (packageNames: string[]) => Promise<void>;
   };
 }
+
+export interface CloudSyncConfig {
+  supabaseUrl: string;
+  supabaseAnonKey: string;
+  syncIntervalMs?: number;
+}

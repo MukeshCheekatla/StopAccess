@@ -1,6 +1,5 @@
 import {
   NextDNSConfig,
-  NextDNSApiClient,
   NextDNSResponse,
   NextDNSService,
   NextDNSCategory,
@@ -28,7 +27,7 @@ import * as snapshot from './snapshot';
 import * as recreationTime from './recreationTime';
 import * as parentalControl from './parentalControl';
 
-export class NextDNSClient implements NextDNSApiClient {
+export class NextDNSClient {
   constructor(
     public readonly cfg: NextDNSConfig,
     public readonly log?: (
@@ -64,8 +63,14 @@ export class NextDNSClient implements NextDNSApiClient {
       ...options.headers,
     };
 
+    this._log(
+      'info',
+      `NextDNS Request: ${options.method || 'GET'} ${url}`,
+      options.body as string,
+    );
     try {
       const res = await fetch(url, { ...options, headers });
+      this._log('info', `NextDNS Response: ${res.status} ${res.statusText}`);
 
       if (res.status === 429 && attempt <= MAX_RETRIES) {
         const waitMs = RETRY_BASE_MS * 2 ** (attempt - 1);

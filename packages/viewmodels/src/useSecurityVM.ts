@@ -14,6 +14,7 @@ import type {
   NextDNSSecuritySettings,
   NextDNSParentalControlSettings,
   StorageAdapter,
+  NextDNSApiClient,
 } from '@stopaccess/types';
 
 export interface SecurityVMData {
@@ -39,7 +40,7 @@ export interface SecurityVM {
 
 export function createSecurityVM(
   storage: StorageAdapter,
-  api: any,
+  api: NextDNSApiClient,
 ): SecurityVM {
   return {
     async load(): Promise<SecurityVMData> {
@@ -93,8 +94,9 @@ export function createSecurityVM(
         ]);
 
         if (resSec && !resSec.error && resPar && !resPar.error) {
-          const dataSec = resSec.data ?? resSec;
-          const dataPar = resPar.data ?? resPar;
+          const dataSec = (resSec.data ?? resSec) as NextDNSSecuritySettings;
+          const dataPar = (resPar.data ??
+            resPar) as NextDNSParentalControlSettings;
           if (dataSec) {
             await saveLocalSecurity(storage, dataSec);
           }
@@ -116,8 +118,8 @@ export function createSecurityVM(
           isConfigured: true,
           isLoading: false,
           error:
-            resSec?.error?.message ??
-            resPar?.error?.message ??
+            (resSec as any)?.error?.message ??
+            (resPar as any)?.error?.message ??
             'Failed to load settings',
         };
       } catch (e: any) {
@@ -148,11 +150,11 @@ export function createSecurityVM(
             await saveLocalParental(storage, { ...current, [key]: value });
           }
           const res = await api.patchParentalControl({ [key]: value });
-          if (res && res.error) {
+          if (res && !res.ok) {
             if (current) {
               await saveLocalParental(storage, current);
             }
-            return { ok: false, error: res.error.message };
+            return { ok: false, error: (res as any).error.message };
           }
         } else {
           const current = await getLocalSecurity(storage);
@@ -160,11 +162,11 @@ export function createSecurityVM(
             await saveLocalSecurity(storage, { ...current, [key]: value });
           }
           const res = await api.patchSecurity({ [key]: value });
-          if (res && res.error) {
+          if (res && !res.ok) {
             if (current) {
               await saveLocalSecurity(storage, current);
             }
-            return { ok: false, error: res.error.message };
+            return { ok: false, error: (res as any).error.message };
           }
         }
         return { ok: true };
@@ -180,8 +182,8 @@ export function createSecurityVM(
       }
       try {
         const res = await api.addBlockedTld(normalized);
-        if (res && res.error) {
-          return { ok: false, error: res.error.message };
+        if (res && !res.ok) {
+          return { ok: false, error: (res as any).error.message };
         }
         // Update local cache
         const current = await getLocalSecurity(storage);
@@ -203,8 +205,8 @@ export function createSecurityVM(
     async removeTld(id: string): Promise<{ ok: boolean; error?: string }> {
       try {
         const res = await api.removeBlockedTld(id);
-        if (res && res.error) {
-          return { ok: false, error: res.error.message };
+        if (res && !res.ok) {
+          return { ok: false, error: (res as any).error.message };
         }
         // Update local cache
         const current = await getLocalSecurity(storage);

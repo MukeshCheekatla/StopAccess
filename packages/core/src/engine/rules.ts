@@ -2,6 +2,30 @@ import { AppRule, ScheduleRule, SyncContext } from '@stopaccess/types';
 import { getDomainForRule, FALLBACK_DOMAINS } from './domains';
 import { SyncOrchestrator } from './sync';
 
+export function sanitizeRule(rule: any): AppRule {
+  const allowedKeys: (keyof AppRule)[] = [
+    'packageName',
+    'appName',
+    'type',
+    'customDomain',
+    'scope',
+    'mode',
+    'dailyLimitMinutes',
+    'desiredBlockingState',
+    'maxDailyPasses',
+    'addedAt',
+    'updatedAt',
+    'addedByUser',
+  ];
+
+  return allowedKeys.reduce((acc: any, key) => {
+    if (rule[key] !== undefined) {
+      acc[key] = rule[key];
+    }
+    return acc;
+  }, {} as AppRule);
+}
+
 export function evaluateRules({
   rules,
   schedules,
@@ -53,9 +77,17 @@ export function evaluateRules({
     // Pass Override Logic
     let finalBlocked = shouldBlock;
     const pkg = r.packageName || r.appName;
-    if (passes && passes[pkg]) {
-      const pass = passes[pkg];
-      if (pass && pass.expiresAt > now.getTime()) {
+    const ruleDomain = getDomainForRule(r);
+
+    if (passes) {
+      const passByPkg = passes[pkg];
+      const passByDom = ruleDomain ? passes[ruleDomain] : null;
+
+      const activePass =
+        (passByPkg && passByPkg.expiresAt > now.getTime()) ||
+        (passByDom && passByDom.expiresAt > now.getTime());
+
+      if (activePass) {
         finalBlocked = false;
       }
     }

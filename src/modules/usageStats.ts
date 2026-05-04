@@ -15,8 +15,9 @@
  */
 
 import { NativeModules, Platform } from 'react-native';
-import { storage } from '../store/storageAdapter';
+import { storageAdapter } from '../store/storageAdapter';
 import { AppUsageStat } from '@stopaccess/types';
+import { STORAGE_KEYS } from '@stopaccess/state';
 
 // --- Internal types ---
 
@@ -35,10 +36,6 @@ interface UsageStatsNativeModule {
   getAppUsage(packageName: string): Promise<RawUsageRecord>;
   getWeeklyAverageMinutes(packageName: string): Promise<number>;
 }
-
-// --- Constants ---
-
-const USAGE_CACHE_KEY = 'usage_cache_today';
 
 // --- Lazy accessor ---
 
@@ -110,7 +107,17 @@ export async function refreshTodayUsage(): Promise<AppUsageStat[]> {
     lastUsed: 0, // not provided by module; placeholder
   }));
 
-  storage.set(USAGE_CACHE_KEY, JSON.stringify(stats));
+  // Standardize storage format: Map of pkg -> { time: ms, sessions: 0, appName }
+  const usageMap: Record<string, any> = {};
+  stats.forEach((s) => {
+    usageMap[s.packageName] = {
+      time: s.totalMinutes * 60000,
+      sessions: 0,
+      appName: s.appName,
+    };
+  });
+
+  await storageAdapter.set(STORAGE_KEYS.USAGE, JSON.stringify(usageMap));
   return stats;
 }
 
@@ -119,10 +126,19 @@ export async function refreshTodayUsage(): Promise<AppUsageStat[]> {
  * Returns an empty array if nothing has been cached yet.
  * Safe to call synchronously from the rule engine.
  */
-export function getCachedUsage(): AppUsageStat[] {
+export async function getCachedUsage(): Promise<AppUsageStat[]> {
   try {
-    const raw = storage.getString(USAGE_CACHE_KEY);
-    return raw ? (JSON.parse(raw) as AppUsageStat[]) : [];
+    const raw = await storageAdapter.getString(STORAGE_KEYS.USAGE);
+    if (!raw) {
+      return [];
+    }
+    const map = JSON.parse(raw);
+    return Object.entries(map).map(([pkg, data]: [string, any]) => ({
+      packageName: pkg,
+      appName: data.appName || pkg,
+      totalMinutes: Math.round((data.time || 0) / 60000),
+      lastUsed: 0,
+    }));
   } catch {
     return [];
   }
@@ -137,8 +153,11 @@ export async function getAppMinutesToday(packageName: string): Promise<number> {
   const mod = getNativeModule();
   if (!mod) {
     // Fall back to cache on non-Android or missing module
-    const cached = getCachedUsage();
-    return cached.find((s) => s.packageName === packageName)?.totalMinutes ?? 0;
+    const cached = await getCachedUsage();
+    return (
+      cached.find((s: AppUsageStat) => s.packageName === packageName)
+        ?.totalMinutes ?? 0
+    );
   }
   try {
     const record: RawUsageRecord = await mod.getAppUsage(packageName);

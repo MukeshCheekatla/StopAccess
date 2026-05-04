@@ -9,6 +9,7 @@ export interface StorageAdapter {
   getNumber(key: string, fallback?: number): Promise<number | null>;
   getBoolean(key: string, fallback?: boolean): Promise<boolean | null>;
   getArray(key: string): Promise<any[]>;
+  getMultiple(keys: string[]): Promise<Record<string, any>>;
   set(key: string, val: string | number | boolean): Promise<void>;
   delete(key: string): Promise<void>;
 

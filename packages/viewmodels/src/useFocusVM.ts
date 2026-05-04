@@ -1,26 +1,28 @@
-declare var chrome: any;
-import {
-  extensionAdapter as storage,
-  STORAGE_KEYS,
-} from '../../../extension/src/background/platformAdapter';
+import { STORAGE_KEYS } from '@stopaccess/state';
 import { FocusSessionRecord } from '@stopaccess/types';
+import { VMPlatformDependencies } from './types';
 
-export async function loadFocusData() {
-  const activeSessionResults = await chrome.storage.local.get([
-    'fg_active_session',
+export async function loadFocusData(deps: VMPlatformDependencies) {
+  const { storage } = deps;
+  const storageRes = await storage.getMultiple([
+    STORAGE_KEYS.SESSION,
+    STORAGE_KEYS.FOCUS_END,
+    STORAGE_KEYS.SESSION_START,
   ]);
-  const activeSession =
-    activeSessionResults.fg_active_session as FocusSessionRecord | null;
+
+  const activeSession = storageRes[
+    STORAGE_KEYS.SESSION
+  ] as FocusSessionRecord | null;
 
   const focusEnd =
     (activeSession?.status === 'focusing'
-      ? activeSession.startedAt + activeSession.duration * 60000
-      : await storage.getNumber(STORAGE_KEYS.FOCUS_END, 0)) ?? 0;
+      ? (activeSession.startedAt || 0) + (activeSession.duration || 0) * 60000
+      : (storageRes[STORAGE_KEYS.FOCUS_END] as number) || 0) ?? 0;
 
   const focusStart =
     (activeSession?.status === 'focusing'
-      ? activeSession.startedAt
-      : (await storage.getNumber('fg_focus_session_start', 0)) ||
+      ? activeSession.startedAt || 0
+      : (storageRes[STORAGE_KEYS.SESSION_START] as number) ||
         focusEnd - 1500000) ?? 0;
 
   const now = Date.now();
@@ -43,21 +45,19 @@ export async function loadFocusData() {
   };
 }
 
-export function stopFocusSessionAction(): Promise<any> {
-  return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ action: 'stopFocus' }, (res: any) => {
-      resolve(res);
-    });
-  });
+export function stopFocusSessionAction(
+  deps: VMPlatformDependencies,
+): Promise<any> {
+  return deps.sendCommand('stopFocus');
 }
 
-export async function startFocusSessionAction(minutes: number) {
+export async function startFocusSessionAction(
+  deps: VMPlatformDependencies,
+  minutes: number,
+) {
+  const { storage, sendCommand } = deps;
   const startTime = Date.now();
-  await chrome.storage.local.set({ fg_focus_session_start: startTime });
+  await storage.set(STORAGE_KEYS.SESSION_START, startTime);
 
-  return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ action: 'startFocus', minutes }, () => {
-      resolve(true);
-    });
-  });
+  return sendCommand('startFocus', { minutes });
 }

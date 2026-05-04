@@ -188,6 +188,7 @@ export type NextDNSResponse<T> =
  */
 export interface NextDNSApiClient {
   isConfigured(): Promise<boolean>;
+  testConnection(): Promise<NextDNSResponse<boolean>>;
   blockApps(rules: AppRule[]): Promise<{ ok: boolean; error?: string }>;
   getServices(): Promise<NextDNSResponse<NextDNSService[]>>;
   getCategories(): Promise<NextDNSResponse<NextDNSCategory[]>>;
@@ -213,8 +214,17 @@ export interface NextDNSApiClient {
 
   // TLDs, Blocklists, Natives
   getBlockedTlds(): Promise<NextDNSResponse<NextDNSTld[]>>;
+  addBlockedTld(tld: string): Promise<NextDNSResponse<boolean>>;
+  removeBlockedTld(tld: string): Promise<NextDNSResponse<boolean>>;
+
   getBlocklists(): Promise<NextDNSResponse<NextDNSBlocklist[]>>;
+  getAvailableBlocklists(): Promise<NextDNSResponse<any[]>>;
+  addBlocklist(id: string): Promise<NextDNSResponse<boolean>>;
+  removeBlocklist(id: string): Promise<NextDNSResponse<boolean>>;
+
   getNativeTracking(): Promise<NextDNSResponse<NextDNSNativeTracking[]>>;
+  addNativeTracking(id: string): Promise<NextDNSResponse<boolean>>;
+  removeNativeTracking(id: string): Promise<NextDNSResponse<boolean>>;
 
   // Denylist
   getDenylist(): Promise<NextDNSResponse<NextDNSEntity[]>>;
@@ -224,6 +234,9 @@ export interface NextDNSApiClient {
     limit?: number,
     status?: string,
   ): Promise<NextDNSResponse<NextDNSLogEntry[]>>;
+  getTopBlockedDomains(
+    limit?: number,
+  ): Promise<NextDNSResponse<NextDNSAnalyticsItem[]>>;
   getAnalyticsDomains(
     limit?: number,
     status?: string,
@@ -246,5 +259,39 @@ export interface NextDNSApiClient {
   getRecreationTime(): Promise<NextDNSResponse<NextDNSRecreationTime>>;
   syncRecreationTime(
     recreationTime: NextDNSRecreationTime,
+  ): Promise<NextDNSResponse<boolean>>;
+
+  // Extension specific / Missing methods
+  getConfig(): Promise<NextDNSConfig>;
+  shouldSync(): Promise<boolean>;
+  refreshNextDNSMetadata(): Promise<any>;
+  resolveTargetInput(input: string): Promise<ResolvedTarget>;
+  setTargetState(
+    kind: string,
+    id: string,
+    active: boolean,
+  ): Promise<{ ok: boolean }>;
+  addResolvedTarget(target: any): Promise<{ ok: boolean }>;
+  getSchedules(): Promise<NextDNSResponse<NextDNSRecreationTime>>;
+  updateSchedules(recreationTime: any): Promise<NextDNSResponse<boolean>>;
+  getParentalControlServices(): Promise<NextDNSResponse<NextDNSService[]>>;
+  getParentalControlCategories(): Promise<NextDNSResponse<NextDNSCategory[]>>;
+  syncParentalControlServices(
+    services: NextDNSService[],
+  ): Promise<NextDNSResponse<boolean>>;
+  syncParentalControlCategories(
+    categories: NextDNSCategory[],
+  ): Promise<NextDNSResponse<boolean>>;
+  setParentalControlServiceState(
+    serviceId: string,
+    active: boolean,
+  ): Promise<NextDNSResponse<boolean>>;
+  setParentalControlCategoryState(
+    categoryId: string,
+    active: boolean,
+  ): Promise<NextDNSResponse<boolean>>;
+  setDenylistDomainState(
+    domain: string,
+    active: boolean,
   ): Promise<NextDNSResponse<boolean>>;
 }
