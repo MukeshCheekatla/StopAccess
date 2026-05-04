@@ -133,6 +133,13 @@
     --fg-in-app-active-bg: #e4e4e7;
     --fg-in-app-active-border: #ffffff;
     --fg-in-app-active-text: #18181b;
+
+    /* Bot Contrast Tokens */
+    --fg-bot-fill: #ffffff;
+    --fg-bot-stroke: #64748b;
+    --fg-bot-sign-bg: #f8fafc;
+    --fg-bot-sign-border: #64748b;
+    --fg-bot-sign-text: #0f172a;
   }
 
   .light-theme {
@@ -164,6 +171,13 @@
     --fg-in-app-active-bg: #18181b;
     --fg-in-app-active-border: #000000;
     --fg-in-app-active-text: #ffffff;
+
+    /* Bot Contrast Tokens */
+    --fg-bot-fill: #ffffff;
+    --fg-bot-stroke: #334155;
+    --fg-bot-sign-bg: #f8fafc;
+    --fg-bot-sign-border: #64748b;
+    --fg-bot-sign-text: #1e293b;
   }
 
   html,

@@ -2,9 +2,9 @@ import {
   UI_TOKENS,
   attachGlobalIconListeners,
   renderBrandLogo,
-} from '../../../lib/ui';
-import { toast } from '../../../lib/toast';
-import { COLORS } from '../../../lib/designTokens';
+} from '../../../ui/ui';
+import { toast } from '../../../ui/toast';
+import { COLORS } from '../../../ui/theme/designTokens';
 import { escapeHtml } from '@stopaccess/core';
 
 const iconExternal =
@@ -14,11 +14,15 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
     return;
   }
 
+  const { extensionVMDeps } = await import('../../../lib/vmDeps');
+
   const { loadSettingsData, connectNextDNSAction } = await import(
-    '../../../../../packages/viewmodels/src/useSettingsVM'
+    '@stopaccess/viewmodels/useSettingsVM'
   );
 
-  const { profileId, apiKey, syncState } = await loadSettingsData();
+  const { profileId, apiKey, syncState } = await loadSettingsData(
+    extensionVMDeps,
+  );
 
   const isSetupActive = !!profileId && !!apiKey;
   const isOffline = !navigator.onLine;
@@ -305,7 +309,7 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
     feedback.innerText = 'Connecting to NextDNS...';
 
     try {
-      const result = await connectNextDNSAction(pid, key);
+      const result = await connectNextDNSAction(extensionVMDeps, pid, key);
       if (result.ok) {
         feedback.className =
           'fg-p-5 fg-rounded-2xl fg-text-xs fg-font-bold fg-bg-[var(--fg-emerald-soft)] fg-text-[var(--fg-green)]';

@@ -1,5 +1,5 @@
 import { fmtTime, buildDashboardTabPath } from '@stopaccess/core';
-import { COLORS } from '../../lib/designTokens';
+import { COLORS } from '../../ui/theme/designTokens';
 import { nextDNSApi } from '../../background/platformAdapter';
 import { appsController } from '../../lib/appsController';
 import { getCachedIcon } from '../../lib/iconCache';
@@ -11,7 +11,7 @@ import {
   UI_TOKENS,
   renderBrandLogo,
   attachGlobalIconListeners,
-} from '../../lib/ui';
+} from '../../ui/ui';
 
 declare var chrome: any;
 
@@ -53,9 +53,10 @@ export async function renderInsightsPage(
 
 async function _renderPage(container: HTMLElement): Promise<void> {
   const { loadInsightsData } = await import(
-    '../../../../packages/viewmodels/src/useInsightsVM'
+    '@stopaccess/viewmodels/useInsightsVM'
   );
-  const data = (await loadInsightsData()) || {};
+  const { extensionVMDeps } = await import('../../lib/vmDeps');
+  const data = (await loadInsightsData(extensionVMDeps)) || {};
 
   const {
     isConfigured = false,

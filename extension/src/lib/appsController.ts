@@ -4,7 +4,7 @@ import {
   extensionAdapter as storage,
 } from '../background/platformAdapter';
 import { getBlockingPolicy } from '@stopaccess/state';
-import { toast } from './toast';
+import { toast } from '../ui/toast';
 import { checkGuard } from '../background/sessionGuard';
 import { STORAGE_KEYS } from '@stopaccess/state/index';
 import { findServiceIdByDomain, getDomainForRule } from '@stopaccess/core';
@@ -200,12 +200,16 @@ export const appsController = {
             });
 
       // 1. Cloud Layer (NextDNS)
-      // STRICT: Only sync to NextDNS if Hard Mode is enabled globally.
+      // STRICT: NextDNS native features (Categories/Services) always sync to cloud if configured.
+      // Individual domains only sync if Hard Mode is enabled globally.
       const policy = await getBlockingPolicy(storage);
-      // STRICT: Only sync to cloud if Hard Mode is enabled globally.
-      const shouldCloudSync = policy.enforcesCloudBlocking;
+      const isNativeNextDNS = kind === 'category' || kind === 'service';
+      const shouldCloudSync = isNativeNextDNS || policy.enforcesCloudBlocking;
 
       if (shouldCloudSync) {
+        console.log(
+          `[appsController] Syncing ${kind} to cloud: ${id} -> ${nextState}`,
+        );
         await this._runCloudSync(() =>
           nextDNSApi.setTargetState(kind, id, nextState),
         );
@@ -283,8 +287,10 @@ export const appsController = {
       const actualState = isRuleBlockingEnabled(rule, state.passes);
 
       // Apply immediate state to NextDNS
+      // Native NextDNS features (Categories/Services) always sync.
       const policy = await getBlockingPolicy(storage);
-      if (policy.enforcesCloudBlocking) {
+      const isNativeNextDNS = kind === 'category' || kind === 'service';
+      if (isNativeNextDNS || policy.enforcesCloudBlocking) {
         await this._runCloudSync(() =>
           nextDNSApi.setTargetState(kind, id, enabled && actualState),
         );
@@ -308,9 +314,11 @@ export const appsController = {
     try {
       const resolved = await nextDNSApi.resolveTargetInput(domain);
 
-      // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode if apps hard mode is ON
+      // 1. Cloud Layer (NextDNS) - Native features always sync; domains respect Hard Mode
       const policy = await getBlockingPolicy(storage);
-      if (policy.enforcesCloudBlocking) {
+      const isNativeNextDNS =
+        resolved.kind === 'category' || resolved.kind === 'service';
+      if (isNativeNextDNS || policy.enforcesCloudBlocking) {
         await this._runCloudSync(() => nextDNSApi.addResolvedTarget(resolved));
       }
 
@@ -355,10 +363,12 @@ export const appsController = {
 
     const rule = rules.find((r) => r.packageName === id);
     try {
-      // 1. Cloud Layer (NextDNS) - Only runs in STRONG mode
+      // 1. Cloud Layer (NextDNS) - Always for native features, or if Hard Mode is enabled
       if (rule) {
         const policy = await getBlockingPolicy(storage);
-        if (policy.enforcesCloudBlocking) {
+        const isNativeNextDNS =
+          rule.type === 'category' || rule.type === 'service';
+        if (isNativeNextDNS || policy.enforcesCloudBlocking) {
           await this._runCloudSync(() =>
             nextDNSApi.setTargetState(rule.type || 'domain', id, false),
           );
@@ -393,6 +403,12 @@ export const appsController = {
       const promises = rules.map(async (rule) => {
         const kind = rule.type || 'domain';
         const id = rule.packageName;
+
+        // Categories and Services are global settings and should not be toggled by Hard Mode reconciliation
+        if (kind === 'category' || kind === 'service') {
+          return;
+        }
+
         const result = await nextDNSApi.setTargetState(
           kind,
           id,
@@ -440,14 +456,34 @@ export const appsController = {
       return { ok: false, error: (guard as any).reason };
     }
 
-    const storageRes = await chrome.storage.local.get([
+    const storageRes = (await chrome.storage.local.get([
       STORAGE_KEYS.TEMP_PASSES,
       STORAGE_KEYS.EXTENSION_COUNTS,
-    ]);
+      STORAGE_KEYS.RULES,
+    ])) as any;
 
     const passes = storageRes[STORAGE_KEYS.TEMP_PASSES] || {};
     const counts = storageRes[STORAGE_KEYS.EXTENSION_COUNTS] || {};
     const today = new Date().toISOString().split('T')[0];
+
+    let rules: any[] = [];
+    try {
+      const rawRules = storageRes[STORAGE_KEYS.RULES];
+      rules =
+        typeof rawRules === 'string'
+          ? JSON.parse(rawRules)
+          : (rawRules as any[]) || [];
+    } catch {}
+
+    const matchingRule = rules.find((rule) => {
+      const ruleDomain = getDomainForRule(rule);
+      return (
+        ruleDomain &&
+        (domain === ruleDomain || domain.endsWith('.' + ruleDomain))
+      );
+    });
+
+    const pkgId = matchingRule?.packageName;
 
     if (!counts[today]) {
       counts[today] = {};
@@ -458,11 +494,16 @@ export const appsController = {
       return { ok: false, error: 'No more passes left today' };
     }
 
-    passes[domain] = {
+    const passData = {
       expiresAt: Date.now() + minutes * 60000,
       grantedMinutes: minutes,
       grantedAt: Date.now(),
     };
+
+    if (pkgId) {
+      passes[pkgId] = passData;
+    }
+    passes[domain] = passData;
 
     if (!skipLimit) {
       counts[today][domain] = currentCount + 1;
@@ -471,6 +512,7 @@ export const appsController = {
     await chrome.storage.local.set({
       [STORAGE_KEYS.TEMP_PASSES]: passes,
       [STORAGE_KEYS.EXTENSION_COUNTS]: counts,
+      [STORAGE_KEYS.WILT_UNTIL]: Date.now() + 60 * 60 * 1000,
     });
 
     chrome.runtime.sendMessage({ action: 'manualSync' });

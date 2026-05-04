@@ -3,7 +3,7 @@ import { syncDNRRules } from './dnrAdapter';
 import { getEffectiveElapsed } from '../lib/sessionTimer';
 import { nextDNSApi } from './platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
-import { RAW_COLORS } from '../lib/designTokens';
+import { RAW_COLORS } from '../ui/theme/designTokens';
 import { notifyFocusComplete } from './notifications';
 /**
  * Starts a new focus session.
@@ -117,15 +117,22 @@ export async function endSession(
   await chrome.alarms.clear('fg_session_end');
 
   // Save to history
-  const historyRes = await chrome.storage.local.get(
+  const historyRes = await chrome.storage.local.get([
     STORAGE_KEYS.SESSION_HISTORY,
-  );
+    STORAGE_KEYS.TOTAL_FOCUS_XP,
+  ]);
   const history = (historyRes[STORAGE_KEYS.SESSION_HISTORY] ||
     []) as FocusSessionRecord[];
+  const totalXp = (historyRes[STORAGE_KEYS.TOTAL_FOCUS_XP] || 0) as number;
 
   const endedAt = Date.now();
   const actualSeconds = getEffectiveElapsed(session);
   const actualMinutes = Math.floor(actualSeconds / 60);
+
+  const xpAwarded =
+    reason === 'completed'
+      ? session.duration
+      : Math.min(session.duration, actualMinutes);
 
   history.push({
     ...session,
@@ -138,12 +145,19 @@ export async function endSession(
         : Math.min(session.duration, actualMinutes),
   });
 
-  await chrome.storage.local.set({
+  const payload: any = {
     [STORAGE_KEYS.SESSION_HISTORY]: history,
     [STORAGE_KEYS.SESSION]: null,
     [STORAGE_KEYS.SESSION_START]: 0,
     [STORAGE_KEYS.FOCUS_END]: 0,
-  });
+    [STORAGE_KEYS.TOTAL_FOCUS_XP]: totalXp + xpAwarded,
+  };
+
+  if (reason === 'completed') {
+    payload[STORAGE_KEYS.SESSION_COMPLETED_EVENT] = Date.now();
+  }
+
+  await chrome.storage.local.set(payload);
 
   // Clear badge
   await chrome.action.setBadgeText({ text: '' });

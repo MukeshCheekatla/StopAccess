@@ -3,9 +3,9 @@ import {
   attachGlobalIconListeners,
   renderBrandLogo,
   showConfirmDialog,
-} from '../../../lib/ui';
-import { toast } from '../../../lib/toast';
-import { COLORS } from '../../../lib/designTokens';
+} from '../../../ui/ui';
+import { toast } from '../../../ui/toast';
+import { COLORS } from '../../../ui/theme/designTokens';
 import { escapeHtml } from '@stopaccess/core';
 
 export async function renderCloudAccountPage(container: HTMLElement) {
@@ -13,14 +13,16 @@ export async function renderCloudAccountPage(container: HTMLElement) {
     return;
   }
 
+  const { extensionVMDeps } = await import('../../../lib/vmDeps');
+
   const {
     loadSettingsData,
     signInWithOtpAction,
     signInWithGoogleAction,
     signOutAction,
-  } = await import('../../../../../packages/viewmodels/src/useSettingsVM');
+  } = await import('@stopaccess/viewmodels/useSettingsVM');
 
-  const { cloudUser: user } = await loadSettingsData();
+  const { cloudUser: user } = await loadSettingsData(extensionVMDeps);
   const userEmail = String(user?.email || '');
   const userDomain = userEmail.includes('@')
     ? userEmail.split('@').pop() || 'google.com'
@@ -168,7 +170,7 @@ export async function renderCloudAccountPage(container: HTMLElement) {
           return;
         }
 
-        await signOutAction();
+        await signOutAction(extensionVMDeps);
         toast.info('Signed out');
         renderCloudAccountPage(container);
       });
@@ -188,7 +190,7 @@ export async function renderCloudAccountPage(container: HTMLElement) {
         btn.disabled = true;
         btn.innerText = 'Sending...';
         try {
-          await signInWithOtpAction(email);
+          await signInWithOtpAction(extensionVMDeps, email);
           toast.success('Magic link sent!');
         } catch (err: any) {
           toast.error(err.message);
@@ -201,7 +203,7 @@ export async function renderCloudAccountPage(container: HTMLElement) {
       .querySelector('#btn_cloud_google')
       ?.addEventListener('click', async () => {
         try {
-          await signInWithGoogleAction();
+          await signInWithGoogleAction(extensionVMDeps);
         } catch (err) {
           toast.error('Login failed');
         }

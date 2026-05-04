@@ -1,8 +1,8 @@
 import { nextDNSApi } from '../../background/platformAdapter';
 import { buildDashboardTabPath } from '@stopaccess/core';
-import { toast } from '../../lib/toast';
-import { renderCloudBanner, UI_TOKENS, UI_ICONS } from '../../lib/ui';
-import { COLORS } from '../../lib/designTokens';
+import { toast } from '../../ui/toast';
+import { renderCloudBanner, UI_TOKENS, UI_ICONS } from '../../ui/ui';
+import { COLORS } from '../../ui/theme/designTokens';
 import type { NextDNSRecreationTime } from '@stopaccess/types';
 
 declare var chrome: any;

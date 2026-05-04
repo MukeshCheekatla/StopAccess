@@ -5,8 +5,8 @@ import {
   renderBrandLogo,
   attachGlobalIconListeners,
   setupDateSelectorWidget,
-} from '../../lib/ui';
-import { COLORS } from '../../lib/designTokens';
+} from '../../ui/ui';
+import { COLORS } from '../../ui/theme/designTokens';
 import { attachCalendarWidget } from './CalendarWidget';
 
 export async function renderDomainUsageScreen(
@@ -23,9 +23,14 @@ export async function renderDomainUsageScreen(
 
   try {
     const { loadDomainUsageDetails } = await import(
-      '../../../../packages/viewmodels/src/useDashboardVM'
+      '@stopaccess/viewmodels/useDashboardVM'
     );
-    const data = await loadDomainUsageDetails(domain, selectedDate);
+    const { extensionVMDeps } = await import('../../lib/vmDeps');
+    const data = await loadDomainUsageDetails(
+      extensionVMDeps,
+      domain,
+      selectedDate,
+    );
 
     // Only update the outer structure if needed
     if (!isAlreadyLoaded) {

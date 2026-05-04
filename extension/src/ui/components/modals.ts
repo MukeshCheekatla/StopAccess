@@ -1,6 +1,6 @@
 import { escapeHtml } from '@stopaccess/core';
-import { COLORS } from '../../lib/designTokens';
-import { UI_TOKENS, UI_ICONS } from '../tokens';
+import { COLORS } from '../../ui/theme/designTokens';
+import { UI_TOKENS, UI_ICONS } from '../../ui/theme/uiTokens';
 import { renderBrandLogo } from './icons';
 
 export interface DialogOptions {
@@ -726,7 +726,7 @@ export async function confirmGuardianAction(options: {
     '../../background/platformAdapter'
   );
   const { checkGuard } = await import('../../background/sessionGuard');
-  const { toast } = (await import('../../lib/toast')) as any;
+  const { toast } = (await import('../../ui/toast')) as any;
 
   // 1. System Lock Check (Focus Session / Strict Mode)
   // We check this FIRST so we don't annoy the user with a challenge that won't work.

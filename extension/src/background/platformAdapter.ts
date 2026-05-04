@@ -16,15 +16,14 @@ import {
   AppRule,
   SyncState,
   GlobalState,
+  NextDNSApiClient,
+  ResolvedTarget,
+  // NextDNSEntity,
 } from '@stopaccess/types';
 import { STORAGE_KEYS } from '@stopaccess/state';
 import { checkGuard } from './sessionGuard';
 
 export { STORAGE_KEYS } from '@stopaccess/state';
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Add this helper at the TOP of the file
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 type GuardAction = 'remove_app' | 'disable_blocking' | 'modify_blocklist';
 
@@ -83,7 +82,6 @@ export const extensionAdapter: StorageAdapter = {
   delete: async (key: string): Promise<void> => {
     await chrome.storage.local.remove(key);
   },
-  // Internal extension helper now in StorageAdapter
   getArray: async (key: string): Promise<any[]> => {
     const res = await chrome.storage.local.get(key);
     const raw = res[key];
@@ -96,6 +94,9 @@ export const extensionAdapter: StorageAdapter = {
     } catch {
       return [];
     }
+  },
+  getMultiple: async (keys: string[]): Promise<Record<string, any>> => {
+    return chrome.storage.local.get(keys);
   },
 
   loadGlobalState: async (): Promise<GlobalState> => {
@@ -188,11 +189,8 @@ export const extensionLogger = {
   },
 };
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// Simple Cache for API Requests
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const apiCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 60000; // 60 seconds
+const CACHE_TTL = 60000;
 
 async function withCache(key: string, fn: () => Promise<any>, ttl = CACHE_TTL) {
   const cached = apiCache.get(key);
@@ -209,14 +207,14 @@ function clearCache(keyPrefix?: string) {
     apiCache.clear();
     return;
   }
-  for (const key of apiCache.keys()) {
+  for (const key of Array.from(apiCache.keys())) {
     if (key.startsWith(keyPrefix)) {
       apiCache.delete(key);
     }
   }
 }
 
-export const nextDNSApi = {
+export const nextDNSApi: NextDNSApiClient = {
   isConfigured: async () => {
     const res = await chrome.storage.local.get([
       STORAGE_KEYS.PROFILE_ID,
@@ -240,22 +238,361 @@ export const nextDNSApi = {
     };
   },
 
-  getParentalControlServices: async () => {
-    return withCache('parental_services', async () => {
+  testConnection: async () => {
+    const cfg = await nextDNSApi.getConfig();
+    if (!cfg.profileId || !cfg.apiKey) {
+      return {
+        ok: false,
+        error: { code: 'auth_error' as any, message: 'Missing credentials' },
+      };
+    }
+    const res = await ndnsCore.testConnection(cfg, extensionLogger.add);
+    return { ok: true, data: !!res } as any;
+  },
+
+  blockApps: async (rules: AppRule[]) => {
+    const cfg = await nextDNSApi.getConfig();
+    return ndnsCore.blockApps(rules, cfg, extensionLogger.add);
+  },
+
+  getServices: async () => {
+    return nextDNSApi.getParentalControlServices();
+  },
+
+  getCategories: async () => {
+    return nextDNSApi.getParentalControlCategories();
+  },
+
+  unblockAll: async () => {
+    const check = await requireUnlocked('disable_blocking');
+    if (check.locked) {
+      return check.result as any;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    const res = await ndnsCore.unblockAll(cfg, extensionLogger.add);
+    clearCache();
+    return res as any;
+  },
+
+  getSecurity: async () => {
+    const res = await withCache('security_settings', async () => {
       const cfg = await nextDNSApi.getConfig();
-      return ndnsCore.getParentalControlServices(cfg, extensionLogger.add);
+      return ndnsCore.getSecuritySettings(cfg, extensionLogger.add);
     });
+    return res as any;
+  },
+
+  patchSecurity: async (patch: Partial<NextDNSSecuritySettings>) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result as any;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    const res = await ndnsCore.patchSecuritySettings(
+      patch,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('security_settings');
+    return res as any;
+  },
+
+  getPrivacy: async () => {
+    const res = await withCache('privacy_settings', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getPrivacySettings(cfg, extensionLogger.add);
+    });
+    return res as any;
+  },
+
+  patchPrivacy: async (patch: Partial<NextDNSPrivacySettings>) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result as any;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    const res = await ndnsCore.patchPrivacySettings(
+      patch,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('privacy_settings');
+    return res as any;
+  },
+
+  getParentalControl: async () => {
+    const res = await withCache('parental_settings', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getParentalControlSettings(cfg, extensionLogger.add);
+    });
+    return res as any;
+  },
+
+  patchParentalControl: async (
+    patch: Partial<NextDNSParentalControlSettings>,
+  ) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result as any;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    const res = await ndnsCore.patchParentalControlSettings(
+      patch,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('parental_settings');
+    return res as any;
+  },
+
+  getBlockedTlds: async () => {
+    const res = await withCache('blocked_tlds', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getBlockedTldsForProfile(cfg, extensionLogger.add);
+    });
+    return res as any;
+  },
+
+  addBlockedTld: async (id: string) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result as any;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    const res = await ndnsCore.addBlockedTldToProfile(
+      id,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('blocked_tlds');
+    return res as any;
+  },
+
+  removeBlockedTld: async (id: string) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result as any;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    const res = await ndnsCore.removeBlockedTldFromProfile(
+      id,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('blocked_tlds');
+    return res as any;
+  },
+
+  getBlocklists: async () => {
+    const res = await withCache('blocklists', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getBlocklistsForProfile(cfg, extensionLogger.add);
+    });
+    return res as any;
+  },
+
+  getAvailableBlocklists: async () => {
+    const res = await withCache('available_blocklists', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      const client = new (ndnsCore as any).NextDNSClient(
+        cfg,
+        extensionLogger.add,
+      );
+      return ndnsCore.getAvailableBlocklists(client);
+    });
+    return res as any;
+  },
+
+  addBlocklist: async (id: string) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result as any;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    const res = await ndnsCore.addBlocklistToProfile(
+      id,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('blocklists');
+    return res as any;
+  },
+
+  removeBlocklist: async (id: string) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result as any;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    const res = await ndnsCore.removeBlocklistFromProfile(
+      id,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('blocklists');
+    return res as any;
+  },
+
+  getNativeTracking: async () => {
+    const res = await withCache('native_tracking', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      return ndnsCore.getNativeTrackingForProfile(cfg, extensionLogger.add);
+    });
+    return res as any;
+  },
+
+  addNativeTracking: async (id: string) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result as any;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    const res = await ndnsCore.addNativeTrackingToProfile(
+      id,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('native_tracking');
+    return res as any;
+  },
+
+  removeNativeTracking: async (id: string) => {
+    const check = await requireUnlocked('modify_blocklist');
+    if (check.locked) {
+      return check.result as any;
+    }
+    const cfg = await nextDNSApi.getConfig();
+    const res = await ndnsCore.removeNativeTrackingFromProfile(
+      id,
+      cfg,
+      extensionLogger.add,
+    );
+    clearCache('native_tracking');
+    return res as any;
+  },
+
+  getDenylist: async () => {
+    const res: any = await nextDNSApi.getRemoteSnapshot();
+    if (res.ok) {
+      return { ok: true, data: res.data.denylist };
+    }
+    return res;
+  },
+
+  getLogs: async (limit = 20, status = 'blocked') => {
+    const res = await withCache(`logs_${status}_${limit}`, async () => {
+      const cfg = await nextDNSApi.getConfig();
+      const client = new (ndnsCore as any).NextDNSClient(
+        cfg,
+        extensionLogger.add,
+      );
+      return (ndnsCore as any).getLogs(client, limit, status);
+    });
+    return res as any;
+  },
+
+  getTopBlockedDomains: async (limit = 3) => {
+    const res = await withCache(`top_blocked_${limit}`, async () => {
+      const cfg = await nextDNSApi.getConfig();
+      const client = new (ndnsCore as any).NextDNSClient(
+        cfg,
+        extensionLogger.add,
+      );
+      return (ndnsCore as any).getTopBlockedDomains(client, limit);
+    });
+    return res as any;
+  },
+
+  getAnalyticsDomains: async (limit = 10, status = 'blocked') => {
+    const res = await withCache(
+      `analytics_domains_${status}_${limit}`,
+      async () => {
+        const cfg = await nextDNSApi.getConfig();
+        const client = new (ndnsCore as any).NextDNSClient(
+          cfg,
+          extensionLogger.add,
+        );
+        return (ndnsCore as any).getAnalyticsDomains(client, limit, status);
+      },
+    );
+    return res as any;
+  },
+
+  getAnalyticsCounters: async () => {
+    const res = await withCache('analytics_counters', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      const client = new (ndnsCore as any).NextDNSClient(
+        cfg,
+        extensionLogger.add,
+      );
+      return (ndnsCore as any).getAnalyticsCounters(client);
+    });
+    return res as any;
+  },
+
+  getRemoteSnapshot: async () => {
+    if (!(await nextDNSApi.shouldSync())) {
+      return {
+        ok: true,
+        data: { denylist: [], services: [], categories: [] },
+      } as any;
+    }
+    const res = await withCache('snapshot', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      const client = new (ndnsCore as any).NextDNSClient(
+        cfg,
+        extensionLogger.add,
+      );
+      return (ndnsCore as any).getRemoteSnapshot(client);
+    });
+    return res as any;
+  },
+
+  getFullSnapshot: async () => {
+    const res = await withCache('full_snapshot', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      const client = new (ndnsCore as any).NextDNSClient(
+        cfg,
+        extensionLogger.add,
+      );
+      return (ndnsCore as any).getFullSnapshot(client);
+    });
+    return res as any;
+  },
+
+  getRecreationTime: async () => {
+    return nextDNSApi.getSchedules();
+  },
+
+  syncRecreationTime: async (recreationTime: any) => {
+    return nextDNSApi.updateSchedules(recreationTime);
+  },
+
+  getParentalControlServices: async () => {
+    const res = await withCache('parental_services', async () => {
+      const cfg = await nextDNSApi.getConfig();
+      const client = new (ndnsCore as any).NextDNSClient(
+        cfg,
+        extensionLogger.add,
+      );
+      return (ndnsCore as any).getParentalControlServices(client);
+    });
+    return res as any;
   },
 
   getParentalControlCategories: async () => {
-    return withCache('parental_categories', async () => {
+    const res = await withCache('parental_categories', async () => {
       const cfg = await nextDNSApi.getConfig();
-      return ndnsCore.getParentalControlCategories(cfg, extensionLogger.add);
+      const client = new (ndnsCore as any).NextDNSClient(
+        cfg,
+        extensionLogger.add,
+      );
+      return (ndnsCore as any).getParentalControlCategories(client);
     });
+    return res as any;
   },
 
   syncParentalControlServices: async (services: NextDNSService[]) => {
-    // Check if we're REMOVING any currently active services
     const currentRes: any = await nextDNSApi.getParentalControlServices();
     const current = currentRes.ok ? currentRes.data : [];
     const currentActiveIds = (current || [])
@@ -267,14 +604,12 @@ export const nextDNSApi = {
     const removing = currentActiveIds.some(
       (id: string) => !newActiveIds.includes(id),
     );
-
     if (removing) {
       const check = await requireUnlocked('modify_blocklist');
       if (check.locked) {
-        return check.result;
+        return check.result as any;
       }
     }
-
     const cfg = await nextDNSApi.getConfig();
     const res = await ndnsCore.syncParentalControlServices(
       services,
@@ -282,7 +617,7 @@ export const nextDNSApi = {
       extensionLogger.add,
     );
     clearCache('parental_services');
-    return res;
+    return res as any;
   },
 
   syncParentalControlCategories: async (categories: NextDNSCategory[]) => {
@@ -297,14 +632,12 @@ export const nextDNSApi = {
     const removing = currentActiveIds.some(
       (id: string) => !newActiveIds.includes(id),
     );
-
     if (removing) {
       const check = await requireUnlocked('modify_blocklist');
       if (check.locked) {
-        return check.result;
+        return check.result as any;
       }
     }
-
     const cfg = await nextDNSApi.getConfig();
     const res = await ndnsCore.syncParentalControlCategories(
       categories,
@@ -312,7 +645,7 @@ export const nextDNSApi = {
       extensionLogger.add,
     );
     clearCache('parental_categories');
-    return res;
+    return res as any;
   },
 
   setParentalControlServiceState: async (
@@ -322,10 +655,9 @@ export const nextDNSApi = {
     if (!active) {
       const check = await requireUnlocked('remove_app');
       if (check.locked) {
-        return check.result;
+        return check.result as any;
       }
     }
-
     const cfg = await nextDNSApi.getConfig();
     const res = await ndnsCore.setParentalControlServiceState(
       serviceId,
@@ -334,10 +666,7 @@ export const nextDNSApi = {
       extensionLogger.add,
     );
     clearCache('parental_services');
-    return res;
-  },
-  setServiceState: async (serviceId: string, active: boolean) => {
-    return nextDNSApi.setParentalControlServiceState(serviceId, active);
+    return res as any;
   },
 
   setParentalControlCategoryState: async (
@@ -347,10 +676,9 @@ export const nextDNSApi = {
     if (!active) {
       const check = await requireUnlocked('remove_app');
       if (check.locked) {
-        return check.result;
+        return check.result as any;
       }
     }
-
     const cfg = await nextDNSApi.getConfig();
     const res = await ndnsCore.setParentalControlCategoryState(
       categoryId,
@@ -359,20 +687,16 @@ export const nextDNSApi = {
       extensionLogger.add,
     );
     clearCache('parental_categories');
-    return res;
-  },
-  setCategoryState: async (categoryId: string, active: boolean) => {
-    return nextDNSApi.setParentalControlCategoryState(categoryId, active);
+    return res as any;
   },
 
   setDenylistDomainState: async (domain: string, active: boolean) => {
     if (!active) {
       const check = await requireUnlocked('remove_app');
       if (check.locked) {
-        return check.result;
+        return check.result as any;
       }
     }
-
     const cfg = await nextDNSApi.getConfig();
     const res = await ndnsCore.setDenylistDomainState(
       domain,
@@ -381,37 +705,7 @@ export const nextDNSApi = {
       extensionLogger.add,
     );
     clearCache('snapshot');
-    return res;
-  },
-
-  getLogs: async (status: string, limit: number) => {
-    return withCache(`logs_${status}_${limit}`, async () => {
-      const cfg = await nextDNSApi.getConfig();
-      return ndnsCore.getLogs(cfg, extensionLogger.add, status, limit);
-    });
-  },
-
-  getTopBlockedDomains: async (limit: number) => {
-    return withCache(`top_blocked_${limit}`, async () => {
-      const cfg = await nextDNSApi.getConfig();
-      return ndnsCore.getTopBlockedDomains(cfg, extensionLogger.add, limit);
-    });
-  },
-  getAnalyticsCounters: async () => {
-    return withCache('analytics_counters', async () => {
-      const cfg = await nextDNSApi.getConfig();
-      return ndnsCore.getAnalyticsCounters(cfg, extensionLogger.add);
-    });
-  },
-
-  getRemoteSnapshot: async () => {
-    if (!(await nextDNSApi.shouldSync())) {
-      return { ok: true, data: { denylist: [], services: [], categories: [] } };
-    }
-    return withCache('snapshot', async () => {
-      const cfg = await nextDNSApi.getConfig();
-      return ndnsCore.getRemoteSnapshot(cfg, extensionLogger.add);
-    });
+    return res as any;
   },
 
   refreshNextDNSMetadata: async () => {
@@ -420,7 +714,6 @@ export const nextDNSApi = {
       await chrome.storage.local.set({ [STORAGE_KEYS.CACHED_METADATA]: empty });
       return empty;
     }
-
     const snapshotRes: any = await nextDNSApi.getRemoteSnapshot();
     const snapshot = snapshotRes.ok
       ? snapshotRes.data
@@ -437,7 +730,7 @@ export const nextDNSApi = {
   },
 
   resolveTargetInput: async (input: string) => {
-    return ndnsCore.resolveTargetInput(input);
+    return ndnsCore.resolveTargetInput(input) as any as Promise<ResolvedTarget>;
   },
 
   setTargetState: async (kind: string, id: string, active: boolean) => {
@@ -447,10 +740,9 @@ export const nextDNSApi = {
     if (!active) {
       const check = await requireUnlocked('remove_app');
       if (check.locked) {
-        return check.result;
+        return check.result as any;
       }
     }
-
     const cfg = await nextDNSApi.getConfig();
     const res = await ndnsCore.setTargetState(
       kind as any,
@@ -461,7 +753,7 @@ export const nextDNSApi = {
     );
     clearCache('snapshot');
     clearCache('parental');
-    return res;
+    return res as any;
   },
 
   addResolvedTarget: async (target: any) => {
@@ -473,219 +765,15 @@ export const nextDNSApi = {
       extensionLogger.add,
     );
     clearCache('snapshot');
-    return res;
-  },
-
-  resolveAndAddTarget: async (input: string) => {
-    const cfg = await nextDNSApi.getConfig();
-    const res = await ndnsCore.resolveAndSetTargetState(
-      input,
-      true,
-      cfg,
-      extensionLogger.add,
-    );
-    clearCache('snapshot');
-    return res;
-  },
-
-  testConnection: async () => {
-    const cfg = await nextDNSApi.getConfig();
-    if (!cfg.profileId || !cfg.apiKey) {
-      return false;
-    }
-    return ndnsCore.testConnection(cfg, extensionLogger.add);
-  },
-
-  getSecurity: async () => {
-    return withCache('security_settings', async () => {
-      const cfg = await nextDNSApi.getConfig();
-      return ndnsCore.getSecuritySettings(cfg, extensionLogger.add);
-    });
-  },
-  patchSecurity: async (patch: Partial<NextDNSSecuritySettings>) => {
-    const check = await requireUnlocked('modify_blocklist');
-    if (check.locked) {
-      return check.result;
-    }
-    const cfg = await nextDNSApi.getConfig();
-    const res = await ndnsCore.patchSecuritySettings(
-      patch,
-      cfg,
-      extensionLogger.add,
-    );
-    clearCache('security_settings');
-    return res;
-  },
-  getParentalControl: async () => {
-    return withCache('parental_settings', async () => {
-      const cfg = await nextDNSApi.getConfig();
-      return ndnsCore.getParentalControlSettings(cfg, extensionLogger.add);
-    });
-  },
-  patchParentalControl: async (
-    patch: Partial<NextDNSParentalControlSettings>,
-  ) => {
-    const check = await requireUnlocked('modify_blocklist');
-    if (check.locked) {
-      return check.result;
-    }
-    const cfg = await nextDNSApi.getConfig();
-    const res = await ndnsCore.patchParentalControlSettings(
-      patch,
-      cfg,
-      extensionLogger.add,
-    );
-    clearCache('parental_settings');
-    return res;
-  },
-  getBlockedTlds: async () => {
-    return withCache('blocked_tlds', async () => {
-      const cfg = await nextDNSApi.getConfig();
-      return ndnsCore.getBlockedTldsForProfile(cfg, extensionLogger.add);
-    });
-  },
-  addBlockedTld: async (id: string) => {
-    const check = await requireUnlocked('modify_blocklist');
-    if (check.locked) {
-      return check.result;
-    }
-    const cfg = await nextDNSApi.getConfig();
-    const res = await ndnsCore.addBlockedTldToProfile(
-      id,
-      cfg,
-      extensionLogger.add,
-    );
-    clearCache('blocked_tlds');
-    return res;
-  },
-  removeBlockedTld: async (id: string) => {
-    const check = await requireUnlocked('modify_blocklist');
-    if (check.locked) {
-      return check.result;
-    }
-    const cfg = await nextDNSApi.getConfig();
-    const res = await ndnsCore.removeBlockedTldFromProfile(
-      id,
-      cfg,
-      extensionLogger.add,
-    );
-    clearCache('blocked_tlds');
-    return res;
-  },
-
-  getPrivacy: async () => {
-    return withCache('privacy_settings', async () => {
-      const cfg = await nextDNSApi.getConfig();
-      return ndnsCore.getPrivacySettings(cfg, extensionLogger.add);
-    });
-  },
-  patchPrivacy: async (patch: Partial<NextDNSPrivacySettings>) => {
-    const check = await requireUnlocked('modify_blocklist');
-    if (check.locked) {
-      return check.result;
-    }
-    const cfg = await nextDNSApi.getConfig();
-    const res = await ndnsCore.patchPrivacySettings(
-      patch,
-      cfg,
-      extensionLogger.add,
-    );
-    clearCache('privacy_settings');
-    return res;
-  },
-  getBlocklists: async () => {
-    return withCache('blocklists', async () => {
-      const cfg = await nextDNSApi.getConfig();
-      return ndnsCore.getBlocklistsForProfile(cfg, extensionLogger.add);
-    });
-  },
-  getAvailableBlocklists: async () => {
-    return withCache('available_blocklists', async () => {
-      const cfg = await nextDNSApi.getConfig();
-      const client = ndnsCore.createClient(cfg, extensionLogger.add);
-      return ndnsCore.getAvailableBlocklists(client);
-    });
-  },
-  addBlocklist: async (id: string) => {
-    const check = await requireUnlocked('modify_blocklist');
-    if (check.locked) {
-      return check.result;
-    }
-    const cfg = await nextDNSApi.getConfig();
-    const res = await ndnsCore.addBlocklistToProfile(
-      id,
-      cfg,
-      extensionLogger.add,
-    );
-    clearCache('blocklists');
-    return res;
-  },
-  removeBlocklist: async (id: string) => {
-    const check = await requireUnlocked('modify_blocklist');
-    if (check.locked) {
-      return check.result;
-    }
-    const cfg = await nextDNSApi.getConfig();
-    const res = await ndnsCore.removeBlocklistFromProfile(
-      id,
-      cfg,
-      extensionLogger.add,
-    );
-    clearCache('blocklists');
-    return res;
-  },
-  getNativeTracking: async () => {
-    return withCache('native_tracking', async () => {
-      const cfg = await nextDNSApi.getConfig();
-      return ndnsCore.getNativeTrackingForProfile(cfg, extensionLogger.add);
-    });
-  },
-  addNativeTracking: async (id: string) => {
-    const check = await requireUnlocked('modify_blocklist');
-    if (check.locked) {
-      return check.result;
-    }
-    const cfg = await nextDNSApi.getConfig();
-    const res = await ndnsCore.addNativeTrackingToProfile(
-      id,
-      cfg,
-      extensionLogger.add,
-    );
-    clearCache('native_tracking');
-    return res;
-  },
-  removeNativeTracking: async (id: string) => {
-    const check = await requireUnlocked('modify_blocklist');
-    if (check.locked) {
-      return check.result;
-    }
-    const cfg = await nextDNSApi.getConfig();
-    const res = await ndnsCore.removeNativeTrackingFromProfile(
-      id,
-      cfg,
-      extensionLogger.add,
-    );
-    clearCache('native_tracking');
-    return res;
-  },
-
-  unblockAll: async () => {
-    const check = await requireUnlocked('disable_blocking');
-    if (check.locked) {
-      return check.result;
-    }
-
-    const cfg = await nextDNSApi.getConfig();
-    const res = await ndnsCore.unblockAll(cfg, extensionLogger.add);
-    clearCache(); // Full wipe on unblock all
-    return res;
+    return res as any;
   },
 
   getSchedules: async () => {
-    return withCache('schedules', async () => {
+    const res = await withCache('schedules', async () => {
       const cfg = await nextDNSApi.getConfig();
       return ndnsCore.getQuietHoursSync(cfg, extensionLogger.add);
     });
+    return res as any;
   },
 
   updateSchedules: async (recreationTime: any) => {
@@ -696,6 +784,6 @@ export const nextDNSApi = {
       extensionLogger.add,
     );
     clearCache('schedules');
-    return res;
+    return res as any;
   },
 };

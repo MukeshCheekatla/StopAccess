@@ -1,5 +1,5 @@
-import { COLORS } from '../../lib/designTokens';
-import { UI_TOKENS, UI_ICONS } from '../tokens';
+import { COLORS } from '../../ui/theme/designTokens';
+import { UI_TOKENS, UI_ICONS } from '../../ui/theme/uiTokens';
 
 export function renderStreakBadge(streak: number) {
   const isZero = streak <= 0;

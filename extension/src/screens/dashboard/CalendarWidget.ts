@@ -1,5 +1,5 @@
-import { COLORS } from '../../lib/designTokens';
-import { UI_TOKENS } from '../../lib/ui';
+import { COLORS } from '../../ui/theme/designTokens';
+import { UI_TOKENS } from '../../ui/ui';
 
 export function attachCalendarWidget(
   triggerElement: HTMLElement,

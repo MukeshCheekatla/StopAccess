@@ -1,5 +1,5 @@
 /**
-import { COLORS } from '../../../lib/designTokens';
+import { COLORS } from '../../../ui/theme/designTokens';
  * NativeTrackersSection
  * Per-vendor native tracking toggles — 3-column grid with real brand icons.
  */
@@ -11,8 +11,8 @@ import {
   renderSectionTitleRow,
   UI_TOKENS,
   renderBrandLogo,
-} from '../../../lib/ui';
-import { COLORS } from '../../../lib/designTokens';
+} from '../../../ui/ui';
+import { COLORS } from '../../../ui/theme/designTokens';
 
 interface VendorMeta {
   id: string;

@@ -5,7 +5,7 @@ import {
   nextDNSApi,
 } from '../background/platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
-import { getBrandLogoUrl } from '../lib/ui';
+import { getBrandLogoUrl } from '../ui/ui';
 import {
   PopupShell,
   type ShellStatus,
@@ -14,7 +14,7 @@ import {
 import { FocusPopupView } from '../screens/focus/FocusPopupView';
 import { AppsPopupView } from '../screens/apps/AppsPopupView';
 import { DashboardPopupView } from '../screens/dashboard/DashboardPopupView';
-import { applyTheme, setupThemeListener } from '../lib/theme';
+import { applyTheme, setupThemeListener } from '../ui/theme/theme';
 
 type TabId = 'dash' | 'apps' | 'focus';
 

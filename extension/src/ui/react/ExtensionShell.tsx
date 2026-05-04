@@ -1,6 +1,9 @@
 import React, { type ReactNode, useMemo } from 'react';
-import { COLORS, COLOR_CLASSES } from '../../lib/designTokens';
-import { UI_TOKENS } from '../../lib/ui';
+import { COLORS, COLOR_CLASSES } from '../../ui/theme/designTokens';
+import { UI_TOKENS } from '../../ui/ui';
+import { ByteCompanion } from '../components/companion';
+import { useShellCompanion } from '../components/companion/useShellCompanion';
+import { SunIcon, MonitorIcon, MoonIcon, SignOutIcon } from './ShellIcons';
 
 export type ShellTab<T extends string> = {
   id: T;
@@ -59,7 +62,6 @@ export function PopupShell<T extends string>({
       <div className="fg-flex fg-items-center fg-gap-2 fg-px-4 fg-py-3 fg-bg-[var(--fg-overlay-tint)] fg-overflow-x-auto fg-no-scrollbar fg-z-50">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
-          // Omit color from style to let tailwind classes handle it (crucial for theme flipping)
           const styleWithoutColor = { ...UI_TOKENS.TEXT.R.LABEL };
           delete (styleWithoutColor as any).color;
 
@@ -114,7 +116,7 @@ export function PopupShell<T extends string>({
           {topbarRight}
         </div>
       </div>
-      <div className="fg-flex-1 fg-min-h-0 fg-overflow-y-auto fg-no-scrollbar">
+      <div className="fg-flex-1 fg-min-h-0 fg-overflow-y-auto fg-no-scrollbar fg-relative">
         {children}
       </div>
     </div>
@@ -135,9 +137,9 @@ export function DashboardShell<T extends string>({
   onSignIn,
 }: DashboardShellProps<T>) {
   const [isInitializing, setIsInitializing] = React.useState(true);
+  const companion = useShellCompanion(status, activeTab);
 
   React.useEffect(() => {
-    // Suppress transitions for the first 100ms to allow theme to settle without "sweeping" animations
     const timer = setTimeout(() => setIsInitializing(false), 100);
     return () => clearTimeout(timer);
   }, []);
@@ -215,6 +217,22 @@ export function DashboardShell<T extends string>({
           ))}
         </nav>
 
+        {companion.show && (
+          <ByteCompanion
+            mood={companion.mood}
+            message={companion.message}
+            action={companion.action}
+            variant="sidebar"
+            theme={
+              theme === 'system'
+                ? window.matchMedia('(prefers-color-scheme: dark)').matches
+                  ? 'dark'
+                  : 'light'
+                : (theme as 'light' | 'dark')
+            }
+          />
+        )}
+
         <div className="fg-px-2 fg-mb-4">
           <div className="fg-px-2 fg-mb-2">
             <div
@@ -235,7 +253,6 @@ export function DashboardShell<T extends string>({
                 'color-mix(in srgb, var(--fg-sidebar-bg) 90%, var(--fg-black) 10%)',
             }}
           >
-            {/* Animated Slider Pill */}
             <div
               className={`fg-absolute fg-h-[32px] ${COLOR_CLASSES.shadow.switch} fg-rounded-[10px] fg-transition-all fg-duration-300 fg-ease-out fg-z-[1] fg-border fg-border-[var(--fg-glass-border)]`}
               style={{
@@ -260,26 +277,7 @@ export function DashboardShell<T extends string>({
               }`}
               title="Light mode"
             >
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="23" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                <line x1="1" y1="12" x2="3" y2="12" />
-                <line x1="21" y1="12" x2="23" y2="12" />
-                <line x1="4.22" y1="19.07" x2="5.64" y2="17.66" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-              </svg>
+              <SunIcon />
             </button>
 
             <button
@@ -291,20 +289,7 @@ export function DashboardShell<T extends string>({
               }`}
               title="System default"
             >
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
-                <line x1="8" y1="21" x2="16" y2="21" />
-                <line x1="12" y1="17" x2="12" y2="21" />
-              </svg>
+              <MonitorIcon />
             </button>
 
             <button
@@ -316,23 +301,11 @@ export function DashboardShell<T extends string>({
               }`}
               title="Dark mode"
             >
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
+              <MoonIcon />
             </button>
           </div>
         </div>
 
-        {/* Cloud Sync Section - Pushed to bottom */}
         <div className="fg-mt-auto fg-px-2 fg-mb-2">
           <div className="fg-px-2 fg-py-3 fg-rounded-[14px] fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)]">
             {!user ? (
@@ -370,7 +343,6 @@ export function DashboardShell<T extends string>({
                       </div>
                     )}
                   </div>
-                  {/* Status Dot */}
                   <div className="fg-absolute -fg-bottom-0.5 -fg-right-0.5 fg-w-3 fg-h-3 fg-rounded-full fg-bg-[var(--fg-green)] fg-border-2 fg-border-[var(--fg-sidebar-bg)] fg-animate-pulse" />
                 </div>
 
@@ -402,16 +374,7 @@ export function DashboardShell<T extends string>({
                   className="fg-p-1.5 fg-rounded-lg fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-red)] hover:fg-bg-[var(--fg-red-wash)] fg-transition-colors fg-shrink-0"
                   title="Sign Out"
                 >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                  >
-                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
-                  </svg>
+                  <SignOutIcon />
                 </button>
               </div>
             )}

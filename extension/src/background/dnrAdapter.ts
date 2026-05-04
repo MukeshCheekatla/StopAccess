@@ -2,6 +2,20 @@ import { getLockedTargets } from './sessionGuard';
 
 let pendingDNRTimer: ReturnType<typeof setTimeout> | null = null;
 
+const NEVER_BLOCK_DOMAINS = [
+  'stopaccess.pages.dev',
+  'pages.dev',
+  'supabase.co',
+  'accounts.google.com',
+  'google.com',
+  'gstatic.com',
+  'googleusercontent.com',
+];
+
+function matchesDomain(domain: string, candidate: string): boolean {
+  return domain === candidate || domain.endsWith('.' + candidate);
+}
+
 export async function syncDNRRules(domains: string[]) {
   if (!Array.isArray(domains)) {
     return { ok: false, error: 'Invalid domains list' };
@@ -35,18 +49,27 @@ export async function syncDNRRules(domains: string[]) {
               .trim()
               .toLowerCase(),
           )
-          .filter(Boolean),
+          .filter(
+            (domain) =>
+              domain &&
+              !NEVER_BLOCK_DOMAINS.some((allowed) =>
+                matchesDomain(domain, allowed),
+              ),
+          ),
       ),
     );
 
-    // Sub-resource blocking only.
-    // main_frame is handled by content script overlay.
+    // Third-party sub-resource blocking only.
+    // First-party blocked pages are handled by the content script overlay. If
+    // DNR blocks a blocked site's own scripts/stylesheets, SPAs like Telegram
+    // can fail before the overlay has a usable document to cover.
     const netRules = uniqueDomains.map((domain, index) => ({
       id: index + 1,
       priority: 1,
       action: { type: 'block' as const },
       condition: {
         urlFilter: `||${domain}^`,
+        domainType: 'thirdParty',
         resourceTypes: [
           'sub_frame',
           'stylesheet',

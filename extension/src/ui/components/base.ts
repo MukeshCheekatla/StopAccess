@@ -1,5 +1,5 @@
-import { COLORS } from '../../lib/designTokens';
-import { UI_TOKENS } from '../tokens';
+import { COLORS } from '../../ui/theme/designTokens';
+import { UI_TOKENS } from '../../ui/theme/uiTokens';
 import { renderBrandLogo } from './icons';
 
 export function renderInfoTooltip(

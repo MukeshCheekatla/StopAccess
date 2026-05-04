@@ -1,5 +1,5 @@
 import React from 'react';
-import { getBrandLogoUrl, resolveIconDomain } from '../../../lib/ui';
+import { getBrandLogoUrl, resolveIconDomain } from '../../../ui/ui';
 
 interface DomainRuleCardProps {
   rule: any;

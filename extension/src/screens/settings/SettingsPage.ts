@@ -3,16 +3,18 @@ const iconLock =
 const iconShield =
   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
 
-import { toast } from '../../lib/toast';
+import { toast } from '../../ui/toast';
 import { checkGuard } from '../../background/sessionGuard';
-import { UI_TOKENS, renderInfoTooltip, renderBrandLogo } from '../../lib/ui';
-import { COLORS } from '../../lib/designTokens';
+import { UI_TOKENS, renderInfoTooltip, renderBrandLogo } from '../../ui/ui';
+import { COLORS } from '../../ui/theme/designTokens';
 import { escapeHtml } from '@stopaccess/core';
 
 export async function renderSettingsPage(container) {
   if (!container) {
     return;
   }
+
+  const { extensionVMDeps } = await import('../../lib/vmDeps');
 
   const {
     loadSettingsData,
@@ -22,17 +24,19 @@ export async function renderSettingsPage(container) {
     cancelPinResetAction,
     checkPinResetStatus,
     toggleChallengeAction,
+    toggleMascotAction,
     updateChallengeTextAction,
-  } = await import('../../../../packages/viewmodels/src/useSettingsVM');
+  } = await import('@stopaccess/viewmodels/useSettingsVM');
 
   const {
     profileId,
     apiKey,
     strict,
+    showMascot,
     challengeEnabled,
     challengeText,
     cloudUser: user,
-  } = await loadSettingsData();
+  } = await loadSettingsData(extensionVMDeps);
   const userEmail = String(user?.email || '');
   const userDomain = userEmail.includes('@')
     ? userEmail.split('@').pop() || 'google.com'
@@ -189,6 +193,28 @@ export async function renderSettingsPage(container) {
               </label>
             </section>
 
+            <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-items-center fg-justify-between">
+              <div class="fg-flex fg-gap-3">
+                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-blue-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-blue)]">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+                </div>
+                <div>
+                  <h2 style="${
+                    UI_TOKENS.TEXT.HEADING
+                  }">Byte: Focus Companion</h2>
+                  <p style="${
+                    UI_TOKENS.TEXT.SUBTEXT
+                  }; margin-top: 2px;">Your living 2D companion. Walks, sits, reacts.</p>
+                </div>
+              </div>
+              <label class="switch-toggle">
+                <input type="checkbox" id="chk_show_mascot" ${
+                  showMascot ? 'checked' : ''
+                }>
+                <span class="slider-toggle"></span>
+              </label>
+            </section>
+
             <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-flex-col fg-gap-4">
               <div class="fg-flex fg-items-center fg-justify-between">
                 <div class="fg-flex fg-gap-3">
@@ -263,18 +289,18 @@ export async function renderSettingsPage(container) {
       }
       if (!isChecked) {
         checkbox.checked = true;
-        const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
+        const { confirmGuardianAction } = (await import('../../ui/ui')) as any;
         const confirmed = await confirmGuardianAction({
           title: 'Disable Strict Mode',
           body: 'Verify your security to weaken protection.',
           action: 'change_settings',
         });
         if (confirmed) {
-          await setStrictModeAction(false);
+          await setStrictModeAction(extensionVMDeps, false);
           checkbox.checked = false;
         }
       } else {
-        await setStrictModeAction(true);
+        await setStrictModeAction(extensionVMDeps, true);
         toast.info('Strict Mode Enabled');
       }
     });
@@ -315,7 +341,7 @@ export async function renderSettingsPage(container) {
             }
             const fullPin = inputs.map((i) => i.value).join('');
             if (fullPin.length === 4) {
-              await setGuardianPinAction(fullPin);
+              await setGuardianPinAction(extensionVMDeps, fullPin);
               toast.success('PIN Enabled');
               updateGuardianCheck();
             }
@@ -333,11 +359,9 @@ export async function renderSettingsPage(container) {
 
     const resetContainer = container.querySelector('#pin_reset_container');
     if (resetContainer) {
-      const status = await checkPinResetStatus();
+      const status = await checkPinResetStatus(extensionVMDeps);
       if (status.pending) {
-        const { fmtTime } = await import(
-          '../../../../packages/core/src/utils/time'
-        );
+        const { fmtTime } = await import('@stopaccess/core');
         resetContainer.innerHTML = `<div class="fg-bg-[var(--fg-danger-soft)] fg-border fg-border-[var(--fg-danger-border)] fg-rounded-2xl fg-px-4 fg-py-3 fg-flex fg-items-center fg-justify-between">
           <div class="fg-flex fg-items-center fg-gap-4">
             <div class="fg-text-[10px] fg-font-black fg-text-[var(--fg-red)] fg-uppercase fg-tracking-widest">Active Recovery</div>
@@ -350,7 +374,7 @@ export async function renderSettingsPage(container) {
         resetContainer
           .querySelector('#btn_cancel_pin_reset')
           ?.addEventListener('click', async () => {
-            await cancelPinResetAction();
+            await cancelPinResetAction(extensionVMDeps);
             renderSettingsPage(container);
           });
       } else if (pin) {
@@ -360,7 +384,7 @@ export async function renderSettingsPage(container) {
           .querySelector('#btn_request_pin_reset')
           ?.addEventListener('click', async () => {
             const { showConfirmDialog: showConfirm } = (await import(
-              '../../lib/ui'
+              '../../ui/ui'
             )) as any;
             if (
               await showConfirm({
@@ -370,7 +394,7 @@ export async function renderSettingsPage(container) {
                 isDestructive: true,
               })
             ) {
-              await requestPinResetAction();
+              await requestPinResetAction(extensionVMDeps);
               renderSettingsPage(container);
             }
           });
@@ -383,10 +407,9 @@ export async function renderSettingsPage(container) {
 
   chkGuardian.addEventListener('change', async () => {
     const existingPin = await storage.getString('guardian_pin');
-    const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
+    const { confirmGuardianAction } = (await import('../../ui/ui')) as any;
     if (chkGuardian.checked) {
       if (!existingPin) {
-        // Just focus the first inline input if they try to toggle it on manually
         const firstInput = container.querySelector(
           '.pin-digit-setup',
         ) as HTMLInputElement;
@@ -406,9 +429,9 @@ export async function renderSettingsPage(container) {
         })
       ) {
         const { removeGuardianPinAction } = await import(
-          '../../../../packages/viewmodels/src/useSettingsVM'
+          '@stopaccess/viewmodels/useSettingsVM'
         );
-        await removeGuardianPinAction();
+        await removeGuardianPinAction(extensionVMDeps);
         toast.info('PIN Removed');
         updateGuardianCheck();
       }
@@ -423,8 +446,18 @@ export async function renderSettingsPage(container) {
     '#txt_challenge_body',
   ) as HTMLTextAreaElement;
   chkChallenge?.addEventListener('change', async () => {
-    await toggleChallengeAction(chkChallenge.checked);
+    await toggleChallengeAction(extensionVMDeps, chkChallenge.checked);
   });
+
+  // Companion Toggle Listener
+  const chkMascot = container.querySelector(
+    '#chk_show_mascot',
+  ) as HTMLInputElement;
+  chkMascot?.addEventListener('change', async () => {
+    await toggleMascotAction(extensionVMDeps, chkMascot.checked);
+    toast.info(chkMascot.checked ? 'Byte is awake.' : 'Byte is resting.');
+  });
+
   container
     .querySelector('#btn_save_challenge_text')
     ?.addEventListener('click', async () => {
@@ -433,7 +466,7 @@ export async function renderSettingsPage(container) {
         toast.error('Min. 50 characters required');
         return;
       }
-      await updateChallengeTextAction(text);
+      await updateChallengeTextAction(extensionVMDeps, text);
       toast.success('Updated');
     });
   container
@@ -442,13 +475,13 @@ export async function renderSettingsPage(container) {
       const defaultText =
         'Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions. This challenge is here to remind me that my time is valuable and I must use it wisely.';
       txtChallenge.value = defaultText;
-      await updateChallengeTextAction(defaultText);
+      await updateChallengeTextAction(extensionVMDeps, defaultText);
     });
   container.querySelectorAll('.preset-para-btn').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const text = (btn as HTMLElement).dataset.text || '';
       txtChallenge.value = text;
-      await updateChallengeTextAction(text);
+      await updateChallengeTextAction(extensionVMDeps, text);
     });
   });
 }

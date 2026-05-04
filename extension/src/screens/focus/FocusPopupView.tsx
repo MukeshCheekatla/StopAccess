@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getRemainingMs } from '../../lib/sessionTimer';
-import { UI_TOKENS } from '../../lib/ui';
+import { UI_TOKENS } from '../../ui/ui';
 import {
   extensionAdapter as storage,
   STORAGE_KEYS,

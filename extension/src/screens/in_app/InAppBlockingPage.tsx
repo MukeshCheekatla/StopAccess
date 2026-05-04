@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SELECTORS } from '../../background/inAppBlocking';
 import { resolveFaviconUrl } from '@stopaccess/core';
-import { UI_TOKENS } from '../../lib/ui';
+import { UI_TOKENS } from '../../ui/ui';
 
 const PLATFORMS = [
   { id: 'youtube', name: 'YouTube', domain: 'youtube.com' },

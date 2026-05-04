@@ -24,12 +24,12 @@ import { renderAppsPage } from '../screens/apps/AppsPage';
 import { renderDomainUsageScreen } from '../screens/dashboard/DomainUsageScreen';
 import { renderInAppBlockingPage } from '../screens/in_app/InAppBlockingPage';
 import { renderTypingMasteryScreen } from '../screens/dashboard/TypingMasteryScreen';
-import { applyTheme, setupThemeListener } from '../lib/theme';
+import { applyTheme, setupThemeListener } from '../ui/theme/theme';
 import { supabase } from '../lib/supabase';
 import {
   setThemeAction,
   loadSettingsData,
-} from '../../../packages/viewmodels/src/useSettingsVM';
+} from '@stopaccess/viewmodels/useSettingsVM';
 
 type TabId =
   | 'dash'
@@ -295,9 +295,10 @@ function DashboardApp() {
     let cancelled = false;
 
     const initialize = async () => {
+      const { extensionVMDeps } = await import('../lib/vmDeps');
       const isOnboardingDone =
         (await storage.getString(STORAGE_KEYS.ONBOARDING_DONE)) === 'true';
-      const settings = await loadSettingsData();
+      const settings = await loadSettingsData(extensionVMDeps);
 
       if (cancelled) {
         return;
@@ -314,13 +315,13 @@ function DashboardApp() {
         if (!lastSeen) {
           // Initial transition to this system, just mark version
           await storage.set('last_seen_version', currentVer);
-        } else if (currentVer !== lastSeen) {
-          const { CHANGELOG } = await import(
-            '../../../packages/core/src/changelog'
-          );
+        }
+
+        if (currentVer !== lastSeen) {
+          const { CHANGELOG } = await import('@stopaccess/core');
           const release = CHANGELOG.find((c) => c.version === currentVer);
           if (release) {
-            const { showWhatsNew } = await import('../lib/ui');
+            const { showWhatsNew } = await import('../ui/ui');
             // Delay slightly for smooth transition after load
             setTimeout(
               () => showWhatsNew(release.version, release.features),
@@ -532,13 +533,14 @@ function DashboardApp() {
       tabs={TABS}
       theme={currentTheme}
       onThemeChange={async (theme) => {
+        const { extensionVMDeps } = await import('../lib/vmDeps');
         setCurrentTheme(theme);
-        await setThemeAction(theme);
+        await setThemeAction(extensionVMDeps, theme);
         applyTheme(theme);
       }}
       user={user}
       onSignOut={async () => {
-        const { showConfirmDialog } = await import('../lib/ui');
+        const { showConfirmDialog } = await import('../ui/ui');
         const confirmed = await showConfirmDialog({
           title: 'Sign Out',
           body: 'Are you sure you want to sign out? Your settings will no longer be backed up to the cloud.',
@@ -552,9 +554,10 @@ function DashboardApp() {
         }
 
         const { signOutAction } = await import(
-          '../../../packages/viewmodels/src/useSettingsVM'
+          '@stopaccess/viewmodels/useSettingsVM'
         );
-        await signOutAction();
+        const { extensionVMDeps } = await import('../lib/vmDeps');
+        await signOutAction(extensionVMDeps);
 
         // Force update everything
         setUser(null);

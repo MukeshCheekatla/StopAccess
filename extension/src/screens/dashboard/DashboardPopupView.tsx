@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { UI_TOKENS } from '../../lib/ui';
+import { UI_TOKENS } from '../../ui/ui';
 import { extensionAdapter as storage } from '../../background/platformAdapter';
 import {
   fmtTime,
@@ -7,6 +7,8 @@ import {
   resolveFaviconUrl,
   resolveTargetInput,
 } from '@stopaccess/core';
+import { FocusBuddy } from './FocusBuddy';
+import { STORAGE_KEYS } from '@stopaccess/state';
 
 type UsageEntry = {
   time?: number;
@@ -33,22 +35,31 @@ export function DashboardPopupView() {
   const [rules, setRules] = useState<Rule[]>([]);
   const [remaining, setRemaining] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [xp, setXp] = useState(0);
+  const [wiltUntil, setWiltUntil] = useState(0);
 
   useEffect(() => {
     let mounted = true;
 
     const refreshUsage = async () => {
-      const { usage: nextUsage = {}, rules: rulesRaw = '[]' } =
-        await chrome.storage.local.get(['usage', 'rules']);
+      const res = await chrome.storage.local.get([
+        'usage',
+        'rules',
+        STORAGE_KEYS.TOTAL_FOCUS_XP,
+        STORAGE_KEYS.WILT_UNTIL,
+      ]);
 
       if (!mounted) {
         return;
       }
 
-      setUsage(nextUsage as Record<string, UsageEntry>);
+      setUsage((res.usage || {}) as Record<string, UsageEntry>);
+      const rulesRaw = res.rules || '[]';
       const parsedRules: Rule[] =
         typeof rulesRaw === 'string' ? JSON.parse(rulesRaw) : rulesRaw || [];
       setRules(parsedRules);
+      setXp(Number(res[STORAGE_KEYS.TOTAL_FOCUS_XP] || 0));
+      setWiltUntil(Number(res[STORAGE_KEYS.WILT_UNTIL] || 0));
       setLoading(false);
     };
 
@@ -61,7 +72,12 @@ export function DashboardPopupView() {
     };
 
     const listener = (changes: any) => {
-      if (changes.usage || changes.rules) {
+      if (
+        changes.usage ||
+        changes.rules ||
+        changes[STORAGE_KEYS.TOTAL_FOCUS_XP] ||
+        changes[STORAGE_KEYS.WILT_UNTIL]
+      ) {
         refreshUsage();
       }
       if (changes.focus_mode_end_time) {
@@ -143,9 +159,12 @@ export function DashboardPopupView() {
 
   return (
     <div className="fg-flex fg-flex-col fg-gap-4 fg-p-4">
-      <div className="fg-grid fg-grid-cols-2 fg-gap-3">
-        <StatTile label="Daily Activity" value={fmtTime(totalUsageMs)} />
-        <StatTile label="Focus Timer" value={timerLabel} mono />
+      <div className="fg-flex fg-items-center fg-gap-4">
+        <FocusBuddy xp={xp} wiltUntil={wiltUntil} />
+        <div className="fg-grid fg-flex-1 fg-grid-cols-2 fg-gap-3">
+          <StatTile label="Daily Activity" value={fmtTime(totalUsageMs)} />
+          <StatTile label="Focus Timer" value={timerLabel} mono />
+        </div>
       </div>
 
       <div className="fg-flex fg-items-center fg-justify-between fg-px-1">

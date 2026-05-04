@@ -6,7 +6,8 @@ import {
   nextDNSApi,
   STORAGE_KEYS,
 } from '../background/platformAdapter';
-import { COLORS, COLOR_CLASSES } from '../lib/designTokens';
+import { COLORS, COLOR_CLASSES } from '../ui/theme/designTokens';
+import { ByteCompanion, CompanionMood } from '../ui/components/companion';
 
 type Step = 'welcome' | 'connect' | 'done';
 
@@ -168,9 +169,27 @@ function Alert({ msg, tone }: { msg: string; tone: 'error' | 'success' }) {
 }
 
 // ── Page shell ───────────────────────────────────────────────────────────────
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({
+  children,
+  botMood,
+  botMessage,
+  botAction,
+}: {
+  children: React.ReactNode;
+  botMood?: CompanionMood;
+  botMessage?: string;
+  botAction?: string | null;
+}) {
   return (
     <div className="fg-min-h-screen fg-flex fg-flex-col fg-items-center fg-justify-center fg-px-5 fg-py-12 fg-relative">
+      <div className="fg-hidden xl:fg-block fg-absolute fg-right-[calc(50%+380px)] fg-top-1/2 fg--translate-y-[60%] fg-w-[260px] fg-z-20">
+        <ByteCompanion
+          mood={botMood}
+          message={botMessage}
+          action={botAction}
+          variant="sidebar"
+        />
+      </div>
       <div className="fg-w-full fg-max-w-[700px] fg-relative fg-z-10">
         {children}
       </div>
@@ -281,7 +300,10 @@ export const OnboardingReact: React.FC<{
   // ── WELCOME ─────────────────────────────────────────────────────────────────
   if (step === 'welcome') {
     return (
-      <Shell>
+      <Shell
+        botMood="excited"
+        botMessage={"Ready to\ncrush distractions?\nLet's go!"}
+      >
         <div className="fg-text-center">
           <div className="fg-mb-10">
             <img
@@ -352,7 +374,16 @@ export const OnboardingReact: React.FC<{
   // ── CONNECT ─────────────────────────────────────────────────────────────────
   if (step === 'connect') {
     return (
-      <Shell>
+      <Shell
+        botMood={error ? 'sad' : 'focused'}
+        botMessage={
+          error
+            ? "Oops, that didn't work."
+            : profileId.trim().length > 0
+            ? "Paste your API key here.\nI'll keep it safe."
+            : 'Create a NextDNS account\nto get started.'
+        }
+      >
         <div className="fg-max-w-[480px] fg-mx-auto">
           <div className="fg-mb-8">
             <div className="fg-text-[16px] fg-font-bold fg-text-[var(--fg-muted)] fg-mb-3">
@@ -464,7 +495,11 @@ export const OnboardingReact: React.FC<{
 
   // ── DONE ────────────────────────────────────────────────────────────────────
   return (
-    <Shell>
+    <Shell
+      botMood="victory"
+      botMessage={'Almost done!\nCopy the secure link\ninto your settings.'}
+      botAction="fire_flare"
+    >
       <div className="fg-relative fg-w-full fg-max-w-[1000px] fg-mx-auto">
         {/* HEADER - CENTERED */}
         <div className="fg-text-center fg-mb-6">

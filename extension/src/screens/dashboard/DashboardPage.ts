@@ -13,8 +13,8 @@ import {
   renderBrandLogo,
   attachGlobalIconListeners,
   setupDateSelectorWidget,
-} from '../../lib/ui';
-import { CHART_COLORS, COLORS } from '../../lib/designTokens';
+} from '../../ui/ui';
+import { CHART_COLORS, COLORS } from '../../ui/theme/designTokens';
 import { attachCalendarWidget } from './CalendarWidget';
 import { getTypingHistory } from '../../lib/typingHistory';
 import { getRemainingMs, formatTime } from '../../lib/sessionTimer';
@@ -26,6 +26,8 @@ const iconPause =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
 const iconStop =
   '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
+const iconSparkle =
+  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>';
 
 // This function opens the extension settings page
 function openSettingsPage() {
@@ -56,9 +58,10 @@ export async function renderDashboardPage(
     const renderId = (activeRenderId = Math.random().toString(36).slice(2));
 
     const { loadDashboardData } = await import(
-      '../../../../packages/viewmodels/src/useDashboardVM'
+      '@stopaccess/viewmodels/useDashboardVM'
     );
-    const data = await loadDashboardData(actualDate);
+    const { extensionVMDeps } = await import('../../lib/vmDeps');
+    const data = await loadDashboardData(extensionVMDeps, actualDate);
 
     // If a new render has started for a different date, ignore this stale result
     if (activeRenderId !== renderId) {
@@ -224,6 +227,37 @@ export async function renderDashboardPage(
                <div class="fg-panel fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center fg-rounded-[20px] fg-h-[280px] fg-transition-opacity fg-duration-400 fg-ease-out fg-opacity-100 fg-border fg-border-[var(--fg-glass-border)]" id="chartSlot">
                   <canvas id="liveUsageChart" style="width: 100% !important; height: 230px !important;"></canvas>
                </div>
+               
+               <!-- Life Reclaimed Card -->
+               <div id="lifeReclaimedWidget" class="fg-mt-5">
+                 <div class="fg-panel fg-rounded-[20px] fg-p-5 fg-flex fg-items-center fg-gap-4 fg-border fg-border-[var(--fg-glass-border)] fg-transition-all hover:fg-translate-y-[-2px]" style="background: linear-gradient(135deg, ${
+                   COLORS.glassBg
+                 }, ${COLORS.green}08);">
+                    <div class="fg-flex fg-items-center fg-justify-center fg-w-12 fg-h-12 fg-rounded-xl" style="background: ${
+                      COLORS.green
+                    }15; color: ${COLORS.green};">
+                      ${iconSparkle}
+                    </div>
+                    <div class="fg-flex-1">
+                      <div style="${
+                        UI_TOKENS.TEXT.WIDGET_LABEL
+                      }; margin-bottom: 2px;">Life Reclaimed ${
+        data.isToday ? 'Today' : ''
+      }</div>
+                      <div style="${
+                        UI_TOKENS.TEXT.STAT
+                      }; font-size: 22px; line-height: 1;">${formatMinutes(
+        data.focusSummary.totalMinutes || 0,
+      )}</div>
+                    </div>
+                    <div class="fg-text-right">
+                      <div style="font-size: 10px; font-weight: 800; color: ${
+                        COLORS.green
+                      }; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Focused</div>
+                    </div>
+                 </div>
+               </div>
+
                <div class="fg-mt-5 fg-text-xs fg-text-[${
                  COLORS.text
                }] fg-opacity-80 fg-leading-normal fg-font-semibold">
@@ -298,7 +332,7 @@ export async function renderDashboardPage(
               });
             } else {
               const { showConfirmDialog } = (await import(
-                '../../lib/ui'
+                '../../ui/ui'
               )) as any;
               const confirmed = await showConfirmDialog({
                 title: 'Start 25m Focus?',
@@ -321,7 +355,7 @@ export async function renderDashboardPage(
         // Timer Stop Logic
         const stopBtn = target.closest('#btn_stop_focus') as HTMLButtonElement;
         if (stopBtn) {
-          const { showConfirmDialog } = (await import('../../lib/ui')) as any;
+          const { showConfirmDialog } = (await import('../../ui/ui')) as any;
           const confirmed = await showConfirmDialog({
             title: 'Stop Focus?',
             body: 'Ending your session early will disable active distractions blocking.',

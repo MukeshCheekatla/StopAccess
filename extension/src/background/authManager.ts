@@ -102,9 +102,14 @@ export async function signOut(): Promise<void> {
  */
 export async function setSessionFromUrl(url: string): Promise<{ error: any }> {
   try {
-    const urlObj = new URL(url.replace('#', '?'));
-    const access_token = urlObj.searchParams.get('access_token');
-    const refresh_token = urlObj.searchParams.get('refresh_token');
+    const urlObj = new URL(url);
+    const hashParams = new URLSearchParams(urlObj.hash.replace(/^#\/?/, ''));
+
+    const access_token =
+      hashParams.get('access_token') || urlObj.searchParams.get('access_token');
+    const refresh_token =
+      hashParams.get('refresh_token') ||
+      urlObj.searchParams.get('refresh_token');
 
     if (!access_token || !refresh_token) {
       return { error: new Error('Missing tokens in URL') };

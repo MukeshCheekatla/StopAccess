@@ -10,7 +10,7 @@ import {
   getDomainForRule,
   formatMinutes,
 } from '@stopaccess/core';
-import { NextDNSConfig } from '@stopaccess/types';
+import { NextDNSConfig, SyncContext } from '@stopaccess/types';
 import { getRules, saveRules } from '@stopaccess/state/rules';
 import { extensionAdapter, extensionLogger } from './platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
@@ -538,9 +538,9 @@ export async function runCycle(forceSync = false) {
         apiKey: (cfg[STORAGE_KEYS.API_KEY] as string) || '',
       };
       const client = new NextDNSClient(nextdns_cfg, extensionLogger.add);
-      const ctx = {
+      const ctx: SyncContext = {
         storage: extensionAdapter,
-        api: client,
+        api: client as any,
         logger: extensionLogger,
         notifications: {
           notifyBlocked: (name: string, limit: number, used: number) => {

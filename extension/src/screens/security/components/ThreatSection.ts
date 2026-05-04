@@ -1,4 +1,4 @@
-import { COLORS } from '../../../lib/designTokens';
+import { COLORS } from '../../../ui/theme/designTokens';
 /**
  * ThreatSection
  * Renders: Threat Intelligence, AI Detection, Google Safe Browsing, Cryptojacking
@@ -12,7 +12,7 @@ import {
   renderSectionTitleRow,
   renderInfoTooltip,
   UI_TOKENS,
-} from '../../../lib/ui';
+} from '../../../ui/ui';
 
 interface ThreatToggle {
   key: keyof Omit<NextDNSSecuritySettings, 'tlds'>;

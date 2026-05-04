@@ -5,8 +5,8 @@ import {
   UI_TOKENS,
   renderBrandLogo,
   attachGlobalIconListeners,
-} from '../../lib/ui';
-import { COLORS } from '../../lib/designTokens';
+} from '../../ui/ui';
+import { COLORS } from '../../ui/theme/designTokens';
 import {
   getEffectiveElapsed,
   getRemainingMs,

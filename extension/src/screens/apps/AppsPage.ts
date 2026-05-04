@@ -1,4 +1,4 @@
-import { loadAppsData } from '../../../../packages/viewmodels/src/useAppsVM';
+import { loadAppsData } from '@stopaccess/viewmodels/useAppsVM';
 import {
   UI_EXAMPLES,
   NEXTDNS_CATEGORIES,
@@ -6,7 +6,7 @@ import {
 } from '@stopaccess/core';
 import { setAppsDnsHardMode } from '@stopaccess/state';
 import { getCategoryBadge, escapeHtml } from '@stopaccess/core';
-import { toast } from '../../lib/toast';
+import { toast } from '../../ui/toast';
 import { appsController } from '../../lib/appsController';
 import { getLockedDomains } from '../../background/sessionGuard';
 import { extensionAdapter } from '../../background/platformAdapter';
@@ -23,12 +23,12 @@ import {
   showConfirmDialog,
   showUnblockDurationDialog,
   attachGlobalIconListeners,
-} from '../../lib/ui';
+} from '../../ui/ui';
 import {
   CATEGORY_COLORS,
   COLORS,
   DEFAULT_CATEGORY_COLOR,
-} from '../../lib/designTokens';
+} from '../../ui/theme/designTokens';
 
 let activeTab = 'shield';
 let availableCategories: any[] = [];
@@ -52,7 +52,8 @@ export async function renderAppsPage(container: HTMLElement) {
   // Prefetch icon cache for flicker-free rendering
   await prefetchIconCache();
 
-  const vmData = await loadAppsData();
+  const { extensionVMDeps } = await import('../../lib/vmDeps');
+  const vmData = await loadAppsData(extensionVMDeps);
   const { isConfigured, rules } = vmData;
   currentIsConfigured = isConfigured;
   currentIsAppsDnsHardMode =
@@ -499,7 +500,8 @@ export async function renderAppsPage(container: HTMLElement) {
 }
 
 async function loadNextDNSMetadata() {
-  const vmData: any = await loadAppsData();
+  const { extensionVMDeps } = await import('../../lib/vmDeps');
+  const vmData: any = await loadAppsData(extensionVMDeps);
   const { isConfigured } = vmData;
   if (!isConfigured) {
     return;
@@ -512,7 +514,7 @@ async function loadNextDNSMetadata() {
 
     // Sync local rules with cloud state for categories
     if (availableCategories.length > 0) {
-      const { rules } = await loadAppsData();
+      const { rules } = await loadAppsData(extensionVMDeps);
       for (const cat of availableCategories) {
         const localRule = rules.find(
           (r) => r.packageName === cat.id && r.type === 'category',
@@ -543,7 +545,8 @@ async function refreshListOnly(passedRules?: any[]) {
     return;
   }
 
-  const vmData = await loadAppsData();
+  const { extensionVMDeps } = await import('../../lib/vmDeps');
+  const vmData = await loadAppsData(extensionVMDeps);
   const { rules, passes } = vmData;
   const rulesToUse = passedRules || rules;
   const lockedDomains = await getLockedDomains();
@@ -1283,7 +1286,7 @@ function setupGlobalClickHandlers(container: HTMLElement) {
           return;
         }
 
-        const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
+        const { confirmGuardianAction } = (await import('../../ui/ui')) as any;
         const confirmed = await confirmGuardianAction({
           title: 'Verify Security',
           body: `Please verify to unblock ${name || id}.`,
@@ -1490,7 +1493,7 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
           }
         };
 
-        const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
+        const { confirmGuardianAction } = (await import('../../ui/ui')) as any;
         const confirmed = await confirmGuardianAction({
           title: 'Delete Rule?',
           body: 'Verify your security to remove this block permanently.',
@@ -1627,7 +1630,7 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
 
         if (isIncreasingLimit) {
           const { confirmGuardianAction } = (await import(
-            '../../lib/ui'
+            '../../ui/ui'
           )) as any;
           const confirmed = await confirmGuardianAction({
             title: 'Increase Allowance?',
@@ -1669,7 +1672,7 @@ async function setupHandlers(container: HTMLElement, rules: any[]) {
 
         if (isIncreasingPasses) {
           const { confirmGuardianAction } = (await import(
-            '../../lib/ui'
+            '../../ui/ui'
           )) as any;
           const confirmed = await confirmGuardianAction({
             title: 'Increase Passes?',

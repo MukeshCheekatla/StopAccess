@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { UI_TOKENS, getBrandLogoUrl, resolveIconDomain } from '../../lib/ui';
+import { UI_TOKENS, getBrandLogoUrl, resolveIconDomain } from '../../ui/ui';
 import { appsController } from '../../lib/appsController';
-import { toast } from '../../lib/toast';
+import { toast } from '../../ui/toast';
 import {
   findServiceIdByDomain,
   getDomainForRule,
@@ -268,7 +268,7 @@ export const AppsPopupView: React.FC = () => {
       return;
     }
 
-    const { confirmGuardianAction } = (await import('../../lib/ui')) as any;
+    const { confirmGuardianAction } = (await import('../../ui/ui')) as any;
     const confirmed = await confirmGuardianAction({
       title: 'Turn off for 40 mins?',
       body: `Verify your security to pause ${

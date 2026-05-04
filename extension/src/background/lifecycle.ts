@@ -30,8 +30,35 @@ import {
   signInWithOtp,
   setSessionFromUrl,
 } from './authManager';
+import {
+  pullState,
+  pullUsageFromCloud,
+  pushNextDNSConfig,
+  pushNextDNSConfigDebounced,
+  pushStateDebounced,
+  pushUsageToCloud,
+  subscribeToSync,
+} from './syncManager';
 
 console.log('[StopAccess] TRACKER INITIALIZING');
+
+function parseMaybeJson(value: any) {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
+async function restoreCloudBackup(force = false) {
+  await pullState(force);
+  await pullUsageFromCloud(force);
+  await pushNextDNSConfig(force);
+  subscribeToSync();
+}
 
 // ── Tab Events ─────────────────────────────────────────────────────────────
 
@@ -44,6 +71,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     (async () => {
       const { error } = await setSessionFromUrl(changeInfo.url);
       if (!error) {
+        await restoreCloudBackup(true);
         chrome.tabs.remove(tabId).catch(() => {});
         await runCycle(true);
       }
@@ -118,7 +146,12 @@ chrome.idle.onStateChanged.addListener((state) => {
 
 initActiveTab().catch((err) => recordRuntimeError('boot_init_tab', err));
 setTimeout(
-  () => runCycle().catch((err) => recordRuntimeError('boot_run_cycle', err)),
+  () =>
+    restoreCloudBackup()
+      .catch((err) => recordRuntimeError('boot_cloud_restore', err))
+      .finally(() =>
+        runCycle().catch((err) => recordRuntimeError('boot_run_cycle', err)),
+      ),
   100,
 );
 
@@ -166,6 +199,9 @@ chrome.runtime.onStartup.addListener(async () => {
     when: Date.now() + 500,
   });
   runCycle().catch((err) => recordRuntimeError('startup_run_cycle', err));
+  restoreCloudBackup().catch((err) =>
+    recordRuntimeError('startup_restore', err),
+  );
 
   const session = await getActiveSession();
   if (session && session.status === 'focusing') {
@@ -201,6 +237,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === 'NEXTDNS_ID_FOUND') {
     (async () => {
       await chrome.storage.local.set({ [STORAGE_KEYS.PROFILE_ID]: msg.id });
+      pushNextDNSConfigDebounced(true);
       if (_sender.tab?.id) {
         setTimeout(
           () => chrome.tabs.remove(_sender.tab.id).catch(() => {}),
@@ -219,7 +256,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 
   if (msg.action === 'manualSync') {
-    runCycle(true)
+    restoreCloudBackup(true)
+      .then(() => runCycle(true))
       .then(() => sendResponse({ ok: true }))
       .catch(() => sendResponse({ ok: false }));
     return true;
@@ -375,7 +413,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
   if (msg.action === 'setSessionFromUrl') {
     setSessionFromUrl(msg.url)
-      .then((res) => sendResponse({ ok: !res.error, error: res.error }))
+      .then(async (res) => {
+        if (!res.error) {
+          await restoreCloudBackup(true);
+          await runCycle(true);
+        }
+        sendResponse({ ok: !res.error, error: res.error });
+      })
       .catch((err) => sendResponse({ ok: false, error: err }));
     return true;
   }
@@ -388,4 +432,45 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 
   return false;
+});
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== 'local') {
+    return;
+  }
+
+  if (changes[STORAGE_KEYS.RULES] && !changes._sync_in_progress_rules) {
+    pushStateDebounced(
+      'rules',
+      parseMaybeJson(changes[STORAGE_KEYS.RULES].newValue),
+    );
+  }
+
+  if (changes[STORAGE_KEYS.SCHEDULES] && !changes._sync_in_progress_schedules) {
+    pushStateDebounced(
+      'schedules',
+      parseMaybeJson(changes[STORAGE_KEYS.SCHEDULES].newValue),
+    );
+  }
+
+  if (changes[STORAGE_KEYS.SESSION] && !changes._sync_in_progress_focus) {
+    pushStateDebounced(
+      'focus',
+      parseMaybeJson(changes[STORAGE_KEYS.SESSION].newValue),
+    );
+  }
+
+  if (changes[STORAGE_KEYS.USAGE]) {
+    pushUsageToCloud(
+      new Date().toLocaleDateString('en-CA'),
+      changes[STORAGE_KEYS.USAGE].newValue || {},
+    );
+  }
+
+  if (
+    (changes[STORAGE_KEYS.PROFILE_ID] || changes[STORAGE_KEYS.API_KEY]) &&
+    !changes._sync_in_progress_nextdns
+  ) {
+    pushNextDNSConfigDebounced();
+  }
 });

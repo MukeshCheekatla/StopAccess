@@ -1,6 +1,6 @@
 import React, { type ReactNode } from 'react';
-import { COLOR_CLASSES } from '../../lib/designTokens';
-import { UI_TOKENS } from '../../lib/ui';
+import { COLOR_CLASSES } from '../../ui/theme/designTokens';
+import { UI_TOKENS } from '../../ui/ui';
 
 /**
  * Design System Components for StopAccess.

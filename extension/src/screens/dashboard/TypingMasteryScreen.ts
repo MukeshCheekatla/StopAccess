@@ -1,6 +1,6 @@
 import Chart from 'chart.js/auto';
-import { UI_TOKENS } from '../../lib/ui';
-import { COLORS } from '../../lib/designTokens';
+import { UI_TOKENS } from '../../ui/ui';
+import { COLORS } from '../../ui/theme/designTokens';
 import { getTypingHistory, getTypingStats } from '../../lib/typingHistory';
 
 export async function renderTypingMasteryScreen(container: HTMLElement) {
