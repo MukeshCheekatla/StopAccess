@@ -183,7 +183,7 @@ export async function renderAppsPage(container: HTMLElement) {
                   'Set a target URL to automatically redirect users when they attempt to visit a blocked site.',
                 )}
               </div>
-              <input type="text" id="redirectInput" placeholder="e.g. notion.so" value="${escapeHtml(
+              <input type="text" id="redirectInput" placeholder="e.g. instagram.com" value="${escapeHtml(
                 initialIsEditing
                   ? currentRedirectUrl
                   : currentRedirectUrl
@@ -1277,6 +1277,12 @@ function setupGlobalClickHandlers(container: HTMLElement) {
       };
 
       if (!targetState) {
+        // Categories toggle off immediately without duration prompts
+        if (kind === 'category') {
+          await performAction();
+          return;
+        }
+
         toggleBtn.classList.toggle('active', wasActive);
         toggleBtn.setAttribute('aria-checked', String(wasActive));
         toggleBtn.style.opacity = '1';

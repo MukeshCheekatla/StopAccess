@@ -160,11 +160,11 @@ export function DashboardPopupView() {
   return (
     <div className="fg-flex fg-flex-col fg-gap-4 fg-p-4">
       <div className="fg-flex fg-items-center fg-gap-4">
-        <FocusBuddy xp={xp} wiltUntil={wiltUntil} />
         <div className="fg-grid fg-flex-1 fg-grid-cols-2 fg-gap-3">
           <StatTile label="Daily Activity" value={fmtTime(totalUsageMs)} />
           <StatTile label="Focus Timer" value={timerLabel} mono />
         </div>
+        <FocusBuddy xp={xp} wiltUntil={wiltUntil} />
       </div>
 
       <div className="fg-flex fg-items-center fg-justify-between fg-px-1">

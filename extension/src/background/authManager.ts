@@ -15,6 +15,13 @@ export interface CloudUser {
 
 const KEY_CLOUD_USER = 'fg_cloud_user';
 
+async function notifyAuthChange() {
+  const user = await getCloudUser();
+  chrome.runtime
+    .sendMessage({ type: 'AUTH_STATE_CHANGED', user })
+    .catch(() => {});
+}
+
 /**
  * Sign in using Email Magic Link (OTP).
  */
@@ -94,6 +101,7 @@ export async function signOut(): Promise<void> {
 
   await clearAuthCache();
   await chrome.storage.local.remove([KEY_CLOUD_USER]);
+  await notifyAuthChange();
   extensionLogger.add('info', 'Signed out from cloud');
 }
 
@@ -122,6 +130,7 @@ export async function setSessionFromUrl(url: string): Promise<{ error: any }> {
 
     if (!error) {
       extensionLogger.add('info', 'Cloud session established successfully');
+      await notifyAuthChange();
     }
 
     return { error };

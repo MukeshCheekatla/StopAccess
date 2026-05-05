@@ -16,6 +16,10 @@ export function sanitizeRule(rule: any): AppRule {
     'addedAt',
     'updatedAt',
     'addedByUser',
+    'streakDays',
+    'streakStartedAt',
+    'streakUpdatedOn',
+    'isLimitHit',
   ];
 
   return allowedKeys.reduce((acc: any, key) => {

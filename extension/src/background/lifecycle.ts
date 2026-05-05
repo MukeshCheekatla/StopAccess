@@ -39,8 +39,11 @@ import {
   pushUsageToCloud,
   subscribeToSync,
 } from './syncManager';
+import { initCompanionDataAggregator } from './companionData';
 
 console.log('[StopAccess] TRACKER INITIALIZING');
+
+initCompanionDataAggregator();
 
 function parseMaybeJson(value: any) {
   if (typeof value !== 'string') {
@@ -57,6 +60,21 @@ async function restoreCloudBackup(force = false) {
   await pullState(force);
   await pullUsageFromCloud(force);
   await pushNextDNSConfig(force);
+
+  // If we are forcing a restore (e.g. on login), also push our local state
+  // to ensure Supabase is initialized with what we have on this device.
+  if (force) {
+    const rules = await getRules(extensionAdapter);
+    const schedulesRes = await chrome.storage.local.get([
+      STORAGE_KEYS.SCHEDULES,
+    ]);
+    const schedules =
+      parseMaybeJson(schedulesRes[STORAGE_KEYS.SCHEDULES]) || [];
+
+    await pushStateDebounced('rules', rules, true);
+    await pushStateDebounced('schedules', schedules, true);
+  }
+
   subscribeToSync();
 }
 
@@ -64,15 +82,16 @@ async function restoreCloudBackup(force = false) {
 
 chrome.tabs.onActivated.addListener(({ tabId }) => switchTab(tabId));
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (
-    changeInfo.url &&
-    changeInfo.url.includes('stopaccess.pages.dev/auth/callback')
-  ) {
+  const url = changeInfo.url || tab.url || '';
+  if (url.includes('stopaccess.pages.dev/auth/callback')) {
     (async () => {
-      const { error } = await setSessionFromUrl(changeInfo.url);
+      const { error } = await setSessionFromUrl(url);
       if (!error) {
-        await restoreCloudBackup(true);
+        // Close the tab IMMEDIATELY to prevent browser redirect errors
         chrome.tabs.remove(tabId).catch(() => {});
+
+        // Run background tasks AFTER the tab is gone
+        await restoreCloudBackup(true);
         await runCycle(true);
       }
     })();

@@ -200,10 +200,8 @@ export const appsController = {
             });
 
       // 1. Cloud Layer (NextDNS)
-      // STRICT: NextDNS native features (Categories/Services) always sync to cloud if configured.
-      // Individual domains only sync if Hard Mode is enabled globally.
       const policy = await getBlockingPolicy(storage);
-      const isNativeNextDNS = kind === 'category' || kind === 'service';
+      const isNativeNextDNS = kind === 'category'; // Only categories are "always sync" native features
       const shouldCloudSync = isNativeNextDNS || policy.enforcesCloudBlocking;
 
       if (shouldCloudSync) {
@@ -287,9 +285,8 @@ export const appsController = {
       const actualState = isRuleBlockingEnabled(rule, state.passes);
 
       // Apply immediate state to NextDNS
-      // Native NextDNS features (Categories/Services) always sync.
       const policy = await getBlockingPolicy(storage);
-      const isNativeNextDNS = kind === 'category' || kind === 'service';
+      const isNativeNextDNS = kind === 'category';
       if (isNativeNextDNS || policy.enforcesCloudBlocking) {
         await this._runCloudSync(() =>
           nextDNSApi.setTargetState(kind, id, enabled && actualState),
@@ -314,10 +311,9 @@ export const appsController = {
     try {
       const resolved = await nextDNSApi.resolveTargetInput(domain);
 
-      // 1. Cloud Layer (NextDNS) - Native features always sync; domains respect Hard Mode
+      // 1. Cloud Layer (NextDNS)
       const policy = await getBlockingPolicy(storage);
-      const isNativeNextDNS =
-        resolved.kind === 'category' || resolved.kind === 'service';
+      const isNativeNextDNS = resolved.kind === 'category';
       if (isNativeNextDNS || policy.enforcesCloudBlocking) {
         await this._runCloudSync(() => nextDNSApi.addResolvedTarget(resolved));
       }
@@ -363,11 +359,10 @@ export const appsController = {
 
     const rule = rules.find((r) => r.packageName === id);
     try {
-      // 1. Cloud Layer (NextDNS) - Always for native features, or if Hard Mode is enabled
+      // 1. Cloud Layer (NextDNS)
       if (rule) {
         const policy = await getBlockingPolicy(storage);
-        const isNativeNextDNS =
-          rule.type === 'category' || rule.type === 'service';
+        const isNativeNextDNS = rule.type === 'category';
         if (isNativeNextDNS || policy.enforcesCloudBlocking) {
           await this._runCloudSync(() =>
             nextDNSApi.setTargetState(rule.type || 'domain', id, false),
@@ -404,15 +399,14 @@ export const appsController = {
         const kind = rule.type || 'domain';
         const id = rule.packageName;
 
-        // Categories and Services are global settings and should not be toggled by Hard Mode reconciliation
-        if (kind === 'category' || kind === 'service') {
-          return;
-        }
+        // Reconcile ALL rule types (including categories and services)
+        // so that turning off Hard Mode correctly releases cloud-level blocks.
 
         const result = await nextDNSApi.setTargetState(
           kind,
           id,
-          enabled && isRuleBlockingEnabled(rule, currentPasses),
+          (kind === 'category' || enabled) &&
+            isRuleBlockingEnabled(rule, currentPasses),
         );
         if (result && result.ok === false) {
           const error = (result as any).error;

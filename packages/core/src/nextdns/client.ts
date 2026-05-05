@@ -42,7 +42,7 @@ export class NextDNSClient {
     msg: string,
     details?: string,
   ) {
-    if (this.log) {
+    if (typeof this.log === 'function') {
       this.log(level, msg, details);
     }
   }
