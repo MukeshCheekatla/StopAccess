@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { getRemainingMs } from '../../lib/sessionTimer';
 import { UI_TOKENS } from '../../ui/ui';
+import { COLORS } from '../../ui/theme/designTokens';
 import {
   extensionAdapter as storage,
   STORAGE_KEYS,
@@ -214,9 +215,13 @@ export function FocusPopupView() {
           <div className="fg-fixed fg-inset-0 fg-z-[10000] fg-flex fg-items-center fg-justify-center fg-p-6">
             <div
               onClick={() => setAbortModal(false)}
-              className="fg-absolute fg-inset-0 fg-bg-[rgba(0,0,0,0.6)] fg-backdrop-blur-md"
+              className="fg-absolute fg-inset-0 fg-backdrop-blur-md"
+              style={{ background: COLORS.overlay }}
             />
-            <div className="fg-relative fg-w-full fg-max-w-[280px] fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-surface)] fg-p-8 fg-text-center fg-shadow-[0_40px_80px_rgba(0,0,0,0.7)] focus-modal-anim">
+            <div
+              className="fg-relative fg-w-full fg-max-w-[280px] fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-surface)] fg-p-8 fg-text-center focus-modal-anim"
+              style={{ boxShadow: `0 40px 80px ${COLORS.overlayStrong}` }}
+            >
               <div style={UI_TOKENS.TEXT.R.MODAL_TITLE} className="fg-mb-3">
                 Abort Session?
               </div>

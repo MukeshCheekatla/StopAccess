@@ -1,5 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { UI_TOKENS, getBrandLogoUrl, resolveIconDomain } from '../../ui/ui';
+import {
+  UI_TOKENS,
+  UI_ICONS,
+  getBrandLogoUrl,
+  resolveIconDomain,
+} from '../../ui/ui';
 import { appsController } from '../../lib/appsController';
 import { toast } from '../../ui/toast';
 import {
@@ -352,17 +357,11 @@ export const AppsPopupView: React.FC = () => {
             <div className="fg-min-w-0">
               {currentSitePass ? (
                 <div className="fg-flex fg-items-center fg-gap-1.5 fg-text-[14px] fg-font-bold fg-text-[var(--fg-accent)]">
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="3"
-                  >
-                    <circle cx="12" cy="12" r="9" />
-                    <path d="M12 7v5l3 3" />
-                  </svg>
+                  <div
+                    dangerouslySetInnerHTML={{ __html: UI_ICONS.CLOCK }}
+                    className="fg-flex fg-items-center"
+                    style={{ width: '14px', height: '14px' }}
+                  />
                   {getPassCountdown(currentSitePass)}
                 </div>
               ) : null}
