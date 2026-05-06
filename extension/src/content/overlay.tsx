@@ -6,9 +6,13 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { resolveFaviconUrl } from '@stopaccess/core';
-import { EXTENSION_COLOR_VAR_DECLARATIONS } from '../ui/theme/designTokens';
+import {
+  EXTENSION_COLOR_VAR_DECLARATIONS,
+  COLORS,
+} from '../ui/theme/designTokens';
 import { ByteCompanion } from '../ui/components/companion';
 import { grantTempPass, DEFAULT_MAX_DAILY_PASSES } from './passManager';
+import { UI_ICONS } from '../ui/ui';
 
 export const OVERLAY_ID = '__fg_block_overlay__';
 export const PREBLOCK_ID = '__fg_block_prewarn__';
@@ -86,8 +90,10 @@ function buildOverlayMarkup(domain: string, options: any = {}) {
     ? 'Daily access limit exceeded'
     : 'Access denied by StopAccess';
   const remaining = isLimitMode ? Math.max(0, limitMinutes - usedMinutes) : 0;
-  const clockSvg =
-    '<svg class="fg-w-4 fg-h-4 fg-opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
+  const clockIcon = UI_ICONS.CLOCK.replace(
+    'width="14" height="14"',
+    'class="fg-w-4 fg-h-4 fg-opacity-50"',
+  );
   const timeStr = formatTime(usedMs || usedMinutes * 60000);
   const isLongTime = timeStr.includes('h');
   const timeFontSize = isLongTime
@@ -120,7 +126,9 @@ function buildOverlayMarkup(domain: string, options: any = {}) {
           </div>
         </div>
         <div class="fg-flex fg-items-center fg-justify-center fg-gap-3 fg-mb-2">
-          <img src="${iconUrl}" style="width: 28px; height: 28px; border-radius: 6px; background: #222; border: 1px solid #333;" alt="" />
+          <img src="${iconUrl}" style="width: 28px; height: 28px; border-radius: 6px; background: ${
+    COLORS.zinc900
+  }; border: 1px solid ${COLORS.zinc800};" alt="" />
           <div class="fg-break-words fg-text-[22px] sm:fg-text-2xl fg-font-bold fg-text-[var(--fg-on-accent)] fg-opacity-90">${safeDomain}</div>
         </div>
         <div class="fg-text-[13px] sm:fg-text-sm fg-text-[var(--fg-muted)] fg-mb-6 sm:fg-mb-8 fg-text-center fg-leading-relaxed">${statusText}</div>
@@ -147,7 +155,7 @@ function buildOverlayMarkup(domain: string, options: any = {}) {
             </div>
             <div class="fg-grid fg-grid-cols-2 fg-gap-3">
               <button class="fg-extend-btn fg-col-span-2 fg-flex fg-items-center fg-justify-center fg-gap-2 fg-p-3.5 fg-bg-zinc-800/50 fg-border fg-border-zinc-700/50 fg-rounded-xl fg-text-sm fg-font-bold fg-text-zinc-300 fg-transition-all hover:fg-bg-zinc-700/50 active:fg-scale-[0.98] disabled:fg-opacity-30 disabled:fg-cursor-not-allowed" data-minutes="${PASS_DURATION_MINUTES}">
-                ${clockSvg} Use ${PASS_DURATION_MINUTES}m pass
+                ${clockIcon} Use ${PASS_DURATION_MINUTES}m pass
               </button>
             </div>
           </div>`
@@ -394,7 +402,7 @@ export function injectPrewarn(domain: string, options: any) {
     position: fixed !important; top: 0 !important; left: 0 !important;
     width: 100vw !important; height: 100vh !important;
     z-index: 2147483646 !important;
-    background: rgba(0, 0, 0, 0.4) !important;
+    background: ${COLORS.overlaySubtle} !important;
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
     display: flex !important; align-items: center !important;
@@ -404,8 +412,8 @@ export function injectPrewarn(domain: string, options: any) {
 
   prewarnEl.innerHTML = `
     <div style="text-align: center; color: white; font-family: sans-serif;">
-      <div style="width: 60px; height: 60px; border: 3px solid #ef4444; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; opacity: 0.8;">
-         <div style="width: 24px; height: 24px; background: #ef4444; border-radius: 50%;"></div>
+      <div style="width: 60px; height: 60px; border: 3px solid ${COLORS.red}; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; opacity: 0.8;">
+         <div style="width: 24px; height: 24px; background: ${COLORS.red}; border-radius: 50%;"></div>
       </div>
       <div style="font-size: 20px; font-weight: bold; opacity: 0.9;">StopAccess</div>
       <div style="font-size: 13px; opacity: 0.6; margin-top: 8px;">Securing your focus...</div>
