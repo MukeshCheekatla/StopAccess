@@ -1,11 +1,11 @@
-const iconLock =
-  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
-const iconShield =
-  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
-
 import { toast } from '../../ui/toast';
 import { checkGuard } from '../../background/sessionGuard';
-import { UI_TOKENS, renderInfoTooltip, renderBrandLogo } from '../../ui/ui';
+import {
+  UI_TOKENS,
+  UI_ICONS,
+  renderInfoTooltip,
+  renderBrandLogo,
+} from '../../ui/ui';
 import { COLORS } from '../../ui/theme/designTokens';
 import { escapeHtml } from '@stopaccess/core';
 
@@ -84,7 +84,7 @@ export async function renderSettingsPage(container) {
               </div>
             </div>
             <div class="fg-opacity-0 group-hover:fg-opacity-100 fg-transition-all fg-text-[var(--fg-muted)]">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"/></svg>
+              ${UI_ICONS.CHEVRON_RIGHT}
             </div>
           </button>
 
@@ -106,7 +106,7 @@ export async function renderSettingsPage(container) {
               </div>
             </div>
             <div class="fg-opacity-0 group-hover:fg-opacity-100 fg-transition-all fg-text-[var(--fg-muted)]">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="9 18 15 12 9 6"/></svg>
+              ${UI_ICONS.CHEVRON_RIGHT}
             </div>
           </button>
         </div>
@@ -119,7 +119,7 @@ export async function renderSettingsPage(container) {
             <div class="fg-flex fg-items-center fg-justify-between">
               <div class="fg-flex fg-gap-3">
                 <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-amber-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-amber-text)]">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                  ${UI_ICONS.MESSAGE_SQUARE}
                 </div>
                 <div>
                   <div class="fg-flex fg-items-center fg-gap-2">
@@ -172,7 +172,7 @@ export async function renderSettingsPage(container) {
             <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-items-center fg-justify-between">
               <div class="fg-flex fg-gap-3">
                 <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-amber-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-amber-text)]">
-                  ${iconLock}
+                  ${UI_ICONS.LOCK}
                 </div>
                 <div>
                   <h2 style="${
@@ -196,15 +196,16 @@ export async function renderSettingsPage(container) {
             <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-items-center fg-justify-between">
               <div class="fg-flex fg-gap-3">
                 <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-blue-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-blue)]">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/></svg>
+                  ${UI_ICONS.BYTE}
                 </div>
                 <div>
                   <h2 style="${
                     UI_TOKENS.TEXT.HEADING
                   }">Byte: Focus Companion</h2>
-                  <p style="${
-                    UI_TOKENS.TEXT.SUBTEXT
-                  }; margin-top: 2px;">Your living 2D companion. Walks, sits, reacts.</p>
+                  <div class="fg-flex fg-items-center fg-gap-2 fg-mt-0.5">
+                    <p style="${UI_TOKENS.TEXT.SUBTEXT}">Show or hide Byte.</p>
+                    <button id="gate_byte_inline" class="fg-text-[10px] fg-font-bold fg-text-[var(--fg-accent)] hover:fg-opacity-80 fg-transition-all">Open Settings &rarr;</button>
+                  </div>
                 </div>
               </div>
               <label class="switch-toggle">
@@ -219,7 +220,7 @@ export async function renderSettingsPage(container) {
               <div class="fg-flex fg-items-center fg-justify-between">
                 <div class="fg-flex fg-gap-3">
                   <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-emerald-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-green)]">
-                    ${iconShield}
+                    ${UI_ICONS.SHIELD}
                   </div>
                   <div>
                     <h2 style="${
@@ -274,6 +275,13 @@ export async function renderSettingsPage(container) {
       new CustomEvent('sa_navigate', { detail: { tab: 'nextdns_account' } }),
     );
   });
+  container
+    .querySelector('#gate_byte_inline')
+    ?.addEventListener('click', () => {
+      window.dispatchEvent(
+        new CustomEvent('sa_navigate', { detail: { tab: 'byte_settings' } }),
+      );
+    });
 
   // Strict Mode Listener
   container

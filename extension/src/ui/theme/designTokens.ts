@@ -40,11 +40,47 @@ export const COLORS = {
   shadowStrong: 'var(--fg-shadow-strong)',
   white: 'var(--fg-white)',
   black: 'var(--fg-black)',
+  whiteWash: 'var(--fg-white-wash)',
+  whiteWashStrong: 'var(--fg-white-wash-strong)',
+  blackWash: 'var(--fg-black-wash)',
+  blackWashStrong: 'var(--fg-black-wash-strong)',
+
+  // Base Scales
+  zinc950: 'var(--fg-zinc-950)',
+  zinc900: 'var(--fg-zinc-900)',
+  zinc800: 'var(--fg-zinc-800)',
+  zinc700: 'var(--fg-zinc-700)',
+  zinc600: 'var(--fg-zinc-600)',
+  zinc500: 'var(--fg-zinc-500)',
+  zinc400: 'var(--fg-zinc-400)',
+  slate500: 'var(--fg-slate-500)',
+  slate400: 'var(--fg-slate-400)',
+
   botFill: 'var(--fg-bot-fill)',
   botStroke: 'var(--fg-bot-stroke)',
   botSignBg: 'var(--fg-bot-sign-bg)',
   botSignBorder: 'var(--fg-bot-sign-border)',
   botSignText: 'var(--fg-bot-sign-text)',
+
+  // Buddy (Focus Plant)
+  buddyMain: 'var(--fg-buddy-main)',
+  buddyLeaf: 'var(--fg-buddy-leaf)',
+  buddyFlower: 'var(--fg-buddy-flower)',
+  buddyDirt: 'var(--fg-buddy-dirt)',
+  buddyStem: 'var(--fg-buddy-stem)',
+
+  // Security Feature Colors
+  securityRebinding: 'var(--fg-security-rebinding)',
+  securityPhishing: 'var(--fg-security-phishing)',
+  securityTyposquatting: 'var(--fg-security-typosquatting)',
+  securityDGA: 'var(--fg-security-dga)',
+  securityNRD: 'var(--fg-security-nrd)',
+  securityDDNS: 'var(--fg-security-ddns)',
+  securityParking: 'var(--fg-security-parking)',
+  securityCSAM: 'var(--fg-security-csam)',
+  securityAI: 'var(--fg-security-ai)',
+  securitySafeBrowsing: 'var(--fg-security-safebrowsing)',
+  securityCrypto: 'var(--fg-security-crypto)',
 } as const;
 
 export const COLOR_CLASSES = {
@@ -140,9 +176,41 @@ export const EXTENSION_COLOR_VAR_DECLARATIONS = `
   --fg-chart-purple: #bdb2ff;
   --fg-chart-pink: #ffc6ff;
   --fg-shadow-soft: rgba(0, 0, 0, 0.12);
+  --fg-white-wash: rgba(255, 255, 255, 0.05);
+  --fg-white-wash-strong: rgba(255, 255, 255, 0.25);
+  --fg-black-wash: rgba(0, 0, 0, 0.05);
+  --fg-black-wash-strong: rgba(0, 0, 0, 0.25);
+  --fg-overlay: rgba(0, 0, 0, 0.6);
+  --fg-overlay-strong: rgba(0, 0, 0, 0.8);
+  --fg-overlay-subtle: rgba(0, 0, 0, 0.4);
+  
+  /* Base Scales */
+  --fg-zinc-950: #09090b;
+  --fg-zinc-900: #18181b;
+  --fg-zinc-800: #27272a;
+  --fg-zinc-700: #3f3f46;
+  --fg-zinc-600: #52525b;
+  --fg-zinc-500: #71717a;
+  --fg-zinc-400: #a1a1aa;
+  --fg-slate-500: #64748b;
+  --fg-slate-400: #94a3b8;
+
   --fg-bot-fill: #ffffff;
   --fg-bot-stroke: #64748b;
   --fg-bot-sign-bg: #f1f5f9;
   --fg-bot-sign-border: #64748b;
   --fg-bot-sign-text: #1e293b;
+
+  /* Security Colors */
+  --fg-security-rebinding: #f87171;
+  --fg-security-phishing: #60a5fa;
+  --fg-security-typosquatting: #fbbf24;
+  --fg-security-dga: #c084fc;
+  --fg-security-nrd: #34d399;
+  --fg-security-ddns: #818cf8;
+  --fg-security-parking: #94a3b8;
+  --fg-security-csam: #ef4444;
+  --fg-security-ai: #a855f7;
+  --fg-security-safebrowsing: #10b981;
+  --fg-security-crypto: #f59e0b;
 `;
