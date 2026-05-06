@@ -43,3 +43,4 @@ export * from './components/modals';
 import { UI_TOKENS, UI_ICONS } from './theme/uiTokens';
 export { UI_TOKENS, UI_ICONS };
 export * from './components/icons';
+export * from './iconography';

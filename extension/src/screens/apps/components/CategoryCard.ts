@@ -3,7 +3,8 @@
  * Pure HTML renderer for a single NextDNS category card.
  * No module-level state — everything is passed as arguments.
  */
-import { getCategoryBadge, escapeHtml } from '@stopaccess/core';
+import { escapeHtml } from '@stopaccess/core';
+import { getCategoryBadge } from '../../../ui/ui';
 import {
   getRuleActiveState,
   UI_TOKENS,
