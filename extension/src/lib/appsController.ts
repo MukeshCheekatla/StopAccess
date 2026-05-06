@@ -210,8 +210,10 @@ export const appsController = {
         console.log(
           `[appsController] Syncing ${kind} to cloud: ${id} -> ${nextState}`,
         );
-        await this._runCloudSync(() =>
-          nextDNSApi.setTargetState(kind, id, nextState),
+        await this._runCloudSync(
+          () => nextDNSApi.setTargetState(kind, id, nextState),
+          // 400 = already exists in NextDNS (idempotent), 404 = stale state drift — both are safe to ignore
+          { ignoreStatuses: [400, 404] },
         );
       }
 
@@ -290,8 +292,9 @@ export const appsController = {
       const policy = await getBlockingPolicy(storage);
       const isNativeNextDNS = kind === 'category';
       if (isNativeNextDNS || policy.enforcesCloudBlocking) {
-        await this._runCloudSync(() =>
-          nextDNSApi.setTargetState(kind, id, enabled && actualState),
+        await this._runCloudSync(
+          () => nextDNSApi.setTargetState(kind, id, enabled && actualState),
+          { ignoreStatuses: [400, 404] },
         );
       }
 
@@ -317,7 +320,9 @@ export const appsController = {
       const policy = await getBlockingPolicy(storage);
       const isNativeNextDNS = resolved.kind === 'category';
       if (isNativeNextDNS || policy.enforcesCloudBlocking) {
-        await this._runCloudSync(() => nextDNSApi.addResolvedTarget(resolved));
+        await this._runCloudSync(() => nextDNSApi.addResolvedTarget(resolved), {
+          ignoreStatuses: [400, 404],
+        });
       }
 
       // 2. Local Layer (Browser DNR) - Always runs

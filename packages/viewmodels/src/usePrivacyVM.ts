@@ -42,6 +42,8 @@ export function createPrivacyVM(
   api: NextDNSApiClient,
 ): PrivacyVM {
   let cachedBlocklists: any[] | null = null;
+  const getErrorMessage = (res: any, fallback = 'NextDNS request failed') =>
+    res?.error?.message || res?.error || res?.message || fallback;
 
   async function refreshLocal(): Promise<void> {
     const res = await api.getPrivacy();
@@ -137,7 +139,7 @@ export function createPrivacyVM(
           if (current) {
             await saveLocalPrivacy(storage, current);
           }
-          return { ok: false, error: (res as any).error.message };
+          return { ok: false, error: getErrorMessage(res) };
         }
         return { ok: true };
       } catch (e: any) {
@@ -159,7 +161,7 @@ export function createPrivacyVM(
           if (current) {
             await saveLocalPrivacy(storage, current);
           }
-          return { ok: false, error: (res as any).error.message };
+          return { ok: false, error: getErrorMessage(res) };
         }
         return { ok: true };
       } catch (e: any) {
@@ -171,7 +173,11 @@ export function createPrivacyVM(
       try {
         const res = await api.addBlocklist(id);
         if (res && !res.ok) {
-          return { ok: false, error: (res as any).error.message };
+          const status = res.error?.status;
+          // 400 = already exists (idempotent — desired state achieved)
+          if (status !== 400 && status !== 404) {
+            return { ok: false, error: getErrorMessage(res) };
+          }
         }
         const current = await getLocalPrivacy(storage);
         if (current) {
@@ -193,7 +199,11 @@ export function createPrivacyVM(
       try {
         const res = await api.removeBlocklist(id);
         if (res && !res.ok) {
-          return { ok: false, error: (res as any).error.message };
+          const status = res.error?.status;
+          // 404 = already removed (idempotent — desired state achieved)
+          if (status !== 400 && status !== 404) {
+            return { ok: false, error: getErrorMessage(res) };
+          }
         }
         const current = await getLocalPrivacy(storage);
         if (current) {
@@ -212,7 +222,10 @@ export function createPrivacyVM(
       try {
         const res = await api.addNativeTracking(id);
         if (res && !res.ok) {
-          return { ok: false, error: (res as any).error.message };
+          const status = res.error?.status;
+          if (status !== 400 && status !== 404) {
+            return { ok: false, error: getErrorMessage(res) };
+          }
         }
         const current = await getLocalPrivacy(storage);
         if (current) {
@@ -234,7 +247,10 @@ export function createPrivacyVM(
       try {
         const res = await api.removeNativeTracking(id);
         if (res && !res.ok) {
-          return { ok: false, error: (res as any).error.message };
+          const status = res.error?.status;
+          if (status !== 400 && status !== 404) {
+            return { ok: false, error: getErrorMessage(res) };
+          }
         }
         const current = await getLocalPrivacy(storage);
         if (current) {

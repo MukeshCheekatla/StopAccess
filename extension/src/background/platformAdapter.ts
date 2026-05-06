@@ -503,7 +503,7 @@ export const nextDNSApi: NextDNSApiClient = {
         cfg,
         extensionLogger.add,
       );
-      return (ndnsCore as any).getLogs(client, limit, status);
+      return client.getLogs(limit, status);
     });
     return res as any;
   },
@@ -515,7 +515,7 @@ export const nextDNSApi: NextDNSApiClient = {
         cfg,
         extensionLogger.add,
       );
-      return (ndnsCore as any).getTopBlockedDomains(client, limit);
+      return client.getAnalyticsDomains(limit, 'blocked');
     });
     return res as any;
   },
@@ -542,7 +542,7 @@ export const nextDNSApi: NextDNSApiClient = {
         cfg,
         extensionLogger.add,
       );
-      return (ndnsCore as any).getAnalyticsCounters(client);
+      return client.getAnalyticsCounters();
     });
     return res as any;
   },

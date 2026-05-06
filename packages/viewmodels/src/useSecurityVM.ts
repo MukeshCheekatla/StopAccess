@@ -42,6 +42,9 @@ export function createSecurityVM(
   storage: StorageAdapter,
   api: NextDNSApiClient,
 ): SecurityVM {
+  const getErrorMessage = (res: any, fallback = 'NextDNS request failed') =>
+    res?.error?.message || res?.error || res?.message || fallback;
+
   return {
     async load(): Promise<SecurityVMData> {
       const isConfigured = await api.isConfigured();
@@ -151,10 +154,13 @@ export function createSecurityVM(
           }
           const res = await api.patchParentalControl({ [key]: value });
           if (res && !res.ok) {
-            if (current) {
-              await saveLocalParental(storage, current);
+            const status = res.error?.status;
+            if (status !== 400 && status !== 404) {
+              if (current) {
+                await saveLocalParental(storage, current);
+              }
+              return { ok: false, error: getErrorMessage(res) };
             }
-            return { ok: false, error: (res as any).error.message };
           }
         } else {
           const current = await getLocalSecurity(storage);
@@ -163,10 +169,13 @@ export function createSecurityVM(
           }
           const res = await api.patchSecurity({ [key]: value });
           if (res && !res.ok) {
-            if (current) {
-              await saveLocalSecurity(storage, current);
+            const status = res.error?.status;
+            if (status !== 400 && status !== 404) {
+              if (current) {
+                await saveLocalSecurity(storage, current);
+              }
+              return { ok: false, error: getErrorMessage(res) };
             }
-            return { ok: false, error: (res as any).error.message };
           }
         }
         return { ok: true };
@@ -183,7 +192,11 @@ export function createSecurityVM(
       try {
         const res = await api.addBlockedTld(normalized);
         if (res && !res.ok) {
-          return { ok: false, error: (res as any).error.message };
+          const status = res.error?.status;
+          // 400 = already exists
+          if (status !== 400 && status !== 404) {
+            return { ok: false, error: getErrorMessage(res) };
+          }
         }
         // Update local cache
         const current = await getLocalSecurity(storage);
@@ -206,7 +219,11 @@ export function createSecurityVM(
       try {
         const res = await api.removeBlockedTld(id);
         if (res && !res.ok) {
-          return { ok: false, error: (res as any).error.message };
+          const status = res.error?.status;
+          // 404 = already removed
+          if (status !== 400 && status !== 404) {
+            return { ok: false, error: getErrorMessage(res) };
+          }
         }
         // Update local cache
         const current = await getLocalSecurity(storage);

@@ -45,22 +45,34 @@ export async function loadInsightsData(deps: VMPlatformDependencies) {
         const data = (countersRes as any).data;
         // Handle both Array (list of statuses) and Object (summary) formats
         if (Array.isArray(data)) {
-          const blockedObj = data.find((i: any) => i.status === 'blocked');
+          const blockedObj = data.find(
+            (i: any) => i.status === 'blocked' || i.status === 'denied',
+          );
           const allowedObj = data.find(
             (i: any) => i.status === 'allowed' || i.status === 'default',
           );
           counters = {
-            blocked: Number(blockedObj?.queries) || 0,
-            allowed: Number(allowedObj?.queries) || 0,
+            blocked: Number(blockedObj?.queries || blockedObj?.count) || 0,
+            allowed: Number(allowedObj?.queries || allowedObj?.count) || 0,
           };
         } else if (data && typeof data === 'object') {
           counters = {
-            blocked: Number(data.blocked || data.blockedQueries) || 0,
+            blocked:
+              Number(data.blocked || data.denied || data.blockedQueries) || 0,
             allowed: Number(data.allowed || data.allowedQueries) || 0,
           };
         }
       }
     } catch (e) {}
+
+    // Fallback: /analytics/status uses a short window (today) and may return 0.
+    // /analytics/domains returns historical totals — use those if counters are empty.
+    if (counters.blocked === 0 && topBlocked.length > 0) {
+      counters.blocked = (topBlocked as any[]).reduce(
+        (acc: number, item: any) => acc + (Number(item.queries) || 0),
+        0,
+      );
+    }
   }
 
   const maxMins = Math.max(
