@@ -56,47 +56,97 @@ export function setupGlobalClickHandlers(container: HTMLElement) {
       const isActive = toggleBtn.getAttribute('aria-checked') === 'true';
 
       if (id && name && kind) {
-        // Categories don't need PIN/security check for toggle, but services/domains do
-        if (kind !== 'category') {
-          const { checkGuard } = await import('../../background/sessionGuard');
-          const guard = await checkGuard('modify_blocklist');
-          if (!guard.allowed) {
-            toast.error((guard as any).reason);
-            return;
-          }
+        // If DISABLING a block (turning switch OFF)
+        if (isActive) {
+          const { showUnblockDurationDialog, confirmGuardianAction } =
+            (await import('../../ui/ui')) as any;
 
-          // If activating a block (turning switch ON), check guardian PIN
-          if (!isActive) {
-            const { confirmGuardianAction } = (await import(
-              '../../ui/ui'
-            )) as any;
+          if (kind === 'category') {
+            // Categories: Simple security confirmation, then full toggle OFF
             const confirmed = await confirmGuardianAction({
-              title: 'Activate Block?',
-              body: `Verify your security to start blocking ${name}.`,
+              title: 'Unblock Category',
+              body: `Are you sure you want to disable the ${name} category? This will affect all associated apps and sites.`,
+              isDestructive: true,
             });
+
             if (!confirmed) {
               return;
             }
+            // Fall through to appsController.toggleRule below
+          } else {
+            // Apps/Domains: Duration-based unblock
+            const choice = await showUnblockDurationDialog(name);
+            if (!choice) {
+              return;
+            }
+
+            const confirmed = await confirmGuardianAction({
+              title: 'Verify Security',
+              body: `Please verify to unblock ${name}.`,
+              skipSimpleConfirm: true,
+            });
+
+            if (!confirmed) {
+              return;
+            }
+
+            // Apply unblock duration
+            let minutes = 40;
+            if (choice === 'today') {
+              minutes = appsController.minutesTillMidnight();
+            }
+
+            const rule = currentRules.find(
+              (r: any) => (r.customDomain || r.packageName) === id,
+            );
+            const maxPasses = rule?.maxDailyPasses ?? 3;
+
+            const res = await appsController.grantTempPass(
+              id,
+              minutes,
+              maxPasses,
+              true,
+            );
+            if (res.ok) {
+              toast.success(
+                `Unblocked for ${
+                  choice === '40mins' ? '40 minutes' : 'the rest of today'
+                }`,
+              );
+              if (callbacks?.refreshListOnly) {
+                await callbacks.refreshListOnly();
+              }
+            } else {
+              toast.error(res.error);
+            }
+            return;
           }
         }
 
-        const res = await appsController.toggleRule(
-          kind,
-          id,
-          name,
-          !isActive,
-          currentRules,
-        );
-        if (res.ok) {
-          toast.success(`${name} ${!isActive ? 'blocked' : 'allowed'}`);
-          if (callbacks?.refreshListOnly) {
-            await callbacks.refreshListOnly();
-          }
-        } else {
-          toast.error(res.error);
+        // If ACTIVATING a block (turning switch ON), check guard only (no PIN needed)
+        const { checkGuard } = await import('../../background/sessionGuard');
+        const guard = await checkGuard('modify_blocklist');
+        if (!guard.allowed) {
+          toast.error((guard as any).reason);
+          return;
         }
       }
-      return;
+
+      const res = await appsController.toggleRule(
+        kind,
+        id,
+        name,
+        !isActive,
+        currentRules,
+      );
+      if (res.ok) {
+        toast.success(`${name} ${!isActive ? 'blocked' : 'allowed'}`);
+        if (callbacks?.refreshListOnly) {
+          await callbacks.refreshListOnly();
+        }
+      } else {
+        toast.error(res.error);
+      }
     }
 
     if (unblockBtn) {

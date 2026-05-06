@@ -65,7 +65,7 @@ async function restoreCloudBackup(force = false) {
     STORAGE_KEYS.SESSION,
   ]);
   const schedules = parseMaybeJson(localRes[STORAGE_KEYS.SCHEDULES]) || [];
-  const focusSession = parseMaybeJson(localRes[STORAGE_KEYS.SESSION]) || {};
+  const focusSession = parseMaybeJson(localRes[STORAGE_KEYS.SESSION]) || null;
 
   await pushNextDNSConfig(force);
   await pushState('rules', rules, force);
@@ -107,7 +107,7 @@ async function forcePushCloudBackup() {
     ),
   );
   await runPush('focus', () =>
-    pushState('focus', parseMaybeJson(res[STORAGE_KEYS.SESSION]) || {}, true),
+    pushState('focus', parseMaybeJson(res[STORAGE_KEYS.SESSION]) || null, true),
   );
   await runPush('usage', () =>
     pushUsageToCloudInternal(

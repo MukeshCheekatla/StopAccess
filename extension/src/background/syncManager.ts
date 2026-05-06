@@ -64,12 +64,72 @@ function parsePayload(payload: any): any {
 function sanitizeStatePayload(entity: string, payload: any): any {
   const data = parsePayload(payload);
   if (data === undefined || data === null) {
-    return {};
+    return null;
+  }
+  if (
+    entity === 'focus' &&
+    typeof data === 'object' &&
+    !Array.isArray(data) &&
+    Object.keys(data).length === 0
+  ) {
+    return null;
   }
   if (entity === 'rules' && Array.isArray(data)) {
     return data.map(sanitizeRule);
   }
   return data;
+}
+
+function normalizeFocusSessionPayload(payload: any): any {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return null;
+  }
+
+  const status = payload.status;
+  if (status !== 'focusing' && status !== 'paused') {
+    return null;
+  }
+
+  const startedAt = Number(payload.startedAt);
+  const duration = Number(payload.duration);
+  const elapsed = Math.max(0, Number(payload.elapsed) || 0);
+  const lastActivatedAt = payload.lastActivatedAt
+    ? Number(payload.lastActivatedAt)
+    : undefined;
+
+  if (!Number.isFinite(startedAt) || startedAt <= 0) {
+    return null;
+  }
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return null;
+  }
+  if (
+    !Array.isArray(payload.blockedDomains) ||
+    payload.blockedDomains.some((domain: unknown) => typeof domain !== 'string')
+  ) {
+    return null;
+  }
+
+  const computedElapsed =
+    status === 'focusing'
+      ? elapsed +
+        Math.max(
+          0,
+          Math.floor((Date.now() - (lastActivatedAt || startedAt)) / 1000),
+        )
+      : elapsed;
+
+  if (computedElapsed >= duration * 60) {
+    return null;
+  }
+
+  return {
+    ...payload,
+    startedAt,
+    duration,
+    elapsed,
+    lastActivatedAt,
+  };
 }
 
 async function safePush(fn: () => Promise<any>, key: string) {
@@ -660,6 +720,25 @@ async function applyStateLocally(
       });
       setTimeout(
         () => chrome.storage.local.remove('_sync_in_progress_nextdns'),
+        1000,
+      );
+      return;
+    }
+
+    if (entity === 'focus') {
+      const session = normalizeFocusSessionPayload(finalPayload);
+      await chrome.storage.local.set({
+        _sync_in_progress_focus: true,
+        [STORAGE_KEYS.SESSION]: session,
+        [STORAGE_KEYS.SESSION_START]: session?.startedAt || 0,
+        [STORAGE_KEYS.FOCUS_END]:
+          session?.status === 'focusing'
+            ? session.startedAt + session.duration * 60000
+            : 0,
+        [storageKey]: incomingTs || Date.now(),
+      });
+      setTimeout(
+        () => chrome.storage.local.remove('_sync_in_progress_focus'),
         1000,
       );
       return;

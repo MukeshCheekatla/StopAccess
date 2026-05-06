@@ -90,7 +90,46 @@ export async function startSession(config: {
 
 export async function getActiveSession(): Promise<FocusSessionRecord | null> {
   const result = await chrome.storage.local.get(STORAGE_KEYS.SESSION);
-  return (result[STORAGE_KEYS.SESSION] as FocusSessionRecord) || null;
+  const session = result[STORAGE_KEYS.SESSION] as FocusSessionRecord | null;
+  if (!session) {
+    return null;
+  }
+
+  const hasShape =
+    (session.status === 'focusing' || session.status === 'paused') &&
+    Number.isFinite(session.startedAt) &&
+    session.startedAt > 0 &&
+    Number.isFinite(session.duration) &&
+    session.duration > 0 &&
+    Array.isArray(session.blockedDomains);
+
+  if (!hasShape) {
+    return null;
+  }
+
+  const baseElapsed = Math.max(0, Number(session.elapsed) || 0);
+  const liveElapsed =
+    session.status === 'focusing'
+      ? baseElapsed +
+        Math.max(
+          0,
+          Math.floor(
+            (Date.now() - (session.lastActivatedAt || session.startedAt)) /
+              1000,
+          ),
+        )
+      : baseElapsed;
+
+  if (liveElapsed >= session.duration * 60) {
+    await chrome.storage.local.set({
+      [STORAGE_KEYS.SESSION]: null,
+      [STORAGE_KEYS.SESSION_START]: 0,
+      [STORAGE_KEYS.FOCUS_END]: 0,
+    });
+    return null;
+  }
+
+  return session;
 }
 
 /**
