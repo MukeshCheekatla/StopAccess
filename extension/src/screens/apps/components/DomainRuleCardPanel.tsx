@@ -1,5 +1,5 @@
 import React from 'react';
-import { getBrandLogoUrl, resolveIconDomain } from '../../../ui/ui';
+import { getBrandLogoUrl, resolveIconDomain, UI_ICONS } from '../../../ui/ui';
 
 interface DomainRuleCardProps {
   rule: any;
@@ -142,18 +142,11 @@ export const DomainRuleCard: React.FC<DomainRuleCardProps> = ({
           {isLocked ? (
             <span className="fg-text-[10px] fg-font-black">L</span>
           ) : (
-            <svg
-              className="fg-h-3 fg-w-3"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="3"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
+            <div
+              dangerouslySetInnerHTML={{ __html: UI_ICONS.CLOSE }}
+              className="fg-flex fg-items-center fg-justify-center"
+              style={{ width: '12px', height: '12px' }}
+            />
           )}
         </button>
       </div>

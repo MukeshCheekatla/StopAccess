@@ -13,6 +13,7 @@ import { prefetchIconCache } from '../../lib/iconCache';
 import {
   renderAppIcon,
   UI_TOKENS,
+  UI_ICONS,
   renderEmptyState,
   renderAppTableRow,
   renderInfoTooltip,
@@ -20,6 +21,7 @@ import {
   attachGlobalIconListeners,
 } from '../../ui/ui';
 import { COLORS } from '../../ui/theme/designTokens';
+import { ICONS } from '../../ui/Icons';
 
 let activeTab = 'shield';
 let availableCategories: any[] = [];
@@ -53,8 +55,10 @@ export async function renderAppsPage(container: HTMLElement) {
   const currentRedirectUrl =
     (await extensionAdapter.getString('fg_redirect_url', '')) || '';
   const initialIsEditing = !currentRedirectUrl;
-  const editIcon =
-    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+  const editIcon = UI_ICONS.EDIT.replace(
+    'style="',
+    'style="margin-right: 6px; ',
+  );
 
   // Propagation Timer Logic
   const updateTimer = async () => {
@@ -404,8 +408,10 @@ export async function renderAppsPage(container: HTMLElement) {
     ) as HTMLElement;
 
     if (redirectInput) {
-      const editIconArr =
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px;"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>';
+      const editIconArr = ICONS.EDIT.replace(
+        '<svg ',
+        '<svg style="margin-right: 6px;" ',
+      );
       let isEditing = initialIsEditing;
 
       const refreshUI = () => {
@@ -581,7 +587,10 @@ async function refreshListOnly(passedRules?: any[]) {
       isInputValid ? COLORS.inAppActiveBorder : COLORS.border
     };">
         Block
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        ${UI_ICONS.PLUS.replace('width="14"', 'width="16"').replace(
+          'height="14"',
+          'height="16"',
+        )}
       </button>
     `;
 
@@ -745,7 +754,10 @@ async function renderSubTab(
                <button id="btnCloseTargetDrawer" class="fg-p-2 fg-rounded-xl hover:fg-bg-[${
                  COLORS.surfaceHover
                }] fg-text-[var(--muted)] fg-transition-all">
-                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                 ${UI_ICONS.CLOSE.replace('width="14"', 'width="20"').replace(
+                   'height="14"',
+                   'height="20"',
+                 )}
                </button>
              </div>
              
@@ -760,7 +772,7 @@ async function renderSubTab(
       COLORS.text
     }] fg-outline-none focus:fg-border-[${COLORS.blue}] fg-transition-all">
                <div class="fg-absolute fg-left-4 fg-top-3.5 fg-text-[var(--muted)]">
-                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                 ${UI_ICONS.SEARCH}
                </div>
              </div>
           </div>

@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SELECTORS } from '../../background/inAppBlocking';
 import { resolveFaviconUrl } from '@stopaccess/core';
-import { UI_TOKENS } from '../../ui/ui';
+import { UI_ICONS, UI_TOKENS } from '../../ui/ui';
+import { COLORS } from '../../ui/theme/designTokens';
 
 const PLATFORMS = [
   { id: 'youtube', name: 'YouTube', domain: 'youtube.com' },
@@ -13,121 +14,29 @@ const PLATFORMS = [
   { id: 'snapchat', name: 'Snapchat', domain: 'snapchat.com' },
 ];
 
-// App-specific SVG icons
+// App-specific icon strings from the central library
 const ICONS = {
-  HOME: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" />
-    </svg>
-  ),
-  SHORTS: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-8 3.58-8 8s3.58 8,8 8c3.17 0 5.87-1.84 7.15-4.5L15.5 14l-4.5 2.5L11 11l4.5 2.5 L17.65 6.35z" />
-    </svg>
-  ),
-  COMMENTS: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
-  ),
-  EYE: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  ),
-  BELL: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-      <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
-    </svg>
-  ),
-  COMPASS: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-    </svg>
-  ),
-  SEARCH: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="11" cy="11" r="8" />
-      <path d="m21 21-4.3-4.3" />
-    </svg>
-  ),
-  PLAY: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <path d="m7 4 12 8-12 8V4z" />
-    </svg>
-  ),
-  PALETTE: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
-      <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
-      <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
-      <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
-      <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.92 0 1.76-.31 2.42-.84.6-.48.78-1.2.53-1.91l-.22-.62c-.22-.6.04-1.28.6-1.63.8-.5 1.8-.46 2.67-.09 1.13.48 2.5-.1 3.03-1.2C21.73 14.39 22 13.23 22 12c0-5.5-4.5-10-10-10Z" />
-    </svg>
-  ),
-  LIVE: (
-    <svg viewBox="0 0 24 24" fill="currentColor">
-      <circle cx="12" cy="12" r="2" />
-      <path d="M16.24 7.76a6 6 0 0 1 0 8.48m2.12 2.12a9 9 0 0 0 0-12.72M7.76 7.76a6 6 0 0 0 0 8.48m-2.12 2.12a9 9 0 0 1 0-12.72" />
-    </svg>
-  ),
-  REELS: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <rect x="3" y="3" width="18" height="18" rx="2" />
-      <path d="M7 3v18M3 7.5h4M3 12h4M3 16.5h4M17 3v18M17 7.5h4M17 12h4M17 16.5h4" />
-    </svg>
-  ),
-  STORIES: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="8" strokeDasharray="4 4" />
-    </svg>
-  ),
-  USER: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-      <circle cx="12" cy="7" r="4" />
-    </svg>
-  ),
-  CART: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="8" cy="21" r="1" />
-      <circle cx="19" cy="21" r="1" />
-      <path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.56-8.43h-16.3" />
-    </svg>
-  ),
-  TRENDS: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="m19 20-4-4-3 3-4-4-3 3" />
-      <path d="M12 3v11" />
-      <path d="M16 7l-4-4-4 4" />
-    </svg>
-  ),
-  LIST: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <line x1="8" y1="6" x2="21" y2="6" />
-      <line x1="8" y1="12" x2="21" y2="12" />
-      <line x1="8" y1="18" x2="21" y2="18" />
-      <line x1="3" y1="6" x2="3.01" y2="6" />
-      <line x1="3" y1="12" x2="3.01" y2="12" />
-      <line x1="3" y1="18" x2="3.01" y2="18" />
-    </svg>
-  ),
-  USERS: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>
-  ),
+  HOME: UI_ICONS.HOME,
+  SHORTS: UI_ICONS.SHORTS,
+  COMMENTS: UI_ICONS.COMMENTS,
+  EYE: UI_ICONS.EYE,
+  BELL: UI_ICONS.BELL,
+  COMPASS: UI_ICONS.COMPASS,
+  SEARCH: UI_ICONS.SEARCH,
+  PLAY: UI_ICONS.PLAY,
+  PALETTE: UI_ICONS.PALETTE,
+  LIVE: UI_ICONS.LIVE,
+  REELS: UI_ICONS.REELS,
+  STORIES: UI_ICONS.STORIES,
+  USER: UI_ICONS.USER,
+  CART: UI_ICONS.CART,
+  TRENDS: UI_ICONS.TRENDING_UP,
+  LIST: UI_ICONS.LIST,
+  USERS: UI_ICONS.USERS,
 };
 
 // Per-platform feature metadata: description + icon
-type FeatureMeta = { desc: string; icon: React.ReactNode };
+type FeatureMeta = { desc: string; icon: string };
 const FEATURE_META: Record<string, Record<string, FeatureMeta>> = {
   youtube: {
     hide_home_page: {
@@ -272,17 +181,7 @@ const FEATURE_META: Record<string, Record<string, FeatureMeta>> = {
 function getFeatureMeta(platform: string, feature: string): FeatureMeta {
   return (
     FEATURE_META[platform]?.[feature] ?? {
-      icon: (
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-        </svg>
-      ),
+      icon: UI_ICONS.LOCK,
       desc: 'Hide this element from the page.',
     }
   );
@@ -417,7 +316,7 @@ export function InAppBlockingView() {
                     className="fg-flex fg-items-center fg-justify-center fg-min-w-[18px] fg-h-[18px] fg-px-1 fg-rounded-full fg-text-[9px] fg-font-black fg-transition-colors"
                     style={{
                       background: isActive
-                        ? 'rgba(255,255,255,0.25)'
+                        ? COLORS.whiteWashStrong
                         : 'var(--fg-glass-border)',
                       color: isActive
                         ? 'var(--fg-in-app-active-text)'
@@ -510,7 +409,10 @@ export function InAppBlockingView() {
                           : 'var(--fg-text)',
                       }}
                     >
-                      <div className="fg-w-5 fg-h-5">{meta.icon}</div>
+                      <div
+                        className="fg-w-5 fg-h-5"
+                        dangerouslySetInnerHTML={{ __html: meta.icon }}
+                      />
                     </div>
 
                     {/* Label + description */}
@@ -554,16 +456,10 @@ export function InAppBlockingView() {
 
               {currentFeatures.length === 0 && (
                 <div className="fg-flex fg-flex-col fg-items-center fg-gap-2 fg-py-16 fg-text-center">
-                  <div className="fg-w-12 fg-h-12 fg-opacity-40">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                    >
-                      <path d="m14.7 6.08 1.13 1.12c.1.1.1.26 0 .35l-1.07 1.07c-.1.1-.25.1-.35 0l-1.12-1.13M14.7 6.08a2.5 2.5 0 0 0-3.53 0l-3.32 3.32-3.41 3.41c-.4.4-.62.94-.62 1.5l.02 4.41c.01.6.48 1.08 1.08 1.09l4.41.02c.56 0 1.1-.22 1.5-.62l3.41-3.41 3.32-3.32a2.5 2.5 0 0 0 0-3.53l-1.13-1.12ZM14.7 6.08c-.1-.1-.1-.26 0-.35l1.07-1.07a1 1 0 0 1 1.42 0l1.13 1.13c.4.39.4 1.03 0 1.42l-1.07 1.07c-.1.1-.26.1-.35 0l-1.13-1.12ZM12.7 15l-3 3M15 15l-3 3" />
-                    </svg>
-                  </div>
+                  <div
+                    className="fg-w-12 fg-h-12 fg-opacity-40 fg-flex fg-items-center fg-justify-center"
+                    dangerouslySetInnerHTML={{ __html: UI_ICONS.WRENCH }}
+                  />
                   <div style={{ ...UI_TOKENS.TEXT.R.LABEL, marginTop: '8px' }}>
                     No features configured yet
                   </div>
@@ -586,27 +482,16 @@ export function InAppBlockingView() {
             }}
           >
             <div
-              className="fg-p-2 fg-rounded-lg fg-shrink-0"
+              className="fg-p-2 fg-rounded-lg fg-shrink-0 fg-flex fg-items-center fg-justify-center"
               style={{
                 background: 'var(--fg-in-app-active-bg)',
                 opacity: 0.85,
+                width: 32,
+                height: 32,
+                color: 'white',
               }}
-            >
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="white"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="16" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12.01" y2="8" />
-              </svg>
-            </div>
+              dangerouslySetInnerHTML={{ __html: UI_ICONS.INFO }}
+            />
             <p
               style={{
                 ...UI_TOKENS.TEXT.R.SUBTEXT,

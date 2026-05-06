@@ -1,11 +1,9 @@
+import { NEXTDNS_CATEGORIES, escapeHtml } from '@stopaccess/core';
 import {
-  NEXTDNS_CATEGORIES,
   getCategoryBadge,
-  escapeHtml,
-} from '@stopaccess/core';
-import {
   getRuleActiveState,
   UI_TOKENS,
+  UI_ICONS,
   renderInfoTooltip,
   renderSectionBadge,
 } from '../../../ui/ui';
@@ -130,8 +128,17 @@ export function renderCategoriesTab(
   const visibleCategories = allCategories;
   const activeCount = visibleCategories.filter((c) => c.active).length;
   const disabledWarning = !isConfigured
-    ? `<div style="padding: 16px; border-radius: 12px; background: ${COLORS.amberSoft}; border: 1px solid ${COLORS.amberBorder}; margin-bottom: 24px; color: ${COLORS.amberText}; ${UI_TOKENS.TEXT.CARD_TITLE} display: flex; align-items: center; gap: 10px;">
-           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    ? `<div style="padding: 16px; border-radius: 12px; background: ${
+        COLORS.amberSoft
+      }; border: 1px solid ${COLORS.amberBorder}; margin-bottom: 24px; color: ${
+        COLORS.amberText
+      }; ${
+        UI_TOKENS.TEXT.CARD_TITLE
+      } display: flex; align-items: center; gap: 10px;">
+           ${UI_ICONS.ALERT.replace('width="14"', 'width="18"').replace(
+             'height="14"',
+             'height="18"',
+           )}
            DNS profile required to turn on categories.
          </div>`
     : '';
