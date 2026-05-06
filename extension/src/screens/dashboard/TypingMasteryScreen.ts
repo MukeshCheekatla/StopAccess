@@ -1,5 +1,5 @@
 import Chart from 'chart.js/auto';
-import { UI_TOKENS } from '../../ui/ui';
+import { UI_TOKENS, UI_ICONS } from '../../ui/ui';
 import { COLORS } from '../../ui/theme/designTokens';
 import { getTypingHistory, getTypingStats } from '../../lib/typingHistory';
 
@@ -20,7 +20,10 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
         }] fg-border fg-border-[${COLORS.glassBorder}] fg-text-[${
     COLORS.text
   }] hover:fg-bg-[var(--fg-white-wash)] fg-transition-all">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          ${UI_ICONS.BACK.replace('width="14"', 'width="20"').replace(
+            'height="14"',
+            'height="20"',
+          )}
         </button>
         <div>
           <div style="${
@@ -133,9 +136,14 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
                  ? `
                 <div class="fg-text-center fg-flex fg-flex-col fg-items-center fg-gap-4">
                   <div class="fg-w-16 fg-h-16 fg-rounded-full fg-bg-[var(--fg-glass-bg)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-muted)]">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg>
+                    ${UI_ICONS.PIE_CHART.replace(
+                      'width="14"',
+                      'width="24"',
+                    ).replace('height="14"', 'height="24"')}
                   </div>
-                  <div style="${UI_TOKENS.TEXT.SUBTEXT}; font-size: 13px; max-width: 200px; line-height: 1.6;">Complete more typing tests to visualize your speed trend.</div>
+                  <div style="${
+                    UI_TOKENS.TEXT.SUBTEXT
+                  }; font-size: 13px; max-width: 200px; line-height: 1.6;">Complete more typing tests to visualize your speed trend.</div>
                 </div>
              `
                  : '<canvas id="typingTrendChart"></canvas>'
@@ -169,7 +177,7 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
     canvas.style.height = '100%';
 
     canvas.style.minHeight = '320px';
-    canvas.style.border = '1px solid rgba(255,0,0,0.05)';
+    canvas.style.border = `1px solid ${COLORS.blackWash}`;
 
     setTimeout(() => {
       if (!document.contains(canvas)) {
@@ -196,12 +204,12 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
             {
               label: 'WPM',
               data: chartData.map((s) => s.wpm),
-              borderColor: '#4f46e5', // Indigo primary
-              backgroundColor: 'rgba(79, 70, 229, 0.08)', // Very subtle fill
+              borderColor: COLORS.accent, // Indigo primary
+              backgroundColor: `color-mix(in srgb, ${COLORS.accent}, transparent 92%)`, // Very subtle fill
               borderWidth: 2,
               tension: 0.1, // Sharp stock-market style
               pointRadius: 3,
-              pointBackgroundColor: '#4f46e5',
+              pointBackgroundColor: COLORS.accent,
               fill: true,
             },
           ],
@@ -218,15 +226,15 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
               display: true,
               grid: { display: false },
               ticks: {
-                color: '#94a3b8',
+                color: COLORS.slate400,
                 font: { size: 10, weight: '600' as any },
               },
             },
             y: {
               beginAtZero: true,
-              grid: { color: 'rgba(0,0,0,0.05)' },
+              grid: { color: COLORS.blackWash },
               ticks: {
-                color: '#64748b',
+                color: COLORS.slate500,
                 font: { size: 10, weight: '600' as any },
                 padding: 8,
               },

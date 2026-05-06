@@ -2,6 +2,7 @@ import Chart from 'chart.js/auto';
 import { fmtTime, formatMinutes } from '@stopaccess/core';
 import {
   UI_TOKENS,
+  UI_ICONS,
   renderBrandLogo,
   attachGlobalIconListeners,
   setupDateSelectorWidget,
@@ -44,7 +45,10 @@ export async function renderDomainUsageScreen(
               }] fg-border fg-border-[${COLORS.glassBorder}] fg-text-[${
         COLORS.text
       }] hover:fg-bg-[var(--fg-white-wash)] fg-transition-all">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+                ${UI_ICONS.BACK.replace('width="14"', 'width="20"').replace(
+                  'height="14"',
+                  'height="20"',
+                )}
               </button>
               <div class="fg-flex fg-items-center fg-gap-3">
                  ${renderBrandLogo(domain, domain, 44)}
@@ -248,7 +252,7 @@ export async function renderDomainUsageScreen(
       };
 
       const chartTextColor = resolveToken(UI_TOKENS.COLORS.TEXT) || COLORS.text;
-      const accentColor = resolveToken('--fg-accent') || '#3b82f6';
+      const accentColor = resolveToken(COLORS.accent) || '#3b82f6';
 
       // Advanced Time-Based Scaling Logic
       const rawValues = series.map((s) => Math.round(s.timeMs / 60000));

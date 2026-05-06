@@ -9,16 +9,13 @@ import {
   renderLoader,
   renderStatCard,
   UI_TOKENS,
+  UI_ICONS,
   renderBrandLogo,
   attachGlobalIconListeners,
 } from '../../ui/ui';
 
 declare var chrome: any;
 
-const iconActivity =
-  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>';
-const iconShield =
-  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
 export async function renderInsightsPage(
   container: HTMLElement,
   context: 'page' | 'popup' = 'page',
@@ -73,7 +70,7 @@ async function _renderPage(container: HTMLElement): Promise<void> {
     container.innerHTML = `
       <div class="fg-max-w-[400px] fg-mx-auto fg-mt-24 fg-text-center fg-animate-in fg-fade-in fg-duration-500">
         <div class="fg-w-16 fg-h-16 fg-rounded-2xl fg-bg-[var(--red)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--red)] fg-mx-auto fg-mb-6">
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M1 1l22 22M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 12.55a10.94 10.94 0 0 1 5.17-2.39M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+          ${UI_ICONS.WIFI_OFF}
         </div>
         <h2 style="${UI_TOKENS.TEXT.HEADING}; margin-bottom: 8px;">You are offline</h2>
         <p style="${UI_TOKENS.TEXT.SUBTEXT}; margin-bottom: 24px;">Cloud Intelligence reports require an active internet connection to sync with NextDNS.</p>
@@ -115,14 +112,14 @@ async function _renderPage(container: HTMLElement): Promise<void> {
       <div class="fg-grid fg-grid-cols-3 fg-gap-4 fg-mb-10">
         ${renderStatCard(
           'Total Activity',
-          iconActivity,
+          UI_ICONS.ACTIVITY,
           'var(--accent)',
           totalQueries.toLocaleString(),
           'All Requests',
         )}
         ${renderStatCard(
           'Denied Requests',
-          '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>',
+          UI_ICONS.SLASH,
           'var(--red)',
           blockedQueries.toLocaleString(),
           'Stopped Attempts',
@@ -132,7 +129,7 @@ async function _renderPage(container: HTMLElement): Promise<void> {
         )}
         ${renderStatCard(
           'Safety Score',
-          iconShield,
+          UI_ICONS.SHIELD,
           'var(--green)',
           `<span style="color: ${COLORS.green};">${protectionRate}%</span>`,
           'Shield Efficiency',
@@ -145,7 +142,7 @@ async function _renderPage(container: HTMLElement): Promise<void> {
         <section>
           <div class="fg-flex fg-items-center fg-gap-3 fg-mb-6">
             <div class="fg-w-8 fg-h-8 fg-rounded-xl fg-bg-[var(--red)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--red)]">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+              ${UI_ICONS.SLASH}
             </div>
             <div class="section-label" style="${
               UI_TOKENS.TEXT.HEADING
@@ -161,7 +158,7 @@ async function _renderPage(container: HTMLElement): Promise<void> {
           <div class="fg-flex fg-items-center fg-justify-between fg-mb-6">
             <div class="fg-flex fg-items-center fg-gap-3">
               <div class="fg-w-8 fg-h-8 fg-rounded-xl fg-bg-[var(--accent)]/10 fg-flex fg-items-center fg-justify-center fg-text-[var(--accent)]">
-                ${iconActivity}
+                ${UI_ICONS.ACTIVITY}
               </div>
               <div class="section-label" style="${
                 UI_TOKENS.TEXT.HEADING
@@ -214,7 +211,7 @@ function _renderLogsList(
   if (!isConfigured) {
     return `
       <div class="glass-card fg-p-10 fg-text-center fg-opacity-90" style="border: 1px dashed ${COLORS.glassBorder}; background: ${COLORS.glassBg};">
-        <div class="fg-mb-4 fg-text-[${COLORS.text}] fg-opacity-50 fg-flex fg-justify-center">${iconShield}</div>
+        <div class="fg-mb-4 fg-text-[${COLORS.text}] fg-opacity-50 fg-flex fg-justify-center">${UI_ICONS.SHIELD}</div>
         <div class="fg-text-xs fg-font-extrabold fg-text-[${COLORS.text}]  fg-tracking-wider fg-mb-2">Advanced Protection Locked</div>
         <div class="fg-text-[11px] fg-text-[${COLORS.text}] fg-opacity-60 fg-leading-relaxed fg-max-w-[280px] fg-mx-auto">Connect your NextDNS Profile in Settings to enable deep traffic analysis.</div>
       </div>`;

@@ -10,6 +10,7 @@ import { appsController } from '../../lib/appsController';
 import { getCachedIcon } from '../../lib/iconCache';
 import {
   UI_TOKENS,
+  UI_ICONS,
   renderBrandLogo,
   attachGlobalIconListeners,
   setupDateSelectorWidget,
@@ -20,14 +21,13 @@ import { getTypingHistory } from '../../lib/typingHistory';
 import { getRemainingMs, formatTime } from '../../lib/sessionTimer';
 
 // Key icons
-const iconPlay =
-  '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
-const iconPause =
-  '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
-const iconStop =
-  '<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
-const iconSparkle =
-  '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>';
+const iconPlay = UI_ICONS.PLAY;
+const iconPause = UI_ICONS.PAUSE;
+const iconStop = UI_ICONS.STOP;
+const iconSparkle = UI_ICONS.SPARKLES.replace(
+  'width="14"',
+  'width="20"',
+).replace('height="14"', 'height="20"');
 
 // This function opens the extension settings page
 function openSettingsPage() {
@@ -451,11 +451,10 @@ export async function renderDashboardPage(
             <div class="widget-title" style="${
               UI_TOKENS.TEXT.WIDGET_LABEL
             }">Daily Average</div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${
-              COLORS.muted
-            }" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
-              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-            </svg>
+            ${UI_ICONS.CLOCK.replace(
+              'stroke="currentColor"',
+              `stroke="${COLORS.muted}"`,
+            ).replace('style="', 'style="opacity: 0.5; ')}
           </div>
           <div style="margin-top: 12px;">
             <div style="${UI_TOKENS.TEXT.STAT}">${fmtTime(
@@ -509,11 +508,10 @@ export async function renderDashboardPage(
             <div class="widget-title" style="${
               UI_TOKENS.TEXT.WIDGET_LABEL
             }">${headerLabel}</div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${
-              COLORS.muted
-            }" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
-              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-            </svg>
+            ${UI_ICONS.ACTIVITY.replace(
+              'stroke="currentColor"',
+              `stroke="${COLORS.muted}"`,
+            ).replace('style="', 'style="opacity: 0.5; ')}
           </div>
           <div style="margin-top: 12px;">
             <div style="${UI_TOKENS.TEXT.STAT}">${fmtTime(
@@ -542,11 +540,10 @@ export async function renderDashboardPage(
             <div class="widget-title" style="${
               UI_TOKENS.TEXT.WIDGET_LABEL
             }">Sessions</div>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${
-              COLORS.muted
-            }" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
-              <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 8v4l3 3"/>
-            </svg>
+            ${UI_ICONS.CLOCK.replace(
+              'stroke="currentColor"',
+              `stroke="${COLORS.muted}"`,
+            ).replace('style="', 'style="opacity: 0.5; ')}
           </div>
           <div style="margin-top: 12px;">
             <div style="${UI_TOKENS.TEXT.STAT}">${data.totalSessions}</div>
@@ -591,11 +588,10 @@ export async function renderDashboardPage(
                   ? `<div style="${UI_TOKENS.TEXT.BADGE} color: var(--green); border: none; background: var(--green)/10; padding: 2px 6px;">Peak</div>`
                   : ''
               }
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${
-                COLORS.muted
-              }" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;">
-                <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 9h.01"/><path d="M10 9h.01"/><path d="M14 9h.01"/><path d="M18 9h.01"/><path d="M6 13h.01"/><path d="M18 13h.01"/><path d="M10 13h.01"/><path d="M14 13h.01"/><path d="M8 17h8"/>
-              </svg>
+              ${UI_ICONS.KEYBOARD.replace(
+                'stroke="currentColor"',
+                `stroke="${COLORS.muted}"`,
+              ).replace('style="', 'style="opacity: 0.5; ')}
             </div>
           </div>
           <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 4px;">
@@ -815,8 +811,8 @@ export async function renderDashboardPage(
       );
       const chartBorderColor =
         resolveToken(COLORS.glassBg) ||
-        resolveToken('--fg-white-wash') ||
-        '#ffffff';
+        resolveToken(COLORS.zinc400) ||
+        COLORS.white;
       const chartBorderWidth = 1;
 
       window.__dashPulseChart = new Chart(ctx, {
@@ -918,8 +914,8 @@ export async function renderDashboardPage(
             if (chart.data.datasets?.[0]) {
               const borderCol =
                 freshResolve(COLORS.glassBg) ||
-                freshResolve('--fg-white-wash') ||
-                '#ffffff';
+                freshResolve(COLORS.zinc400) ||
+                COLORS.white;
               chart.data.datasets[0].borderColor = borderCol;
               chart.data.datasets[0].borderWidth = 1;
             }

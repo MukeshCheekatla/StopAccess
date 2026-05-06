@@ -1,4 +1,5 @@
 import React from 'react';
+import { COLORS } from '../../ui/theme/designTokens';
 
 export type BuddyStage = 'seed' | 'sprout' | 'plant' | 'flower' | 'tree';
 
@@ -22,16 +23,17 @@ export function FocusBuddy({ xp, wiltUntil }: FocusBuddyProps) {
     stage = 'sprout';
   }
 
-  const mainColor = isWilted ? '#8B7355' : '#4CAF50'; // Brownish vs Green
-  const leafColor = isWilted ? '#696969' : '#81C784'; // Grey vs Light Green
-  const flowerColor = isWilted ? '#A9A9A9' : '#FF4081'; // Grey vs Pink
+  const mainColor = isWilted ? COLORS.slate500 : COLORS.buddyMain;
+  const leafColor = isWilted ? COLORS.slate400 : COLORS.buddyLeaf;
+  const flowerColor = isWilted ? COLORS.slate400 : COLORS.buddyFlower;
+  const dirtColor = COLORS.buddyDirt;
 
   const renderStage = () => {
     switch (stage) {
       case 'seed':
         return (
           <svg width="60" height="60" viewBox="0 0 60 60">
-            <ellipse cx="30" cy="50" rx="8" ry="5" fill="#8B4513" />
+            <ellipse cx="30" cy="50" rx="8" ry="5" fill={dirtColor} />
           </svg>
         );
       case 'sprout':
@@ -56,7 +58,7 @@ export function FocusBuddy({ xp, wiltUntil }: FocusBuddyProps) {
               cy="52"
               rx="10"
               ry="4"
-              fill="#8B4513"
+              fill={dirtColor}
               opacity="0.3"
             />
           </svg>
@@ -103,7 +105,7 @@ export function FocusBuddy({ xp, wiltUntil }: FocusBuddyProps) {
               cy="52"
               rx="12"
               ry="5"
-              fill="#8B4513"
+              fill={dirtColor}
               opacity="0.3"
             />
           </svg>
@@ -118,7 +120,7 @@ export function FocusBuddy({ xp, wiltUntil }: FocusBuddyProps) {
               fill="none"
             />
             <circle cx="30" cy="20" r="8" fill={flowerColor} />
-            <circle cx="30" cy="20" r="3" fill="#FFD54F" />
+            <circle cx="30" cy="20" r="3" fill={COLORS.yellow} />
             <path
               d="M30,40 Q40,35 45,40"
               stroke={mainColor}
@@ -138,7 +140,7 @@ export function FocusBuddy({ xp, wiltUntil }: FocusBuddyProps) {
               cy="52"
               rx="12"
               ry="5"
-              fill="#8B4513"
+              fill={dirtColor}
               opacity="0.3"
             />
           </svg>
@@ -146,7 +148,7 @@ export function FocusBuddy({ xp, wiltUntil }: FocusBuddyProps) {
       case 'tree':
         return (
           <svg width="60" height="60" viewBox="0 0 60 60">
-            <rect x="26" y="30" width="8" height="25" fill="#5D4037" />
+            <rect x="26" y="30" width="8" height="25" fill={COLORS.buddyStem} />
             <circle cx="30" cy="25" r="15" fill={mainColor} />
             <circle cx="20" cy="20" r="10" fill={mainColor} />
             <circle cx="40" cy="20" r="10" fill={mainColor} />
@@ -158,7 +160,7 @@ export function FocusBuddy({ xp, wiltUntil }: FocusBuddyProps) {
               cy="55"
               rx="15"
               ry="5"
-              fill="#8B4513"
+              fill={dirtColor}
               opacity="0.3"
             />
           </svg>

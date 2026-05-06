@@ -21,10 +21,11 @@ import { renderSettingsPage } from '../screens/settings/SettingsPage';
 import { renderSecurityPage } from '../screens/security/SecurityPage';
 import { renderPrivacyPage } from '../screens/privacy/PrivacyPage';
 import { renderAppsPage } from '../screens/apps/AppsPage';
-import { renderDomainUsageScreen } from '../screens/dashboard/DomainUsageScreen';
 import { renderInAppBlockingPage } from '../screens/in_app/InAppBlockingPage';
+import { renderDomainUsageScreen } from '../screens/dashboard/DomainUsageScreen';
 import { renderTypingMasteryScreen } from '../screens/dashboard/TypingMasteryScreen';
 import { applyTheme, setupThemeListener } from '../ui/theme/theme';
+import { UI_ICONS } from '../ui/ui';
 import { supabase } from '../lib/supabase';
 import {
   setThemeAction,
@@ -45,149 +46,49 @@ type TabId =
   | 'in_app'
   | 'account'
   | 'cloud_account'
-  | 'nextdns_account';
+  | 'nextdns_account'
+  | 'byte_settings';
 
 const TABS: Array<ShellTab<TabId>> = [
   {
     id: 'dash',
     label: 'Overview',
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-      </svg>
-    ),
+    icon: UI_ICONS.LAYOUT_GRID,
   },
   {
     id: 'apps',
     label: 'Block List',
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z" />
-        <path d="M12 8v4l3 3" />
-      </svg>
-    ),
+    icon: UI_ICONS.CLOCK,
   },
   {
     id: 'focus',
     label: 'Focus',
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <circle cx="12" cy="12" r="5" />
-        <circle cx="12" cy="12" r="1" fill="currentColor" />
-      </svg>
-    ),
+    icon: UI_ICONS.TARGET,
   },
   {
     id: 'in_app',
     label: 'In App Blocking',
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
-      </svg>
-    ),
+    icon: UI_ICONS.PAUSE_CIRCLE,
   },
-  // {
-  //   id: 'schedule',
-  //   label: 'Schedules',
-  //   icon: (
-  //     <svg
-  //       viewBox="0 0 24 24"
-  //       fill="none"
-  //       stroke="currentColor"
-  //       strokeWidth="2"
-  //     >
-  //       <rect x="3" y="4" width="18" height="18" rx="2" />
-  //       <line x1="16" y1="2" x2="16" y2="6" />
-  //       <line x1="8" y1="2" x2="8" y2="6" />
-  //       <line x1="3" y1="10" x2="21" y2="10" />
-  //     </svg>
-  //   ),
-  // },
   {
     id: 'insights',
     label: 'Reports',
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <line x1="18" y1="20" x2="18" y2="10" />
-        <line x1="12" y1="20" x2="12" y2="4" />
-        <line x1="6" y1="20" x2="6" y2="14" />
-      </svg>
-    ),
+    icon: UI_ICONS.CHART,
   },
   {
     id: 'privacy',
     label: 'Privacy',
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-      </svg>
-    ),
+    icon: UI_ICONS.LOCK,
   },
   {
     id: 'security',
     label: 'Security',
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-      </svg>
-    ),
+    icon: UI_ICONS.SHIELD,
   },
   {
     id: 'settings',
     label: 'Settings',
-    icon: (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <circle cx="12" cy="12" r="3" />
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-      </svg>
-    ),
+    icon: UI_ICONS.SETTINGS,
   },
 ];
 
@@ -315,9 +216,7 @@ function DashboardApp() {
         if (!lastSeen) {
           // Initial transition to this system, just mark version
           await storage.set('last_seen_version', currentVer);
-        }
-
-        if (currentVer !== lastSeen) {
+        } else if (currentVer !== lastSeen) {
           const { CHANGELOG } = await import('@stopaccess/core');
           const release = CHANGELOG.find((c) => c.version === currentVer);
           if (release) {
@@ -348,6 +247,8 @@ function DashboardApp() {
         setActiveTab('cloud_account');
       } else if (tab === 'nextdns_account') {
         setActiveTab('nextdns_account');
+      } else if (tab === 'byte_settings') {
+        setActiveTab('byte_settings');
       } else if (TAB_SET.has(tab)) {
         setActiveTab(tab as TabId);
       }
@@ -367,8 +268,11 @@ function DashboardApp() {
     const updateStatus = async () => {
       try {
         const res = await storage.getMultiple([STORAGE_KEYS.SESSION]);
-        const session = res[STORAGE_KEYS.SESSION];
-        if (session) {
+        const session = res[STORAGE_KEYS.SESSION] as any;
+        if (
+          session &&
+          (session.status === 'focusing' || session.status === 'paused')
+        ) {
           if (!cancelled) {
             setStatus({ label: 'Focusing', tone: 'active' });
           }
@@ -424,6 +328,7 @@ function DashboardApp() {
       { id: 'account' as TabId, label: 'Account' },
       { id: 'cloud_account' as TabId, label: 'Cloud' },
       { id: 'nextdns_account' as TabId, label: 'NextDNS' },
+      { id: 'byte_settings' as TabId, label: 'Byte' },
     ].map((tab) => {
       let renderFn: any = null;
       switch (tab.id) {
@@ -477,6 +382,14 @@ function DashboardApp() {
             return renderNextDNSAccountPage(container);
           };
           break;
+        case 'byte_settings':
+          renderFn = async (container: HTMLElement) => {
+            const { renderByteSettingsPage } = await import(
+              '../screens/settings/components/ByteSettingsPage'
+            );
+            return renderByteSettingsPage(container);
+          };
+          break;
       }
       return { ...tab, renderFn };
     });
@@ -488,6 +401,10 @@ function DashboardApp() {
         <OnboardingReact
           onComplete={(targetTab?: string) => {
             storage.set(STORAGE_KEYS.ONBOARDING_DONE, 'true');
+            storage.set(
+              'last_seen_version',
+              chrome.runtime.getManifest().version,
+            );
             setShowOnboarding(false);
             setActiveTab(
               TAB_SET.has(targetTab || '') ? (targetTab as TabId) : 'dash',
