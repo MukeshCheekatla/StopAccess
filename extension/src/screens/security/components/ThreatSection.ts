@@ -13,6 +13,7 @@ import {
   renderInfoTooltip,
   UI_TOKENS,
 } from '../../../ui/ui';
+import { ICONS } from '../../../ui/Icons';
 
 interface ThreatToggle {
   key: keyof Omit<NextDNSSecuritySettings, 'tlds'>;
@@ -25,16 +26,11 @@ interface ThreatToggle {
 }
 
 // Inline SVG icons — no emojis
-const svgShield =
-  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
-const svgCpu =
-  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/><line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="15" x2="4" y2="15"/><line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="15" x2="22" y2="15"/></svg>';
-const svgSearch =
-  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
-const svgZap =
-  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
-const svgTarget =
-  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>';
+const iconShield = ICONS.SHIELD;
+const iconCpu = ICONS.CPU;
+const iconSearch = ICONS.SEARCH;
+const iconZap = ICONS.ZAP;
+const iconTarget = ICONS.TARGET;
 
 const THREAT_TOGGLES: ThreatToggle[] = [
   {
@@ -43,8 +39,8 @@ const THREAT_TOGGLES: ThreatToggle[] = [
     tooltip:
       'Blocks domains from known malware, phishing, and command-and-control databases updated hourly.',
     description: 'Block domains from known threat intelligence databases.',
-    icon: svgShield,
-    color: '#3b82f6',
+    icon: iconShield,
+    color: COLORS.securityPhishing,
   },
   {
     key: 'aiThreatDetection',
@@ -52,8 +48,8 @@ const THREAT_TOGGLES: ThreatToggle[] = [
     tooltip:
       'Uses predictive machine learning to stop zero-day attacks and newly registered malicious domains.',
     description: 'Machine learning powered detection of malicious domains.',
-    icon: svgCpu,
-    color: '#a855f7',
+    icon: iconCpu,
+    color: COLORS.securityAI,
     isBeta: true,
   },
   {
@@ -62,8 +58,8 @@ const THREAT_TOGGLES: ThreatToggle[] = [
     tooltip:
       'Cloud-based URL filtering that warns you about malicious websites across the entire web.',
     description: 'Protect against phishing and malware sites via Google.',
-    icon: svgSearch,
-    color: '#10b981',
+    icon: iconSearch,
+    color: COLORS.securitySafeBrowsing,
   },
   {
     key: 'cryptojacking',
@@ -71,8 +67,8 @@ const THREAT_TOGGLES: ThreatToggle[] = [
     tooltip:
       "Prevents websites from hijacking your device's power to mine cryptocurrency without consent.",
     description: 'Block sites that mine cryptocurrency using your device.',
-    icon: svgZap,
-    color: '#f59e0b',
+    icon: iconZap,
+    color: COLORS.securityCrypto,
   },
 ];
 
@@ -85,7 +81,7 @@ export function renderThreatSection(settings: NextDNSSecuritySettings): string {
   return `
     <div class="fg-p-2 fg-mb-4">
       ${renderSectionTitleRow(
-        svgTarget,
+        iconTarget,
         COLORS.indigo,
         'Threat Protection',
         renderSectionBadge(`${activeCount}/${total} Active`),

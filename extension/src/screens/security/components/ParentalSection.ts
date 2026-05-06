@@ -7,13 +7,11 @@ import {
   renderInfoTooltip,
   UI_TOKENS,
 } from '../../../ui/ui';
+import { ICONS } from '../../../ui/Icons';
 
-const iconSearch =
-  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
-const iconYoutube =
-  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.42a2.78 2.78 0 0 0-1.94 2C1 8.14 1 11.72 1 11.72s0 3.58.46 5.3a2.78 2.78 0 0 0 1.94 2C5.12 19.44 12 19.44 12 19.44s6.88 0 8.6-.42a2.78 2.78 0 0 0 1.94-2C23 15.3 23 11.72 23 11.72s0-3.58-.46-5.3z"/><polygon points="9.75 15.02 15.5 11.72 9.75 8.42 9.75 15.02"/></svg>';
-const iconShield =
-  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+const iconSearch = ICONS.SEARCH;
+const iconYoutube = ICONS.YOUTUBE;
+const iconShield = ICONS.SHIELD;
 
 export function renderParentalSection(
   parental: NextDNSParentalControlSettings | null,
@@ -31,7 +29,7 @@ export function renderParentalSection(
       desc: 'Filter explicit results on search engines.',
       icon: iconSearch,
       active: parental.safeSearch,
-      color: '#3b82f6',
+      color: COLORS.blue,
     },
     {
       key: 'youtubeRestrictedMode',
@@ -41,7 +39,7 @@ export function renderParentalSection(
       desc: 'Filter out mature videos on YouTube.',
       icon: iconYoutube,
       active: parental.youtubeRestrictedMode,
-      color: '#ef4444',
+      color: COLORS.red,
     },
     {
       key: 'blockBypass',
@@ -51,7 +49,7 @@ export function renderParentalSection(
       desc: 'Block VPNs, proxies, and Tor.',
       icon: iconShield,
       active: parental.blockBypass,
-      color: '#6366f1',
+      color: COLORS.indigo,
     },
   ];
 

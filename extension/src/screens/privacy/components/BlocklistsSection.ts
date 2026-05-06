@@ -10,20 +10,9 @@ import {
   renderSectionBadge,
   renderSectionTitleRow,
   UI_TOKENS,
+  UI_ICONS,
 } from '../../../ui/ui';
 import { getCachedIconSync } from '../../../lib/iconCache';
-
-// Icons
-const iconList =
-  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>';
-const iconSearch =
-  '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
-const iconDatabase =
-  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>';
-const iconRefresh =
-  '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>';
-const iconClose =
-  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 
 export function renderBlocklistsSection(
   activeBlocklists: NextDNSBlocklist[],
@@ -56,7 +45,7 @@ export function renderBlocklistsSection(
   return `
     <div class="fg-p-2 fg-mb-4">
       ${renderSectionTitleRow(
-        iconList,
+        UI_ICONS.LIST,
         COLORS.indigo,
         'Ad &amp; Tracker Blocklists',
         renderSectionBadge(`${activeIds.size} Active`),
@@ -65,7 +54,7 @@ export function renderBlocklistsSection(
       <div class="fg-flex fg-items-center fg-gap-3 fg-mb-6">
         <div class="fg-flex-1 fg-relative">
           <span class="fg-absolute fg-left-4 fg-top-1/2 fg--translate-y-1/2 fg-text-[var(--muted)]">
-            ${iconSearch}
+            ${UI_ICONS.SEARCH}
           </span>
           <input 
             type="text" 
@@ -115,7 +104,7 @@ export function renderBlocklistsSection(
   }; font-size: 1.5rem;">Blocklist Library</div>
           </div>
           <button id="close-blocklist-drawer" class="fg-p-3 fg-rounded-2xl hover:fg-bg-[var(--fg-white-wash)] fg-text-[var(--muted)] fg-transition-all">
-            ${iconClose}
+            ${UI_ICONS.CLOSE}
           </button>
         </div>
 
@@ -123,7 +112,7 @@ export function renderBlocklistsSection(
         <div class="fg-px-8 fg-pb-6 fg-pt-2">
           <div class="fg-relative">
             <span class="fg-absolute fg-left-5 fg-top-1/2 fg--translate-y-1/2 fg-text-[var(--muted)]">
-              ${iconSearch}
+              ${UI_ICONS.SEARCH}
             </span>
             <input 
               type="text" 
@@ -260,7 +249,7 @@ function getIconHtml(
       <div class="logo-fallback placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[${
         COLORS.text
       }]" style="opacity: ${primaryUrl ? '0' : '0.5'}; z-index: 1;">
-        ${iconDatabase}
+        ${UI_ICONS.DATABASE}
       </div>
       <img src="${primaryUrl || ''}"
            data-domain="${domainCandidate || ''}"
@@ -321,28 +310,24 @@ function renderBlocklistCard(list: any, active: boolean): string {
           }; border: 1px solid ${
     active ? 'var(--fg-emerald-border-strong)' : COLORS.glassBorder
   }; color: ${active ? 'var(--green)' : COLORS.muted};">
-          ${
-            active
-              ? '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
-              : '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
-          }
+          ${active ? UI_ICONS.CHECK : UI_ICONS.PLUS}
         </button>
       </div>
       <div class="fg-mt-auto fg-flex fg-items-center fg-gap-3 fg-pt-2 fg-border-t fg-border-[${
         COLORS.glassBorder
       }]">
         <div class="fg-flex fg-items-center fg-gap-1">
-          <span class="fg-text-[${
-            COLORS.text
-          }] fg-opacity-40">${iconDatabase}</span>
+          <span class="fg-text-[${COLORS.text}] fg-opacity-40">${
+    UI_ICONS.DATABASE
+  }</span>
           <span class="fg-text-[11px] fg-font-black fg-text-[${
             COLORS.text
           }] fg-opacity-90">${entriesStr}</span>
         </div>
         <div class="fg-flex fg-items-center fg-gap-1">
-          <span class="fg-text-[${
-            COLORS.text
-          }] fg-opacity-40">${iconRefresh}</span>
+          <span class="fg-text-[${COLORS.text}] fg-opacity-40">${
+    UI_ICONS.REFRESH
+  }</span>
           <span class="fg-text-[10px] fg-font-bold fg-text-[${
             COLORS.text
           }] fg-opacity-70">${updatedStr}</span>

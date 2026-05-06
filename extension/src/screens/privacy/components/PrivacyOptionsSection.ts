@@ -11,13 +11,7 @@ import {
   renderSectionTitleRow,
 } from '../../../ui/ui';
 import { COLORS } from '../../../ui/theme/designTokens';
-
-const iconSettings =
-  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
-const iconEyeOff =
-  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
-const iconLink =
-  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+import { ICONS } from '../../../ui/Icons';
 
 export function renderPrivacyOptionsSection(
   settings: NextDNSPrivacySettings,
@@ -25,7 +19,7 @@ export function renderPrivacyOptionsSection(
   return `
     <div class="fg-p-2 fg-h-full">
       ${renderSectionTitleRow(
-        iconSettings,
+        ICONS.SETTINGS,
         'var(--fg-primary-blue)',
         'Privacy Settings',
       )}
@@ -50,7 +44,7 @@ export function renderPrivacyOptionsSection(
           }] fg-flex fg-items-center fg-justify-center fg-text-[${
     COLORS.indigo
   }]">
-            ${iconEyeOff}
+            ${ICONS.EYE_OFF}
           </div>
           <div class="fg-flex-1 fg-min-w-0">
             <div class="fg-flex fg-items-center fg-gap-2 fg-mb-1">
@@ -58,9 +52,9 @@ export function renderPrivacyOptionsSection(
                 UI_TOKENS.TEXT.CARD_TITLE
               }">Block Disguised Trackers</span>
               <span class="fg-tooltip" data-tooltip="Automatically detect and block third-party trackers disguising themselves as first-party to circumvent recent browser's privacy protections like ITP.">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="fg-text-[${
-                  COLORS.text
-                }] fg-opacity-40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span class="fg-text-[${COLORS.text}] fg-opacity-40">${
+    ICONS.INFO
+  }</span>
               </span>
             </div>
             <div style="${
@@ -79,7 +73,7 @@ export function renderPrivacyOptionsSection(
   };"
         >
           <div class="fg-shrink-0 fg-w-10 fg-h-10 fg-rounded-2xl fg-bg-sky-400/10 fg-flex fg-items-center fg-justify-center fg-text-sky-400">
-            ${iconLink}
+            ${ICONS.LINK}
           </div>
           <div class="fg-flex-1 fg-min-w-0">
              <div class="fg-flex fg-items-center fg-gap-2 fg-mb-1">
@@ -87,9 +81,9 @@ export function renderPrivacyOptionsSection(
                 UI_TOKENS.TEXT.CARD_TITLE
               }">Allow Affiliate Links</span>
                <span class="fg-tooltip" data-tooltip="Allow affiliate & tracking domains common on deals websites, in emails or in search results. Those usually only get called after manually clicking on a link. Your IP address will automatically be hidden from those websites to preserve your privacy.">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="fg-text-[${
-                  COLORS.text
-                }] fg-opacity-40"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <span class="fg-text-[${COLORS.text}] fg-opacity-40">${
+    ICONS.INFO
+  }</span>
               </span>
             </div>
             <div style="${

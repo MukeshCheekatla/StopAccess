@@ -7,6 +7,7 @@ import { COLORS } from '../../../ui/theme/designTokens';
 import type { NextDNSTld } from '@stopaccess/types';
 import { renderInfoTooltip, renderEmptyState, UI_TOKENS } from '../../../ui/ui';
 import { COLORS } from '../../../ui/theme/designTokens';
+import { ICONS } from '../../../ui/Icons';
 
 // Common TLDs to suggest
 const COMMON_RISKY_TLDS = [
@@ -23,8 +24,7 @@ const COMMON_RISKY_TLDS = [
   { id: 'accountants', label: '.accountants' },
 ];
 
-const iconGlobe =
-  '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>';
+const iconGlobe = ICONS.GLOBE;
 
 export function renderTldManager(tlds: NextDNSTld[]): string {
   const activeIds = new Set(tlds.map((t) => t.id.toLowerCase()));
@@ -151,7 +151,7 @@ export function renderTldManager(tlds: NextDNSTld[]): string {
                   title="Unblock ${tld.id}"
                   style="border: none; background: transparent; color: ${COLORS.muted};"
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                  ${ICONS.CLOSE}
                 </button>
               </div>
             `,
