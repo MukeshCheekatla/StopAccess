@@ -27,6 +27,21 @@ export { STORAGE_KEYS } from '@stopaccess/state';
 
 type GuardAction = 'remove_app' | 'disable_blocking' | 'modify_blocklist';
 
+export interface LogEntry {
+  timestamp: string;
+  level: 'info' | 'warn' | 'error';
+  message: string;
+  details?: string;
+}
+
+export interface ExtensionLogger {
+  add: (
+    level: 'info' | 'warn' | 'error',
+    message: string,
+    detail?: any,
+  ) => Promise<void>;
+}
+
 async function requireUnlocked(action: GuardAction): Promise<
   | {
       locked: false;
@@ -168,10 +183,12 @@ function redact(input: string | undefined): string {
   });
 }
 
-export const extensionLogger = {
-  add: async (level: any, message: string, details = '') => {
+export const extensionLogger: ExtensionLogger = {
+  add: async (level, message, detail = '') => {
+    const detailStr =
+      typeof detail === 'object' ? JSON.stringify(detail) : String(detail);
     const redactedMessage = redact(message);
-    const redactedDetails = redact(details);
+    const redactedDetails = redact(detailStr);
 
     const current = await extensionAdapter.getString(STORAGE_KEYS.LOGS);
     const logs = current ? JSON.parse(current as string) : [];

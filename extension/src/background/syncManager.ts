@@ -8,12 +8,18 @@ import {
   sanitizeRule,
 } from '@stopaccess/core';
 
-const KEY_PROFILE_ID = 'profile_id';
+const KEY_SYNC_PROFILE_ID = 'profile_id';
 const KEY_DEVICE_ID = 'device_id';
 const KEY_LAST_SYNC_AT = 'last_cloud_sync_at';
-const KEY_PROFILE_ADOPTED_AT = 'profile_id_adopted_at';
-const SYNC_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
-const USAGE_RESTORE_DAYS = 30;
+
+// Optimized intervals to reduce DB pressure
+const INTERVALS: Record<string, number> = {
+  usage: 10 * 60 * 1000, // 10 minutes
+  rules: 60 * 1000, // 1 minute (reactive)
+  schedules: 60 * 1000, // 1 minute
+  nextdns: 60 * 1000, // 1 minute
+  default: 24 * 60 * 60 * 1000,
+};
 
 const ENTITY_STORAGE_KEYS: Record<string, string> = {
   rules: STORAGE_KEYS.RULES,
@@ -29,13 +35,9 @@ const lastHashes: Record<string, string> = {};
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-/**
- * Structured sync logging for better observability.
- */
 function logSync(event: string, meta: any = '') {
   const msg = `[Sync] ${event}`;
   console.log(msg, meta);
-  // Optional: send to extensionLogger if it's an important lifecycle event
   if (
     typeof meta === 'string' &&
     (meta.includes('failed') || meta.includes('Retry'))
@@ -52,7 +54,11 @@ function parsePayload(payload: any): any {
   if (typeof payload !== 'string') {
     return payload;
   }
-  return JSON.parse(payload);
+  try {
+    return JSON.parse(payload);
+  } catch {
+    return payload;
+  }
 }
 
 function sanitizeStatePayload(entity: string, payload: any): any {
@@ -60,32 +66,17 @@ function sanitizeStatePayload(entity: string, payload: any): any {
   if (data === undefined || data === null) {
     return {};
   }
-  if (entity === 'nextdns') {
-    return {
-      profileId: String(data.profileId || '').trim(),
-      apiKey: String(data.apiKey || '').trim(),
-      updatedAt: Number(data.updatedAt) || Date.now(),
-    };
-  }
   if (entity === 'rules' && Array.isArray(data)) {
     return data.map(sanitizeRule);
   }
   return data;
 }
 
-function todayKey(): string {
-  return new Date().toLocaleDateString('en-CA');
-}
-
-/**
- * Simple retry wrapper for transient network failures.
- */
 async function safePush(fn: () => Promise<any>, key: string) {
   try {
     await fn();
   } catch (err: any) {
     logSync(`${key}_failed`, err.message);
-    // Retry once after 5s
     setTimeout(() => {
       logSync(`${key}_retrying`);
       fn().catch((e) => logSync(`${key}_retry_failed`, e.message));
@@ -93,82 +84,59 @@ async function safePush(fn: () => Promise<any>, key: string) {
   }
 }
 
-/**
- * Get the unique ID for this installation.
- */
 export async function getDeviceId(): Promise<string> {
   const res = await chrome.storage.local.get([KEY_DEVICE_ID]);
   if (res[KEY_DEVICE_ID]) {
     return res[KEY_DEVICE_ID] as string;
   }
-
   const id = crypto.randomUUID();
   await chrome.storage.local.set({ [KEY_DEVICE_ID]: id });
   return id;
 }
 
-/**
- * Get the shared profile ID for this user (same across devices).
- */
 export async function getProfileId(): Promise<string> {
-  const res = await chrome.storage.local.get([KEY_PROFILE_ID]);
-  if (res[KEY_PROFILE_ID]) {
-    return res[KEY_PROFILE_ID] as string;
+  const res = await chrome.storage.local.get([KEY_SYNC_PROFILE_ID]);
+  if (res[KEY_SYNC_PROFILE_ID]) {
+    return res[KEY_SYNC_PROFILE_ID] as string;
   }
-
   const user = await getCloudUserSafe().catch(() => null);
   const id = user?.id ? `user:${user.id}` : crypto.randomUUID();
-  await chrome.storage.local.set({ [KEY_PROFILE_ID]: id });
+  await chrome.storage.local.set({ [KEY_SYNC_PROFILE_ID]: id });
   return id;
 }
 
-/**
- * Check if we should hit the DB based on the 24h gate.
- */
 function getSyncGateKey(key: string): string {
   return `${KEY_LAST_SYNC_AT}_${key}`;
 }
 
-async function shouldHitCloud(key: string, force = false): Promise<boolean> {
+async function shouldHitCloud(entity: string, force = false): Promise<boolean> {
   if (force) {
     return true;
   }
-  const syncKey = getSyncGateKey(key);
+  const syncKey = getSyncGateKey(entity);
   const res = await chrome.storage.local.get([syncKey]);
   const lastSync = (res[syncKey] as number) || 0;
   const now = Date.now();
+  const interval = INTERVALS[entity] || INTERVALS.default;
 
-  if (now - lastSync < SYNC_INTERVAL_MS) {
-    logSync('skipped_too_soon', {
-      next_sync_in_mins: Math.round(
-        (SYNC_INTERVAL_MS - (now - lastSync)) / 60000,
-      ),
-    });
+  if (now - lastSync < interval) {
     return false;
   }
   return true;
 }
 
-/**
- * Mark a successful sync.
- */
-async function markSyncSuccess(key: string) {
-  await chrome.storage.local.set({ [getSyncGateKey(key)]: Date.now() });
+async function markSyncSuccess(entity: string) {
+  await chrome.storage.local.set({ [getSyncGateKey(entity)]: Date.now() });
 }
 
 // ── Core Operations ────────────────────────────────────────────────────────
 
-/**
- * Centralized sync scheduler with debouncing and payload-safe storage.
- */
 export function scheduleSync(
   key: string,
   payload: any,
   fn: (p: any) => Promise<void>,
 ) {
-  // Store latest payload to avoid "last call wins" data loss
   pendingPayloads[key] = payload;
-
   if (debounceTimers[key]) {
     clearTimeout(debounceTimers[key]);
   }
@@ -178,21 +146,16 @@ export function scheduleSync(
     delete debounceTimers[key];
     delete pendingPayloads[key];
 
-    // Deduplication check
     const hash = stableStringify(data);
     if (lastHashes[key] === hash) {
-      logSync(`${key}_skipped_unchanged`);
       return;
     }
     lastHashes[key] = hash;
 
     safePush(() => fn(data), key);
-  }, 1500); // 1.5s debounce
+  }, 1500);
 }
 
-/**
- * Internal: Push local state to Supabase.
- */
 export async function pushState(entity: string, payload: any, force = false) {
   const user = await getCloudUserSafe();
   if (!user?.id) {
@@ -201,74 +164,150 @@ export async function pushState(entity: string, payload: any, force = false) {
 
   const profile_id = await getProfileId();
   const device_id = await getDeviceId();
-  const ts = Date.now();
   const data = sanitizeStatePayload(entity, payload);
   const stateKey = `state_${entity}`;
   const nextHash = stableStringify(data);
   const localHashRes = await chrome.storage.local.get([hashKey(stateKey)]);
 
-  if (localHashRes[hashKey(stateKey)] === nextHash) {
-    logSync(`push_${entity}_skipped_unchanged_local`);
+  if (localHashRes[hashKey(stateKey)] === nextHash && !force) {
     return;
   }
 
-  if (!(await shouldHitCloud(stateKey, force))) {
+  if (!(await shouldHitCloud(entity, force))) {
     return;
   }
 
-  const { data: existing, error: existingError } = await supabase
-    .from('sync_state')
-    .select('payload,ts')
-    .eq('user_id', user.id)
-    .eq('profile_id', profile_id)
-    .eq('entity', entity)
-    .maybeSingle();
+  try {
+    if (entity === 'rules' && Array.isArray(data)) {
+      await pushRules(user.id, profile_id, device_id, data);
+    } else if (entity === 'schedules' && Array.isArray(data)) {
+      await pushSchedules(user.id, profile_id, device_id, data);
+    } else if (entity === 'nextdns') {
+      await pushNextDNSRow(user.id, profile_id, device_id, data);
+    } else {
+      // Legacy fallback for other entities (focus, etc)
+      const { error } = await supabase.from('sync_state').upsert(
+        {
+          user_id: user.id,
+          profile_id,
+          entity,
+          device_id,
+          payload: data,
+          ts: Date.now(),
+          diff_id: crypto.randomUUID(),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,profile_id,entity' },
+      );
+      if (error) {
+        throw error;
+      }
+    }
 
-  if (existingError) {
-    throw existingError;
-  }
-
-  if (
-    existing &&
-    stableStringify(parsePayload(existing.payload)) === nextHash
-  ) {
     await chrome.storage.local.set({
-      [`sync_ts_${entity}`]: existing.ts || ts,
+      [`sync_ts_${entity}`]: Date.now(),
       [hashKey(stateKey)]: nextHash,
     });
-    await markSyncSuccess(stateKey);
-    logSync(`push_${entity}_skipped_unchanged_cloud`);
+    await markSyncSuccess(entity);
+    logSync(`push_${entity}_success`);
+  } catch (err: any) {
+    logSync(`push_${entity}_failed`, err.message);
+    throw err;
+  }
+}
+
+async function pushRules(
+  userId: string,
+  profileId: string,
+  deviceId: string,
+  rules: any[],
+) {
+  const rows = rules
+    .filter((r) => r.type !== 'category') // Categories are handled directly via NextDNS
+    .map((r) => ({
+      user_id: userId,
+      profile_id: profileId,
+      package_name: r.packageName,
+      app_name: r.appName,
+      type: r.type,
+      custom_domain: r.customDomain,
+      scope: r.scope,
+      mode: r.mode,
+      daily_limit_minutes: r.dailyLimitMinutes,
+      desired_blocking_state: r.desiredBlockingState,
+      max_daily_passes: r.maxDailyPasses,
+      added_at: r.addedAt,
+      updated_at: r.updatedAt,
+      added_by_user: r.addedByUser,
+      device_id: deviceId,
+      diff_id: crypto.randomUUID(),
+      cloud_updated_at: new Date().toISOString(),
+    }));
+
+  if (rows.length === 0) {
     return;
   }
 
-  logSync(`push_${entity}`, { device_id, force });
-
-  const { error } = await supabase.from('sync_state').upsert(
-    {
-      user_id: user.id,
-      profile_id,
-      entity,
-      device_id,
-      payload: data,
-      ts,
-      diff_id: crypto.randomUUID(),
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'user_id,profile_id,entity' },
-  );
-
+  const { error } = await supabase.from('user_rules').upsert(rows, {
+    onConflict: 'user_id,profile_id,package_name',
+  });
   if (error) {
     throw error;
   }
+}
 
-  // Crucial: Update local timestamp so we don't pull our own stale push later!
-  await chrome.storage.local.set({
-    [`sync_ts_${entity}`]: ts,
-    [hashKey(stateKey)]: nextHash,
+async function pushSchedules(
+  userId: string,
+  profileId: string,
+  deviceId: string,
+  schedules: any[],
+) {
+  const rows = schedules.map((s) => ({
+    user_id: userId,
+    profile_id: profileId,
+    schedule_id: s.id,
+    name: s.name,
+    start_time: s.startTime,
+    end_time: s.endTime,
+    days: s.days,
+    app_names: s.appNames,
+    active: s.active,
+    updated_at: s.updatedAt,
+    device_id: deviceId,
+    diff_id: crypto.randomUUID(),
+    cloud_updated_at: new Date().toISOString(),
+  }));
+
+  const { error } = await supabase.from('user_schedules').upsert(rows, {
+    onConflict: 'user_id,profile_id,schedule_id',
   });
+  if (error) {
+    throw error;
+  }
+}
 
-  await markSyncSuccess(stateKey);
-  logSync(`push_${entity}_success`);
+async function pushNextDNSRow(
+  userId: string,
+  profileId: string,
+  deviceId: string,
+  payload: any,
+) {
+  const { error } = await supabase.from('user_nextdns').upsert(
+    {
+      user_id: userId,
+      profile_id: profileId,
+      encrypted_profile_id: payload.profileId,
+      encrypted_api_key: payload.apiKey,
+      device_id: deviceId,
+      updated_at: payload.updatedAt,
+      diff_id: crypto.randomUUID(),
+      cloud_updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id,profile_id' },
+  );
+  if (error) {
+    throw error;
+  }
 }
 
 export function pushStateDebounced(
@@ -286,22 +325,21 @@ export async function pushNextDNSConfig(force = false) {
   ]);
   const profileId = String(res[STORAGE_KEYS.PROFILE_ID] || '').trim();
   const apiKey = String(res[STORAGE_KEYS.API_KEY] || '').trim();
-
   if (!profileId || !apiKey) {
     return;
   }
-
   const user = await getCloudUserSafe();
   if (!user?.id) {
     return;
   }
-
-  const encryptedKey = await encryptPayload(apiKey, user.id);
-
+  const [encryptedProfileId, encryptedKey] = await Promise.all([
+    encryptPayload(profileId, user.id),
+    encryptPayload(apiKey, user.id),
+  ]);
   await pushState(
     'nextdns',
     {
-      profileId,
+      profileId: encryptedProfileId,
       apiKey: encryptedKey,
       updatedAt: Date.now(),
     },
@@ -322,12 +360,17 @@ export function pushNextDNSConfigDebounced(force = false) {
       if (!user?.id) {
         return;
       }
-
-      const encryptedKey = await encryptPayload(apiKey, user.id);
-
+      const [encryptedProfileId, encryptedKey] = await Promise.all([
+        encryptPayload(profileId, user.id),
+        encryptPayload(apiKey, user.id),
+      ]);
       pushStateDebounced(
         'nextdns',
-        { profileId, apiKey: encryptedKey, updatedAt: Date.now() },
+        {
+          profileId: encryptedProfileId,
+          apiKey: encryptedKey,
+          updatedAt: Date.now(),
+        },
         force,
       );
     })
@@ -338,7 +381,7 @@ export async function pushUsageToCloudInternal(
   params: { day: string; usage: any },
   force = false,
 ) {
-  if (!(await shouldHitCloud(`usage_${params.day}`, force))) {
+  if (!(await shouldHitCloud('usage', force))) {
     return;
   }
 
@@ -366,16 +409,13 @@ export async function pushUsageToCloudInternal(
   }
 
   logSync('push_usage', { count: rows.length, day });
-
   const { error } = await supabase.from('usage_snapshots').upsert(rows, {
     onConflict: 'user_id,profile_id,device_id,day,domain',
   });
-
   if (error) {
     throw error;
   }
-  await markSyncSuccess(`usage_${day}`);
-  logSync('push_usage_success');
+  await markSyncSuccess('usage');
 }
 
 export function pushUsageToCloud(day: string, usage: any, force = false) {
@@ -391,17 +431,13 @@ async function shouldPullCloud(force = false): Promise<boolean> {
   }
   const res = await chrome.storage.local.get([KEY_LAST_PULL_AT]);
   const lastPull = (res[KEY_LAST_PULL_AT] as number) || 0;
-  if (Date.now() - lastPull < SYNC_INTERVAL_MS) {
-    return false;
-  }
-  return true;
+  return Date.now() - lastPull >= INTERVALS.rules;
 }
 
 export async function pullState(force = false) {
   if (!(await shouldPullCloud(force))) {
     return;
   }
-
   const user = await getCloudUserSafe();
   if (!user?.id) {
     return;
@@ -410,62 +446,96 @@ export async function pullState(force = false) {
   const profile_id = await getProfileId();
   logSync('pull_state', { profile_id });
 
-  let { data: rows, error } = await supabase
-    .from('sync_state')
-    .select('*')
-    .eq('user_id', user.id)
-    .eq('profile_id', profile_id);
-
-  if (error) {
-    logSync('pull_state_failed', error.message);
-    return;
-  }
-
-  if (!rows?.length) {
-    const { data: allRows, error: allRowsError } = await supabase
+  // Pull from all normalized tables
+  const [rulesRes, schedulesRes, nextdnsRes, legacyRes] = await Promise.all([
+    supabase
+      .from('user_rules')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('profile_id', profile_id),
+    supabase
+      .from('user_schedules')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('profile_id', profile_id),
+    supabase
+      .from('user_nextdns')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('profile_id', profile_id)
+      .maybeSingle(),
+    supabase
       .from('sync_state')
       .select('*')
       .eq('user_id', user.id)
-      .order('updated_at', { ascending: false });
+      .eq('profile_id', profile_id),
+  ]);
 
-    if (allRowsError) {
-      logSync('pull_state_profile_discovery_failed', allRowsError.message);
-      return;
-    }
-
-    const adoptedProfileId = allRows?.[0]?.profile_id;
-    if (adoptedProfileId && adoptedProfileId !== profile_id) {
-      rows = allRows.filter((row) => row.profile_id === adoptedProfileId);
-      await chrome.storage.local.set({
-        [KEY_PROFILE_ID]: adoptedProfileId,
-        [KEY_PROFILE_ADOPTED_AT]: Date.now(),
-      });
-      logSync('pull_state_adopted_profile', { profile_id: adoptedProfileId });
-    }
+  if (rulesRes.data && rulesRes.data.length > 0) {
+    const rules = rulesRes.data.map((r) => ({
+      packageName: r.package_name,
+      appName: r.app_name,
+      type: r.type,
+      customDomain: r.custom_domain,
+      scope: r.scope,
+      mode: r.mode,
+      dailyLimitMinutes: r.daily_limit_minutes,
+      desiredBlockingState: r.desired_blocking_state,
+      maxDailyPasses: r.max_daily_passes,
+      addedAt: r.added_at,
+      updatedAt: r.updated_at,
+      addedByUser: r.added_by_user,
+    }));
+    const maxTs = Math.max(
+      ...rulesRes.data.map((r) => Number(r.updated_at) || 0),
+    );
+    await applyStateLocally('rules', rules, maxTs);
   }
 
-  if (rows) {
-    logSync('pull_state_success', { count: rows.length });
-    for (const row of rows) {
+  if (schedulesRes.data && schedulesRes.data.length > 0) {
+    const schedules = schedulesRes.data.map((s) => ({
+      id: s.schedule_id,
+      name: s.name,
+      startTime: s.start_time,
+      endTime: s.end_time,
+      days: s.days,
+      appNames: s.app_names,
+      active: s.active,
+      updatedAt: s.updated_at,
+    }));
+    const maxTs = Math.max(
+      ...schedulesRes.data.map((s) => Number(s.updated_at) || 0),
+    );
+    await applyStateLocally('schedules', schedules, maxTs);
+  }
+
+  if (nextdnsRes.data) {
+    const payload = {
+      profileId: nextdnsRes.data.encrypted_profile_id,
+      apiKey: nextdnsRes.data.encrypted_api_key,
+      updatedAt: nextdnsRes.data.updated_at,
+    };
+    await applyStateLocally('nextdns', payload, Number(payload.updatedAt) || 0);
+  }
+
+  if (legacyRes.data) {
+    for (const row of legacyRes.data) {
       const payload = parsePayload(row.payload);
       await applyStateLocally(row.entity, payload, row.ts);
     }
-    await chrome.storage.local.set({ [KEY_LAST_PULL_AT]: Date.now() });
   }
+
+  await chrome.storage.local.set({ [KEY_LAST_PULL_AT]: Date.now() });
 }
 
-export async function pullUsageFromCloud(force = false) {
-  if (!(await shouldHitCloud('usage_pull', force))) {
-    return;
-  }
-
+export async function pullUsageFromCloud(_force = false) {
   const user = await getCloudUserSafe();
   if (!user?.id) {
     return;
   }
 
   const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - USAGE_RESTORE_DAYS);
+  cutoff.setDate(cutoff.getDate() - 30);
   const cutoffDay = cutoff.toLocaleDateString('en-CA');
 
   const { data: rows, error } = await supabase
@@ -480,12 +550,9 @@ export async function pullUsageFromCloud(force = false) {
     return;
   }
 
-  const history: Record<
-    string,
-    Record<string, { time: number; sessions: number }>
-  > = {};
-  const current: Record<string, { time: number; sessions: number }> = {};
-  const today = todayKey();
+  const history: any = {};
+  const current: any = {};
+  const today = new Date().toLocaleDateString('en-CA');
 
   for (const row of rows || []) {
     const target = row.day === today ? current : (history[row.day] ||= {});
@@ -500,114 +567,49 @@ export async function pullUsageFromCloud(force = false) {
     STORAGE_KEYS.USAGE,
     STORAGE_KEYS.USAGE_HISTORY,
   ]);
-  const localUsage = (local[STORAGE_KEYS.USAGE] || {}) as Record<
-    string,
-    { time?: number; sessions?: number }
-  >;
-  const localHistory = (local[STORAGE_KEYS.USAGE_HISTORY] || {}) as Record<
-    string,
-    Record<string, { time: number; sessions: number }>
-  >;
-  const mergedCurrent = { ...localUsage };
-  for (const [domain, cloudEntry] of Object.entries(current)) {
-    const localEntry = mergedCurrent[domain] || { time: 0, sessions: 0 };
-    mergedCurrent[domain] = {
-      time: Math.max(localEntry.time || 0, cloudEntry.time || 0),
-      sessions: Math.max(localEntry.sessions || 0, cloudEntry.sessions || 0),
-    };
-  }
-  const mergedHistory = {
-    ...localHistory,
-    ...history,
-  };
+  const localUsage = local[STORAGE_KEYS.USAGE] || {};
+  const localHistory = local[STORAGE_KEYS.USAGE_HISTORY] || {};
 
   await chrome.storage.local.set({
-    [STORAGE_KEYS.USAGE]: mergedCurrent,
-    [STORAGE_KEYS.USAGE_HISTORY]: mergedHistory,
+    [STORAGE_KEYS.USAGE]: { ...(localUsage as any), ...current },
+    [STORAGE_KEYS.USAGE_HISTORY]: { ...(localHistory as any), ...history },
   });
-  await markSyncSuccess('usage_pull');
   logSync('pull_usage_success', { count: rows?.length || 0 });
 }
 
-/**
- * Trigger a full daily synchronization:
- * 1. Pull latest rules/schedules from cloud
- * 2. Push final state back to cloud
- */
 export async function triggerDailySync(
   entities: Record<string, any>,
   lastDay?: { day: string; usage: any },
 ) {
   logSync('trigger_daily_sync_start');
-
-  // 1. Pull first to get any changes from other devices (if any) or just to stay in sync
   await pullState(true);
-  await pullUsageFromCloud(true);
-
-  // 2. Push current entities
+  await pullUsageFromCloud();
   for (const [entity, payload] of Object.entries(entities)) {
     await pushState(entity, payload, true);
   }
-
-  // 3. Push last day's usage if provided
   if (lastDay) {
     await pushUsageToCloudInternal(lastDay, true);
   }
-
   logSync('trigger_daily_sync_complete');
 }
 
 let activeChannel: any = null;
-
-/**
- * Subscribe to realtime changes.
- */
 export function subscribeToSync() {
   if (activeChannel) {
     return;
   }
-
-  logSync('subscribing_realtime');
   activeChannel = supabase
-    .channel('sync_state_changes')
+    .channel('sync_changes')
     .on(
       'postgres_changes',
-      {
-        event: '*',
-        schema: 'public',
-        table: 'sync_state',
-      },
-      async (payload) => {
-        const row = payload.new as any;
-        if (row) {
-          const [user, profileId, deviceId] = await Promise.all([
-            getCloudUserSafe(),
-            getProfileId(),
-            getDeviceId(),
-          ]);
-          if (
-            row.user_id !== user?.id ||
-            row.profile_id !== profileId ||
-            row.device_id === deviceId
-          ) {
-            return;
-          }
-          logSync('realtime_event', { entity: row.entity });
-          applyStateLocally(row.entity, row.payload, row.ts);
-        }
+      { event: '*', schema: 'public', table: 'user_rules' },
+      async (_p) => {
+        // Handle realtime for normalized tables if needed
       },
     )
-    .subscribe((status) => {
-      logSync('realtime_status', status);
-      if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
-        activeChannel = null;
-      }
-    });
+    .subscribe();
 }
 
-/**
- * Apply incoming cloud state to local storage.
- */
 async function applyStateLocally(
   entity: string,
   payload: any,
@@ -617,51 +619,64 @@ async function applyStateLocally(
   const res = await chrome.storage.local.get([storageKey]);
   const localTs = (res[storageKey] as number) || 0;
 
-  if (incomingTs > localTs) {
+  if (incomingTs >= localTs) {
     const finalPayload =
       typeof payload === 'string' ? JSON.parse(payload) : payload;
     if (entity === 'nextdns') {
       const user = await getCloudUserSafe();
       let finalApiKey = finalPayload.apiKey || '';
-      if (user?.id) {
-        finalApiKey = await decryptPayload(finalApiKey, user.id);
+      let nextdnsProfileId = finalPayload.profileId || '';
+      if (user?.id && finalApiKey) {
+        try {
+          if (nextdnsProfileId) {
+            nextdnsProfileId = await decryptPayload(nextdnsProfileId, user.id);
+            finalApiKey = await decryptPayload(finalApiKey, user.id);
+          } else {
+            const decrypted = await decryptPayload(finalApiKey, user.id);
+            const parts = decrypted.split('::');
+            if (parts.length === 2) {
+              nextdnsProfileId = parts[0];
+              finalApiKey = parts[1];
+            } else {
+              finalApiKey = decrypted;
+            }
+          }
+        } catch (e) {
+          logSync('decrypt_nextdns_failed', String(e));
+          return;
+        }
+      }
+
+      if (!nextdnsProfileId || !finalApiKey) {
+        logSync('pull_nextdns_skipped_incomplete');
+        return;
       }
 
       await chrome.storage.local.set({
         _sync_in_progress_nextdns: true,
-        [STORAGE_KEYS.PROFILE_ID]: finalPayload.profileId || '',
+        [STORAGE_KEYS.PROFILE_ID]: nextdnsProfileId,
         [STORAGE_KEYS.API_KEY]: finalApiKey,
-        [storageKey]: incomingTs,
+        [storageKey]: incomingTs || Date.now(),
       });
-
-      logSync('applied_local', { entity, ts: incomingTs });
-
-      setTimeout(() => {
-        chrome.storage.local
-          .remove('_sync_in_progress_nextdns')
-          .catch(() => {});
-      }, 1000);
+      setTimeout(
+        () => chrome.storage.local.remove('_sync_in_progress_nextdns'),
+        1000,
+      );
       return;
     }
 
     const localKey = ENTITY_STORAGE_KEYS[entity] || entity;
-
-    // To prevent infinite loops: mark this as an incoming sync
     await chrome.storage.local.set({
       [`_sync_in_progress_${entity}`]: true,
       [localKey]:
         entity === 'rules' || entity === 'schedules'
           ? JSON.stringify(finalPayload)
           : finalPayload,
-      [storageKey]: incomingTs,
+      [storageKey]: incomingTs || Date.now(),
     });
-
-    logSync('applied_local', { entity, ts: incomingTs });
-
-    setTimeout(() => {
-      chrome.storage.local
-        .remove(`_sync_in_progress_${entity}`)
-        .catch(() => {});
-    }, 1000);
+    setTimeout(
+      () => chrome.storage.local.remove(`_sync_in_progress_${entity}`),
+      1000,
+    );
   }
 }

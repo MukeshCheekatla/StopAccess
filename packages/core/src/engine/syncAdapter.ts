@@ -169,18 +169,22 @@ export class NextDNSSyncAdapter {
 
   async push(
     rules: AppRule[],
-    mode: 'profile' | 'browser',
+    mode: 'profile' | 'browser' | 'hybrid',
     _logger?: LogLevel,
   ): Promise<SyncPushResult> {
-    if (mode !== 'profile') {
-      return { ok: true, changedCount: 0 };
-    }
+    // If we are NOT in profile mode, we should only allow UNBLOCKING (setting active=false)
+    // to ensure we don't leave zombie blocks on the cloud when the user turns Hard Mode off.
+    const isProfileMode = mode === 'profile';
 
     try {
       let changedCount = 0;
       for (const rule of rules) {
-        // Only push if the rule is CURRENTLY blocked (e.g. limit reached or manual block)
-        const active = rule.blockedToday === true;
+        // Categories always sync their real state (since they are cloud-native).
+        // Services/Domains ONLY sync blocks if in Profile Mode (Hard Mode ON).
+        // They can always sync unblocks (active=false) to ensure cleanup.
+        const isCategory = rule.type === 'category';
+        const active =
+          isProfileMode || isCategory ? rule.blockedToday === true : false;
 
         const result = await (this.api as any).setTargetState(
           rule.type || 'domain',

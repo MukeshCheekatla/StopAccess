@@ -35,15 +35,14 @@ import {
   pullUsageFromCloud,
   pushNextDNSConfig,
   pushNextDNSConfigDebounced,
+  pushState,
   pushStateDebounced,
   pushUsageToCloud,
+  pushUsageToCloudInternal,
   subscribeToSync,
 } from './syncManager';
-import { initCompanionDataAggregator } from './companionData';
 
 console.log('[StopAccess] TRACKER INITIALIZING');
-
-initCompanionDataAggregator();
 
 function parseMaybeJson(value: any) {
   if (typeof value !== 'string') {
@@ -59,23 +58,77 @@ function parseMaybeJson(value: any) {
 async function restoreCloudBackup(force = false) {
   await pullState(force);
   await pullUsageFromCloud(force);
+
+  const rules = await getRules(extensionAdapter);
+  const localRes = await chrome.storage.local.get([
+    STORAGE_KEYS.SCHEDULES,
+    STORAGE_KEYS.SESSION,
+  ]);
+  const schedules = parseMaybeJson(localRes[STORAGE_KEYS.SCHEDULES]) || [];
+  const focusSession = parseMaybeJson(localRes[STORAGE_KEYS.SESSION]) || {};
+
   await pushNextDNSConfig(force);
-
-  // If we are forcing a restore (e.g. on login), also push our local state
-  // to ensure Supabase is initialized with what we have on this device.
-  if (force) {
-    const rules = await getRules(extensionAdapter);
-    const schedulesRes = await chrome.storage.local.get([
-      STORAGE_KEYS.SCHEDULES,
-    ]);
-    const schedules =
-      parseMaybeJson(schedulesRes[STORAGE_KEYS.SCHEDULES]) || [];
-
-    await pushStateDebounced('rules', rules, true);
-    await pushStateDebounced('schedules', schedules, true);
-  }
+  await pushState('rules', rules, force);
+  await pushState('schedules', schedules, force);
+  await pushState('focus', focusSession, force);
 
   subscribeToSync();
+}
+
+async function forcePushCloudBackup() {
+  const rules = await getRules(extensionAdapter);
+  const res = await chrome.storage.local.get([
+    STORAGE_KEYS.SCHEDULES,
+    STORAGE_KEYS.SESSION,
+    STORAGE_KEYS.USAGE,
+  ]);
+  const results: Array<{ entity: string; ok: boolean; error?: string }> = [];
+
+  async function runPush(entity: string, fn: () => Promise<void>) {
+    try {
+      await fn();
+      results.push({ entity, ok: true });
+    } catch (err: any) {
+      results.push({
+        entity,
+        ok: false,
+        error: err?.message || String(err),
+      });
+    }
+  }
+
+  await runPush('nextdns', () => pushNextDNSConfig(true));
+  await runPush('rules', () => pushState('rules', rules, true));
+  await runPush('schedules', () =>
+    pushState(
+      'schedules',
+      parseMaybeJson(res[STORAGE_KEYS.SCHEDULES]) || [],
+      true,
+    ),
+  );
+  await runPush('focus', () =>
+    pushState('focus', parseMaybeJson(res[STORAGE_KEYS.SESSION]) || {}, true),
+  );
+  await runPush('usage', () =>
+    pushUsageToCloudInternal(
+      {
+        day: new Date().toLocaleDateString('en-CA'),
+        usage: res[STORAGE_KEYS.USAGE] || {},
+      },
+      true,
+    ),
+  );
+
+  const failed = results.filter((result) => !result.ok);
+  if (failed.length > 0) {
+    throw new Error(
+      failed
+        .map((result) => `${result.entity}: ${result.error || 'failed'}`)
+        .join(' | '),
+    );
+  }
+
+  return results;
 }
 
 // ── Tab Events ─────────────────────────────────────────────────────────────
@@ -279,6 +332,15 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       .then(() => runCycle(true))
       .then(() => sendResponse({ ok: true }))
       .catch(() => sendResponse({ ok: false }));
+    return true;
+  }
+
+  if (msg.action === 'forcePushCloud') {
+    forcePushCloudBackup()
+      .then((results) => sendResponse({ ok: true, results }))
+      .catch((err) =>
+        sendResponse({ ok: false, error: err?.message || String(err) }),
+      );
     return true;
   }
 

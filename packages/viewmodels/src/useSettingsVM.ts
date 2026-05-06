@@ -300,3 +300,11 @@ export async function signInWithOtpAction(
 export async function signOutAction(deps: VMPlatformDependencies) {
   return deps.sendCommand('signOut');
 }
+
+export async function forcePushCloudAction(deps: VMPlatformDependencies) {
+  const res = await deps.sendCommand('forcePushCloud');
+  if (!res?.ok) {
+    throw new Error(res?.error || 'Cloud push failed.');
+  }
+  return true;
+}
