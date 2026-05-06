@@ -88,7 +88,7 @@ export const NEXTDNS_SERVICE_DOMAINS: Record<string, string> = {
   vimeo: 'vimeo.com',
   vk: 'vk.com',
   twitter: 'x.com',
-  whatsapp: 'whatsapp.net',
+  whatsapp: 'whatsapp.com',
   xboxlive: 'xbox.com',
   youtube: 'youtube.com',
   zoom: 'zoom.us',
@@ -104,6 +104,8 @@ export const SERVICE_DOMAIN_ALIASES: Record<string, string> = {
   'x.com': 'twitter',
   'twitter.com': 'twitter',
   'reddit.com': 'reddit',
+  'whatsapp.com': 'whatsapp',
+  'whatsapp.net': 'whatsapp',
 };
 
 export const FALLBACK_DOMAINS: Record<string, string> = {
@@ -129,6 +131,11 @@ export function sanitizeDomain(value: string): string {
 }
 
 export function getDomainForRule(rule: Partial<AppRule>): string | null {
+  // Categories are NextDNS-only — they have no browser domain to block.
+  if (rule.type === 'category') {
+    return null;
+  }
+
   if (rule.customDomain && rule.customDomain.trim().length > 0) {
     return rule.customDomain.trim().toLowerCase();
   }
@@ -152,6 +159,33 @@ export function getDomainForRule(rule: Partial<AppRule>): string | null {
     }
   }
   return null;
+}
+
+/**
+ * Canonical single-source-of-truth: does this rule apply to the given browser domain?
+ *
+ * Use this everywhere instead of inline "getDomainForRule + string comparison" logic.
+ * Handles: domain rules, service rules (via NEXTDNS_SERVICE_DOMAINS), Android package
+ * names (via APP_DOMAINS), subdomain matching (m.facebook.com → facebook.com).
+ * Never matches category rules — those are NextDNS-only.
+ */
+export function ruleMatchesDomain(
+  rule: Partial<AppRule>,
+  domain: string,
+): boolean {
+  // Categories never match browser domains.
+  if (rule.type === 'category') {
+    return false;
+  }
+
+  const ruleDomain = getDomainForRule(rule);
+  if (!ruleDomain) {
+    return false;
+  }
+
+  const norm = domain.toLowerCase().replace(/^www\./, '');
+  const rd = ruleDomain.toLowerCase().replace(/^www\./, '');
+  return norm === rd || norm.endsWith('.' + rd);
 }
 
 export function resolveTargetInput(input: string): ResolvedTarget {

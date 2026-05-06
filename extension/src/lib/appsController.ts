@@ -139,16 +139,18 @@ export const appsController = {
   /**
    * Internal helper to execute a cloud action only if Strong Protection (syncMode=profile) is active.
    */
-  async _runCloudSync(action: () => Promise<any>) {
+  async _runCloudSync(
+    action: () => Promise<any>,
+    options: { ignoreStatuses?: number[] } = {},
+  ) {
     const isConfigured = await nextDNSApi.isConfigured();
 
     if (isConfigured) {
       const result = await action();
       if (result && result.ok === false) {
         const status = result.error?.status;
-        // Ignore 400 (Already Exists) and 404 (Not Found) which happen when
-        // our local temporary pass overrides drifted from the external cloud state
-        if (status !== 400 && status !== 404) {
+        const ignoredStatuses = options.ignoreStatuses || [];
+        if (!ignoredStatuses.includes(status)) {
           const errorMsg =
             typeof result.error === 'object'
               ? result.error.message
@@ -341,7 +343,7 @@ export const appsController = {
 
       await updateRule(storage, rule as any);
       chrome.runtime.sendMessage({ action: 'manualSync' });
-      toast.success(`Shielded: ${resolved.displayName}`);
+      toast.success(`Blocked: ${resolved.displayName}`);
       return { ok: true };
     } catch (err: any) {
       toast.error(err.message);
@@ -364,8 +366,9 @@ export const appsController = {
         const policy = await getBlockingPolicy(storage);
         const isNativeNextDNS = rule.type === 'category';
         if (isNativeNextDNS || policy.enforcesCloudBlocking) {
-          await this._runCloudSync(() =>
-            nextDNSApi.setTargetState(rule.type || 'domain', id, false),
+          await this._runCloudSync(
+            () => nextDNSApi.setTargetState(rule.type || 'domain', id, false),
+            { ignoreStatuses: [400, 404] },
           );
         }
       }
