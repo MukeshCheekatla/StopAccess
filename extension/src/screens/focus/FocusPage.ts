@@ -70,8 +70,8 @@ function renderTodayRecords(): string {
 
   if (records.length === 0) {
     return `
-      <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-text-center fg-text-[${COLORS.muted}]" style="min-height:220px;">
-        <div style="font-size:16px; color:${COLORS.muted};">No records yet</div>
+      <div class="fg-flex fg-flex-col fg-items-center fg-justify-center fg-text-center fg-text-[${COLORS.muted}] fg-h-full">
+        <div style="font-size:14px; color:${COLORS.muted};">No records yet today</div>
       </div>
     `;
   }
@@ -117,23 +117,23 @@ function renderAmbientShell(
   const isPopup = context === 'popup';
   const gridTemplate = isPopup ? '1fr' : 'minmax(0,1fr) 280px';
   const padding = isPopup ? '12px' : '18px';
-  const minHeight = isPopup ? '380px' : 'calc(100vh - 140px)';
+  const containerHeight = isPopup ? '380px' : 'calc(100vh - 140px)';
 
   return `
-    <div style="position:relative; min-height:${minHeight}; border-radius:28px; overflow:hidden; background:
+    <div style="position:relative; min-height:${containerHeight}; height: 100%; border-radius:28px; overflow:hidden; background:
       linear-gradient(160deg, ${COLORS.surface}, ${COLORS.bg});
       border:1px solid ${
         COLORS.glassBorder
-      }; display: flex; flex-direction: column;
+      }; display: flex; flex-direction: column; box-sizing: border-box;
       box-shadow: 0 18px 48px ${COLORS.shadowSoft};">
 
-      <div style="position:relative; z-index:1; display:grid; grid-template-columns:${gridTemplate}; gap:16px; flex: 1; padding:${padding};">
-        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0;">
+      <div style="position:relative; z-index:1; display:grid; grid-template-columns:${gridTemplate}; gap:16px; flex: 1; padding:${padding}; min-height:0; box-sizing: border-box;">
+        <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0; min-height:0;">
           ${centerContent}
         </div>
         ${
           !isPopup && sideContent
-            ? `<div style="display:flex; flex-direction:column; gap:12px;">${sideContent}</div>`
+            ? `<div style="display:flex; flex-direction:column; gap:12px; height:100%; min-height:0;">${sideContent}</div>`
             : ''
         }
       </div>
@@ -294,7 +294,9 @@ function renderSidePanels(
   return `
     <div class="fg-p-6 fg-rounded-[22px]" style="background:${
       COLORS.glassBg
-    }; border:1px solid ${COLORS.glassBorder}; backdrop-filter:blur(16px);">
+    }; border:1px solid ${
+    COLORS.glassBorder
+  }; backdrop-filter:blur(16px); flex-shrink:0;">
       <div style="${
         UI_TOKENS.TEXT.LABEL
       }; margin-bottom: 14px;">Today's Focus Time</div>
@@ -304,22 +306,28 @@ function renderSidePanels(
     </div>
     <div class="fg-p-6 fg-rounded-[22px]" style="background:${
       COLORS.glassBg
-    }; border:1px solid ${COLORS.glassBorder}; backdrop-filter:blur(16px);">
+    }; border:1px solid ${
+    COLORS.glassBorder
+  }; backdrop-filter:blur(16px); flex-shrink:0;">
       <div style="${UI_TOKENS.TEXT.LABEL}; margin-bottom: 14px;">${title}</div>
       <div style="${
         UI_TOKENS.TEXT.SUBTEXT
       }; font-size: 13px; line-height:1.7;">${body}</div>
     </div>
-    <div class="fg-p-6 fg-rounded-[22px] fg-flex-1" style="background:${
+    <div class="fg-p-6 fg-rounded-[22px] fg-flex-1 fg-flex fg-flex-col" style="background:${
       COLORS.glassBg
-    }; border:1px solid ${COLORS.glassBorder}; backdrop-filter:blur(16px);">
+    }; border:1px solid ${
+    COLORS.glassBorder
+  }; backdrop-filter:blur(16px); min-height:0;">
       <div style="${
         UI_TOKENS.TEXT.LABEL
-      }; margin-bottom: 14px;">Session History</div>
+      }; margin-bottom: 8px;">Session History</div>
       <div style="${
         UI_TOKENS.TEXT.SUBTEXT
-      }; font-size: 13px; margin-bottom: 14px;">Today's completed or interrupted sessions.</div>
-      ${renderTodayRecords()}
+      }; font-size: 12px; margin-bottom: 12px;">Today's session log</div>
+      <div class="fg-flex-1 fg-overflow-y-auto" style="margin-right:-8px; padding-right:8px; min-height:0;">
+        ${renderTodayRecords()}
+      </div>
     </div>
   `;
 }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ByteBody } from './ByteBody';
 import { CompanionMood, CompanionState, ProceduralAngles } from './types';
 
@@ -9,6 +9,7 @@ const lerp = (a: number, b: number, t: number) => (1 - t) * a + t * b;
 interface ByteCompanionProps {
   mood?: CompanionMood;
   message?: string;
+  icon?: string | null;
   action?: string | null;
   variant?: 'sidebar' | 'popup' | 'dashboard';
   theme?: 'light' | 'dark';
@@ -18,6 +19,7 @@ interface ByteCompanionProps {
 export const ByteCompanion: React.FC<ByteCompanionProps> = ({
   mood: externalMood = 'happy',
   message: externalMsg,
+  icon,
   action,
   variant = 'sidebar',
   theme = 'light',
@@ -27,7 +29,9 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
   const [state, setBotState] = useState<CompanionState>('idle');
   const [isFiring, setIsFiring] = useState(false);
   const [flareFired, setFlareFired] = useState(false);
+  const [flareKey, setFlareKey] = useState(0);
   const [signMessage, setSignMessage] = useState('');
+  const displayMsgRef = useRef('');
   const [facing, setFacing] = useState<'left' | 'right'>('right');
   const [angles, setAngles] = useState<ProceduralAngles>({
     bodyBob: 0,
@@ -75,27 +79,16 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
 
   const lastInteraction = useRef(Date.now());
   const mousePos = useRef({ x: 0, y: 0 });
-  const isPoked = useRef(false);
   const signTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const firePhase = useRef<'idle' | 'aim' | 'recoil'>('idle');
+  const behaviorPhase = useRef<string>('idle');
+  const pokeCount = useRef(0);
+  const pokeResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const signMessageRef = useRef('');
   const externalMsgRef = useRef(externalMsg || '');
+  const externalMoodRef = useRef(externalMood);
 
   useEffect(() => {
     externalMsgRef.current = externalMsg || '';
-  }, [externalMsg]);
-
-  useEffect(() => {
-    if (firePhase.current === 'idle') {
-      setMood(externalMood);
-    }
-  }, [externalMood]);
-
-  useEffect(() => {
-    if (externalMsg) {
-      speak(externalMsg, 6000);
-      lastInteraction.current = Date.now(); // Awake on new message
-    }
   }, [externalMsg]);
 
   // Keep signMessageRef in sync so the loop can read it without stale closure
@@ -103,43 +96,77 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
     signMessageRef.current = signMessage;
   }, [signMessage]);
 
-  const speak = (msg: string, duration = 3000) => {
-    if (firePhase.current !== 'idle') {
-      return;
+  const speak = useCallback(
+    (msg: string, duration = 3000) => {
+      if (
+        behaviorPhase.current === 'aim' ||
+        behaviorPhase.current === 'recoil'
+      ) {
+        return;
+      }
+      setSignMessage(msg);
+      signMessageRef.current = msg;
+      if (signTimerRef.current) {
+        clearTimeout(signTimerRef.current);
+      }
+      signTimerRef.current = setTimeout(() => {
+        setSignMessage('');
+        signMessageRef.current = '';
+      }, duration);
+    },
+    [setSignMessage],
+  );
+
+  const prevExternalMoodRef = useRef(externalMood);
+  useEffect(() => {
+    externalMoodRef.current = externalMood;
+
+    // Sync visual mood when idle
+    if (behaviorPhase.current === 'idle') {
+      setMood(externalMood);
     }
-    setSignMessage(msg);
-    signMessageRef.current = msg;
-    if (signTimerRef.current) {
-      clearTimeout(signTimerRef.current);
+
+    // 3. Focus End/Termination Message
+    if (
+      externalMood !== 'focused' &&
+      prevExternalMoodRef.current === 'focused'
+    ) {
+      speak('Session ended.\nReturning to normal.', 4000);
+      lastInteraction.current = Date.now();
     }
-    signTimerRef.current = setTimeout(() => {
-      setSignMessage('');
-      signMessageRef.current = '';
-    }, duration);
-  };
+
+    prevExternalMoodRef.current = externalMood;
+  }, [externalMood, speak]);
+
+  useEffect(() => {
+    if (externalMsg) {
+      speak(externalMsg, 6000);
+      lastInteraction.current = Date.now(); // Awake on new message
+    }
+  }, [externalMsg, speak]);
 
   const triggerFlare = () => {
-    if (firePhase.current !== 'idle') {
+    if (behaviorPhase.current !== 'idle') {
       return;
     }
-    isPoked.current = false;
     targets.current.targetX = 0;
     setIsFiring(true);
     setFlareFired(false);
-    firePhase.current = 'aim';
+    behaviorPhase.current = 'aim';
     setMood('aiming');
     lastInteraction.current = Date.now();
     setTimeout(() => {
-      firePhase.current = 'recoil';
+      behaviorPhase.current = 'recoil';
+      setFlareKey((k) => k + 1);
       setFlareFired(true);
       lastInteraction.current = Date.now();
     }, 600);
     setTimeout(() => {
-      firePhase.current = 'idle';
+      behaviorPhase.current = 'idle';
       setIsFiring(false);
       setFlareFired(false);
       setMood(externalMood);
-    }, 3200);
+    }, 2100);
   };
 
   useEffect(() => {
@@ -150,7 +177,11 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
   }, [action]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!stageRef.current || firePhase.current !== 'idle') {
+    if (
+      !stageRef.current ||
+      behaviorPhase.current === 'aim' ||
+      behaviorPhase.current === 'recoil'
+    ) {
       return;
     }
     const rect = stageRef.current.getBoundingClientRect();
@@ -189,7 +220,7 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
       let isWalking = false;
       const walkSpeed = 3.5;
 
-      if (Math.abs(distX) > 2 && firePhase.current === 'idle') {
+      if (Math.abs(distX) > 2 && behaviorPhase.current === 'idle') {
         isWalking = true;
         const step = Math.min(walkSpeed, Math.abs(distX));
         nextX += Math.sign(distX) * step;
@@ -198,17 +229,19 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
       } else {
         nextX = targets.current.targetX;
       }
-      xPos = nextX; // update local var for next frame
+      xPos = nextX;
       const wp = targets.current.walkPhase;
+      const bp = behaviorPhase.current;
 
       // STATE MACHINE
-      if (firePhase.current !== 'idle') {
+      if (bp === 'aim' || bp === 'recoil') {
+        // 🔫 FLARE GUN
         setBotState('idle');
         targets.current.leftLeg = 0;
         targets.current.rightLeg = 0;
         targets.current.leftLegY = 0;
         targets.current.rightLegY = 0;
-        if (firePhase.current === 'aim') {
+        if (bp === 'aim') {
           targets.current.rightArm = -165;
           targets.current.leftArm = 0;
           targets.current.headTilt = -15;
@@ -224,8 +257,37 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
           targets.current.mouthOpen = 1;
           targets.current.eyeY = -4;
         }
-      } else if (isPoked.current) {
-        setMood('surprised');
+      } else if (bp === 'poked_angry') {
+        // 😡 ANGRY POKE
+        setBotState('idle');
+        targets.current.leftLeg = 0;
+        targets.current.rightLeg = 0;
+        targets.current.leftLegY = 0;
+        targets.current.rightLegY = 0;
+        targets.current.rightArm = mousePos.current.y * 60 - 90;
+        targets.current.leftArm = 45;
+        targets.current.headTilt = mousePos.current.x * 30;
+        targets.current.bodyBob = 0;
+        targets.current.bodyTilt = 0;
+        targets.current.eyeX = mousePos.current.x * 10;
+        targets.current.eyeY = mousePos.current.y * 10;
+        targets.current.mouthOpen = 0;
+      } else if (bp === 'poked_annoyed') {
+        // 😒 ANNOYED POKE
+        setBotState('idle');
+        targets.current.leftLeg = 0;
+        targets.current.rightLeg = 0;
+        targets.current.leftLegY = 0;
+        targets.current.rightLegY = 0;
+        targets.current.bodyTilt = 10 * Math.sign(mousePos.current.x || 1);
+        targets.current.headTilt = 30 * Math.sign(mousePos.current.x || 1);
+        targets.current.leftArm = -40;
+        targets.current.rightArm = 40;
+        targets.current.bodyBob = 5;
+        targets.current.mouthOpen = 0;
+        targets.current.eyeX = 10 * Math.sign(mousePos.current.x || 1);
+      } else if (bp === 'poked_jump') {
+        // 💥 JUMP POKE
         setBotState('idle');
         targets.current.bodyBob = -15;
         targets.current.bodyTilt = 0;
@@ -240,7 +302,7 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
         targets.current.rightLegY = 0;
         targets.current.mouthOpen = 1;
       } else if (isWalking) {
-        setMood('excited');
+        setMood(externalMoodRef.current === 'focused' ? 'focused' : 'excited');
         setBotState('idle');
         targets.current.bodyTilt = Math.sin(wp) * 5;
         targets.current.bodyBob = -Math.abs(Math.cos(wp)) * 5;
@@ -273,7 +335,7 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
           signMessageRef.current = '';
         }
       } else if (timeSinceInteraction > 8000) {
-        setMood('happy');
+        setMood(externalMoodRef.current === 'focused' ? 'focused' : 'happy');
         setBotState('sitting');
         targets.current.bodyBob = 10;
         targets.current.bodyTilt = 0;
@@ -288,7 +350,13 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
         targets.current.eyeX = mousePos.current.x * 4;
         targets.current.eyeY = mousePos.current.y * 3;
       } else {
-        setMood(Math.abs(mousePos.current.x) > 0.6 ? 'focused' : 'happy');
+        setMood(
+          externalMoodRef.current === 'focused'
+            ? 'focused'
+            : Math.abs(mousePos.current.x) > 0.6
+            ? 'focused'
+            : 'happy',
+        );
         setBotState('idle');
         targets.current.bodyBob = 0;
         targets.current.bodyTilt = 0;
@@ -306,10 +374,10 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
         targets.current.eyeY = mousePos.current.y * 6;
       }
 
-      if (firePhase.current === 'idle') {
-        if (sm) {
+      if (behaviorPhase.current === 'idle') {
+        if (displayMsgRef.current) {
           targets.current.leftArm = 145;
-        } else if (!isPoked.current && !isWalking) {
+        } else if (!isWalking) {
           if (timeSinceInteraction > 15000) {
             targets.current.leftArm = -40;
           } else if (timeSinceInteraction > 8000) {
@@ -350,7 +418,7 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
 
   // handleStageClick — stageRef IS the card, same as fafa.tsx
   const handleStageClick = (e: React.MouseEvent) => {
-    if (!stageRef.current || firePhase.current !== 'idle') {
+    if (!stageRef.current || behaviorPhase.current !== 'idle') {
       return;
     }
     if ((e.target as HTMLElement).closest('.bot-hitbox')) {
@@ -370,20 +438,59 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
 
   const handlePoke = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (firePhase.current !== 'idle') {
+    if (behaviorPhase.current === 'aim' || behaviorPhase.current === 'recoil') {
       return;
     }
-    isPoked.current = true;
-    targets.current.targetX = 0;
+
+    pokeCount.current++;
     lastInteraction.current = Date.now();
-    speak('Oops! 💥', 2000);
-    setTimeout(() => {
-      isPoked.current = false;
-    }, 400);
+    targets.current.targetX = 0;
+
+    if (pokeResetTimer.current) {
+      clearTimeout(pokeResetTimer.current);
+    }
+    pokeResetTimer.current = setTimeout(() => {
+      pokeCount.current = 0;
+    }, 5000);
+
+    if (pokeCount.current >= 5) {
+      pokeCount.current = 0;
+      behaviorPhase.current = 'poked_angry';
+      setMood('angry');
+      setIsFiring(true);
+      speak("ALRIGHT THAT'S IT!", 2500);
+      setTimeout(() => {
+        setMood(externalMood);
+        behaviorPhase.current = 'idle';
+        setIsFiring(false);
+      }, 2500);
+    } else if (pokeCount.current >= 3) {
+      behaviorPhase.current = 'poked_annoyed';
+      setMood('judging');
+      speak('Stop that...', 2000);
+      setTimeout(() => {
+        behaviorPhase.current = 'idle';
+        setMood(externalMood);
+      }, 2000);
+    } else {
+      behaviorPhase.current = 'poked_jump';
+      setMood('surprised');
+      speak('Oops!', 1500);
+      setTimeout(() => {
+        behaviorPhase.current = 'idle';
+        setMood(externalMood);
+      }, 400);
+    }
   };
 
   const isSleeping = state === 'sleeping';
-  const displayMsg = isSleeping ? '' : signMessage;
+  // Force empty message if externalMsg is empty to ensure immediate board-down
+  const displayMsg =
+    isSleeping || !externalMsg ? '' : signMessage || externalMsg;
+
+  useEffect(() => {
+    displayMsgRef.current = displayMsg;
+  }, [displayMsg]);
 
   return (
     <div
@@ -413,7 +520,7 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
         className="bot-hitbox"
         style={{
           position: 'absolute',
-          bottom: '20px',
+          bottom: '10px',
           transform: `translateX(${angles.xPos}px)`,
         }}
         onClick={handlePoke}
@@ -424,10 +531,12 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
           facing={facing}
           angles={angles}
           message={displayMsg}
+          iconKey={icon}
           onFlareClick={() => triggerFlare()}
           scale={0.8}
           isFiring={isFiring}
           flareFired={flareFired}
+          flareKey={flareKey}
           theme={theme}
           isNightTime={isNightTime}
         />

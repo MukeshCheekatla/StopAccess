@@ -1,13 +1,29 @@
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { getDomainForRule, resolveFaviconUrl } from '@stopaccess/core';
+/**
+ * content/index.tsx — Content Script Orchestrator
+ * Imports from passManager and overlay; owns only checkAndBlock + bootstrap + NextDNS helper.
+ */
+import { ruleMatchesDomain } from '@stopaccess/core';
 import { AppRule } from '@stopaccess/types';
 import { EXTENSION_COLOR_VAR_DECLARATIONS } from '../ui/theme/designTokens';
 import {
   checkInAppFeatures,
   checkInAppUrlBlock,
 } from '../background/inAppBlocking';
-import { ByteCompanion } from '../ui/components/companion';
+import {
+  getActiveTempPass,
+  getExtensionCount,
+  getMaxPasses,
+  TEMP_PASSES_KEY,
+} from './passManager';
+import {
+  overlayActive,
+  prewarnActive,
+  injectPrewarn,
+  removeOverlay,
+  injectCompanionWarning,
+  setPassCountdownInterval,
+  OVERLAY_ID,
+} from './overlay';
 
 // Bail out immediately if this is a zombie script (context already invalidated)
 if (typeof chrome === 'undefined' || !chrome.runtime?.id) {
@@ -16,607 +32,17 @@ if (typeof chrome === 'undefined' || !chrome.runtime?.id) {
 
 const BLOCKED_DOMAINS_KEY = 'blocked_domains';
 const RULES_KEY = 'rules';
-const TEMP_PASSES_KEY = 'fg_temp_passes';
-const EXT_COUNTS_KEY = 'fg_extension_counts';
 const CONTENT_DEBUG_KEY = 'fg_block_debug';
 const REDIRECT_URL_KEY = 'fg_redirect_url';
 const FOCUS_END_KEY = 'focus_mode_end_time';
-const WILT_UNTIL_KEY = 'wilt_until';
 const STRICT_MODE_KEY = 'strict_mode_enabled';
-const OVERLAY_DELAY_MS = 2500; // NOTE: Do NOT remove or reduce this delay. It prevents race conditions during page load and avoids breaking site scripts.
-const PREBLOCK_ID = '__fg_block_prewarn__';
-const OVERLAY_ID = '__fg_block_overlay__';
-const DEFAULT_MAX_DAILY_PASSES = 3;
-const PASS_DURATION_MINUTES = 5;
-
-let overlayActive = false;
-let prewarnActive = false;
-let overlayEl = null;
-let prewarnEl = null;
-let prewarnTimeout = null;
-
-let liveTimerInterval = null;
-let passCountdownInterval = null;
 
 function currentDomain() {
   return window.location.hostname.replace(/^www\./, '');
 }
 
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function matchesBlockedDomain(domain: string, blockedDomain: string) {
-  const normalized = String(blockedDomain || '')
-    .toLowerCase()
-    .replace(/^www\./, '');
-  return (
-    normalized && (domain === normalized || domain.endsWith('.' + normalized))
-  );
-}
-
 function findMatchingRule(rules: AppRule[], domain: string) {
-  return rules.find((rule) => {
-    const ruleDomain = getDomainForRule(rule);
-    return ruleDomain && matchesBlockedDomain(domain, ruleDomain);
-  });
-}
-
-function todayKey() {
-  // Use en-CA for ISO-like local date string (YYYY-MM-DD)
-  // MUST match the date format used in lifecycle.ts to avoid timezone drift.
-  return new Date().toLocaleDateString('en-CA');
-}
-
-// ── Temp Pass System ──────────────────────────────
-
-async function getActiveTempPass(domain: string) {
-  const res = await chrome.storage.local.get([TEMP_PASSES_KEY]);
-  const passes = res[TEMP_PASSES_KEY] || {};
-
-  // Check the domain itself and its parents (e.g., m.facebook.com -> facebook.com)
-  const parts = domain.split('.');
-  let pass = null;
-
-  for (let i = 0; i <= parts.length - 2; i++) {
-    const d = parts.slice(i).join('.');
-    if (passes[d]) {
-      pass = passes[d];
-      break;
-    }
-  }
-
-  if (!pass) {
-    return null;
-  }
-
-  if (Date.now() > pass.expiresAt) {
-    // Expired — clean up (only if it was an exact match to avoid side effects)
-    if (passes[domain]) {
-      delete passes[domain];
-      await chrome.storage.local.set({ [TEMP_PASSES_KEY]: passes });
-    }
-    return null;
-  }
-  return pass;
-}
-
-async function getExtensionCount(domain: string): Promise<number> {
-  const res = await chrome.storage.local.get([EXT_COUNTS_KEY]);
-  const counts = res[EXT_COUNTS_KEY] || {};
-  const today = todayKey();
-  return (counts[today] && counts[today][domain]) || 0;
-}
-
-function getMaxPasses(rule: AppRule | undefined): number {
-  return Math.max(0, Number(rule?.maxDailyPasses ?? DEFAULT_MAX_DAILY_PASSES));
-}
-
-async function grantTempPass(
-  domain: string,
-  minutes: number,
-  maxDailyPasses = DEFAULT_MAX_DAILY_PASSES,
-): Promise<boolean> {
-  // Check extension count
-  const count = await getExtensionCount(domain);
-  if (count >= maxDailyPasses) {
-    return false;
-  }
-
-  // Create temp pass
-  const res = await chrome.storage.local.get([
-    TEMP_PASSES_KEY,
-    EXT_COUNTS_KEY,
-    RULES_KEY,
-  ]);
-  const passes = res[TEMP_PASSES_KEY] || {};
-  const counts = res[EXT_COUNTS_KEY] || {};
-  const today = todayKey();
-
-  let rules: AppRule[] = [];
-  try {
-    rules =
-      typeof res[RULES_KEY] === 'string'
-        ? JSON.parse(res[RULES_KEY] || '[]')
-        : res[RULES_KEY] || [];
-  } catch {}
-
-  const matchingRule = findMatchingRule(rules, domain);
-  const pkgId = matchingRule?.packageName;
-
-  const passData = {
-    expiresAt: Date.now() + minutes * 60000,
-    grantedMinutes: minutes,
-    grantedAt: Date.now(),
-  };
-
-  if (pkgId) {
-    passes[pkgId] = passData;
-  }
-  passes[domain] = passData;
-
-  if (!counts[today]) {
-    counts[today] = {};
-  }
-  counts[today][domain] = (counts[today][domain] || 0) + 1;
-
-  // Clean old date entries
-  for (const key of Object.keys(counts)) {
-    if (key !== today) {
-      delete counts[key];
-    }
-  }
-
-  await chrome.storage.local.set({
-    [TEMP_PASSES_KEY]: passes,
-    [EXT_COUNTS_KEY]: counts,
-    [WILT_UNTIL_KEY]: Date.now() + 60 * 60 * 1000,
-  });
-
-  return true;
-}
-
-// ── Helpers ───────────────────────────────────────
-
-function formatTime(ms: number): string {
-  const totalSec = Math.floor(ms / 1000);
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const s = totalSec % 60;
-  if (h > 0) {
-    return `${h}h ${String(m).padStart(2, '0')}m ${String(s).padStart(
-      2,
-      '0',
-    )}s`;
-  }
-  return `${m}m ${String(s).padStart(2, '0')}s`;
-}
-
-// ── Markup ────────────────────────────────────────
-
-function buildOverlayMarkup(domain, options: any = {}) {
-  const safeDomain = escapeHtml(domain || 'this site');
-  const {
-    canExtend = false,
-    extensionCount = 0,
-    maxExtensions = DEFAULT_MAX_DAILY_PASSES,
-    ruleMode = 'block',
-    usedMinutes = 0,
-    usedMs = 0,
-    limitMinutes = 0,
-    sessions = 0,
-    isFocusActive = false,
-  } = options;
-
-  const isLimitMode = ruleMode === 'limit' && limitMinutes > 0;
-  const pct = isLimitMode
-    ? Math.min(100, (usedMinutes / limitMinutes) * 100)
-    : 100;
-
-  const R = 80;
-  const C = 2 * Math.PI * R;
-  const offset = C - (C * pct) / 100;
-
-  const ringColor = pct >= 100 ? 'var(--fg-red)' : 'var(--fg-accent)';
-
-  const statusText = isFocusActive
-    ? 'Focus session active'
-    : isLimitMode
-    ? 'Daily access limit exceeded'
-    : 'Access denied by StopAccess';
-  const remaining = isLimitMode ? Math.max(0, limitMinutes - usedMinutes) : 0;
-
-  const clockSvg =
-    '<svg class="fg-w-4 fg-h-4 fg-opacity-50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
-
-  const timeStr = formatTime(usedMs || usedMinutes * 60000);
-  const isLongTime = timeStr.includes('h');
-  const timeFontSize = isLongTime
-    ? 'fg-text-xl sm:fg-text-2xl'
-    : 'fg-text-2xl sm:fg-text-3xl';
-  const remainingPasses = Math.max(0, maxExtensions - extensionCount);
-  const iconUrl = resolveFaviconUrl(domain);
-  const logoUrl = chrome.runtime.getURL('assets/icon-128.png');
-
-  return `
-    <div class="fg-anim-overlay" style="display: flex; align-items: center; justify-content: center; height: 100vh; width: 100vw; background-color: var(--fg-host-bg); color: var(--fg-on-accent); font-family: sans-serif; overflow-y: auto; padding: 24px; position: relative;">
-      <!-- BOT MOUNT POINT -->
-      <div id="__fg_bot_mount" class="fg-hidden lg:fg-block fg-absolute fg-left-12 fg-top-1/2 fg--translate-y-1/2 fg-w-[280px] fg-z-[2147483647]"></div>
-
-      <div class="fg-anim-card" style="display: flex; flex-direction: column; align-items: center; width: 100%; max-width: 440px; position: relative; z-index: 10;">
-        <div class="fg-flex fg-flex-col fg-items-center fg-mb-8">
-          <img src="${logoUrl}" style="width: 48px; height: 48px; margin-bottom: 8px;" alt="StopAccess" />
-          <div class="fg-text-[11px] fg-font-black fg-tracking-[0.1em] fg-opacity-40">StopAccess</div>
-        </div>
-
-        <div style="position: relative; width: 160px; height: 160px; margin-bottom: 32px;">
-          <svg style="width: 100%; height: 100%; transform: rotate(-90deg);" viewBox="0 0 180 180">
-            <circle class="fg-fill-none fg-stroke-zinc-800" cx="90" cy="90" r="${R}" stroke-width="8" />
-            <circle class="fg-fill-none" cx="90" cy="90" r="${R}" 
-              stroke="${ringColor}" stroke-width="8" stroke-linecap="round"
-              style="stroke-dasharray: ${C}; stroke-dashoffset: ${offset}; transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);" />
-          </svg>
-          <div class="fg-absolute fg-inset-0 fg-flex fg-flex-col fg-items-center fg-justify-center fg-gap-1">
-            <div class="${timeFontSize} fg-font-bold fg-tabular-nums" id="__fg_live_time">${timeStr}</div>
-            <div class="fg-text-[12px] fg-font-semibold fg-text-[var(--fg-muted)]">
-              ${isLimitMode ? 'Time Used' : 'Screen Time'}
-            </div>
-          </div>
-        </div>
-
-        <div class="fg-flex fg-items-center fg-justify-center fg-gap-3 fg-mb-2">
-          <img src="${iconUrl}" style="width: 28px; height: 28px; border-radius: 6px; background: #222; border: 1px solid #333;" alt="" />
-          <div class="fg-break-words fg-text-[22px] sm:fg-text-2xl fg-font-bold fg-text-[var(--fg-on-accent)] fg-opacity-90">${safeDomain}</div>
-        </div>
-        <div class="fg-text-[13px] sm:fg-text-sm fg-text-[var(--fg-muted)] fg-mb-6 sm:fg-mb-8 fg-text-center fg-leading-relaxed">${statusText}</div>
-
-        <div class="fg-grid fg-grid-cols-3 fg-gap-px fg-w-full fg-bg-zinc-800 fg-rounded-2xl fg-overflow-hidden fg-mb-6 sm:fg-mb-8 fg-border fg-border-zinc-800">
-          <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-[var(--fg-text)]" id="__fg_session_count">${sessions}</div>
-            <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)]">Sessions</div>
-          </div>
-          <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-[var(--fg-text)]" id="__fg_remaining_time">${remaining}m</div>
-            <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)]">Time left</div>
-          </div>
-          <div class="fg-bg-zinc-950 fg-py-3 sm:fg-py-4 fg-px-2 fg-text-center">
-            <div class="fg-text-base sm:fg-text-lg fg-font-bold fg-text-[var(--fg-text)]" id="__fg_passes_left">${remainingPasses}</div>
-            <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)]">Passes left</div>
-          </div>
-        </div>
-
-        ${
-          canExtend
-            ? `
-          <div class="fg-w-full fg-p-4 sm:fg-p-5 fg-bg-zinc-900/50 fg-border fg-border-zinc-800 fg-rounded-[20px] fg-mb-4">
-            <div class="fg-flex fg-items-center fg-justify-between fg-mb-4">
-              <div class="fg-text-[13px] sm:fg-text-sm fg-font-black fg-text-zinc-300">Temporary Access</div>
-              <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)] fg-bg-zinc-800/50 fg-px-2 fg-py-0.5 fg-rounded-full">
-                ${remainingPasses} available
-              </div>
-            </div>
-            <div class="fg-grid fg-grid-cols-2 fg-gap-3">
-              <button class="fg-extend-btn fg-col-span-2 fg-flex fg-items-center fg-justify-center fg-gap-2 fg-p-3.5 fg-bg-zinc-800/50 fg-border fg-border-zinc-700/50 fg-rounded-xl fg-text-sm fg-font-bold fg-text-zinc-300 fg-transition-all hover:fg-bg-zinc-700/50 active:fg-scale-[0.98] disabled:fg-opacity-30 disabled:fg-cursor-not-allowed" data-minutes="${PASS_DURATION_MINUTES}">
-                ${clockSvg} Use ${PASS_DURATION_MINUTES}m pass
-              </button>
-            </div>
-          </div>
-        `
-            : extensionCount >= maxExtensions
-            ? `
-          <div class="fg-w-full fg-p-4 fg-bg-zinc-900/30 fg-border fg-border-zinc-800 fg-rounded-xl fg-mb-4 fg-text-center fg-text-xs fg-text-zinc-600">
-            <strong class="fg-text-zinc-400">Daily limit reached.</strong> No passes left for today.
-          </div>
-        `
-            : ''
-        }
-
-        <button class="fg-back fg-w-full fg-p-4 fg-border fg-border-zinc-800 fg-rounded-xl fg-bg-transparent fg-text-zinc-400 fg-text-sm fg-font-black fg-transition-all hover:fg-bg-[var(--fg-white-wash)] active:fg-scale-[0.98]">
-          &larr; Back To Safety
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-// ── Overlay Inject / Remove ───────────────────────
-
-function injectOverlay(domain, options: any = {}) {
-  if (overlayActive) {
-    return;
-  }
-
-  overlayActive = true;
-  window.stop();
-
-  // Pause all playing media (fixes YouTube audio continuing after block)
-  try {
-    document.querySelectorAll('video, audio').forEach((el: any) => {
-      if (!el.paused) {
-        el.pause();
-      }
-    });
-  } catch (e) {}
-
-  document.documentElement.style.overflow = 'hidden';
-  if (document.body) {
-    document.body.style.overflow = 'hidden';
-  }
-
-  overlayEl = document.createElement('div');
-  overlayEl.id = OVERLAY_ID;
-
-  const shadow = overlayEl.attachShadow({ mode: 'open' });
-
-  // Inject Tailwind
-  const styleLink = document.createElement('link');
-  styleLink.rel = 'stylesheet';
-  styleLink.href = chrome.runtime.getURL('tailwind.css');
-  shadow.appendChild(styleLink);
-
-  // Still need some base styles for the host and scrollbar reset
-  const baseStyle = document.createElement('style');
-  baseStyle.textContent = `
-    :host {
-      ${EXTENSION_COLOR_VAR_DECLARATIONS}
-      all: initial !important;
-      position: fixed !important;
-      top: 0 !important;
-      left: 0 !important;
-      width: 100vw !important;
-      height: 100vh !important;
-      z-index: 2147483647 !important;
-      display: block !important;
-      background-color: var(--fg-host-bg) !important;
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, sans-serif !important;
-    }
-    @keyframes fgFadeIn {
-      0% { opacity: 0; }
-      100% { opacity: 1; }
-    }
-    .fg-anim-overlay { 
-      animation: fgFadeIn 0.3s ease-out forwards;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      height: 100vh !important;
-      width: 100vw !important;
-      background-color: var(--fg-host-bg) !important;
-      overflow-y: auto !important;
-    }
-    .fg-anim-card { 
-       animation: fgFadeIn 0.4s ease-out forwards;
-       display: flex !important;
-       flex-direction: column !important;
-       align-items: center !important;
-       width: 100% !important;
-       max-width: 440px !important;
-    }
-  `;
-  shadow.appendChild(baseStyle);
-
-  const wrapper = document.createElement('div');
-  wrapper.style.width = '100%';
-  wrapper.style.height = '100%';
-  wrapper.innerHTML = buildOverlayMarkup(domain, options);
-
-  // Once attached and styleLink is loaded, ensure everything is visible
-  styleLink.onload = () => {
-    shadow.appendChild(wrapper);
-    attachOverlayListeners(shadow, domain, options);
-    requestAnimationFrame(() => {
-      wrapper.style.opacity = '1';
-    });
-
-    // Render Bot
-    const botMount = shadow.getElementById('__fg_bot_mount');
-    if (botMount) {
-      const root = createRoot(botMount);
-      root.render(
-        <ByteCompanion
-          mood="judging"
-          message="Stay Focused!
-Work is priority."
-          variant="sidebar"
-        />,
-      );
-    }
-
-    restartLiveTimer(
-      shadow,
-      options.usedMs || (options.usedMinutes || 0) * 60000,
-    );
-  };
-
-  const root = document.body || document.documentElement;
-  if (root) {
-    root.appendChild(overlayEl);
-  }
-}
-
-/**
- * Starts (or restarts) the overlay live timer from `startMs`.
- * Pauses automatically when the tab is hidden; resumes on visibility.
- * Safe to call multiple times — always clears any previous interval.
- */
-function restartLiveTimer(shadow: ShadowRoot, startMs: number) {
-  if (liveTimerInterval) {
-    clearInterval(liveTimerInterval);
-  }
-  let currentMs = startMs;
-  let lastTick = Date.now();
-
-  liveTimerInterval = setInterval(() => {
-    const el = shadow.getElementById('__fg_live_time');
-    if (!el) {
-      clearInterval(liveTimerInterval);
-      liveTimerInterval = null;
-      return;
-    }
-    // Suspend entirely when the tab is not visible — no wasted ticks.
-    if (document.visibilityState !== 'visible') {
-      lastTick = Date.now(); // reset so we don't jump when returning
-      return;
-    }
-    const now = Date.now();
-    currentMs += now - lastTick;
-    lastTick = now;
-    el.textContent = formatTime(currentMs);
-  }, 1000);
-}
-
-function attachOverlayListeners(
-  shadow: ShadowRoot,
-  domain: string,
-  options: any,
-) {
-  shadow.querySelector('.fg-back')?.addEventListener('click', () => {
-    window.location.href = chrome.runtime.getURL('dashboard.html');
-  });
-
-  shadow.querySelectorAll('.fg-extend-btn').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const minutes = Number(btn.getAttribute('data-minutes') || '0');
-      if (!minutes) {
-        return;
-      }
-
-      shadow
-        .querySelectorAll('.fg-extend-btn')
-        .forEach((b) => b.setAttribute('disabled', 'true'));
-
-      const ok = await grantTempPass(
-        domain,
-        minutes,
-        Number(options.maxExtensions || DEFAULT_MAX_DAILY_PASSES),
-      );
-      if (ok) {
-        await chrome.runtime.sendMessage({ action: 'manualSync' });
-        removeOverlay();
-      } else {
-        shadow
-          .querySelectorAll('.fg-extend-btn')
-          .forEach((b) => b.removeAttribute('disabled'));
-      }
-    });
-  });
-}
-
-function removeOverlay() {
-  // Clear any pending transition from pre-warn to full block
-  if (prewarnTimeout) {
-    clearTimeout(prewarnTimeout);
-    prewarnTimeout = null;
-  }
-
-  const existingOverlay = document.getElementById(OVERLAY_ID);
-  const existingPrewarn = document.getElementById(PREBLOCK_ID);
-
-  if (
-    !overlayActive &&
-    !prewarnActive &&
-    !existingOverlay &&
-    !existingPrewarn
-  ) {
-    return;
-  }
-
-  overlayActive = false;
-  prewarnActive = false;
-
-  if (liveTimerInterval) {
-    clearInterval(liveTimerInterval);
-    liveTimerInterval = null;
-  }
-  if (passCountdownInterval) {
-    clearInterval(passCountdownInterval);
-    passCountdownInterval = null;
-  }
-
-  // Cleanup full overlay
-  if (existingOverlay && existingOverlay.parentNode) {
-    existingOverlay.parentNode.removeChild(existingOverlay);
-  } else if (overlayEl?.parentNode) {
-    overlayEl.parentNode.removeChild(overlayEl);
-  }
-  overlayEl = null;
-
-  // Cleanup pre-warn overlay
-  if (existingPrewarn && existingPrewarn.parentNode) {
-    existingPrewarn.parentNode.removeChild(existingPrewarn);
-  } else if (prewarnEl?.parentNode) {
-    prewarnEl.parentNode.removeChild(prewarnEl);
-  }
-  prewarnEl = null;
-
-  // Always clear to empty string — restoring the site's own saved value
-  // (e.g. X sets overflow:hidden during modals) causes permanent scroll lock.
-  document.documentElement.style.overflow = '';
-  if (document.body) {
-    document.body.style.overflow = '';
-  }
-}
-
-function injectPrewarn(domain: string, options: any) {
-  if (overlayActive || prewarnActive) {
-    return;
-  }
-  prewarnActive = true;
-
-  document.documentElement.style.overflow = 'hidden';
-  if (document.body) {
-    document.body.style.overflow = 'hidden';
-  }
-
-  prewarnEl = document.createElement('div');
-  prewarnEl.id = PREBLOCK_ID;
-  prewarnEl.setAttribute(
-    'style',
-    `
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100vw !important;
-    height: 100vh !important;
-    z-index: 2147483646 !important;
-    background: rgba(0, 0, 0, 0.4) !important;
-    backdrop-filter: blur(20px) !important;
-    -webkit-backdrop-filter: blur(20px) !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    transition: opacity 0.5s ease !important;
-  `,
-  );
-
-  prewarnEl.innerHTML = `
-    <div style="text-align: center; color: white; font-family: sans-serif;">
-      <div style="width: 60px; height: 60px; border: 3px solid #ef4444; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; opacity: 0.8;">
-         <div style="width: 24px; height: 24px; background: #ef4444; border-radius: 50%;"></div>
-      </div>
-      <div style="font-size: 20px; font-weight: bold; opacity: 0.9;">StopAccess</div>
-      <div style="font-size: 13px; opacity: 0.6; margin-top: 8px;">Securing your focus...</div>
-    </div>
-  `;
-
-  const root = document.body || document.documentElement;
-  if (root) {
-    root.appendChild(prewarnEl);
-  }
-
-  prewarnTimeout = setTimeout(() => {
-    prewarnActive = false;
-    if (prewarnEl?.parentNode) {
-      prewarnEl.parentNode.removeChild(prewarnEl);
-    }
-    prewarnEl = null;
-    injectOverlay(domain, options);
-  }, OVERLAY_DELAY_MS);
+  return rules.find((rule) => ruleMatchesDomain(rule, domain));
 }
 
 // ── Core Check ────────────────────────────────────
@@ -638,27 +64,18 @@ async function checkAndBlock() {
       return;
     }
 
-    // Call In-App Features
     checkInAppFeatures(domain);
-
     const urlBlock = checkInAppUrlBlock(domain, window.location.pathname);
     const isInAppBlocked = urlBlock.blocked;
 
     // Check for active temp pass FIRST
     const activePass = await getActiveTempPass(domain);
     if (activePass) {
-      // Pass is active — don't block, remove overlay if showing
       removeOverlay();
-
-      // Start a countdown to re-check when pass expires
-      if (passCountdownInterval) {
-        clearInterval(passCountdownInterval);
-      }
       const remainingMs = activePass.expiresAt - Date.now();
       if (remainingMs > 0) {
-        passCountdownInterval = setTimeout(() => {
-          checkAndBlock(); // Re-check — pass will be expired
-        }, remainingMs + 500); // +500ms buffer
+        const t = setTimeout(() => checkAndBlock(), remainingMs + 500);
+        setPassCountdownInterval(t);
       }
       return;
     }
@@ -676,41 +93,43 @@ async function checkAndBlock() {
     const blockedDomains = Array.isArray(res[BLOCKED_DOMAINS_KEY])
       ? res[BLOCKED_DOMAINS_KEY]
       : [];
-
     const strictEnabled = res.strict_mode_enabled === true;
 
     let rules: AppRule[] = [];
-    let derivedBlockedDomains = [];
     try {
       rules =
         typeof res[RULES_KEY] === 'string'
           ? JSON.parse(res[RULES_KEY] || '[]')
           : res[RULES_KEY] || [];
-      derivedBlockedDomains = rules
-        .filter((rule) => {
-          const isManuallyBlocked = rule.mode === 'block';
-          const isLimitReached =
-            rule.mode === 'limit' &&
-            (rule.blockedToday === true ||
-              (rule.dailyLimitMinutes > 0 &&
-                (rule.usedMinutesToday || 0) >= rule.dailyLimitMinutes));
-          return isManuallyBlocked || isLimitReached;
-        })
-        .map((rule) => getDomainForRule(rule))
-        .filter(Boolean);
     } catch (error) {
-      console.warn(
-        '[StopAccess] Failed to derive blocked domains from rules',
-        error,
-      );
+      console.warn('[StopAccess] Failed to parse rules', error);
     }
 
-    const effectiveBlockedDomains = Array.from(
-      new Set([...blockedDomains, ...derivedBlockedDomains]),
-    );
-    const isBlocked =
-      isInAppBlocked ||
-      effectiveBlockedDomains.some((bd) => matchesBlockedDomain(domain, bd));
+    // Check non-category rules — ruleMatchesDomain excludes categories automatically.
+    const isBlockedByRule = rules.some((rule) => {
+      if (rule.desiredBlockingState === false) {
+        return false;
+      }
+      const isManuallyBlocked = rule.mode === 'block';
+      const isLimitReached =
+        rule.mode === 'limit' &&
+        (rule.blockedToday === true ||
+          (rule.dailyLimitMinutes > 0 &&
+            (rule.usedMinutesToday || 0) >= rule.dailyLimitMinutes));
+      if (!isManuallyBlocked && !isLimitReached) {
+        return false;
+      }
+      return ruleMatchesDomain(rule, domain);
+    });
+
+    const isBlockedByLegacy = blockedDomains.some((bd: string) => {
+      const norm = String(bd || '')
+        .toLowerCase()
+        .replace(/^www\./, '');
+      return norm && (domain === norm || domain.endsWith('.' + norm));
+    });
+
+    const isBlocked = isInAppBlocked || isBlockedByRule || isBlockedByLegacy;
 
     const matchingRule = findMatchingRule(rules, domain);
     const extensionCount = await getExtensionCount(domain);
@@ -752,9 +171,7 @@ async function checkAndBlock() {
             window.location.href = finalUrl;
             return;
           }
-        } catch (e) {
-          // invalid URL maybe, ignore and continue to block
-        }
+        } catch (e) {}
       }
 
       const usageStore = res.usage || {};
@@ -769,20 +186,19 @@ async function checkAndBlock() {
       );
       const sessions = domainUsage?.sessions || 0;
 
-      if (overlayActive && overlayEl) {
-        const shadow = overlayEl.shadowRoot;
+      // Update existing overlay stats without rebuilding the DOM
+      if (overlayActive) {
+        const overlayEl = document.getElementById(OVERLAY_ID);
+        const shadow = overlayEl?.shadowRoot;
         if (shadow) {
-          // Targeted updates to prevent flickering (no innerHTML replacement)
           const liveTime = shadow.getElementById('__fg_live_time');
           if (liveTime) {
             liveTime.textContent = formatTime(effectiveMs);
           }
-
           const sessionEl = shadow.getElementById('__fg_session_count');
           if (sessionEl) {
             sessionEl.textContent = String(sessions);
           }
-
           const remainingEl = shadow.getElementById('__fg_remaining_time');
           if (remainingEl) {
             remainingEl.textContent =
@@ -793,16 +209,12 @@ async function checkAndBlock() {
                 ),
               ) + 'm';
           }
-
           const passesEl = shadow.getElementById('__fg_passes_left');
           if (passesEl) {
             passesEl.textContent = String(
               Math.max(0, maxDailyPasses - extensionCount),
             );
           }
-
-          // Ensure the timer is in sync with the latest flushed background data
-          restartLiveTimer(shadow, effectiveMs);
         }
       }
 
@@ -822,9 +234,8 @@ async function checkAndBlock() {
     } else {
       removeOverlay();
 
-      // ── 5-min companion warning (limit mode only) ──────────
+      // 5-min companion warning (limit mode only)
       if (
-        !companionWarningShown &&
         matchingRule?.mode === 'limit' &&
         matchingRule.dailyLimitMinutes > 0
       ) {
@@ -848,146 +259,23 @@ async function checkAndBlock() {
   }
 }
 
-// ── Companion Warning (on-site 5-min warning) ────────────
-
-const COMPANION_ID = '__fg_companion_warn__';
-let companionWarningShown = false;
-
-function injectCompanionWarning(remainingMs: number) {
-  if (companionWarningShown || document.getElementById(COMPANION_ID)) {
-    return;
+function formatTime(ms: number): string {
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  if (h > 0) {
+    return `${h}h ${String(m).padStart(2, '00')}m ${String(s).padStart(
+      2,
+      '00',
+    )}s`;
   }
-  if (overlayActive || prewarnActive) {
-    return;
-  }
-  companionWarningShown = true;
-
-  const iconUrl = chrome.runtime.getURL('assets/icon-128.png');
-  const mins = Math.ceil(remainingMs / 60000);
-
-  const el = document.createElement('div');
-  el.id = COMPANION_ID;
-  el.setAttribute(
-    'style',
-    [
-      'position:fixed',
-      'bottom:0',
-      'right:-80px', // starts off-screen right
-      'z-index:2147483640',
-      'width:80px',
-      'pointer-events:none',
-      'transition:right 1.2s cubic-bezier(0.34,1.4,0.64,1)',
-      'font-family:monospace',
-    ].join(';'),
-  );
-
-  el.innerHTML = `
-    <style>
-      @keyframes __fg_walk { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-3px)} }
-      @keyframes __fg_legL  { 0%,100%{transform:rotate(18deg)} 50%{transform:rotate(-18deg)} }
-      @keyframes __fg_legR  { 0%{transform:rotate(-18deg)} 50%{transform:rotate(18deg)} 100%{transform:rotate(-18deg)} }
-      @keyframes __fg_armL  { 0%,100%{transform:rotate(-12deg)} 50%{transform:rotate(12deg)} }
-      @keyframes __fg_armR  { 0%{transform:rotate(12deg)} 50%{transform:rotate(-12deg)} 100%{transform:rotate(12deg)} }
-      @keyframes __fg_hold  { 0%,100%{transform:rotate(-65deg)} 50%{transform:rotate(-60deg)} }
-      @keyframes __fg_signbob { 0%,100%{transform:translateX(-50%) rotateY(0deg)} 50%{transform:translateX(-50%) rotateY(3deg)} }
-      @keyframes __fg_fadeout { 0%{opacity:1} 100%{opacity:0;transform:translateY(20px)} }
-    </style>
-    <div style="display:flex;flex-direction:column;align-items:center;animation:__fg_walk 0.55s infinite ease-in-out;">
-      <!-- Sign held above (shown while standing) -->
-      <div id="__fg_sign__" style="
-        position:absolute;
-        bottom:95px;
-        left:50%;
-        transform:translateX(-50%);
-        background:hsl(30,42%,26%);
-        border:2px solid hsl(30,24%,14%);
-        border-radius:7px;
-        padding:5px 8px;
-        text-align:center;
-        white-space:nowrap;
-        box-shadow:0 4px 12px rgba(0,0,0,0.45);
-        animation:__fg_signbob 2s infinite ease-in-out;
-        perspective:300px;
-      ">
-        <div style="font-size:9px;font-weight:700;color:hsl(40,62%,90%);line-height:1.35;">⚠️ ${mins}m left!</div>
-        <div style="font-size:8px;color:hsl(40,50%,70%);margin-top:1px;">on this site</div>
-        <div style="width:2px;height:8px;background:hsl(30,30%,20%);margin:2px auto 0;"></div>
-      </div>
-      <!-- SVG body -->
-      <svg viewBox="0 0 60 80" width="64" height="80" style="overflow:visible;transform:scaleX(-1);">
-        <!-- Left arm: holds sign -->
-        <g style="transform-origin:14px 41px;animation:__fg_hold 1.1s infinite ease-in-out;">
-          <rect x="4" y="38" width="10" height="7" rx="3.5" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1.5"/>
-          <circle cx="8" cy="47" r="3" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1.5"/>
-        </g>
-        <!-- Right arm: holds sign -->
-        <g style="transform-origin:46px 41px;animation:__fg_hold 1.1s infinite ease-in-out;">
-          <rect x="46" y="38" width="10" height="7" rx="3.5" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1.5"/>
-          <circle cx="52" cy="47" r="3" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1.5"/>
-        </g>
-        <!-- Torso -->
-        <rect x="14" y="36" width="32" height="21" rx="8" fill="#1e1e2e" stroke="#3a3a4a" stroke-width="2"/>
-        <!-- Icon badge on chest -->
-        <image href="${iconUrl}" x="22" y="42" width="16" height="16"/>
-        <!-- Left leg -->
-        <g style="transform-origin:22px 57px;animation:__fg_legL 0.55s infinite ease-in-out;">
-          <rect x="18" y="57" width="8" height="12" rx="3" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1.5"/>
-          <rect x="14" y="67" width="13" height="5" rx="2.5" fill="#1a1a2e"/>
-        </g>
-        <!-- Right leg -->
-        <g style="transform-origin:38px 57px;animation:__fg_legR 0.55s infinite ease-in-out;">
-          <rect x="34" y="57" width="8" height="12" rx="3" fill="#2a2a3a" stroke="#3a3a4a" stroke-width="1.5"/>
-          <rect x="33" y="67" width="13" height="5" rx="2.5" fill="#1a1a2e"/>
-        </g>
-        <!-- Head -->
-        <rect x="10" y="2" width="40" height="34" rx="13" fill="#1e1e2e" stroke="#3a3a4a" stroke-width="2.5"/>
-        <rect x="13" y="7" width="34" height="20" rx="6" fill="rgba(100,140,255,0.12)"/>
-        <!-- Eyes -->
-        <circle cx="21" cy="17" r="3.5" fill="#6366f1"/>
-        <circle cx="39" cy="17" r="3.5" fill="#6366f1"/>
-        <circle cx="22.5" cy="15.5" r="1" fill="white" opacity="0.7"/>
-        <circle cx="40.5" cy="15.5" r="1" fill="white" opacity="0.7"/>
-        <!-- Warning expression: eyebrows furrowed -->
-        <line x1="15" y1="8" x2="23" y2="10.5" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
-        <line x1="37" y1="10.5" x2="45" y2="8" stroke="#f87171" stroke-width="2" stroke-linecap="round"/>
-        <!-- Mouth: concerned -->
-        <path d="M22 32 Q30 27 38 32" stroke="#6366f1" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-        <!-- Antenna -->
-        <line x1="30" y1="2" x2="30" y2="-5" stroke="#3a3a4a" stroke-width="2"/>
-        <circle cx="30" cy="-7" r="2.8" fill="#f87171"/>
-      </svg>
-    </div>
-  `;
-
-  const root = document.body || document.documentElement;
-  if (!root) {
-    return;
-  }
-  root.appendChild(el);
-
-  // Walk in from right after a short delay
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      el.style.right = '12px';
-    });
-  });
-
-  // Disappear after 8 seconds
-  setTimeout(() => {
-    el.style.animation = '__fg_fadeout 0.6s ease-in forwards';
-    el.style.opacity = '0';
-    setTimeout(() => {
-      if (el.parentNode) {
-        el.parentNode.removeChild(el);
-      }
-    }, 700);
-  }, 8000);
+  return `${m}m ${String(s).padStart(2, '0')}s`;
 }
 
-// ── Persistence Engine ──────────────────────────
+// ── Persistence Engine ────────────────────────────
 
-// Watch for DOM changes to ensure overlay isn't removed
-const persistenceObserver = new MutationObserver((_mutations) => {
+const persistenceObserver = new MutationObserver(() => {
   if (!chrome.runtime?.id) {
     persistenceObserver.disconnect();
     return;
@@ -995,7 +283,6 @@ const persistenceObserver = new MutationObserver((_mutations) => {
   if (!overlayActive) {
     return;
   }
-  // If overlay element is gone from the DOM, re-inject
   if (!document.getElementById(OVERLAY_ID)) {
     checkAndBlock();
   }
@@ -1019,10 +306,6 @@ startPersistence();
 window.addEventListener('popstate', checkAndBlock);
 window.addEventListener('hashchange', checkAndBlock);
 
-// SPA Navigation Observer
-// Since pushState/replaceState can't be monkey-patched from an isolated world,
-// we observe URL changes via polling or mutation triggers to ensure blocks
-// are enforced when navigating within an SPA (e.g. YouTube, Facebook).
 let __fg_last_href = window.location.href;
 setInterval(() => {
   if (
@@ -1034,7 +317,6 @@ setInterval(() => {
   }
 }, 800);
 
-// Re-check on visibility change (prevents bypasses when switching tabs)
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     checkAndBlock();
@@ -1057,11 +339,8 @@ chrome.storage.onChanged.addListener((changes) => {
   }
 });
 
-// ════════════════════════════════════════════════════════════
-// NextDNS Setup Helper
-// Only shown when the user navigated here from StopAccess
-// onboarding or settings (intent flag set in storage).
-// ════════════════════════════════════════════════════════════
+// ── NextDNS Setup Helper ──────────────────────────
+// Only shown when the user navigated here from StopAccess onboarding or settings.
 
 if (window.location.hostname.includes('nextdns.io')) {
   let idSent = false;
@@ -1071,7 +350,6 @@ if (window.location.hostname.includes('nextdns.io')) {
     if (!m) {
       return null;
     }
-    // These are known non-profile segments in the URL
     if (
       ['account', 'login', 'signup', 'new', 'setup', 'install'].includes(
         m[1].toLowerCase(),
@@ -1086,8 +364,6 @@ if (window.location.hostname.includes('nextdns.io')) {
     if (idSent) {
       return;
     }
-
-    // Check intent flag to see if we should auto-detect and close
     try {
       if (!chrome.runtime?.id) {
         return;
@@ -1096,9 +372,6 @@ if (window.location.hostname.includes('nextdns.io')) {
         .fg_helper_intent as
         | { mode: string; expiresAt?: number; nextDnsId?: string }
         | undefined;
-
-      // Only auto-detect if the user came from the extension to "Locate ID"
-      // and the intent hasn't expired.
       if (
         !intent ||
         intent.mode !== 'setup' ||
@@ -1106,21 +379,13 @@ if (window.location.hostname.includes('nextdns.io')) {
       ) {
         return;
       }
-
       const id = profileIdFromUrl();
       if (id) {
         idSent = true;
-        // Clear intent so it doesn't keep closing other NextDNS tabs accidentally
         await chrome.storage.local.remove('fg_helper_intent');
-
-        chrome.runtime.sendMessage({
-          type: 'NEXTDNS_ID_FOUND',
-          id: id,
-        });
+        chrome.runtime.sendMessage({ type: 'NEXTDNS_ID_FOUND', id });
       }
-    } catch (e) {
-      // suppress context invalidated errors
-    }
+    } catch (e) {}
   }
 
   async function showApiGuide() {
@@ -1128,18 +393,12 @@ if (window.location.hostname.includes('nextdns.io')) {
       if (!chrome.runtime?.id) {
         return;
       }
-
-      const isAccountPage = window.location.pathname.startsWith('/account');
-      if (!isAccountPage) {
+      if (!window.location.pathname.startsWith('/account')) {
         return;
       }
-
-      // Check if we already have a guide
       if (document.getElementById('__fg_api_guide__')) {
         return;
       }
-
-      // Check intent flag to see if we should show it
       const res = await chrome.storage.local.get('fg_helper_intent');
       const intent = res.fg_helper_intent as
         | { mode: string; expiresAt: number }
@@ -1154,7 +413,6 @@ if (window.location.hostname.includes('nextdns.io')) {
       }
 
       const iconUrl = chrome.runtime.getURL('assets/icon-32.png');
-
       const card = document.createElement('div');
       card.id = '__fg_api_guide__';
       card.setAttribute(
@@ -1173,40 +431,32 @@ if (window.location.hostname.includes('nextdns.io')) {
           'width:264px',
           'box-shadow:0 12px 40px var(--fg-shadow-soft)',
           'color:var(--fg-guide-text)',
-          'pointer-events:none', // Make it non-interactive
+          'pointer-events:none',
         ].join(';'),
       );
 
       card.innerHTML = `
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-        <img src="${iconUrl}" style="width:20px;height:20px;border-radius:6px;border:1px solid var(--fg-guide-icon-border);" />
-        <span style="font-size:12px;font-weight:800;letter-spacing:0;color:var(--fg-guide-label);">StopAccess guide</span>
-      </div>
-      <div style="font-size:13px;color:var(--fg-guide-muted);line-height:1.6;font-weight:600;">
-        Scroll down to the <strong style="color:var(--fg-guide-text)">API</strong> section. Generate a dedicated key, copy it, then return to StopAccess to paste it.
-      </div>
-    `;
-
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
+          <img src="${iconUrl}" style="width:20px;height:20px;border-radius:6px;border:1px solid var(--fg-guide-icon-border);" />
+          <span style="font-size:12px;font-weight:800;letter-spacing:0;color:var(--fg-guide-label);">StopAccess guide</span>
+        </div>
+        <div style="font-size:13px;color:var(--fg-guide-muted);line-height:1.6;font-weight:600;">
+          Scroll down to the <strong style="color:var(--fg-guide-text)">API</strong> section. Generate a dedicated key, copy it, then return to StopAccess to paste it.
+        </div>
+      `;
       root.appendChild(card);
-    } catch (e) {
-      // suppress
-    }
+    } catch (e) {}
   }
 
-  // Initial check
   extractAndNotify();
   showApiGuide();
 
-  // Watch for SPA navigation (NextDNS is a Vue SPA)
   let lastUrl = window.location.href;
   new MutationObserver(() => {
     if (window.location.href !== lastUrl) {
       lastUrl = window.location.href;
       extractAndNotify();
-      const existing = document.getElementById('__fg_api_guide__');
-      if (existing) {
-        existing.remove();
-      }
+      document.getElementById('__fg_api_guide__')?.remove();
       showApiGuide();
     }
   }).observe(document.documentElement, { childList: true, subtree: true });

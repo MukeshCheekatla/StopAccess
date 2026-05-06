@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { COLORS } from '../../../ui/theme/designTokens';
+import { UI_ICONS, UI_TOKENS } from '../../theme/uiTokens';
 
 export interface ByteSignProps {
   message?: string;
+  iconKey?: string | null;
   ctaLabel?: string;
   onCtaClick?: () => void;
   theme?: 'light' | 'dark';
@@ -10,6 +12,7 @@ export interface ByteSignProps {
 
 export const ByteSign: React.FC<ByteSignProps> = ({
   message,
+  iconKey,
   ctaLabel,
   onCtaClick,
   theme = 'light',
@@ -130,25 +133,79 @@ export const ByteSign: React.FC<ByteSignProps> = ({
               }}
             />
           ))}
-          {/* Text */}
-          <p
+          {/* Content Container */}
+          <div
             style={{
-              color: signText,
-              fontSize: 14,
-              fontWeight: 900,
-              lineHeight: 1.2,
+              padding: '0 12px',
               textAlign: 'center',
-              margin: 0,
-              fontFamily: 'monospace',
-              position: 'relative',
-              zIndex: 1,
-              whiteSpace: 'pre-wrap',
-              textShadow:
-                theme === 'light' ? '0 1px 0 rgba(255,255,255,0.5)' : 'none',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '2px',
             }}
           >
-            {displayMsg}
-          </p>
+            {/* Line 1: Icon + Title */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                width: '100%',
+                color: signText,
+              }}
+            >
+              {iconKey && UI_ICONS[iconKey as keyof typeof UI_ICONS] && (
+                <div
+                  style={{
+                    width: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: UI_ICONS[iconKey as keyof typeof UI_ICONS],
+                  }}
+                />
+              )}
+              <span
+                style={{
+                  ...UI_TOKENS.TEXT.R.SIGN_TITLE,
+                  color: signText,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  textShadow:
+                    theme === 'dark'
+                      ? '0 1px 2px rgba(0,0,0,0.5)'
+                      : '0 1px 1px rgba(255,255,255,0.3)',
+                }}
+              >
+                {displayMsg.split('/n')[0]}
+              </span>
+            </div>
+
+            {/* Line 2: Detail */}
+            {displayMsg.includes('/n') && (
+              <div
+                style={{
+                  ...UI_TOKENS.TEXT.R.SIGN_VALUE,
+                  color: signText,
+                  width: '100%',
+                  textAlign: 'center',
+                  padding: '0 4px',
+                  textShadow:
+                    theme === 'dark'
+                      ? '0 1px 2px rgba(0,0,0,0.4)'
+                      : '0 1px 1px rgba(255,255,255,0.2)',
+                }}
+              >
+                {displayMsg.split('/n')[1]}
+              </div>
+            )}
+          </div>
 
           {/* CTA Button */}
           {ctaLabel && (

@@ -81,7 +81,36 @@ class ToastManager {
     type: 'info' | 'success' | 'error' = 'info',
     duration: number = 3000,
   ) {
-    // Prevent toast burst (duplicate same message within 500ms)
+    // 1. Dashboard Redirect: If on dashboard, send to Byte instead
+    if (window.location.pathname.includes('dashboard.html')) {
+      const header =
+        type === 'success'
+          ? 'Success!'
+          : type === 'error'
+          ? 'Block!'
+          : 'Notice!';
+      const finalMsg = message.includes('/n')
+        ? message
+        : `${header}/n${message}`;
+
+      window.dispatchEvent(
+        new CustomEvent('fg_companion_toast', {
+          detail: {
+            msg: finalMsg,
+            mood:
+              type === 'success'
+                ? 'excited'
+                : type === 'error'
+                ? 'judging'
+                : 'happy',
+            icon: type === 'error' ? 'LOCK' : 'TARGET',
+          },
+        }),
+      );
+      return; // Stop standard toast on dashboard
+    }
+
+    // 2. Standard Toast Logic (Popup or other contexts)
     const now = Date.now();
     if (message === this.lastMessage && now - this.lastTimestamp < 500) {
       return;

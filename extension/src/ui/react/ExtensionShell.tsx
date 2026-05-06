@@ -4,6 +4,7 @@ import { UI_TOKENS } from '../../ui/ui';
 import { ByteCompanion } from '../components/companion';
 import { useShellCompanion } from '../components/companion/useShellCompanion';
 import { SunIcon, MonitorIcon, MoonIcon, SignOutIcon } from './ShellIcons';
+import { dispatchCompanionToast } from '../components/companion/companionToast';
 
 export type ShellTab<T extends string> = {
   id: T;
@@ -156,6 +157,7 @@ export function DashboardShell<T extends string>({
       }`}
     >
       <div
+        id="fg-dashboard-shell"
         className={`fg-sidebar fg-w-[272px] fg-bg-[var(--fg-sidebar-bg)] fg-border-r fg-border-[var(--fg-glass-border)] fg-flex fg-flex-col fg-shrink-0 fg-p-[14px] ${
           hiddenSidebar ? 'fg-hidden' : ''
         }`}
@@ -222,6 +224,7 @@ export function DashboardShell<T extends string>({
             mood={companion.mood}
             message={companion.message}
             action={companion.action}
+            icon={companion.icon}
             variant="sidebar"
             theme={
               theme === 'system'
@@ -269,7 +272,13 @@ export function DashboardShell<T extends string>({
             />
 
             <button
-              onClick={() => onThemeChange?.('light')}
+              onClick={() => {
+                onThemeChange?.('light');
+                dispatchCompanionToast('Success!/nLight mode active', {
+                  icon: 'SETTINGS',
+                  mood: 'happy',
+                });
+              }}
               className={`fg-relative fg-z-[2] fg-flex-1 fg-flex fg-items-center fg-justify-center fg-h-full fg-rounded-[10px] fg-transition-colors fg-duration-300 ${
                 theme === 'light'
                   ? 'fg-text-[var(--fg-black)]'
@@ -281,7 +290,13 @@ export function DashboardShell<T extends string>({
             </button>
 
             <button
-              onClick={() => onThemeChange?.('system')}
+              onClick={() => {
+                onThemeChange?.('system');
+                dispatchCompanionToast('Success!/nSystem default', {
+                  icon: 'SETTINGS',
+                  mood: 'focused',
+                });
+              }}
               className={`fg-relative fg-z-[2] fg-flex-1 fg-flex fg-items-center fg-justify-center fg-h-full fg-rounded-[10px] fg-transition-colors fg-duration-300 ${
                 theme === 'system'
                   ? 'fg-text-[var(--fg-text)]'
@@ -293,7 +308,13 @@ export function DashboardShell<T extends string>({
             </button>
 
             <button
-              onClick={() => onThemeChange?.('dark')}
+              onClick={() => {
+                onThemeChange?.('dark');
+                dispatchCompanionToast('Success!/nDark mode active', {
+                  icon: 'SETTINGS',
+                  mood: 'happy',
+                });
+              }}
               className={`fg-relative fg-z-[2] fg-flex-1 fg-flex fg-items-center fg-justify-center fg-h-full fg-rounded-[10px] fg-transition-colors fg-duration-300 ${
                 theme === 'dark'
                   ? 'fg-text-[var(--fg-text)]'
@@ -307,28 +328,43 @@ export function DashboardShell<T extends string>({
         </div>
 
         <div className="fg-mt-auto fg-px-2 fg-mb-2">
-          <div className="fg-px-2 fg-py-3 fg-rounded-[14px] fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)]">
+          <div className="fg-px-3 fg-h-[62px] fg-flex fg-items-center fg-rounded-[14px] fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)]">
             {!user ? (
-              <div className="fg-flex fg-flex-col fg-gap-2">
-                <div
-                  style={{
-                    ...UI_TOKENS.TEXT.R.LABEL,
-                    fontSize: '11px',
-                    opacity: 0.6,
-                    lineHeight: '1.4',
-                  }}
-                >
-                  Backup your stats & rules.
+              <div className="fg-flex fg-items-center fg-justify-between fg-w-full fg-gap-3">
+                <div className="fg-flex fg-items-center fg-gap-3 fg-min-w-0">
+                  <div className="fg-w-9 fg-h-9 fg-rounded-full fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-flex fg-items-center fg-justify-center fg-shrink-0">
+                    <SignOutIcon className="fg-rotate-180 fg-opacity-50" />
+                  </div>
+                  <div className="fg-flex fg-flex-col fg-truncate">
+                    <div
+                      style={{
+                        ...UI_TOKENS.TEXT.R.CARD_TITLE,
+                        fontSize: '13px',
+                        lineHeight: '1.2',
+                      }}
+                    >
+                      Cloud Sync
+                    </div>
+                    <div
+                      style={{
+                        ...UI_TOKENS.TEXT.R.LABEL,
+                        fontSize: '10px',
+                        opacity: 0.5,
+                      }}
+                    >
+                      Backup active
+                    </div>
+                  </div>
                 </div>
                 <button
                   onClick={onSignIn}
-                  className="fg-mt-1 fg-w-full fg-py-2 fg-rounded-[8px] fg-bg-[var(--accent)] fg-text-[var(--fg-on-accent)] fg-text-[12px] fg-font-bold hover:fg-opacity-90 fg-transition-opacity"
+                  className="fg-px-3 fg-py-1.5 fg-rounded-[8px] fg-bg-[var(--accent)] fg-text-[var(--fg-on-accent)] fg-text-[12px] fg-font-bold hover:fg-opacity-90 fg-transition-opacity fg-shrink-0"
                 >
                   Sign In
                 </button>
               </div>
             ) : (
-              <div className="fg-flex fg-items-center fg-gap-3">
+              <div className="fg-flex fg-items-center fg-gap-3 fg-w-full">
                 <div className="fg-relative fg-flex-shrink-0">
                   <div className="fg-w-9 fg-h-9 fg-rounded-full fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-overflow-hidden">
                     {user.image ? (

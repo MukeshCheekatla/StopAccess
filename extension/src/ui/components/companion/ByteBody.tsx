@@ -14,6 +14,7 @@ export interface ByteBodyProps {
   facing?: 'left' | 'right';
   angles: ProceduralAngles;
   iconUrl?: string; // Used in old design, ignored in fafa design, kept for compat
+  iconKey?: string | null;
   message?: string;
   ctaLabel?: string;
   onCtaClick?: () => void;
@@ -21,6 +22,7 @@ export interface ByteBodyProps {
   scale?: number;
   isFiring?: boolean;
   flareFired?: boolean;
+  flareKey?: number;
   theme?: 'light' | 'dark';
   isNightTime?: boolean;
 }
@@ -31,12 +33,14 @@ export const ByteBody: React.FC<ByteBodyProps> = ({
   facing = 'right',
   angles,
   message,
+  iconKey,
   ctaLabel,
   onCtaClick,
   onFlareClick,
   scale = 1,
   isFiring = false,
   flareFired = false,
+  flareKey = 0,
   theme = 'light',
   isNightTime: propIsNightTime,
 }) => {
@@ -46,12 +50,17 @@ export const ByteBody: React.FC<ByteBodyProps> = ({
   const isSitting = ['sitting', 'sleeping'].includes(state);
 
   const accentGlow =
-    mood === 'victory' || mood === 'excited'
+    mood === 'victory' || mood === 'excited' || mood === 'laughing'
       ? COLORS.green
-      : mood === 'sad' || mood === 'scared'
+      : mood === 'sad' ||
+        mood === 'scared' ||
+        mood === 'sleepy' ||
+        mood === 'shame'
       ? COLORS.indigo
-      : mood === 'judging' || mood === 'shame'
+      : mood === 'judging' || mood === 'annoyed' || mood === 'angry'
       ? COLORS.red
+      : mood === 'thinking'
+      ? COLORS.yellow
       : COLORS.accent;
 
   // Use high-contrast design tokens
@@ -312,25 +321,405 @@ export const ByteBody: React.FC<ByteBodyProps> = ({
               </g>
             )}
 
-            {isSleeping ? (
-              <g
-                stroke={COLORS.muted}
-                strokeWidth="3"
-                fill="none"
-                strokeLinecap="round"
-              >
-                <path d="M 28 35 Q 35 40 42 35" />
-                <path d="M 58 35 Q 65 40 72 35" />
-                <ellipse
-                  cx="50"
-                  cy="48"
-                  rx="3"
-                  ry="4"
-                  fill={COLORS.muted}
-                  stroke="none"
+            {isSleeping || mood === 'sleepy' ? (
+              // 😴 Sleepy
+              <>
+                <path
+                  d="M 28 35 Q 35 38 42 35"
+                  stroke={accentGlow}
+                  strokeWidth="3"
+                  fill="none"
+                  strokeLinecap="round"
                 />
-              </g>
+                <path
+                  d="M 58 35 Q 65 38 72 35"
+                  stroke={accentGlow}
+                  strokeWidth="3"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <ellipse cx="50" cy="48" rx="3" ry="4" fill={COLORS.muted} />
+                <circle
+                  cx="62"
+                  cy="50"
+                  r="5"
+                  fill="#BAE6FD"
+                  opacity="0.7"
+                  stroke="#38BDF8"
+                  strokeWidth="1"
+                />
+              </>
+            ) : mood === 'thinking' ? (
+              // 🤔 Thinking
+              <>
+                <circle
+                  cx={35 + angles.eyeX * flip + 3}
+                  cy={35 + angles.eyeY - 4}
+                  r={4 * angles.pupilScale}
+                  fill={accentGlow}
+                />
+                <circle
+                  cx={65 + angles.eyeX * flip + 3}
+                  cy={35 + angles.eyeY - 4}
+                  r={4 * angles.pupilScale}
+                  fill={accentGlow}
+                />
+                <circle cx="50" cy="45" r="2" fill={accentGlow} />
+                <circle
+                  cx="86"
+                  cy="-4"
+                  r="6"
+                  fill="none"
+                  stroke={strokeCol}
+                  strokeWidth="2"
+                />
+                <circle
+                  cx="78"
+                  cy="6"
+                  r="3"
+                  fill="none"
+                  stroke={strokeCol}
+                  strokeWidth="1.5"
+                />
+                <circle cx="72" cy="14" r="1.5" fill={strokeCol} />
+              </>
+            ) : mood === 'shame' ? (
+              // 😳 Shame
+              <>
+                <path
+                  d={`M ${30 + angles.eyeX * flip} ${38 + angles.eyeY} Q ${
+                    35 + angles.eyeX * flip
+                  } ${34 + angles.eyeY} ${40 + angles.eyeX * flip} ${
+                    38 + angles.eyeY
+                  }`}
+                  stroke={accentGlow}
+                  strokeWidth="2.5"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <path
+                  d={`M ${60 + angles.eyeX * flip} ${38 + angles.eyeY} Q ${
+                    65 + angles.eyeX * flip
+                  } ${34 + angles.eyeY} ${70 + angles.eyeX * flip} ${
+                    38 + angles.eyeY
+                  }`}
+                  stroke={accentGlow}
+                  strokeWidth="2.5"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <g
+                  stroke={COLORS.indigo}
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  opacity="0.4"
+                >
+                  <line x1="25" y1="18" x2="25" y2="28" />
+                  <line x1="30" y1="15" x2="30" y2="25" />
+                  <line x1="70" y1="15" x2="70" y2="25" />
+                  <line x1="75" y1="18" x2="75" y2="28" />
+                </g>
+                <path
+                  d="M 45 48 Q 50 45 55 48"
+                  stroke={accentGlow}
+                  strokeWidth="2.5"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              </>
+            ) : mood === 'angry' ? (
+              // 💢 Angry
+              <>
+                <g
+                  transform="translate(68, 18) scale(0.6)"
+                  stroke={COLORS.red}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  fill="none"
+                >
+                  <path d="M -4 -4 L 0 0 M 4 -4 L 0 0 M -4 4 L 0 0 M 4 4 L 0 0" />
+                </g>
+                <path
+                  d={`M ${28 + angles.eyeX * flip} ${32 + angles.eyeY} L ${
+                    42 + angles.eyeX * flip
+                  } ${36 + angles.eyeY}`}
+                  stroke={accentGlow}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+                <path
+                  d={`M ${58 + angles.eyeX * flip} ${36 + angles.eyeY} L ${
+                    72 + angles.eyeX * flip
+                  } ${32 + angles.eyeY}`}
+                  stroke={accentGlow}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+                <circle
+                  cx={35 + angles.eyeX * flip}
+                  cy={36 + angles.eyeY}
+                  r={4 * angles.pupilScale}
+                  fill={accentGlow}
+                />
+                <circle
+                  cx={65 + angles.eyeX * flip}
+                  cy={36 + angles.eyeY}
+                  r={4 * angles.pupilScale}
+                  fill={accentGlow}
+                />
+                <path
+                  d="M 45 48 Q 50 42 55 48"
+                  stroke={accentGlow}
+                  strokeWidth="2.5"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              </>
+            ) : mood === 'annoyed' || mood === 'judging' ? (
+              // 😒 Judging / Annoyed
+              <>
+                <path
+                  d={`M ${30 + angles.eyeX * flip} ${34 + angles.eyeY} Q ${
+                    35 + angles.eyeX * flip
+                  } ${40 + angles.eyeY} ${40 + angles.eyeX * flip} ${
+                    34 + angles.eyeY
+                  } Z`}
+                  fill={accentGlow}
+                />
+                <path
+                  d={`M ${60 + angles.eyeX * flip} ${34 + angles.eyeY} Q ${
+                    65 + angles.eyeX * flip
+                  } ${40 + angles.eyeY} ${70 + angles.eyeX * flip} ${
+                    34 + angles.eyeY
+                  } Z`}
+                  fill={accentGlow}
+                />
+                <path
+                  d="M 44 46 L 56 46"
+                  stroke={accentGlow}
+                  strokeWidth="2.5"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              </>
+            ) : mood === 'sad' ? (
+              // 😢 Sad
+              <>
+                <circle
+                  cx={35 + angles.eyeX * flip}
+                  cy={35 + angles.eyeY}
+                  r={4 * angles.pupilScale}
+                  fill={accentGlow}
+                />
+                <circle
+                  cx={65 + angles.eyeX * flip}
+                  cy={35 + angles.eyeY}
+                  r={4 * angles.pupilScale}
+                  fill={accentGlow}
+                />
+                <path
+                  d={`M ${35 + angles.eyeX * flip} ${42 + angles.eyeY} C ${
+                    40 + angles.eyeX * flip
+                  } ${48 + angles.eyeY}, ${30 + angles.eyeX * flip} ${
+                    48 + angles.eyeY
+                  }, ${35 + angles.eyeX * flip} ${42 + angles.eyeY} Z`}
+                  fill="#38BDF8"
+                  opacity="0.8"
+                />
+                <path
+                  d="M 45 48 Q 50 43 55 48"
+                  stroke={accentGlow}
+                  strokeWidth="2.5"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              </>
+            ) : mood === 'scared' ? (
+              // 😨 Scared
+              <>
+                <g
+                  stroke={COLORS.indigo}
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  opacity="0.5"
+                >
+                  <line x1="42" y1="12" x2="42" y2="22" />
+                  <line x1="50" y1="14" x2="50" y2="24" />
+                  <line x1="58" y1="12" x2="58" y2="22" />
+                </g>
+                <circle
+                  cx={35 + angles.eyeX * flip}
+                  cy={35 + angles.eyeY}
+                  r={6 * angles.pupilScale}
+                  fill={accentGlow}
+                />
+                <circle
+                  cx={36 + angles.eyeX * flip}
+                  cy={33 + angles.eyeY}
+                  r="1.5"
+                  fill={fillCol}
+                />
+                <circle
+                  cx={65 + angles.eyeX * flip}
+                  cy={35 + angles.eyeY}
+                  r={6 * angles.pupilScale}
+                  fill={accentGlow}
+                />
+                <circle
+                  cx={66 + angles.eyeX * flip}
+                  cy={33 + angles.eyeY}
+                  r="1.5"
+                  fill={fillCol}
+                />
+                <path
+                  d="M 45 47 L 47 44 L 50 47 L 53 44 L 55 47"
+                  stroke={accentGlow}
+                  strokeWidth="2"
+                  fill="none"
+                  strokeLinejoin="round"
+                />
+              </>
+            ) : mood === 'focused' ? (
+              // 🧐 Focused (glasses)
+              <>
+                <rect
+                  x="22"
+                  y="26"
+                  width="24"
+                  height="16"
+                  rx="4"
+                  fill="rgba(148,163,184,0.15)"
+                  stroke={strokeCol}
+                  strokeWidth="2.5"
+                />
+                <rect
+                  x="54"
+                  y="26"
+                  width="24"
+                  height="16"
+                  rx="4"
+                  fill="rgba(148,163,184,0.15)"
+                  stroke={strokeCol}
+                  strokeWidth="2.5"
+                />
+                <line
+                  x1="46"
+                  y1="34"
+                  x2="54"
+                  y2="34"
+                  stroke={strokeCol}
+                  strokeWidth="2.5"
+                />
+                <line
+                  x1="15"
+                  y1="34"
+                  x2="22"
+                  y2="34"
+                  stroke={strokeCol}
+                  strokeWidth="2.5"
+                />
+                <line
+                  x1="78"
+                  y1="34"
+                  x2="85"
+                  y2="34"
+                  stroke={strokeCol}
+                  strokeWidth="2.5"
+                />
+                <circle
+                  cx={35 + angles.eyeX * flip}
+                  cy={35 + angles.eyeY}
+                  r={2.5 * angles.pupilScale}
+                  fill={accentGlow}
+                />
+                <circle
+                  cx={65 + angles.eyeX * flip}
+                  cy={35 + angles.eyeY}
+                  r={2.5 * angles.pupilScale}
+                  fill={accentGlow}
+                />
+                <path
+                  d="M 47 46 L 53 46"
+                  stroke={accentGlow}
+                  strokeWidth="2"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+              </>
+            ) : mood === 'surprised' ? (
+              // 💥 Surprised / Poked
+              <>
+                <path
+                  d={`M ${31 + angles.eyeX * flip} ${31 + angles.eyeY} L ${
+                    39 + angles.eyeX * flip
+                  } ${39 + angles.eyeY} M ${39 + angles.eyeX * flip} ${
+                    31 + angles.eyeY
+                  } L ${31 + angles.eyeX * flip} ${39 + angles.eyeY}`}
+                  stroke={accentGlow}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+                <path
+                  d={`M ${61 + angles.eyeX * flip} ${31 + angles.eyeY} L ${
+                    69 + angles.eyeX * flip
+                  } ${39 + angles.eyeY} M ${69 + angles.eyeX * flip} ${
+                    31 + angles.eyeY
+                  } L ${61 + angles.eyeX * flip} ${39 + angles.eyeY}`}
+                  stroke={accentGlow}
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+                <circle
+                  cx="50"
+                  cy="46"
+                  r="4"
+                  fill="none"
+                  stroke={accentGlow}
+                  strokeWidth="2.5"
+                />
+              </>
+            ) : mood === 'victory' ||
+              mood === 'excited' ||
+              mood === 'laughing' ? (
+              // 🎉 Victory / Excited / Laughing
+              <>
+                <g stroke={COLORS.yellow} strokeWidth="2" strokeLinecap="round">
+                  <line x1="20" y1="2" x2="14" y2="-6" />
+                  <line x1="50" y1="-2" x2="50" y2="-12" />
+                  <line x1="80" y1="2" x2="86" y2="-6" />
+                </g>
+                <path
+                  d={`M ${28 + angles.eyeX * flip} ${36 + angles.eyeY} Q ${
+                    35 + angles.eyeX * flip
+                  } ${28 + angles.eyeY} ${42 + angles.eyeX * flip} ${
+                    36 + angles.eyeY
+                  }`}
+                  stroke={accentGlow}
+                  strokeWidth="3.5"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <path
+                  d={`M ${58 + angles.eyeX * flip} ${36 + angles.eyeY} Q ${
+                    65 + angles.eyeX * flip
+                  } ${28 + angles.eyeY} ${72 + angles.eyeX * flip} ${
+                    36 + angles.eyeY
+                  }`}
+                  stroke={accentGlow}
+                  strokeWidth="3.5"
+                  fill="none"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M 42 44 Q 50 56 58 44"
+                  stroke={accentGlow}
+                  strokeWidth="2.5"
+                  fill={COLORS.overlaySubtle}
+                  strokeLinecap="round"
+                />
+              </>
             ) : mood === 'aiming' ? (
+              // 🎯 Aiming
               <>
                 <path
                   d="M 30 35 L 40 35"
@@ -345,7 +734,7 @@ export const ByteBody: React.FC<ByteBodyProps> = ({
                   fill={accentGlow}
                 />
                 <path
-                  d={'M 45 45 Q 50 43 55 45'}
+                  d="M 45 45 Q 50 43 55 45"
                   stroke={accentGlow}
                   strokeWidth="2.5"
                   fill="none"
@@ -353,6 +742,7 @@ export const ByteBody: React.FC<ByteBodyProps> = ({
                 />
               </>
             ) : (
+              // 😊 Default Happy
               <>
                 <circle
                   cx={35 + angles.eyeX * flip}
@@ -454,7 +844,10 @@ export const ByteBody: React.FC<ByteBodyProps> = ({
                 </g>
 
                 {flareFired && (
-                  <g style={{ transform: 'translate(0px, 18px)' }}>
+                  <g
+                    key={`flare-${flareKey}`}
+                    style={{ transform: 'translate(0px, 18px)' }}
+                  >
                     <circle
                       cx="0"
                       cy="0"
@@ -553,6 +946,7 @@ export const ByteBody: React.FC<ByteBodyProps> = ({
                   >
                     <ByteSign
                       message={message}
+                      iconKey={iconKey}
                       ctaLabel={ctaLabel}
                       onCtaClick={onCtaClick}
                       theme={theme}

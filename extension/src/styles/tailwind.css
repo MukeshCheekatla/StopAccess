@@ -693,11 +693,17 @@
   border-radius: 16px;
   box-shadow: 0 12px 32px var(--fg-shadow);
   padding: 6px;
-  z-index: 1000;
+  z-index: 10000;
   display: none;
   backdrop-filter: blur(12px);
   max-height: 250px;
   overflow-y: auto;
+}
+
+.fg-select-menu.is-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
 }
 
 .fg-select-menu.active {

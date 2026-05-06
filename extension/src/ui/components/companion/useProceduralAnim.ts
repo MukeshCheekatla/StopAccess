@@ -17,6 +17,7 @@ export interface AnimationEngine {
   speak: (msg: string, duration?: number) => void;
   handlePoke: () => void;
   handleFireFlare: () => void;
+  triggerMoodEmote: (m: CompanionMood) => void;
 }
 
 export function useProceduralAnim(
@@ -75,25 +76,32 @@ export function useProceduralAnim(
 
   const lastInteraction = useRef(Date.now());
   const mousePos = useRef({ x: 0, y: 0 });
-  const isPoked = useRef(false);
   const signTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const firePhase = useRef<'idle' | 'aim' | 'recoil'>('idle');
+
+  // Unified behavior phase — covers fire, poke escalation, and mood emotes
+  const behaviorPhase = useRef<string>('idle');
+
+  // Poke escalation
+  const pokeCount = useRef(0);
+  const pokeResetTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // xPosRef mirrors angles.xPos — used inside the RAF loop so we don't need
   // angles.xPos in the deps array (avoids infinite restart), but we get the same
   // "current position from last frame" that fafa.tsx gets from its closure.
   const xPosRef = useRef(0);
+  const externalMoodRef = useRef(externalMood);
 
   // Sync external mood when not firing
   useEffect(() => {
-    if (firePhase.current === 'idle') {
+    externalMoodRef.current = externalMood;
+    if (behaviorPhase.current === 'idle') {
       setMood(externalMood);
     }
   }, [externalMood]);
 
   // --- speak() — exact port from fafa.tsx ---
   const speak = useCallback((msg: string, duration = 3000) => {
-    if (firePhase.current !== 'idle') {
+    if (behaviorPhase.current === 'aim' || behaviorPhase.current === 'recoil') {
       return;
     }
     setSignMessage(msg);
@@ -103,44 +111,94 @@ export function useProceduralAnim(
     signTimerRef.current = setTimeout(() => setSignMessage(''), duration);
   }, []);
 
+  // --- triggerMoodEmote() — drives a temporary facial/body expression ---
+  const triggerMoodEmote = useCallback(
+    (testMood: CompanionMood) => {
+      behaviorPhase.current = `emote_test_${testMood}`;
+      targets.current.targetX = xPosRef.current;
+      setMood(testMood);
+      lastInteraction.current = Date.now();
+      setTimeout(() => {
+        if (behaviorPhase.current === `emote_test_${testMood}`) {
+          behaviorPhase.current = 'idle';
+          setMood(externalMood);
+        }
+      }, 3000);
+    },
+    [externalMood],
+  );
+
   // --- handleFireFlare() — exact port from fafa.tsx ---
   const handleFireFlare = useCallback(() => {
-    isPoked.current = false;
     targets.current.targetX = xPosRef.current;
     setSignMessage('');
     setIsFiring(true);
     setFlareFired(false);
-    firePhase.current = 'aim';
+    behaviorPhase.current = 'aim';
     setMood('aiming');
     lastInteraction.current = Date.now();
 
     setTimeout(() => {
-      firePhase.current = 'recoil';
+      behaviorPhase.current = 'recoil';
       setFlareFired(true);
       lastInteraction.current = Date.now();
     }, 600);
 
     setTimeout(() => {
-      firePhase.current = 'idle';
+      behaviorPhase.current = 'idle';
       setIsFiring(false);
       setFlareFired(false);
       setMood(externalMood);
     }, 3200);
   }, [externalMood]);
 
-  // --- handlePoke() — exact port from fafa.tsx ---
+  // --- handlePoke() — escalating 3-tier poke from reference ---
   const handlePoke = useCallback(() => {
-    if (firePhase.current !== 'idle') {
+    if (behaviorPhase.current === 'aim' || behaviorPhase.current === 'recoil') {
       return;
     }
-    isPoked.current = true;
-    targets.current.targetX = xPosRef.current;
+
+    pokeCount.current++;
     lastInteraction.current = Date.now();
-    speak('Oops! 💥', 2000);
-    setTimeout(() => {
-      isPoked.current = false;
-    }, 400);
-  }, [speak]);
+    targets.current.targetX = xPosRef.current;
+
+    if (pokeResetTimer.current) {
+      clearTimeout(pokeResetTimer.current);
+    }
+    pokeResetTimer.current = setTimeout(() => {
+      pokeCount.current = 0;
+    }, 5000);
+
+    if (pokeCount.current >= 5) {
+      pokeCount.current = 0;
+      behaviorPhase.current = 'poked_angry';
+      setMood('angry');
+      setIsFiring(true);
+      speak("ALRIGHT THAT'S IT!", 2500);
+      setTimeout(() => {
+        setMood('laughing');
+        behaviorPhase.current = 'idle';
+        setIsFiring(false);
+        speak('Just kidding!', 2000);
+      }, 2500);
+    } else if (pokeCount.current >= 3) {
+      behaviorPhase.current = 'poked_annoyed';
+      setMood('judging');
+      speak('Stop that...', 2000);
+      setTimeout(() => {
+        behaviorPhase.current = 'idle';
+        setMood(externalMood);
+      }, 2000);
+    } else {
+      behaviorPhase.current = 'poked_jump';
+      setMood('surprised');
+      speak('Oops!', 1500);
+      setTimeout(() => {
+        behaviorPhase.current = 'idle';
+        setMood(externalMood);
+      }, 400);
+    }
+  }, [speak, externalMood]);
 
   // --- walkTo() — equivalent to handleStageClick setting targetX in fafa.tsx ---
   const walkTo = useCallback((x: number) => {
@@ -152,7 +210,7 @@ export function useProceduralAnim(
   useEffect(() => {
     const handleMove = (e: MouseEvent) => {
       const stage = stageRef.current;
-      if (!stage || firePhase.current !== 'idle') {
+      if (!stage || behaviorPhase.current !== 'idle') {
         return;
       }
       const rect = stage.getBoundingClientRect();
@@ -190,7 +248,7 @@ export function useProceduralAnim(
       let isWalking = false;
       const walkSpeed = 3.5;
 
-      if (Math.abs(distX) > 2 && firePhase.current === 'idle') {
+      if (Math.abs(distX) > 2 && behaviorPhase.current === 'idle') {
         isWalking = true;
         const step = Math.min(walkSpeed, Math.abs(distX));
         nextX += Math.sign(distX) * step;
@@ -204,14 +262,17 @@ export function useProceduralAnim(
       // Update xPosRef so next frame reads the correct position
       xPosRef.current = nextX;
 
-      // 🧠 BEHAVIOR STATE MACHINE — exact port from fafa.tsx
-      if (firePhase.current !== 'idle') {
+      // 🧠 BEHAVIOR STATE MACHINE
+      const phase = behaviorPhase.current;
+
+      if (phase === 'aim' || phase === 'recoil') {
+        // 🔫 FLARE GUN
         setBotState('idle');
         targets.current.leftLeg = 0;
         targets.current.rightLeg = 0;
         targets.current.leftLegY = 0;
         targets.current.rightLegY = 0;
-        if (firePhase.current === 'aim') {
+        if (phase === 'aim') {
           targets.current.rightArm = -165;
           targets.current.leftArm = -150;
           targets.current.headTilt = -15;
@@ -219,7 +280,7 @@ export function useProceduralAnim(
           targets.current.mouthOpen = 0.5;
           targets.current.eyeY = -12;
           targets.current.eyeX = 2;
-        } else if (firePhase.current === 'recoil') {
+        } else {
           targets.current.rightArm = -180;
           targets.current.leftArm = -145;
           targets.current.headTilt = -25;
@@ -227,8 +288,37 @@ export function useProceduralAnim(
           targets.current.mouthOpen = 1;
           targets.current.eyeY = -12;
         }
-      } else if (isPoked.current) {
-        setMood('surprised');
+      } else if (phase === 'poked_angry') {
+        // 😡 ANGRY POKE
+        setBotState('idle');
+        targets.current.leftLeg = 0;
+        targets.current.rightLeg = 0;
+        targets.current.leftLegY = 0;
+        targets.current.rightLegY = 0;
+        targets.current.rightArm = mousePos.current.y * 60 - 90;
+        targets.current.leftArm = 45;
+        targets.current.headTilt = mousePos.current.x * 30;
+        targets.current.bodyBob = 0;
+        targets.current.bodyTilt = 0;
+        targets.current.eyeX = mousePos.current.x * 10;
+        targets.current.eyeY = mousePos.current.y * 10;
+        targets.current.mouthOpen = 0;
+      } else if (phase === 'poked_annoyed') {
+        // 😒 ANNOYED POKE
+        setBotState('idle');
+        targets.current.leftLeg = 0;
+        targets.current.rightLeg = 0;
+        targets.current.leftLegY = 0;
+        targets.current.rightLegY = 0;
+        targets.current.bodyTilt = 10 * Math.sign(mousePos.current.x || 1);
+        targets.current.headTilt = 30 * Math.sign(mousePos.current.x || 1);
+        targets.current.leftArm = -40;
+        targets.current.rightArm = 40;
+        targets.current.bodyBob = 5;
+        targets.current.mouthOpen = 0;
+        targets.current.eyeX = 10 * Math.sign(mousePos.current.x || 1);
+      } else if (phase === 'poked_jump') {
+        // 💥 JUMP POKE
         setBotState('idle');
         targets.current.bodyBob = -15;
         targets.current.bodyTilt = 0;
@@ -242,8 +332,84 @@ export function useProceduralAnim(
         targets.current.leftLegY = 0;
         targets.current.rightLegY = 0;
         targets.current.mouthOpen = 1;
+      } else if (phase.startsWith('emote_test_')) {
+        // 🎭 MOOD EMOTE — per-mood body physics
+        const testMood = phase.replace('emote_test_', '') as CompanionMood;
+        setBotState('idle');
+        targets.current.leftLeg = 0;
+        targets.current.rightLeg = 0;
+        targets.current.leftLegY = 0;
+        targets.current.rightLegY = 0;
+        targets.current.bodyTilt = 0;
+        if (testMood === 'happy') {
+          targets.current.bodyBob = -5;
+          targets.current.headTilt = -5;
+          targets.current.mouthOpen = 0.5;
+          targets.current.leftArm = 0;
+          targets.current.rightArm = 0;
+        } else if (testMood === 'sleepy') {
+          targets.current.bodyBob = 10;
+          targets.current.headTilt = 15;
+          targets.current.mouthOpen = 0;
+          targets.current.leftArm = -20;
+          targets.current.rightArm = 40;
+        } else if (testMood === 'sad' || testMood === 'shame') {
+          targets.current.bodyBob = 10;
+          targets.current.headTilt = 20;
+          targets.current.mouthOpen = 0;
+          targets.current.leftArm = -20;
+          targets.current.rightArm = 20;
+        } else if (testMood === 'excited' || testMood === 'laughing') {
+          targets.current.bodyBob = -10;
+          targets.current.headTilt = -10;
+          targets.current.mouthOpen = 1;
+          targets.current.leftArm = 0;
+          targets.current.rightArm = 0;
+        } else if (testMood === 'scared') {
+          targets.current.bodyBob = -2;
+          targets.current.scaleY = 1.1;
+          targets.current.headTilt = -5;
+          targets.current.mouthOpen = 0.5;
+          targets.current.leftArm = 0;
+          targets.current.rightArm = 0;
+        } else if (testMood === 'surprised') {
+          targets.current.bodyBob = -15;
+          targets.current.scaleY = 1.1;
+          targets.current.scaleX = 0.9;
+          targets.current.headTilt = -10;
+          targets.current.mouthOpen = 1;
+          targets.current.leftArm = 45;
+          targets.current.rightArm = -45;
+        } else if (testMood === 'victory') {
+          targets.current.bodyBob = -15;
+          targets.current.headTilt = -15;
+          targets.current.mouthOpen = 1;
+          targets.current.leftArm = 160;
+          targets.current.rightArm = -160;
+        } else if (
+          testMood === 'judging' ||
+          testMood === 'annoyed' ||
+          testMood === 'angry'
+        ) {
+          targets.current.bodyBob = 0;
+          targets.current.headTilt = 0;
+          targets.current.mouthOpen = 0;
+          targets.current.leftArm = 0;
+          targets.current.rightArm = 0;
+        } else if (testMood === 'thinking') {
+          targets.current.bodyBob = 0;
+          targets.current.headTilt = 0;
+          targets.current.mouthOpen = 0;
+          targets.current.leftArm = 0;
+          targets.current.rightArm = 0;
+        } else {
+          targets.current.bodyBob = 0;
+          targets.current.headTilt = mousePos.current.x * 10;
+          targets.current.leftArm = 0;
+          targets.current.rightArm = 0;
+        }
       } else if (isWalking) {
-        setMood('excited');
+        setMood(externalMoodRef.current === 'focused' ? 'focused' : 'excited');
         setBotState('idle');
         targets.current.bodyTilt = Math.sin(wp) * 5;
         targets.current.bodyBob = -Math.abs(Math.cos(wp)) * 5;
@@ -275,7 +441,7 @@ export function useProceduralAnim(
           setSignMessage('');
         }
       } else if (timeSinceInteraction > 8000) {
-        setMood('happy');
+        setMood(externalMoodRef.current === 'focused' ? 'focused' : 'happy');
         setBotState('sitting');
         targets.current.bodyBob = 10;
         targets.current.bodyTilt = 0;
@@ -290,7 +456,13 @@ export function useProceduralAnim(
         targets.current.eyeX = mousePos.current.x * 4;
         targets.current.eyeY = mousePos.current.y * 3;
       } else {
-        setMood(Math.abs(mousePos.current.x) > 0.6 ? 'focused' : 'happy');
+        setMood(
+          externalMoodRef.current === 'focused'
+            ? 'focused'
+            : Math.abs(mousePos.current.x) > 0.6
+            ? 'focused'
+            : 'happy',
+        );
         setBotState('idle');
         targets.current.bodyBob = 0;
         targets.current.bodyTilt = 0;
@@ -308,11 +480,13 @@ export function useProceduralAnim(
         targets.current.eyeY = mousePos.current.y * 6;
       }
 
-      // 🪧 SIGN HOLDING OVERRIDE — exact port from fafa.tsx
-      if (firePhase.current === 'idle') {
+      // 🪧 SIGN HOLDING OVERRIDE
+      const bp = behaviorPhase.current;
+      const isIdle = bp === 'idle' || bp.startsWith('emote_test_');
+      if (isIdle) {
         if (signMessage) {
           targets.current.leftArm = 145;
-        } else if (!isPoked.current && !isWalking) {
+        } else if (!isWalking) {
           if (timeSinceInteraction > 15000) {
             targets.current.leftArm = -40;
           } else if (timeSinceInteraction > 8000) {
@@ -364,5 +538,6 @@ export function useProceduralAnim(
     speak,
     handlePoke,
     handleFireFlare,
+    triggerMoodEmote,
   };
 }

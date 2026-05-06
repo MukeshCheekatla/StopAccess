@@ -27,7 +27,10 @@ export type CompanionMood =
   | 'sad'
   | 'scared'
   | 'excited'
-  | 'aiming';
+  | 'aiming'
+  | 'angry'
+  | 'annoyed'
+  | 'laughing';
 
 export type FacingDir = 'left' | 'right';
 

@@ -366,6 +366,15 @@ function DashboardApp() {
 
     const updateStatus = async () => {
       try {
+        const res = await storage.getMultiple([STORAGE_KEYS.SESSION]);
+        const session = res[STORAGE_KEYS.SESSION];
+        if (session) {
+          if (!cancelled) {
+            setStatus({ label: 'Focusing', tone: 'active' });
+          }
+          return;
+        }
+
         const isConfigured = await nextDNSApi.isConfigured();
         if (!isConfigured) {
           if (!cancelled) {

@@ -2,7 +2,7 @@ import React from 'react';
 
 // ── Theme toggle icons ─────────────────────────────────────────
 
-export const SunIcon = () => (
+export const SunIcon = ({ className }: { className?: string }) => (
   <svg
     width="15"
     height="15"
@@ -12,6 +12,7 @@ export const SunIcon = () => (
     strokeWidth="2.5"
     strokeLinecap="round"
     strokeLinejoin="round"
+    className={className}
   >
     <circle cx="12" cy="12" r="5" />
     <line x1="12" y1="1" x2="12" y2="3" />
@@ -25,7 +26,7 @@ export const SunIcon = () => (
   </svg>
 );
 
-export const MonitorIcon = () => (
+export const MonitorIcon = ({ className }: { className?: string }) => (
   <svg
     width="15"
     height="15"
@@ -35,6 +36,7 @@ export const MonitorIcon = () => (
     strokeWidth="2.5"
     strokeLinecap="round"
     strokeLinejoin="round"
+    className={className}
   >
     <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
     <line x1="8" y1="21" x2="16" y2="21" />
@@ -42,7 +44,7 @@ export const MonitorIcon = () => (
   </svg>
 );
 
-export const MoonIcon = () => (
+export const MoonIcon = ({ className }: { className?: string }) => (
   <svg
     width="15"
     height="15"
@@ -52,12 +54,13 @@ export const MoonIcon = () => (
     strokeWidth="2.5"
     strokeLinecap="round"
     strokeLinejoin="round"
+    className={className}
   >
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
   </svg>
 );
 
-export const SignOutIcon = () => (
+export const SignOutIcon = ({ className }: { className?: string }) => (
   <svg
     width="14"
     height="14"
@@ -65,6 +68,7 @@ export const SignOutIcon = () => (
     fill="none"
     stroke="currentColor"
     strokeWidth="2.5"
+    className={className}
   >
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
   </svg>

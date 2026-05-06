@@ -88,6 +88,22 @@ const TOKEN_DEFS = {
     color: 'var(--fg-muted)',
     lineHeight: '1.6',
   },
+  SIGN_TITLE: {
+    fontSize: '16px',
+    fontWeight: '600',
+    color: 'inherit',
+    letterSpacing: '0.02em',
+    lineHeight: '1.3',
+    textTransform: 'none',
+  },
+  SIGN_VALUE: {
+    fontSize: '14px',
+    fontWeight: '500',
+    color: 'inherit',
+    letterSpacing: '0.01em',
+    lineHeight: '1.3',
+    opacity: '0.98',
+  },
   MODAL_TITLE: {
     fontSize: '18px',
     fontWeight: '700',
