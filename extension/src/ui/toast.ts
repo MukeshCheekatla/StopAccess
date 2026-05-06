@@ -104,6 +104,7 @@ class ToastManager {
                 ? 'judging'
                 : 'happy',
             icon: type === 'error' ? 'LOCK' : 'TARGET',
+            priority: type === 'error' ? 300 : 200,
           },
         }),
       );

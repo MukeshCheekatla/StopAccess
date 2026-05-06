@@ -30,4 +30,7 @@ export const STORAGE_KEYS = {
   TOTAL_FOCUS_XP: 'total_focus_xp',
   SESSION_COMPLETED_EVENT: 'session_completed_event',
   WILT_UNTIL: 'wilt_until',
+  BYTE_DEFAULT_MOOD: 'fg_byte_default_mood',
+  BYTE_NIGHT_START: 'fg_byte_night_start',
+  BYTE_NIGHT_END: 'fg_byte_night_end',
 };

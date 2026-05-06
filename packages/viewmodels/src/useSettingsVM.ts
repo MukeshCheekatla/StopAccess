@@ -32,6 +32,13 @@ export async function loadSettingsData(deps: VMPlatformDependencies) {
 
   const cloudUserRes = await sendCommand('getCloudUser');
   const cloudUser = cloudUserRes?.user || null;
+  const byteSettings = {
+    defaultMood:
+      (await storage.getString(STORAGE_KEYS.BYTE_DEFAULT_MOOD)) || 'happy',
+    nightStart:
+      (await storage.getNumber(STORAGE_KEYS.BYTE_NIGHT_START, 22)) ?? 22,
+    nightEnd: (await storage.getNumber(STORAGE_KEYS.BYTE_NIGHT_END, 6)) ?? 6,
+  };
 
   return {
     profileId,
@@ -49,6 +56,7 @@ export async function loadSettingsData(deps: VMPlatformDependencies) {
       (await storage.getString('challenge_text')) ||
       'Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions.',
     cloudUser,
+    byteSettings,
   };
 }
 
@@ -274,6 +282,25 @@ export async function updateChallengeTextAction(
   text: string,
 ) {
   await deps.storage.set('challenge_text', text);
+}
+
+export async function updateByteSettingsAction(
+  deps: VMPlatformDependencies,
+  nextSettings: {
+    defaultMood: string;
+    nightStart: number;
+    nightEnd: number;
+  },
+) {
+  await deps.storage.set(
+    STORAGE_KEYS.BYTE_DEFAULT_MOOD,
+    nextSettings.defaultMood,
+  );
+  await deps.storage.set(
+    STORAGE_KEYS.BYTE_NIGHT_START,
+    nextSettings.nightStart,
+  );
+  await deps.storage.set(STORAGE_KEYS.BYTE_NIGHT_END, nextSettings.nightEnd);
 }
 
 export async function signInWithGoogleAction(

@@ -335,7 +335,7 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
           signMessageRef.current = '';
         }
       } else if (timeSinceInteraction > 8000) {
-        setMood(externalMoodRef.current === 'focused' ? 'focused' : 'happy');
+        setMood(externalMoodRef.current);
         setBotState('sitting');
         targets.current.bodyBob = 10;
         targets.current.bodyTilt = 0;
@@ -355,7 +355,7 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
             ? 'focused'
             : Math.abs(mousePos.current.x) > 0.6
             ? 'focused'
-            : 'happy',
+            : externalMoodRef.current,
         );
         setBotState('idle');
         targets.current.bodyBob = 0;

@@ -4,7 +4,7 @@
  */
 export function dispatchCompanionToast(
   msg: string,
-  options?: { icon?: string; mood?: string },
+  options?: { icon?: string; mood?: string; priority?: number },
 ) {
   window.dispatchEvent(
     new CustomEvent('fg_companion_toast', {
@@ -12,6 +12,7 @@ export function dispatchCompanionToast(
         msg,
         icon: options?.icon,
         mood: options?.mood,
+        priority: options?.priority,
       },
     }),
   );

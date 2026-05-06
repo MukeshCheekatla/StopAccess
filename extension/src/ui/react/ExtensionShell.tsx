@@ -9,7 +9,7 @@ import { dispatchCompanionToast } from '../components/companion/companionToast';
 export type ShellTab<T extends string> = {
   id: T;
   label: string;
-  icon?: ReactNode;
+  icon?: ReactNode | string;
 };
 
 export type ShellStatusTone = 'active' | 'error' | 'muted' | 'default';
@@ -202,7 +202,14 @@ export function DashboardShell<T extends string>({
               type="button"
             >
               <span className="fg-w-5 fg-h-5 fg-flex-shrink-0 fg-flex fg-items-center fg-justify-center fg-opacity-[0.86]">
-                {tab.icon}
+                {typeof tab.icon === 'string' ? (
+                  <div
+                    className="fg-w-full fg-h-full fg-flex fg-items-center fg-justify-center"
+                    dangerouslySetInnerHTML={{ __html: tab.icon }}
+                  />
+                ) : (
+                  tab.icon
+                )}
               </span>
               <span
                 className="fg-flex-1"
@@ -225,6 +232,7 @@ export function DashboardShell<T extends string>({
             message={companion.message}
             action={companion.action}
             icon={companion.icon}
+            isNightTime={companion.isNightTime}
             variant="sidebar"
             theme={
               theme === 'system'
