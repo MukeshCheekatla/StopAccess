@@ -8,8 +8,13 @@ import {
 } from '../background/platformAdapter';
 import { COLORS, COLOR_CLASSES } from '../ui/theme/designTokens';
 import { ByteCompanion, CompanionMood } from '../ui/components/companion';
+import { extensionVMDeps } from '../lib/vmDeps';
+import {
+  signInWithOtpAction,
+  signInWithGoogleAction,
+} from '@stopaccess/viewmodels/useSettingsVM';
 
-type Step = 'welcome' | 'connect' | 'done';
+type Step = 'welcome' | 'cloud' | 'connect' | 'done';
 
 // ── Primary CTA button ───────────────────────────────────────────────────────
 function OBtn({
@@ -168,6 +173,29 @@ function Alert({ msg, tone }: { msg: string; tone: 'error' | 'success' }) {
   );
 }
 
+function GoogleGlyph() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+      />
+    </svg>
+  );
+}
+
 // ── Page shell ───────────────────────────────────────────────────────────────
 function Shell({
   children,
@@ -209,29 +237,31 @@ export const OnboardingReact: React.FC<{
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isCloudLoading, setIsCloudLoading] = useState(false);
 
   // detectBrowser reserved for future platform-specific hints
 
-  useEffect(() => {
-    nextDNSApi.getConfig().then((cfg) => {
-      if (cfg.profileId) {
-        setProfileId(cfg.profileId);
-      }
-      if (cfg.apiKey) {
-        setApiKey(cfg.apiKey);
-      }
+  const applyNextDnsConfig = (cfg: { profileId?: string; apiKey?: string }) => {
+    const nextProfileId = cfg.profileId || '';
+    const nextApiKey = cfg.apiKey || '';
 
-      // Resume step based on available data
-      if (cfg.profileId && cfg.apiKey) {
-        setStep('done');
-      } else if (cfg.profileId) {
-        setStep('connect');
-      }
-    });
+    setProfileId(nextProfileId);
+    setApiKey(nextApiKey);
+
+    if (nextProfileId && nextApiKey) {
+      setStep('done');
+    } else if (nextProfileId) {
+      setStep('connect');
+    }
+  };
+
+  useEffect(() => {
+    nextDNSApi.getConfig().then(applyNextDnsConfig);
 
     const listener = (changes: any) => {
-      if (changes[STORAGE_KEYS.PROFILE_ID]) {
-        setProfileId(changes[STORAGE_KEYS.PROFILE_ID].newValue || '');
+      if (changes[STORAGE_KEYS.PROFILE_ID] || changes[STORAGE_KEYS.API_KEY]) {
+        nextDNSApi.getConfig().then(applyNextDnsConfig);
       }
     };
 
@@ -302,7 +332,7 @@ export const OnboardingReact: React.FC<{
     return (
       <Shell
         botMood="excited"
-        botMessage={"Ready to\ncrush distractions?\nLet's go!"}
+        botMessage={"Ready to crush/ndistractions? Let's go!"}
       >
         <div className="fg-text-center">
           <div className="fg-mb-10">
@@ -355,7 +385,10 @@ export const OnboardingReact: React.FC<{
 
           <OBtn
             className="fg-w-full fg-h-[58px] fg-text-[16px]"
-            onClick={() => setStep('connect')}
+            onClick={() => {
+              setError('');
+              setStep('cloud');
+            }}
           >
             Get Started
           </OBtn>
@@ -371,6 +404,140 @@ export const OnboardingReact: React.FC<{
     );
   }
 
+  // ── CLOUD ACCOUNT ───────────────────────────────────────────────────────────
+  if (step === 'cloud') {
+    return (
+      <Shell
+        botMood={error ? 'sad' : 'focused'}
+        botMessage={
+          error
+            ? "Oops, that/ndidn't work."
+            : "First, let's setup/nyour cloud backup."
+        }
+      >
+        <div className="fg-max-w-[480px] fg-mx-auto">
+          <div className="fg-mb-8">
+            <div className="fg-text-[16px] fg-font-bold fg-text-[var(--fg-muted)] fg-mb-3">
+              Step 1: Account{' '}
+              <span className="fg-text-[var(--fg-green)]">(Recommended)</span>
+            </div>
+            <h1 className="fg-text-[32px] fg-font-black fg-text-[var(--fg-text)] fg-mb-3 fg-tracking-tight">
+              Cloud Sync
+            </h1>
+            <p className="fg-text-[16px] fg-text-[var(--fg-muted)] fg-leading-relaxed">
+              Sign in to securely backup your rules, configurations, and
+              productivity statistics across devices.
+            </p>
+          </div>
+
+          <div className="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[24px] fg-p-6 fg-flex fg-flex-col fg-gap-6 fg-shadow-xl">
+            <div className="fg-flex fg-flex-col fg-gap-5">
+              <div className="fg-flex fg-flex-col fg-gap-2">
+                <label className="fg-text-[12px] fg-font-bold fg-text-[var(--fg-text)]">
+                  Email Address
+                </label>
+                <div className="fg-flex fg-items-center fg-gap-3 fg-h-[52px] fg-rounded-[14px] fg-px-4 fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-bg)] focus-within:fg-border-[var(--fg-text)] fg-transition-all">
+                  <div className="fg-w-8 fg-h-8 fg-rounded-[10px] fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-muted)] fg-shrink-0">
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="5" width="18" height="14" rx="2" />
+                      <path d="m4 7 8 6 8-6" />
+                    </svg>
+                  </div>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="user@example.com"
+                    className="fg-flex-1 fg-h-full fg-bg-transparent fg-border-0 fg-outline-none fg-text-[14px] fg-font-semibold fg-text-[var(--fg-text)] placeholder:fg-text-[var(--fg-muted)]"
+                  />
+                </div>
+              </div>
+
+              {error && <Alert msg={error} tone="error" />}
+
+              <OBtn
+                className="fg-w-full fg-h-[54px] fg-text-[14px]"
+                disabled={isCloudLoading}
+                onClick={async () => {
+                  if (!email || !email.includes('@')) {
+                    setError('Please enter a valid email address.');
+                    return;
+                  }
+                  setIsCloudLoading(true);
+                  setError('');
+                  try {
+                    await signInWithOtpAction(extensionVMDeps, email);
+                    setError('');
+                    alert('Magic link sent! Please check your email.');
+                    setStep('connect');
+                  } catch (err: any) {
+                    setError(err.message || 'Failed to send magic link.');
+                  } finally {
+                    setIsCloudLoading(false);
+                  }
+                }}
+              >
+                {isCloudLoading ? 'Sending...' : 'Send Magic Link'}
+              </OBtn>
+
+              <div className="fg-flex fg-items-center fg-gap-4 fg-my-1">
+                <div className="fg-h-[1px] fg-flex-1 fg-bg-[var(--fg-glass-border)]" />
+                <span className="fg-text-[10px] fg-font-black fg-opacity-30 uppercase">
+                  Or
+                </span>
+                <div className="fg-h-[1px] fg-flex-1 fg-bg-[var(--fg-glass-border)]" />
+              </div>
+
+              <button
+                className="fg-w-full fg-h-[56px] fg-rounded-[16px] fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-bg)] hover:fg-bg-[var(--fg-surface-hover)] fg-flex fg-items-center fg-justify-center fg-gap-3 fg-transition-all fg-text-[var(--fg-text)] fg-cursor-pointer disabled:fg-opacity-50"
+                disabled={isCloudLoading}
+                onClick={async () => {
+                  setIsCloudLoading(true);
+                  setError('');
+                  try {
+                    await signInWithGoogleAction(extensionVMDeps);
+                    setStep('connect');
+                  } catch (err: any) {
+                    setError('Login with Google failed.');
+                  } finally {
+                    setIsCloudLoading(false);
+                  }
+                }}
+              >
+                <span className="fg-flex fg-items-center fg-justify-center fg-w-9 fg-h-9 fg-rounded-[10px] fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-shrink-0">
+                  <GoogleGlyph />
+                </span>
+                <span className="fg-text-[13px] fg-font-bold fg-tracking-[0.02em]">
+                  Continue with Google
+                </span>
+              </button>
+
+              <button
+                onClick={() => {
+                  setError('');
+                  setStep('connect');
+                }}
+                className="fg-bg-transparent fg-border-0 fg-text-[var(--fg-muted)] fg-text-[13px] fg-font-bold fg-cursor-pointer fg-mt-2 hover:fg-text-[var(--fg-text)] fg-transition-colors"
+                disabled={isCloudLoading}
+              >
+                Skip this step
+              </button>
+            </div>
+          </div>
+        </div>
+      </Shell>
+    );
+  }
+
   // ── CONNECT ─────────────────────────────────────────────────────────────────
   if (step === 'connect') {
     return (
@@ -378,10 +545,10 @@ export const OnboardingReact: React.FC<{
         botMood={error ? 'sad' : 'focused'}
         botMessage={
           error
-            ? "Oops, that didn't work."
+            ? "Oops, that/ndidn't work."
             : profileId.trim().length > 0
-            ? "Paste your API key here.\nI'll keep it safe."
-            : 'Create a NextDNS account\nto get started.'
+            ? "Paste your API key/nhere. I'll keep it safe."
+            : 'Create a NextDNS account/nto get started.'
         }
       >
         <div className="fg-max-w-[480px] fg-mx-auto">
@@ -497,7 +664,7 @@ export const OnboardingReact: React.FC<{
   return (
     <Shell
       botMood="victory"
-      botMessage={'Almost done!\nCopy the secure link\ninto your settings.'}
+      botMessage={'Almost done! Copy the secure/nlink into your settings.'}
       botAction="fire_flare"
     >
       <div className="fg-relative fg-w-full fg-max-w-[1000px] fg-mx-auto">
