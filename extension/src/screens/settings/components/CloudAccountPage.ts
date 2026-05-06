@@ -137,9 +137,7 @@ export async function renderCloudAccountPage(container: HTMLElement) {
                 : `
               <div class="fg-flex fg-flex-col fg-gap-5">
                 <div class="fg-flex fg-flex-col fg-gap-2">
-                  <label style="${
-                    UI_TOKENS.TEXT.LABEL
-                  }; font-size: 11px; opacity: 0.5;">Email Address</label>
+                  <label style="${UI_TOKENS.TEXT.LABEL}; font-size: 11px; opacity: 0.5;">Email Address</label>
                   <div class="fg-flex fg-items-center fg-gap-3 fg-h-12 fg-px-4 fg-rounded-[14px] fg-border fg-border-[var(--fg-glass-border)] fg-bg-[var(--fg-bg)]">
                     <div class="fg-w-8 fg-h-8 fg-rounded-[10px] fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-muted)] fg-shrink-0">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path></svg>
@@ -149,11 +147,7 @@ export async function renderCloudAccountPage(container: HTMLElement) {
                   </div>
                 </div>
                 
-                <button id="btn_cloud_signin" class="btn-premium fg-w-full fg-justify-center fg-h-14 fg-rounded-2xl fg-text-[12px] fg-font-black fg-tracking-widest" style="background: ${
-                  COLORS.inAppActiveBg
-                }; color: ${COLORS.inAppActiveText}; border: 1px solid ${
-                    COLORS.inAppActiveBorder
-                  };">Send Magic Link</button>
+                <button id="btn_cloud_signin" class="btn-premium fg-w-full fg-justify-center fg-h-14 fg-rounded-2xl fg-text-[12px] fg-font-black fg-tracking-widest" style="background: ${COLORS.inAppActiveBg}; color: ${COLORS.inAppActiveText}; border: 1px solid ${COLORS.inAppActiveBorder};">Send Magic Link</button>
 
                 <div class="fg-flex fg-items-center fg-gap-4 fg-my-1">
                   <div class="fg-h-[1px] fg-flex-1 fg-bg-[var(--fg-glass-border)]"></div>
