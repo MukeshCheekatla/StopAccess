@@ -34,7 +34,7 @@ export function setupDateSelectorWidget(
       <button class="date-nav-prev" style="width:28px; height:28px; border-radius:6px; display:flex; align-items:center; justify-content:center; background:transparent; border:none; color:${
         COLORS.muted
       }; cursor:pointer; transition:all 0.2s;">
-         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+         ${UI_ICONS.CHEVRON_LEFT}
       </button>
       
       <div style="display: flex; flex-direction: column; align-items: center; min-width: 80px; cursor:pointer;" class="date-picker-trigger" id="sa-date-trigger">
@@ -53,7 +53,7 @@ export function setupDateSelectorWidget(
   }; cursor:${isToday ? 'default' : 'pointer'}; opacity:${
     isToday ? '0.2' : '1'
   }; transition:all 0.2s;">
-         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+         ${UI_ICONS.CHEVRON_RIGHT}
       </button>
     </div>
   `;
@@ -102,7 +102,9 @@ export function renderCustomSelect(
     <div class="fg-custom-select ${className}" data-pkg="${escapeHtml(pkg)}">
       <div class="fg-select-trigger" style="width: ${width}; height: 32px; padding: 0 12px; font-size: 12px; font-weight: 500;">
         <span>${selectedLabel}</span>
-        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" style="opacity: 0.5;"><path d="m6 9 6 6 6-6"/></svg>
+        <span style="opacity: 0.5; display: flex; align-items: center;">
+          ${UI_ICONS.CHEVRON_DOWN}
+        </span>
       </div>
       <div class="fg-select-menu">
         ${options
@@ -269,6 +271,8 @@ export function renderAppTableRow(
           data-kind="${type}" data-id="${escapeHtml(
     rule.packageName,
   )}" data-pkg="${escapeHtml(rule.packageName)}"
+          data-name="${escapeHtml(rule.appName || identifier)}"
+          aria-checked="${active}"
           style="transform: scale(0.8); transform-origin: right;">
           <span class="on-text">On</span>
           <span class="off-text">Off</span>
@@ -280,7 +284,7 @@ export function renderAppTableRow(
         <button class="btn-icon delete-rule" ${
           isLocked ? 'disabled style="opacity:0.3;"' : ''
         } data-pkg="${escapeHtml(rule.packageName)}">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2M10 11v6M14 11v6"/></svg>
+          ${UI_ICONS.TRASH}
         </button>
       </div>
     </div>

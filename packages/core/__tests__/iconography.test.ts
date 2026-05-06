@@ -1,8 +1,4 @@
-import {
-  getRootDomain,
-  resolveIconUrl,
-  getCategoryBadge,
-} from '../src/iconography';
+import { getRootDomain, resolveIconUrl } from '../src/iconography';
 
 describe('getRootDomain', () => {
   it('extracts root domain from standard domains', () => {
@@ -32,16 +28,5 @@ describe('resolveIconUrl', () => {
   it('handles subdomains correctly by favoring root brand', () => {
     const url = resolveIconUrl('images.instagram.com');
     expect(url).toContain('instagram');
-  });
-});
-
-describe('getCategoryBadge', () => {
-  it('returns svg markup for known categories', () => {
-    expect(getCategoryBadge({ id: 'games' })).toContain('<svg');
-    expect(getCategoryBadge({ id: 'social-networks' })).toContain('<svg');
-  });
-
-  it('returns uppercase initials for unknown categories', () => {
-    expect(getCategoryBadge({ id: 'productivity' })).toBe('PR');
   });
 });

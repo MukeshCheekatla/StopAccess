@@ -1,5 +1,5 @@
 import { COLORS } from '../../ui/theme/designTokens';
-import { UI_TOKENS } from '../../ui/theme/uiTokens';
+import { UI_TOKENS, UI_ICONS } from '../../ui/theme/uiTokens';
 import { renderBrandLogo } from './icons';
 
 export function renderInfoTooltip(
@@ -16,11 +16,10 @@ export function renderInfoTooltip(
     <div class="fg-tooltip ${directionClass} ${alignClass} fg-inline-flex fg-items-center fg-justify-center fg-transition-colors fg-cursor-pointer" 
          data-tooltip="${tooltipText}"
          style="margin-left: 6px; vertical-align: middle; color: var(--fg-muted);">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="10"></circle>
-        <path d="M12 16v-4"></path>
-        <path d="M12 8h.01"></path>
-      </svg>
+      ${UI_ICONS.INFO.replace('width="14"', 'width="16"').replace(
+        'height="14"',
+        'height="16"',
+      )}
     </div>
   `;
 }
@@ -36,10 +35,17 @@ export function renderErrorCard(message: string, retryBtnId: string): string {
   return `
     <div class="app-card" style="text-align: center; padding: 40px 24px; background: var(--fg-glass-bg); border-color: var(--fg-glass-border);">
       <div style="color: var(--fg-red); margin-bottom: 12px; display: flex; justify-content: center;">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        ${UI_ICONS.TRIANGLE_ALERT.replace('width="14"', 'width="36"').replace(
+          'height="14"',
+          'height="36"',
+        )}
       </div>
-      <div style="${UI_TOKENS.TEXT.ERROR}; margin-bottom: 8px;">Failed to Load</div>
-      <div style="${UI_TOKENS.TEXT.FOOTNOTE}; margin-bottom: 20px;">${message}</div>
+      <div style="${
+        UI_TOKENS.TEXT.ERROR
+      }; margin-bottom: 8px;">Failed to Load</div>
+      <div style="${
+        UI_TOKENS.TEXT.FOOTNOTE
+      }; margin-bottom: 20px;">${message}</div>
       <button class="btn btn-outline" id="${retryBtnId}">Retry</button>
     </div>
   `;

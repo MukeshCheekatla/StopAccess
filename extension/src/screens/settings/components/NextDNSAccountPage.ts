@@ -6,9 +6,9 @@ import {
 import { toast } from '../../../ui/toast';
 import { COLORS } from '../../../ui/theme/designTokens';
 import { escapeHtml } from '@stopaccess/core';
+import { ICONS } from '../../../ui/Icons';
 
-const iconExternal =
-  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="fg-ml-1.5 fg-opacity-70"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+const iconExternal = ICONS.EXTERNAL_LINK;
 export async function renderNextDNSAccountPage(container: HTMLElement) {
   if (!container) {
     return;
@@ -67,7 +67,7 @@ export async function renderNextDNSAccountPage(container: HTMLElement) {
         }] fg-border fg-border-[${COLORS.glassBorder}] fg-text-[${
     COLORS.text
   }] hover:fg-bg-[var(--fg-white-wash)] fg-transition-all">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          ${ICONS.BACK}
         </button>
         <div>
           <h1 style="${

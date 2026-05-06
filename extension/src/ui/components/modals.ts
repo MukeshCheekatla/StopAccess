@@ -192,7 +192,7 @@ export function showPinModal(
   overlay.innerHTML = `
     <div class="pin-modal-card fg-bg-[var(--fg-surface)] fg-w-[340px] fg-rounded-[32px] fg-border fg-border-[var(--fg-glass-border)] fg-shadow-2xl fg-p-8 fg-text-center fg-transition-transform fg-duration-300">
       <div class="fg-mb-6 fg-mx-auto fg-w-12 fg-h-12 fg-rounded-2xl fg-bg-[var(--fg-accent-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-accent)]">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        ${UI_ICONS.LOCK}
       </div>
       <div style="${UI_TOKENS.TEXT.HEADING}; font-size: 18px; margin-bottom: 8px;">${safeTitle}</div>
       <div style="${UI_TOKENS.TEXT.SUBTEXT}; margin-bottom: 24px;">${safeBody}</div>
@@ -459,7 +459,7 @@ export async function showTypingChallenge(
       overlay.innerHTML = `
         <div class="fg-relative fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-white-wash)] fg-rounded-[48px] fg-p-14 fg-max-w-[750px] fg-w-full fg-shadow-2xl fg-transition-all fg-duration-500">
           <button id="btn_shuffle_challenge" class="fg-absolute fg-top-10 fg-right-10 fg-w-10 fg-h-10 fg-rounded-full fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-white-wash)] fg-transition-all" title="Shuffle paragraph">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6M3 12a9 9 0 0 1 15-6.7L21 8M3 22v-6h6M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+            ${UI_ICONS.REFRESH}
           </button>
           
           <div class="fg-text-center fg-mb-10">

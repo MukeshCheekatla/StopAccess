@@ -83,7 +83,7 @@ export function renderCloudBanner(
     <div class="glass-card" style="margin-bottom: 32px; padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; border-color: ${accentColor}; background: var(--fg-blue-wash);">
       <div style="display: flex; align-items: center; gap: 20px;">
         <div style="width: 44px; height: 44px; border-radius: 14px; background: var(--fg-blue-soft); display: flex; align-items: center; justify-content: center; color: ${accentColor}; flex-shrink: 0;">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19c.7 0 1.3-.2 1.8-.7s.7-1.1.7-1.8c0-1.4-1.1-2.5-2.5-2.5-.1 0-.3 0-.4.1C16.5 10.6 13.5 8 10 8c-3.1 0-5.7 2.1-6.7 5h-.3C1.3 13 0 14.3 0 15.9c0 1.6 1.3 2.9 2.9 2.9h14.6z"/></svg>
+          ${UI_ICONS.CLOUD}
         </div>
         <div>
           <div style="${UI_TOKENS.TEXT.BANNER_HEADING}">${title}</div>
