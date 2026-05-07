@@ -16,7 +16,7 @@ import {
   setupDateSelectorWidget,
 } from '@/ui/ui';
 import { CHART_COLORS, COLORS } from '@/ui/theme/designTokens';
-import { attachCalendarWidget } from './CalendarWidget';
+import { attachCalendarWidget } from './components/CalendarWidget';
 import { getTypingHistory } from '@/lib/typingHistory';
 import { getRemainingMs, formatTime } from '@/lib/sessionTimer';
 
@@ -24,10 +24,6 @@ import { getRemainingMs, formatTime } from '@/lib/sessionTimer';
 const iconPlay = UI_ICONS.PLAY;
 const iconPause = UI_ICONS.PAUSE;
 const iconStop = UI_ICONS.STOP;
-const iconSparkle = UI_ICONS.SPARKLES.replace(
-  'width="14"',
-  'width="20"',
-).replace('height="14"', 'height="20"');
 
 // This function opens the extension settings page
 function openSettingsPage() {
@@ -228,41 +224,7 @@ export async function renderDashboardPage(
                   <canvas id="liveUsageChart" style="width: 100% !important; height: 230px !important;"></canvas>
                </div>
                
-               <!-- Life Reclaimed Card -->
-               <div id="lifeReclaimedWidget" class="fg-mt-5">
-                 <div class="fg-panel fg-rounded-[20px] fg-p-5 fg-flex fg-items-center fg-gap-4 fg-border fg-border-[var(--fg-glass-border)] fg-transition-all hover:fg-translate-y-[-2px]" style="background: linear-gradient(135deg, ${
-                   COLORS.glassBg
-                 }, ${COLORS.green}08);">
-                    <div class="fg-flex fg-items-center fg-justify-center fg-w-12 fg-h-12 fg-rounded-xl" style="background: ${
-                      COLORS.green
-                    }15; color: ${COLORS.green};">
-                      ${iconSparkle}
-                    </div>
-                    <div class="fg-flex-1">
-                      <div style="${
-                        UI_TOKENS.TEXT.WIDGET_LABEL
-                      }; margin-bottom: 2px;">Life Reclaimed ${
-        data.isToday ? 'Today' : ''
-      }</div>
-                      <div style="${
-                        UI_TOKENS.TEXT.STAT
-                      }; font-size: 22px; line-height: 1;">${formatMinutes(
-        data.focusSummary.totalMinutes || 0,
-      )}</div>
-                    </div>
-                    <div class="fg-text-right">
-                      <div style="font-size: 10px; font-weight: 800; color: ${
-                        COLORS.green
-                      }; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.5px;">Focused</div>
-                    </div>
-                 </div>
-               </div>
 
-               <div class="fg-mt-5 fg-text-xs fg-text-[${
-                 COLORS.text
-               }] fg-opacity-80 fg-leading-normal fg-font-semibold">
-                 Data reflects time recorded by the browser gate for the selected period.
-               </div>
             </div>
           </div>
         </div>
@@ -567,32 +529,22 @@ export async function renderDashboardPage(
         latestType && (latestType as any).netWpm !== undefined
           ? (latestType as any).netWpm
           : '--';
-      const grossWpmVal = latestType ? latestType.wpm : '--';
       const accVal = latestType
         ? `${latestType.accuracy}%`
         : 'Awaiting Data...';
-      const isHigh =
-        latestType && ((latestType as any).netWpm || latestType.wpm) > 65;
 
       timerW.innerHTML = `
         <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <div class="widget-title" style="${
               UI_TOKENS.TEXT.WIDGET_LABEL
-            } opacity: 0.8;">WPM Analysis</div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              ${
-                isHigh
-                  ? `<div style="${UI_TOKENS.TEXT.BADGE} color: var(--green); border: none; background: var(--green)/10; padding: 2px 6px;">Peak</div>`
-                  : ''
-              }
-              ${UI_ICONS.KEYBOARD.replace(
-                'stroke="currentColor"',
-                `stroke="${COLORS.muted}"`,
-              ).replace('style="', 'style="opacity: 0.5; ')}
-            </div>
+            }">WPM Analysis</div>
+            ${UI_ICONS.KEYBOARD.replace(
+              'stroke="currentColor"',
+              `stroke="${COLORS.muted}"`,
+            ).replace('style="', 'style="opacity: 0.5; ')}
           </div>
-          <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="margin-top: 12px;">
             <div style="display: flex; align-items: baseline; gap: 6px;">
               <div style="${
                 UI_TOKENS.TEXT.STAT
@@ -601,16 +553,11 @@ export async function renderDashboardPage(
                 UI_TOKENS.TEXT.LABEL
               } opacity: 0.5; font-size: 11px;">Net WPM</div>
             </div>
-            <div style="${
-              UI_TOKENS.TEXT.LABEL
-            }; font-size: 11px; opacity: 0.6; font-weight: 700;">${accVal} accuracy • ${grossWpmVal} Gross</div>
           </div>
-          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--fg-white-wash-border);">
+          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--fg-white-wash);">
              <div style="${
                UI_TOKENS.TEXT.LABEL
-             } opacity: 0.5; font-size: 10px;">${
-        latestType ? 'Last typing test' : 'History initializing...'
-      }</div>
+             } opacity: 0.8; font-size: 12px;">${accVal} <span class="fg-opacity-50 fg-font-normal">accuracy</span></div>
           </div>
         </div>
       `;
@@ -786,7 +733,7 @@ export async function renderDashboardPage(
       const chartTextColor = resolveToken(UI_TOKENS.COLORS.TEXT) || COLORS.text;
 
       // Group domains into "Others" if the list is too long (Industry Standard)
-      const MAX_CHART_ITEMS = 7;
+      const MAX_CHART_ITEMS = 6;
       let chartData = [...domainList];
       if (domainList.length > MAX_CHART_ITEMS + 1) {
         const top = domainList.slice(0, MAX_CHART_ITEMS);

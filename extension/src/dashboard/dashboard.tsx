@@ -22,8 +22,8 @@ import { renderSecurityPage } from '@/screens/security/SecurityPage';
 import { renderPrivacyPage } from '@/screens/privacy/PrivacyPage';
 import { renderAppsPage } from '@/screens/apps/AppsPage';
 import { renderInAppBlockingPage } from '@/screens/in_app/InAppBlockingPage';
-import { renderDomainUsageScreen } from '@/screens/dashboard/DomainUsageScreen';
-import { renderTypingMasteryScreen } from '@/screens/dashboard/TypingMasteryScreen';
+import { renderDomainUsage } from '@/screens/dashboard/components/DomainUsage';
+import { renderTypingMastery } from '@/screens/dashboard/components/TypingMastery';
 import { applyTheme, setupThemeListener } from '@/ui/theme/theme';
 import { UI_ICONS } from '@/ui/ui';
 import { supabase } from '@/lib/supabase';
@@ -92,7 +92,15 @@ const TABS: Array<ShellTab<TabId>> = [
   },
 ];
 
-const TAB_SET = new Set<string>(TABS.map((tab) => tab.id));
+const TAB_SET = new Set<string>([
+  ...TABS.map((tab) => tab.id),
+  'domain_usage',
+  'typing_mastery',
+  'account',
+  'cloud_account',
+  'nextdns_account',
+  'byte_settings',
+]);
 
 function resolveInitialTab(): TabId {
   const params = new URLSearchParams(window.location.search);
@@ -116,7 +124,14 @@ function DashboardApp() {
     name?: string;
     email?: string;
     image?: string;
-  } | null>(null);
+  } | null>(() => {
+    try {
+      const cached = localStorage.getItem('sa_cached_user');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     document.body.classList.add('is-full-page');
@@ -167,13 +182,16 @@ function DashboardApp() {
       const { getCloudUserSafe } = await import('@/lib/supabase');
       const u = await getCloudUserSafe();
       if (u) {
-        setUser({
+        const userData = {
           name: u.user_metadata?.full_name || u.email?.split('@')[0],
           email: u.email,
           image: u.user_metadata?.avatar_url,
-        });
+        };
+        setUser(userData);
+        localStorage.setItem('sa_cached_user', JSON.stringify(userData));
       } else {
         setUser(null);
+        localStorage.removeItem('sa_cached_user');
       }
     };
 
@@ -360,10 +378,10 @@ function DashboardApp() {
           break;
         case 'domain_usage':
           renderFn = (container: HTMLElement) =>
-            renderDomainUsageScreen(container, currentDomain || '');
+            renderDomainUsage(container, currentDomain || '');
           break;
         case 'typing_mastery':
-          renderFn = renderTypingMasteryScreen;
+          renderFn = renderTypingMastery;
           break;
         case 'account':
         case 'cloud_account':
@@ -487,6 +505,7 @@ function DashboardApp() {
 
         // Force update everything
         setUser(null);
+        localStorage.removeItem('sa_cached_user');
         setAuthVersion((v) => v + 1);
 
         // Notify other parts of the app

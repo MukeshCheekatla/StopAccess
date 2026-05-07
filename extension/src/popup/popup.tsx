@@ -11,9 +11,9 @@ import {
   type ShellStatus,
   type ShellTab,
 } from '@/ui/react/ExtensionShell';
-import { FocusPopupView } from '@/screens/focus/FocusPopupView';
-import { AppsPopupView } from '@/screens/apps/AppsPopupView';
-import { DashboardPopupView } from '@/screens/dashboard/DashboardPopupView';
+import { FocusPopup } from '@/screens/focus/FocusPopup';
+import { AppsPopup } from '@/screens/apps/AppsPopup';
+import { DashboardPopup } from '@/screens/dashboard/DashboardPopup';
 import { applyTheme, setupThemeListener } from '@/ui/theme/theme';
 import { UI_ICONS } from '@/ui/ui';
 
@@ -344,21 +344,21 @@ function PopupApp() {
           activeTab === 'focus' ? 'fg-block' : 'fg-hidden'
         }`}
       >
-        <FocusPopupView />
+        <FocusPopup />
       </div>
       <div
         className={`fg-h-full fg-w-full ${
           activeTab === 'dash' ? 'fg-block' : 'fg-hidden'
         }`}
       >
-        <DashboardPopupView />
+        <DashboardPopup />
       </div>
       <div
         className={`fg-h-full fg-w-full ${
           activeTab === 'apps' ? 'fg-block' : 'fg-hidden'
         }`}
       >
-        <AppsPopupView />
+        <AppsPopup />
       </div>
     </PopupShell>
   );
