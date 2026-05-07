@@ -11,7 +11,7 @@ import {
   renderSectionTitleRow,
   renderInfoTooltip,
 } from '@/ui/ui';
-import { ICONS } from '@/ui/Icons';
+import { ICONS } from '@/ui/svgicons';
 
 export function renderContentProtectionSection(
   settings: NextDNSSecuritySettings,

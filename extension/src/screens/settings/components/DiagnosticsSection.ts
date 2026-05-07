@@ -1,7 +1,7 @@
 import { UI_TOKENS, UI_ICONS } from '@/ui/ui';
 import { toast } from '@/ui/toast';
 import { COLORS } from '@/ui/theme/designTokens';
-import { ICONS } from '@/ui/Icons';
+import { ICONS } from '@/ui/svgicons';
 
 const iconSearch = ICONS.SEARCH;
 const iconActivity = ICONS.ACTIVITY;

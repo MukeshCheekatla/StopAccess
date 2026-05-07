@@ -1,4 +1,4 @@
-import { ICONS } from './Icons';
+import { ICONS } from '@/ui/svgicons';
 
 const CATEGORY_ICON_MAP: Record<string, string> = {
   games: ICONS.GAMES,

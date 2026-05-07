@@ -1,5 +1,5 @@
 import { COLORS } from './designTokens';
-import { ICONS } from '@/ui/Icons';
+import { ICONS } from '@/ui/svgicons';
 
 const TOKEN_DEFS = {
   HEADING: {

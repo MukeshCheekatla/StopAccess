@@ -21,7 +21,7 @@ import {
   attachGlobalIconListeners,
 } from '@/ui/ui';
 import { COLORS } from '@/ui/theme/designTokens';
-import { ICONS } from '@/ui/Icons';
+import { ICONS } from '@/ui/svgicons';
 
 let activeTab = 'shield';
 let availableCategories: any[] = [];

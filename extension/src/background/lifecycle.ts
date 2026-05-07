@@ -30,6 +30,7 @@ import {
   signInWithOtp,
   setSessionFromUrl,
 } from './authManager';
+import { notifyExtensionUpdated } from './notifications';
 import {
   pullState,
   pullUsageFromCloud,
@@ -252,6 +253,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
     });
     const url = chrome.runtime.getURL(buildExtensionPagePath('dashboard.html'));
     chrome.tabs.create({ url });
+  } else if (details.reason === 'update') {
+    const version = chrome.runtime.getManifest().version;
+    notifyExtensionUpdated(version);
   }
   await initActiveTab();
   chrome.alarms.create('StopAccess_engine', {

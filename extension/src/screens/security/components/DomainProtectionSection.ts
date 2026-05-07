@@ -14,7 +14,7 @@ import {
   UI_TOKENS,
 } from '@/ui/ui';
 import { COLORS } from '@/ui/theme/designTokens';
-import { ICONS } from '@/ui/Icons';
+import { ICONS } from '@/ui/svgicons';
 
 interface DomainToggle {
   key: keyof Omit<NextDNSSecuritySettings, 'tlds'>;

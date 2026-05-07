@@ -1,5 +1,26 @@
 export const CHANGELOG = [
   {
+    version: '1.1.3',
+    title: 'Intelligence & Sync Mastery',
+    features: [
+      {
+        iconId: 'SPARKLES',
+        label: 'Byte Companion',
+        desc: 'Meet Byte, your data-driven mascot. Get real-time, context-aware insights and high-fidelity app logos in your messages.',
+      },
+      {
+        iconId: 'CLOUDSYNC',
+        label: 'Mirror Sync Engine',
+        desc: 'New local-first push model. Deletions and rule changes now sync instantly to the cloud without redundant polling.',
+      },
+      {
+        iconId: 'CHART',
+        label: 'Balanced Dashboard',
+        desc: 'Rebalanced usage grids and decluttered WPM cards for a premium, distraction-free productivity view.',
+      },
+    ],
+  },
+  {
     version: '1.1.2',
     title: 'Total Transformation Update',
     features: [

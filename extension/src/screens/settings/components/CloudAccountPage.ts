@@ -7,7 +7,7 @@ import {
 import { toast } from '@/ui/toast';
 import { COLORS } from '@/ui/theme/designTokens';
 import { escapeHtml } from '@stopaccess/core';
-import { ICONS } from '@/ui/Icons';
+import { ICONS } from '@/ui/svgicons';
 
 const GOOGLE_GLYPH = ICONS.GOOGLE;
 
@@ -110,22 +110,39 @@ export async function renderCloudAccountPage(container: HTMLElement) {
                     <div class="fg-text-sm fg-opacity-50 fg-truncate">${safeEmail}</div>
                   </div>
                 </div>
-                
-                <button id="btn_cloud_signout" class="btn-secondary-v2 fg-h-12 fg-px-6 fg-rounded-xl fg-text-[11px] fg-font-black fg-tracking-widest hover:fg-text-[var(--fg-red)]">
-                  Sign Out From Cloud
-                </button>
 
-                <button id="btn_cloud_push_now" class="btn-premium fg-h-12 fg-px-6 fg-rounded-xl fg-text-[11px] fg-font-black fg-tracking-widest" style="background: ${
-                  COLORS.inAppActiveBg
-                }; color: ${COLORS.inAppActiveText}; border: 1px solid ${
+                <div class="fg-flex fg-flex-col fg-gap-3">
+                  <button id="btn_cloud_push_now" class="btn-premium fg-h-12 fg-px-6 fg-rounded-xl fg-text-[11px] fg-font-black fg-tracking-widest" style="background: ${
+                    COLORS.inAppActiveBg
+                  }; color: ${COLORS.inAppActiveText}; border: 1px solid ${
                     COLORS.inAppActiveBorder
                   };">
-                  Push Backup Now
-                </button>
+                    Push Backup Now
+                  </button>
+                  
+                  <button id="btn_cloud_signout" class="btn-secondary-v2 fg-h-12 fg-px-6 fg-rounded-xl fg-text-[11px] fg-font-black fg-tracking-widest hover:fg-text-[var(--fg-red)]">
+                    Sign Out From Cloud
+                  </button>
+                </div>
 
-                <p class="fg-text-[11px] fg-leading-relaxed fg-opacity-45">
-                  Pushes current NextDNS ID, API key, rules, schedules, focus and usage to Supabase immediately.
-                </p>
+                <div class="fg-h-[1px] fg-bg-[var(--fg-glass-border)]"></div>
+
+                <div class="fg-flex fg-flex-col fg-gap-4">
+                  <div class="fg-flex fg-items-center fg-justify-between">
+                    <div class="fg-flex fg-flex-col fg-gap-0.5">
+                        <span style="${
+                          UI_TOKENS.TEXT.LABEL
+                        }; font-size: 13px; font-weight: 700;">Sidebar Cloud Badge</span>
+                        <span style="${
+                          UI_TOKENS.TEXT.LABEL
+                        }; font-size: 11px; opacity: 0.5;">Show account status in the sidebar</span>
+                    </div>
+                    <label class="fg-relative fg-inline-flex fg-items-center fg-cursor-pointer">
+                      <input type="checkbox" id="toggle_cloud_sidebar" class="fg-sr-only fg-peer">
+                      <div class="fg-w-11 fg-h-6 fg-bg-[var(--fg-glass-border)] peer-focus:fg-outline-none fg-rounded-full fg-peer peer-checked:after:fg-translate-x-full peer-checked:after:fg-border-white after:fg-content-[''] after:fg-absolute after:fg-top-[2px] after:fg-left-[2px] after:fg-bg-white after:fg-border-gray-300 after:fg-border after:fg-rounded-full after:fg-h-5 after:fg-w-5 after:fg-transition-all peer-checked:fg-bg-[var(--fg-blue)]"></div>
+                    </label>
+                  </div>
+                </div>
               </div>
             `
                 : `
@@ -172,6 +189,22 @@ export async function renderCloudAccountPage(container: HTMLElement) {
   });
 
   if (user) {
+    const sidebarToggle = container.querySelector(
+      '#toggle_cloud_sidebar',
+    ) as HTMLInputElement;
+
+    if (sidebarToggle) {
+      chrome.storage.local.get(['fg_show_cloud_sidebar'], (res) => {
+        sidebarToggle.checked = res.fg_show_cloud_sidebar !== false;
+      });
+
+      sidebarToggle.addEventListener('change', () => {
+        const val = sidebarToggle.checked;
+        chrome.storage.local.set({ fg_show_cloud_sidebar: val });
+        localStorage.setItem('sa_show_cloud_sidebar', String(val));
+      });
+    }
+
     container
       .querySelector('#btn_cloud_push_now')
       ?.addEventListener('click', async (e) => {

@@ -12,13 +12,17 @@ const KEY_SYNC_PROFILE_ID = 'profile_id';
 const KEY_DEVICE_ID = 'device_id';
 const KEY_LAST_SYNC_AT = 'last_cloud_sync_at';
 
-// Optimized intervals to reduce DB pressure
-const INTERVALS: Record<string, number> = {
+// Optimized intervals for cloud interaction
+const PUSH_INTERVALS: Record<string, number> = {
   usage: 10 * 60 * 1000, // 10 minutes
-  rules: 60 * 1000, // 1 minute (reactive)
-  schedules: 60 * 1000, // 1 minute
-  nextdns: 60 * 1000, // 1 minute
+  rules: 60 * 1000, // 1 minute (backup)
+  schedules: 60 * 1000,
+  nextdns: 60 * 1000,
   default: 24 * 60 * 60 * 1000,
+};
+
+const PULL_INTERVALS: Record<string, number> = {
+  default: 100 * 365 * 24 * 60 * 60 * 1000, // 100 years (Disabled background pull)
 };
 
 const ENTITY_STORAGE_KEYS: Record<string, string> = {
@@ -177,7 +181,7 @@ async function shouldHitCloud(entity: string, force = false): Promise<boolean> {
   const res = await chrome.storage.local.get([syncKey]);
   const lastSync = (res[syncKey] as number) || 0;
   const now = Date.now();
-  const interval = INTERVALS[entity] || INTERVALS.default;
+  const interval = PUSH_INTERVALS[entity] || PUSH_INTERVALS.default;
 
   if (now - lastSync < interval) {
     return false;
@@ -308,12 +312,23 @@ async function pushRules(
     return;
   }
 
-  const { error } = await supabase.from('user_rules').upsert(rows, {
-    onConflict: 'user_id,profile_id,package_name',
-  });
-  if (error) {
-    throw error;
+  const { error: upsertError } = await supabase
+    .from('user_rules')
+    .upsert(rows, {
+      onConflict: 'user_id,profile_id,package_name',
+    });
+  if (upsertError) {
+    throw upsertError;
   }
+
+  // Exact Mirroring: Remove rules from cloud that are no longer present locally
+  const localPackageNames = rules.map((r) => r.packageName);
+  await supabase
+    .from('user_rules')
+    .delete()
+    .eq('user_id', userId)
+    .eq('profile_id', profileId)
+    .not('package_name', 'in', localPackageNames);
 }
 
 async function pushSchedules(
@@ -338,12 +353,23 @@ async function pushSchedules(
     cloud_updated_at: new Date().toISOString(),
   }));
 
-  const { error } = await supabase.from('user_schedules').upsert(rows, {
-    onConflict: 'user_id,profile_id,schedule_id',
-  });
-  if (error) {
-    throw error;
+  const { error: upsertError } = await supabase
+    .from('user_schedules')
+    .upsert(rows, {
+      onConflict: 'user_id,profile_id,schedule_id',
+    });
+  if (upsertError) {
+    throw upsertError;
   }
+
+  // Mirror Deletions
+  const localScheduleIds = schedules.map((s) => s.id);
+  await supabase
+    .from('user_schedules')
+    .delete()
+    .eq('user_id', userId)
+    .eq('profile_id', profileId)
+    .not('schedule_id', 'in', localScheduleIds);
 }
 
 async function pushNextDNSRow(
@@ -491,7 +517,7 @@ async function shouldPullCloud(force = false): Promise<boolean> {
   }
   const res = await chrome.storage.local.get([KEY_LAST_PULL_AT]);
   const lastPull = (res[KEY_LAST_PULL_AT] as number) || 0;
-  return Date.now() - lastPull >= INTERVALS.rules;
+  return Date.now() - lastPull >= PULL_INTERVALS.default;
 }
 
 export async function pullState(force = false) {
@@ -642,8 +668,7 @@ export async function triggerDailySync(
   lastDay?: { day: string; usage: any },
 ) {
   logSync('trigger_daily_sync_start');
-  await pullState(true);
-  await pullUsageFromCloud();
+  // Daily pull removed for single-user flow. Manual/Sign-in only.
   for (const [entity, payload] of Object.entries(entities)) {
     await pushState(entity, payload, true);
   }

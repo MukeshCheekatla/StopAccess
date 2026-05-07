@@ -22,6 +22,9 @@ export interface UsageSummary {
   syncStatus: string;
   randomApp?: string;
   randomAppTime?: string;
+  redirectUrl?: string;
+  yesterdayPercent: number;
+  topUnblockedSites?: string[];
 }
 
 function isSameDay(ts: number): boolean {
@@ -58,6 +61,9 @@ export async function getUsageSummary(): Promise<UsageSummary> {
       isStrictModeEnabled: false,
       isPinEnabled: false,
       syncStatus: 'idle',
+      redirectUrl: '',
+      yesterdayPercent: 0,
+      topUnblockedSites: [],
     };
   }
 
@@ -73,6 +79,7 @@ export async function getUsageSummary(): Promise<UsageSummary> {
     STORAGE_KEYS.CACHED_METADATA,
     STORAGE_KEYS.STRICT_MODE,
     'fg_lock_pin',
+    'fg_redirect_url',
   ]);
 
   const usage = res[STORAGE_KEYS.USAGE] || {};
@@ -130,9 +137,27 @@ export async function getUsageSummary(): Promise<UsageSummary> {
     diffPercent = Math.round(((totalMs - weeklyAvgMs) / weeklyAvgMs) * 100);
   }
 
+  // Yesterday comparison (for context)
+  let yesterdayPercent = 0;
+  const yesterdayStr = historyDays[0];
+  if (yesterdayStr) {
+    const yesterdayUsage = history[yesterdayStr] || {};
+    let yesterdayMs = 0;
+    Object.values(yesterdayUsage).forEach((v: any) => {
+      yesterdayMs += v.time || 0;
+    });
+    if (yesterdayMs > 0) {
+      yesterdayPercent = Math.round(
+        ((totalMs - yesterdayMs) / yesterdayMs) * 100,
+      );
+    }
+  }
+
   // 4. Rule & Category Stats
   const activeRules = Array.isArray(rules)
-    ? rules.filter((r: any) => r.type !== 'category').length
+    ? rules.filter(
+        (r: any) => r.type !== 'category' && r.desiredBlockingState !== false,
+      ).length
     : 0;
 
   let activeCategories = 0;
@@ -205,6 +230,19 @@ export async function getUsageSummary(): Promise<UsageSummary> {
     randomApp = rDomain;
     randomAppTime = formatMinutes((usage[rDomain].time || 0) / 60000);
   }
+  const redirectUrl = res.fg_redirect_url || '';
+
+  // 9. Top Unblocked Sites
+  const topUnblockedSites = apps
+    .filter((domain) => {
+      const isBlocked = rules.some((r: any) => {
+        const target = r.customDomain || r.packageName || '';
+        return target === domain;
+      });
+      return !isBlocked && domain !== 'newtab' && domain !== 'extensions';
+    })
+    .sort((a, b) => (usage[b].time || 0) - (usage[a].time || 0))
+    .slice(0, 3);
 
   return {
     topApp,
@@ -227,5 +265,8 @@ export async function getUsageSummary(): Promise<UsageSummary> {
     syncStatus,
     randomApp,
     randomAppTime,
+    redirectUrl: String(redirectUrl),
+    yesterdayPercent,
+    topUnblockedSites: topUnblockedSites as string[],
   };
 }

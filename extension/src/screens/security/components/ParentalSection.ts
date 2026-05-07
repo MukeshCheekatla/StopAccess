@@ -7,7 +7,7 @@ import {
   renderInfoTooltip,
   UI_TOKENS,
 } from '@/ui/ui';
-import { ICONS } from '@/ui/Icons';
+import { ICONS } from '@/ui/svgicons';
 
 const iconSearch = ICONS.SEARCH;
 const iconYoutube = ICONS.YOUTUBE;

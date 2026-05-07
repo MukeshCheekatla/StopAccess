@@ -214,3 +214,12 @@ export async function notifyServiceDistraction(
     )}. A short walk might help your focus.`,
   );
 }
+
+export function notifyExtensionUpdated(version: string): void {
+  _notify(
+    'extension_updated',
+    'Extension updated!',
+    `StopAccess ${version} is now active.`,
+    1,
+  );
+}

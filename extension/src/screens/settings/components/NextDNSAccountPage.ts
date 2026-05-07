@@ -2,7 +2,7 @@ import { UI_TOKENS, attachGlobalIconListeners, renderBrandLogo } from '@/ui/ui';
 import { toast } from '@/ui/toast';
 import { COLORS } from '@/ui/theme/designTokens';
 import { escapeHtml } from '@stopaccess/core';
-import { ICONS } from '@/ui/Icons';
+import { ICONS } from '@/ui/svgicons';
 
 const iconExternal = ICONS.EXTERNAL_LINK;
 export async function renderNextDNSAccountPage(container: HTMLElement) {

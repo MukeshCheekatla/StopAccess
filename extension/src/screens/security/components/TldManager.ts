@@ -7,7 +7,7 @@ import { COLORS } from '@/ui/theme/designTokens';
 import type { NextDNSTld } from '@stopaccess/types';
 import { renderInfoTooltip, renderEmptyState, UI_TOKENS } from '@/ui/ui';
 import { COLORS } from '@/ui/theme/designTokens';
-import { ICONS } from '@/ui/Icons';
+import { ICONS } from '@/ui/svgicons';
 
 // Common TLDs to suggest
 const COMMON_RISKY_TLDS = [

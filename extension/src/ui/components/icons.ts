@@ -4,6 +4,46 @@ import {
   resolveFaviconUrl,
 } from '@stopaccess/core';
 import { saveIconToCache, getCachedIconSync } from '@/lib/iconCache';
+import { COLORS } from '@/ui/theme/designTokens';
+
+/** Generates a static SVG string of Byte's face for use in vanilla JS layouts. */
+export function renderByteFace(
+  mood: 'happy' | 'focused' | 'judging' = 'happy',
+  size = 40,
+) {
+  const fillCol = COLORS.botFill;
+  const strokeCol = COLORS.botStroke;
+  const eyeCol = mood === 'judging' ? COLORS.red : COLORS.accent;
+
+  return `
+    <svg width="${size}" height="${
+    size * 0.8
+  }" viewBox="0 0 70 55" fill="none" xmlns="http://www.w3.org/2000/svg" style="display: block; overflow: visible;">
+      <rect x="0" y="0" width="70" height="50" rx="20" fill="${fillCol}" stroke="${strokeCol}" stroke-width="2.5" />
+      ${
+        mood === 'happy'
+          ? `
+        <circle cx="20" cy="25" r="5" fill="${eyeCol}" />
+        <circle cx="50" cy="25" r="5" fill="${eyeCol}" />
+        <path d="M 30 35 Q 35 40 40 35" stroke="${eyeCol}" stroke-width="2.5" fill="none" stroke-linecap="round" />
+      `
+          : mood === 'focused'
+          ? `
+        <circle cx="20" cy="25" r="3" fill="${eyeCol}" />
+        <circle cx="50" cy="25" r="3" fill="${eyeCol}" />
+        <path d="M 28 35 L 42 35" stroke="${eyeCol}" stroke-width="2.5" stroke-linecap="round" />
+      `
+          : mood === 'judging'
+          ? `
+        <path d="M 15 22 Q 20 28 25 22 Z" fill="${eyeCol}" />
+        <path d="M 45 22 Q 50 28 55 22 Z" fill="${eyeCol}" />
+        <path d="M 30 35 L 40 35" stroke="${eyeCol}" stroke-width="2.5" stroke-linecap="round" />
+      `
+          : ''
+      }
+    </svg>
+  `;
+}
 
 /** Resolves any domain/identifier to a favicon URL via the core iconography engine. */
 export function getBrandLogoUrl(domain: string, _sz = 128): string {
