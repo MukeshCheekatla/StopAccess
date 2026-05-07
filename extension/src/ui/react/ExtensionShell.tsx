@@ -1,10 +1,10 @@
 import React, { type ReactNode, useMemo } from 'react';
-import { COLORS, COLOR_CLASSES } from '../../ui/theme/designTokens';
-import { UI_TOKENS } from '../../ui/ui';
-import { ByteCompanion } from '../components/companion';
-import { useShellCompanion } from '../components/companion/useShellCompanion';
+import { COLORS, COLOR_CLASSES } from '@/ui/theme/designTokens';
+import { UI_TOKENS } from '@/ui/ui';
+import { ByteCompanion } from '@/ui/companion';
+import { useShellCompanion } from '@/ui/companion/useShellCompanion';
 import { SunIcon, MonitorIcon, MoonIcon, SignOutIcon } from './ShellIcons';
-import { dispatchCompanionToast } from '../components/companion/companionToast';
+import { dispatchCompanionToast } from '@/ui/companion/companionToast';
 
 export type ShellTab<T extends string> = {
   id: T;

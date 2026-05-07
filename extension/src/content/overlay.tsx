@@ -9,10 +9,10 @@ import { resolveFaviconUrl } from '@stopaccess/core';
 import {
   EXTENSION_COLOR_VAR_DECLARATIONS,
   COLORS,
-} from '../ui/theme/designTokens';
-import { ByteCompanion } from '../ui/components/companion';
+} from '@/ui/theme/designTokens';
+import { ByteCompanion } from '@/ui/companion';
 import { grantTempPass, DEFAULT_MAX_DAILY_PASSES } from './passManager';
-import { UI_ICONS } from '../ui/ui';
+import { UI_ICONS } from '@/ui/ui';
 
 export const OVERLAY_ID = '__fg_block_overlay__';
 export const PREBLOCK_ID = '__fg_block_prewarn__';

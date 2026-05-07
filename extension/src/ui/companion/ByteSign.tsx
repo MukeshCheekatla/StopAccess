@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { COLORS } from '../../../ui/theme/designTokens';
-import { UI_ICONS, UI_TOKENS } from '../../theme/uiTokens';
+import { COLORS } from '@/ui/theme/designTokens';
+import { UI_ICONS, UI_TOKENS } from '@/ui/theme/uiTokens';
 
 export interface ByteSignProps {
   message?: string;

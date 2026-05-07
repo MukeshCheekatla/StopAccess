@@ -1,5 +1,5 @@
 import React from 'react';
-import { COLORS } from '../../../ui/theme/designTokens';
+import { COLORS } from '@/ui/theme/designTokens';
 import { CompanionMood, CompanionState, ProceduralAngles } from './types';
 import { ByteSign } from './ByteSign';
 

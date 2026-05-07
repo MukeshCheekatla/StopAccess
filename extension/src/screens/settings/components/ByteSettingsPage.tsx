@@ -1,8 +1,8 @@
-import { UI_TOKENS, attachGlobalIconListeners } from '../../../ui/ui';
-import { COLORS } from '../../../ui/theme/designTokens';
-import { toast } from '../../../ui/toast';
-import { type CompanionMood } from '../../../ui/components/companion/types';
-import { ICONS } from '../../../ui/Icons';
+import { UI_TOKENS, attachGlobalIconListeners } from '@/ui/ui';
+import { COLORS } from '@/ui/theme/designTokens';
+import { toast } from '@/ui/toast';
+import { type CompanionMood } from '@/ui/companion/types';
+import { ICONS } from '@/ui/Icons';
 
 const MOODS: Array<{
   id: CompanionMood;
@@ -30,7 +30,7 @@ export async function renderByteSettingsPage(container: HTMLElement) {
     return;
   }
 
-  const { extensionVMDeps } = await import('../../../lib/vmDeps');
+  const { extensionVMDeps } = await import('@/lib/vmDeps');
   const { loadSettingsData, updateByteSettingsAction } = await import(
     '@stopaccess/viewmodels/useSettingsVM'
   );
