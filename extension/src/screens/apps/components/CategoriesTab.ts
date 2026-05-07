@@ -6,12 +6,12 @@ import {
   UI_ICONS,
   renderInfoTooltip,
   renderSectionBadge,
-} from '../../../ui/ui';
+} from '@/ui/ui';
 import {
   CATEGORY_COLORS,
   COLORS,
   DEFAULT_CATEGORY_COLOR,
-} from '../../../ui/theme/designTokens';
+} from '@/ui/theme/designTokens';
 
 export function renderCategoryCard(
   category: any,

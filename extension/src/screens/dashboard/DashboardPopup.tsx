@@ -7,7 +7,7 @@ import {
   resolveFaviconUrl,
   resolveTargetInput,
 } from '@stopaccess/core';
-import { FocusBuddy } from './FocusBuddy';
+import { FocusBuddy } from './components/FocusBuddy';
 import { STORAGE_KEYS } from '@stopaccess/state';
 
 type UsageEntry = {
@@ -30,7 +30,7 @@ type ActivityRow = {
   timeMs: number;
 };
 
-export function DashboardPopupView() {
+export function DashboardPopup() {
   const [usage, setUsage] = useState<Record<string, UsageEntry>>({});
   const [rules, setRules] = useState<Rule[]>([]);
   const [remaining, setRemaining] = useState(0);

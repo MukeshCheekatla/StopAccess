@@ -1,12 +1,12 @@
-import { toast } from '../../ui/toast';
-import { checkGuard } from '../../background/sessionGuard';
+import { toast } from '@/ui/toast';
+import { checkGuard } from '@/background/sessionGuard';
 import {
   UI_TOKENS,
   UI_ICONS,
   renderInfoTooltip,
   renderBrandLogo,
-} from '../../ui/ui';
-import { COLORS } from '../../ui/theme/designTokens';
+} from '@/ui/ui';
+import { COLORS } from '@/ui/theme/designTokens';
 import { escapeHtml } from '@stopaccess/core';
 
 export async function renderSettingsPage(container) {
@@ -14,7 +14,7 @@ export async function renderSettingsPage(container) {
     return;
   }
 
-  const { extensionVMDeps } = await import('../../lib/vmDeps');
+  const { extensionVMDeps } = await import('@/lib/vmDeps');
 
   const {
     loadSettingsData,
@@ -297,7 +297,7 @@ export async function renderSettingsPage(container) {
       }
       if (!isChecked) {
         checkbox.checked = true;
-        const { confirmGuardianAction } = (await import('../../ui/ui')) as any;
+        const { confirmGuardianAction } = (await import('@/ui/ui')) as any;
         const confirmed = await confirmGuardianAction({
           title: 'Disable Strict Mode',
           body: 'Verify your security to weaken protection.',
@@ -315,7 +315,7 @@ export async function renderSettingsPage(container) {
 
   // PIN Listener
   const { extensionAdapter: storage } = await import(
-    '../../background/platformAdapter'
+    '@/background/platformAdapter'
   );
   const chkGuardian = container.querySelector(
     '#chk_guardian_pin',
@@ -392,7 +392,7 @@ export async function renderSettingsPage(container) {
           .querySelector('#btn_request_pin_reset')
           ?.addEventListener('click', async () => {
             const { showConfirmDialog: showConfirm } = (await import(
-              '../../ui/ui'
+              '@/ui/ui'
             )) as any;
             if (
               await showConfirm({
@@ -415,7 +415,7 @@ export async function renderSettingsPage(container) {
 
   chkGuardian.addEventListener('change', async () => {
     const existingPin = await storage.getString('guardian_pin');
-    const { confirmGuardianAction } = (await import('../../ui/ui')) as any;
+    const { confirmGuardianAction } = (await import('@/ui/ui')) as any;
     if (chkGuardian.checked) {
       if (!existingPin) {
         const firstInput = container.querySelector(

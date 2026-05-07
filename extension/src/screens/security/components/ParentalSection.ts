@@ -1,13 +1,13 @@
 import type { NextDNSParentalControlSettings } from '@stopaccess/types';
-import { COLORS } from '../../../ui/theme/designTokens';
+import { COLORS } from '@/ui/theme/designTokens';
 import {
   renderToggleSwitch,
   renderSectionBadge,
   renderSectionTitleRow,
   renderInfoTooltip,
   UI_TOKENS,
-} from '../../../ui/ui';
-import { ICONS } from '../../../ui/Icons';
+} from '@/ui/ui';
+import { ICONS } from '@/ui/Icons';
 
 const iconSearch = ICONS.SEARCH;
 const iconYoutube = ICONS.YOUTUBE;

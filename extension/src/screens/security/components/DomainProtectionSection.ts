@@ -1,5 +1,5 @@
 /**
-import { COLORS } from '../../../ui/theme/designTokens';
+import { COLORS } from '@/ui/theme/designTokens';
  * DomainProtectionSection
  * Renders: DNS Rebinding, IDN Homographs, Typosquatting, DGA, NRD, DDNS, Parking
  */
@@ -12,9 +12,9 @@ import {
   renderSectionTitleRow,
   renderInfoTooltip,
   UI_TOKENS,
-} from '../../../ui/ui';
-import { COLORS } from '../../../ui/theme/designTokens';
-import { ICONS } from '../../../ui/Icons';
+} from '@/ui/ui';
+import { COLORS } from '@/ui/theme/designTokens';
+import { ICONS } from '@/ui/Icons';
 
 interface DomainToggle {
   key: keyof Omit<NextDNSSecuritySettings, 'tlds'>;

@@ -4,11 +4,11 @@
  */
 import { ruleMatchesDomain } from '@stopaccess/core';
 import { AppRule } from '@stopaccess/types';
-import { EXTENSION_COLOR_VAR_DECLARATIONS } from '../ui/theme/designTokens';
+import { EXTENSION_COLOR_VAR_DECLARATIONS } from '@/ui/theme/designTokens';
 import {
   checkInAppFeatures,
   checkInAppUrlBlock,
-} from '../background/inAppBlocking';
+} from '@/background/inAppBlocking';
 import {
   getActiveTempPass,
   getExtensionCount,

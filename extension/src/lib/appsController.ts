@@ -2,10 +2,10 @@ import { updateRule, deleteRule } from '@stopaccess/state/rules';
 import {
   nextDNSApi,
   extensionAdapter as storage,
-} from '../background/platformAdapter';
+} from '@/background/platformAdapter';
 import { getBlockingPolicy } from '@stopaccess/state';
-import { toast } from '../ui/toast';
-import { checkGuard } from '../background/sessionGuard';
+import { toast } from '@/ui/toast';
+import { checkGuard } from '@/background/sessionGuard';
 import { STORAGE_KEYS } from '@stopaccess/state/index';
 import { findServiceIdByDomain, getDomainForRule } from '@stopaccess/core';
 

@@ -1,4 +1,4 @@
-import { supabase, getCloudUserSafe } from '../lib/supabase';
+import { supabase, getCloudUserSafe } from '@/lib/supabase';
 import { extensionLogger } from './platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
 import {

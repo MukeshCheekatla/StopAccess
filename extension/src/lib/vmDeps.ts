@@ -1,5 +1,5 @@
 import { VMPlatformDependencies } from '@stopaccess/viewmodels/types';
-import { extensionAdapter, nextDNSApi } from '../background/platformAdapter';
+import { extensionAdapter, nextDNSApi } from '@/background/platformAdapter';
 
 declare var chrome: any;
 

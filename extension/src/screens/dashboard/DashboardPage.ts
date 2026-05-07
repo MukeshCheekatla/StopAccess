@@ -6,19 +6,19 @@ import {
   findServiceIdByDomain,
   resolveTargetInput,
 } from '@stopaccess/core';
-import { appsController } from '../../lib/appsController';
-import { getCachedIcon } from '../../lib/iconCache';
+import { appsController } from '@/lib/appsController';
+import { getCachedIcon } from '@/lib/iconCache';
 import {
   UI_TOKENS,
   UI_ICONS,
   renderBrandLogo,
   attachGlobalIconListeners,
   setupDateSelectorWidget,
-} from '../../ui/ui';
-import { CHART_COLORS, COLORS } from '../../ui/theme/designTokens';
+} from '@/ui/ui';
+import { CHART_COLORS, COLORS } from '@/ui/theme/designTokens';
 import { attachCalendarWidget } from './CalendarWidget';
-import { getTypingHistory } from '../../lib/typingHistory';
-import { getRemainingMs, formatTime } from '../../lib/sessionTimer';
+import { getTypingHistory } from '@/lib/typingHistory';
+import { getRemainingMs, formatTime } from '@/lib/sessionTimer';
 
 // Key icons
 const iconPlay = UI_ICONS.PLAY;
@@ -60,7 +60,7 @@ export async function renderDashboardPage(
     const { loadDashboardData } = await import(
       '@stopaccess/viewmodels/useDashboardVM'
     );
-    const { extensionVMDeps } = await import('../../lib/vmDeps');
+    const { extensionVMDeps } = await import('@/lib/vmDeps');
     const data = await loadDashboardData(extensionVMDeps, actualDate);
 
     // If a new render has started for a different date, ignore this stale result
@@ -331,9 +331,7 @@ export async function renderDashboardPage(
                 renderDashboardPage(container, selectedDate);
               });
             } else {
-              const { showConfirmDialog } = (await import(
-                '../../ui/ui'
-              )) as any;
+              const { showConfirmDialog } = (await import('@/ui/ui')) as any;
               const confirmed = await showConfirmDialog({
                 title: 'Start 25m Focus?',
                 body: 'Enter a deep work state. We will block all distractions during this time.',
@@ -355,7 +353,7 @@ export async function renderDashboardPage(
         // Timer Stop Logic
         const stopBtn = target.closest('#btn_stop_focus') as HTMLButtonElement;
         if (stopBtn) {
-          const { showConfirmDialog } = (await import('../../ui/ui')) as any;
+          const { showConfirmDialog } = (await import('@/ui/ui')) as any;
           const confirmed = await showConfirmDialog({
             title: 'Stop Focus?',
             body: 'Ending your session early will disable active distractions blocking.',

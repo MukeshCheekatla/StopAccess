@@ -1,32 +1,32 @@
 import { useEffect, useState, useMemo } from 'react';
 import { createRoot } from 'react-dom/client';
 import React from 'react';
-import { OnboardingReact } from '../screens/Onboarding';
+import { OnboardingReact } from '@/screens/Onboarding';
 import {
   extensionAdapter as storage,
   nextDNSApi,
   STORAGE_KEYS,
-} from '../background/platformAdapter';
+} from '@/background/platformAdapter';
 import {
   DashboardShell,
   type ShellStatus,
   type ShellTab,
-} from '../ui/react/ExtensionShell';
-import { LegacyBridge } from '../ui/react/LegacyBridge';
-import { renderDashboardPage } from '../screens/dashboard/DashboardPage';
-import { renderFocusPage } from '../screens/focus/FocusPage';
-// import { renderSchedulePage } from '../screens/schedule/SchedulePage';
-import { renderInsightsPage } from '../screens/insights/InsightsPage';
-import { renderSettingsPage } from '../screens/settings/SettingsPage';
-import { renderSecurityPage } from '../screens/security/SecurityPage';
-import { renderPrivacyPage } from '../screens/privacy/PrivacyPage';
-import { renderAppsPage } from '../screens/apps/AppsPage';
-import { renderInAppBlockingPage } from '../screens/in_app/InAppBlockingPage';
-import { renderDomainUsageScreen } from '../screens/dashboard/DomainUsageScreen';
-import { renderTypingMasteryScreen } from '../screens/dashboard/TypingMasteryScreen';
-import { applyTheme, setupThemeListener } from '../ui/theme/theme';
-import { UI_ICONS } from '../ui/ui';
-import { supabase } from '../lib/supabase';
+} from '@/ui/react/ExtensionShell';
+import { LegacyBridge } from '@/ui/react/LegacyBridge';
+import { renderDashboardPage } from '@/screens/dashboard/DashboardPage';
+import { renderFocusPage } from '@/screens/focus/FocusPage';
+// import { renderSchedulePage } from '@/screens/schedule/SchedulePage';
+import { renderInsightsPage } from '@/screens/insights/InsightsPage';
+import { renderSettingsPage } from '@/screens/settings/SettingsPage';
+import { renderSecurityPage } from '@/screens/security/SecurityPage';
+import { renderPrivacyPage } from '@/screens/privacy/PrivacyPage';
+import { renderAppsPage } from '@/screens/apps/AppsPage';
+import { renderInAppBlockingPage } from '@/screens/in_app/InAppBlockingPage';
+import { renderDomainUsageScreen } from '@/screens/dashboard/DomainUsageScreen';
+import { renderTypingMasteryScreen } from '@/screens/dashboard/TypingMasteryScreen';
+import { applyTheme, setupThemeListener } from '@/ui/theme/theme';
+import { UI_ICONS } from '@/ui/ui';
+import { supabase } from '@/lib/supabase';
 import {
   setThemeAction,
   loadSettingsData,
@@ -136,7 +136,7 @@ function DashboardApp() {
     // Listen for postMessage from auth callback page
     const handleAuthMessage = async (event: MessageEvent) => {
       if (event.data?.type === 'SUPABASE_AUTH') {
-        const { setSessionFromUrl } = await import('../background/authManager');
+        const { setSessionFromUrl } = await import('@/background/authManager');
         const { error } = await setSessionFromUrl(
           window.location.origin + '#' + event.data.hash,
         );
@@ -149,7 +149,7 @@ function DashboardApp() {
 
     // Also check for tokens in the current URL (direct redirect)
     if (window.location.hash.includes('access_token')) {
-      import('../background/authManager').then(({ setSessionFromUrl }) => {
+      import('@/background/authManager').then(({ setSessionFromUrl }) => {
         setSessionFromUrl(window.location.href).then(({ error }) => {
           if (!error) {
             console.log('[Supabase] Session detected in URL, restored.');
@@ -164,7 +164,7 @@ function DashboardApp() {
     }
 
     const fetchUser = async () => {
-      const { getCloudUserSafe } = await import('../lib/supabase');
+      const { getCloudUserSafe } = await import('@/lib/supabase');
       const u = await getCloudUserSafe();
       if (u) {
         setUser({
@@ -196,7 +196,7 @@ function DashboardApp() {
     let cancelled = false;
 
     const initialize = async () => {
-      const { extensionVMDeps } = await import('../lib/vmDeps');
+      const { extensionVMDeps } = await import('@/lib/vmDeps');
       const isOnboardingDone =
         (await storage.getString(STORAGE_KEYS.ONBOARDING_DONE)) === 'true';
       const settings = await loadSettingsData(extensionVMDeps);
@@ -220,7 +220,7 @@ function DashboardApp() {
           const { CHANGELOG } = await import('@stopaccess/core');
           const release = CHANGELOG.find((c) => c.version === currentVer);
           if (release) {
-            const { showWhatsNew } = await import('../ui/ui');
+            const { showWhatsNew } = await import('@/ui/ui');
             // Delay slightly for smooth transition after load
             setTimeout(
               () => showWhatsNew(release.version, release.features),
@@ -369,7 +369,7 @@ function DashboardApp() {
         case 'cloud_account':
           renderFn = async (container: HTMLElement) => {
             const { renderCloudAccountPage } = await import(
-              '../screens/settings/components/CloudAccountPage'
+              '@/screens/settings/components/CloudAccountPage'
             );
             return renderCloudAccountPage(container);
           };
@@ -377,7 +377,7 @@ function DashboardApp() {
         case 'nextdns_account':
           renderFn = async (container: HTMLElement) => {
             const { renderNextDNSAccountPage } = await import(
-              '../screens/settings/components/NextDNSAccountPage'
+              '@/screens/settings/components/NextDNSAccountPage'
             );
             return renderNextDNSAccountPage(container);
           };
@@ -385,7 +385,7 @@ function DashboardApp() {
         case 'byte_settings':
           renderFn = async (container: HTMLElement) => {
             const { renderByteSettingsPage } = await import(
-              '../screens/settings/components/ByteSettingsPage'
+              '@/screens/settings/components/ByteSettingsPage'
             );
             return renderByteSettingsPage(container);
           };
@@ -459,14 +459,14 @@ function DashboardApp() {
       tabs={TABS}
       theme={currentTheme}
       onThemeChange={async (theme) => {
-        const { extensionVMDeps } = await import('../lib/vmDeps');
+        const { extensionVMDeps } = await import('@/lib/vmDeps');
         setCurrentTheme(theme);
         await setThemeAction(extensionVMDeps, theme);
         applyTheme(theme);
       }}
       user={user}
       onSignOut={async () => {
-        const { showConfirmDialog } = await import('../ui/ui');
+        const { showConfirmDialog } = await import('@/ui/ui');
         const confirmed = await showConfirmDialog({
           title: 'Sign Out',
           body: 'Are you sure you want to sign out? Your settings will no longer be backed up to the cloud.',
@@ -482,7 +482,7 @@ function DashboardApp() {
         const { signOutAction } = await import(
           '@stopaccess/viewmodels/useSettingsVM'
         );
-        const { extensionVMDeps } = await import('../lib/vmDeps');
+        const { extensionVMDeps } = await import('@/lib/vmDeps');
         await signOutAction(extensionVMDeps);
 
         // Force update everything

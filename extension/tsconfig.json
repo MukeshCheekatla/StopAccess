@@ -7,6 +7,7 @@
     "strict": false,
     "baseUrl": ".",
     "paths": {
+      "@/*": ["src/*"],
       "@stopaccess/core": ["../packages/core/src/index.ts"],
       "@stopaccess/core/*": ["../packages/core/src/*"],
       "@stopaccess/state": ["../packages/state/src/index.ts"],

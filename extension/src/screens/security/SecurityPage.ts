@@ -1,4 +1,4 @@
-import { COLORS } from '../../ui/theme/designTokens';
+import { COLORS } from '@/ui/theme/designTokens';
 /**
  * SecurityPage
  * Full dashboard tab for NextDNS Security settings.
@@ -7,17 +7,17 @@ import { COLORS } from '../../ui/theme/designTokens';
 import {
   extensionAdapter as storage,
   nextDNSApi,
-} from '../../background/platformAdapter';
+} from '@/background/platformAdapter';
 import { createSecurityVM } from '@stopaccess/viewmodels/useSecurityVM';
 import { renderThreatSection } from './components/ThreatSection';
 import { renderDomainProtectionSection } from './components/DomainProtectionSection';
 // import { renderContentProtectionSection } from './components/ContentProtectionSection'; // Moved to Domain
 import { renderParentalSection } from './components/ParentalSection';
 import { renderTldManager } from './components/TldManager';
-import { toast } from '../../ui/toast';
+import { toast } from '@/ui/toast';
 import { buildDashboardTabPath } from '@stopaccess/core';
 import type { NextDNSSecuritySettings } from '@stopaccess/types';
-import { renderCloudBanner, renderErrorCard, applyToggleUI } from '../../ui/ui';
+import { renderCloudBanner, renderErrorCard, applyToggleUI } from '@/ui/ui';
 
 const vm = createSecurityVM(storage, nextDNSApi);
 

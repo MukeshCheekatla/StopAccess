@@ -1,4 +1,4 @@
-import { COLORS } from '../../ui/theme/designTokens';
+import { COLORS } from '@/ui/theme/designTokens';
 /**
  * PrivacyPage
  * Full dashboard tab for NextDNS Privacy settings.
@@ -7,12 +7,12 @@ import { COLORS } from '../../ui/theme/designTokens';
 import {
   extensionAdapter as storage,
   nextDNSApi,
-} from '../../background/platformAdapter';
+} from '@/background/platformAdapter';
 import { createPrivacyVM } from '@stopaccess/viewmodels/usePrivacyVM';
 import { renderBlocklistsSection } from './components/BlocklistsSection';
 import { renderNativeTrackersSection } from './components/NativeTrackersSection';
 import { renderPrivacyOptionsSection } from './components/PrivacyOptionsSection';
-import { toast } from '../../ui/toast';
+import { toast } from '@/ui/toast';
 import { buildDashboardTabPath } from '@stopaccess/core';
 import {
   renderCloudBanner,
@@ -20,8 +20,8 @@ import {
   applyToggleUI,
   applyCardToggleUI,
   attachGlobalIconListeners,
-} from '../../ui/ui';
-import { prefetchIconCache } from '../../lib/iconCache';
+} from '@/ui/ui';
+import { prefetchIconCache } from '@/lib/iconCache';
 
 const vm = createPrivacyVM(storage, nextDNSApi);
 

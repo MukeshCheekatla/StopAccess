@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { SELECTORS } from '../../background/inAppBlocking';
+import { SELECTORS } from '@/background/inAppBlocking';
 import { resolveFaviconUrl } from '@stopaccess/core';
-import { UI_ICONS, UI_TOKENS } from '../../ui/ui';
-import { COLORS } from '../../ui/theme/designTokens';
+import { UI_ICONS, UI_TOKENS } from '@/ui/ui';
+import { COLORS } from '@/ui/theme/designTokens';
 
 const PLATFORMS = [
   { id: 'youtube', name: 'YouTube', domain: 'youtube.com' },

@@ -1,7 +1,7 @@
-import { UI_TOKENS, UI_ICONS } from '../../../ui/ui';
-import { toast } from '../../../ui/toast';
-import { COLORS } from '../../../ui/theme/designTokens';
-import { ICONS } from '../../../ui/Icons';
+import { UI_TOKENS, UI_ICONS } from '@/ui/ui';
+import { toast } from '@/ui/toast';
+import { COLORS } from '@/ui/theme/designTokens';
+import { ICONS } from '@/ui/Icons';
 
 const iconSearch = ICONS.SEARCH;
 const iconActivity = ICONS.ACTIVITY;
@@ -164,7 +164,7 @@ export function attachDiagnosticsListeners(
     .querySelector('#btn_view_logs')
     ?.addEventListener('click', async () => {
       const { extensionAdapter: logStorage, STORAGE_KEYS } = await import(
-        '../../../background/platformAdapter'
+        '@/background/platformAdapter'
       );
       const logs = JSON.parse(
         (await logStorage.getString(STORAGE_KEYS.LOGS)) || '[]',

@@ -1,4 +1,4 @@
-import { extensionAdapter as storage } from '../background/platformAdapter';
+import { extensionAdapter as storage } from '@/background/platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
 
 export interface TypingSession {

@@ -1,4 +1,4 @@
-import { COLORS } from '../../../ui/theme/designTokens';
+import { COLORS } from '@/ui/theme/designTokens';
 /**
  * ContentProtectionSection
  * Renders: CSAM protection (and future content toggles)
@@ -10,8 +10,8 @@ import {
   renderSectionBadge,
   renderSectionTitleRow,
   renderInfoTooltip,
-} from '../../../ui/ui';
-import { ICONS } from '../../../ui/Icons';
+} from '@/ui/ui';
+import { ICONS } from '@/ui/Icons';
 
 export function renderContentProtectionSection(
   settings: NextDNSSecuritySettings,

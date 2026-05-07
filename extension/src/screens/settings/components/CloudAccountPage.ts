@@ -3,11 +3,11 @@ import {
   attachGlobalIconListeners,
   renderBrandLogo,
   showConfirmDialog,
-} from '../../../ui/ui';
-import { toast } from '../../../ui/toast';
-import { COLORS } from '../../../ui/theme/designTokens';
+} from '@/ui/ui';
+import { toast } from '@/ui/toast';
+import { COLORS } from '@/ui/theme/designTokens';
 import { escapeHtml } from '@stopaccess/core';
-import { ICONS } from '../../../ui/Icons';
+import { ICONS } from '@/ui/Icons';
 
 const GOOGLE_GLYPH = ICONS.GOOGLE;
 
@@ -16,7 +16,7 @@ export async function renderCloudAccountPage(container: HTMLElement) {
     return;
   }
 
-  const { extensionVMDeps } = await import('../../../lib/vmDeps');
+  const { extensionVMDeps } = await import('@/lib/vmDeps');
 
   const {
     loadSettingsData,

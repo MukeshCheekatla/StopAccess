@@ -3,7 +3,7 @@ import { UI_TOKENS, UI_ICONS } from '@/ui/ui';
 import { COLORS } from '@/ui/theme/designTokens';
 import { getTypingHistory, getTypingStats } from '@/lib/typingHistory';
 
-export async function renderTypingMasteryScreen(container: HTMLElement) {
+export async function renderTypingMastery(container: HTMLElement) {
   if (!container) {
     return;
   }
@@ -258,7 +258,7 @@ export async function renderTypingMasteryScreen(container: HTMLElement) {
         );
 
         if (currentContainer && isMasteryActive) {
-          renderTypingMasteryScreen(currentContainer);
+          renderTypingMastery(currentContainer);
         }
       }
     };

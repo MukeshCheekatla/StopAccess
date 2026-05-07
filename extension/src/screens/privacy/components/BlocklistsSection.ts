@@ -1,4 +1,4 @@
-import { COLORS } from '../../../ui/theme/designTokens';
+import { COLORS } from '@/ui/theme/designTokens';
 /**
  * BlocklistsSection & Library Modal
  * Management for NextDNS blocklists with centered discovery library.
@@ -11,8 +11,8 @@ import {
   renderSectionTitleRow,
   UI_TOKENS,
   UI_ICONS,
-} from '../../../ui/ui';
-import { getCachedIconSync } from '../../../lib/iconCache';
+} from '@/ui/ui';
+import { getCachedIconSync } from '@/lib/iconCache';
 
 export function renderBlocklistsSection(
   activeBlocklists: NextDNSBlocklist[],

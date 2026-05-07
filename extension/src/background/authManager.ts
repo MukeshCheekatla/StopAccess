@@ -3,7 +3,7 @@
  * Refactored to focus strictly on authentication logic.
  */
 
-import { supabase, getCloudUserSafe, clearAuthCache } from '../lib/supabase';
+import { supabase, getCloudUserSafe, clearAuthCache } from '@/lib/supabase';
 import { extensionLogger } from './platformAdapter';
 
 export interface CloudUser {

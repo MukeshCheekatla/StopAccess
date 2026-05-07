@@ -1,5 +1,5 @@
 import React from 'react';
-import { getBrandLogoUrl, resolveIconDomain, UI_ICONS } from '../../../ui/ui';
+import { getBrandLogoUrl, resolveIconDomain, UI_ICONS } from '@/ui/ui';
 
 interface ServiceCardProps {
   service: any;

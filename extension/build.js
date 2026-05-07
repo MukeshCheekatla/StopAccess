@@ -52,6 +52,7 @@ const baseConfig = {
     __SUPABASE_ANON_KEY__: JSON.stringify(process.env.SUPABASE_ANON_KEY || ''),
   },
   alias: {
+    '@': resolve(__dirname, 'src'),
     '@stopaccess/core': resolve(__dirname, '../packages/core/src'),
     '@stopaccess/state': resolve(__dirname, '../packages/state/src'),
     '@stopaccess/sync': resolve(__dirname, '../packages/sync/src'),

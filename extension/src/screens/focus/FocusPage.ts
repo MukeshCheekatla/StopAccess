@@ -1,19 +1,15 @@
-import { STORAGE_KEYS } from '../../background/platformAdapter';
+import { STORAGE_KEYS } from '@/background/platformAdapter';
 import { FocusSessionRecord } from '@stopaccess/types';
 import { escapeHtml } from '@stopaccess/core';
-import {
-  UI_TOKENS,
-  renderBrandLogo,
-  attachGlobalIconListeners,
-} from '../../ui/ui';
-import { COLORS } from '../../ui/theme/designTokens';
+import { UI_TOKENS, renderBrandLogo, attachGlobalIconListeners } from '@/ui/ui';
+import { COLORS } from '@/ui/theme/designTokens';
 import {
   getEffectiveElapsed,
   getRemainingMs,
   getProgress,
   formatTime,
   formatMinutes,
-} from '../../lib/sessionTimer';
+} from '@/lib/sessionTimer';
 
 declare var chrome: any;
 declare var window: any;

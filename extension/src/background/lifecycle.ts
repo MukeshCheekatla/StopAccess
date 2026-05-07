@@ -21,7 +21,7 @@ import {
   pauseSession,
   resumeSession,
 } from './sessionManager';
-import { getEffectiveElapsed } from '../lib/sessionTimer';
+import { getEffectiveElapsed } from '@/lib/sessionTimer';
 import { notifyFocusComplete, notifyFocusStopped } from './notifications';
 import {
   getCloudUser,

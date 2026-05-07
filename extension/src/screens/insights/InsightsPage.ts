@@ -1,8 +1,8 @@
 import { fmtTime, buildDashboardTabPath } from '@stopaccess/core';
-import { COLORS } from '../../ui/theme/designTokens';
-import { nextDNSApi } from '../../background/platformAdapter';
-import { appsController } from '../../lib/appsController';
-import { getCachedIcon } from '../../lib/iconCache';
+import { COLORS } from '@/ui/theme/designTokens';
+import { nextDNSApi } from '@/background/platformAdapter';
+import { appsController } from '@/lib/appsController';
+import { getCachedIcon } from '@/lib/iconCache';
 import {
   renderCloudBanner,
   renderErrorCard,
@@ -12,7 +12,7 @@ import {
   UI_ICONS,
   renderBrandLogo,
   attachGlobalIconListeners,
-} from '../../ui/ui';
+} from '@/ui/ui';
 
 declare var chrome: any;
 
@@ -52,7 +52,7 @@ async function _renderPage(container: HTMLElement): Promise<void> {
   const { loadInsightsData } = await import(
     '@stopaccess/viewmodels/useInsightsVM'
   );
-  const { extensionVMDeps } = await import('../../lib/vmDeps');
+  const { extensionVMDeps } = await import('@/lib/vmDeps');
   const data = (await loadInsightsData(extensionVMDeps)) || {};
 
   const {

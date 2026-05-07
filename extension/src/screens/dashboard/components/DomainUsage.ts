@@ -10,7 +10,7 @@ import {
 import { COLORS } from '@/ui/theme/designTokens';
 import { attachCalendarWidget } from './CalendarWidget';
 
-export async function renderDomainUsageScreen(
+export async function renderDomainUsage(
   container: HTMLElement,
   domain?: string,
   selectedDate?: string,
@@ -108,7 +108,7 @@ export async function renderDomainUsageScreen(
         dateW,
         { targetDate, isToday },
         (newDateStr: string) =>
-          renderDomainUsageScreen(container, domain, newDateStr),
+          renderDomainUsage(container, domain, newDateStr),
         attachCalendarWidget,
       );
     }

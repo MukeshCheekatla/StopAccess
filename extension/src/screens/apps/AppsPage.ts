@@ -4,11 +4,11 @@ import { setAppsDnsHardMode } from '@stopaccess/state';
 import { escapeHtml } from '@stopaccess/core';
 import { renderCategoriesTab } from './components/CategoriesTab';
 import { setupHandlers } from './AppsEventHandlers';
-import { toast } from '../../ui/toast';
-import { appsController } from '../../lib/appsController';
-import { getLockedDomains } from '../../background/sessionGuard';
-import { extensionAdapter } from '../../background/platformAdapter';
-import { prefetchIconCache } from '../../lib/iconCache';
+import { toast } from '@/ui/toast';
+import { appsController } from '@/lib/appsController';
+import { getLockedDomains } from '@/background/sessionGuard';
+import { extensionAdapter } from '@/background/platformAdapter';
+import { prefetchIconCache } from '@/lib/iconCache';
 
 import {
   renderAppIcon,
@@ -19,9 +19,9 @@ import {
   renderInfoTooltip,
   showConfirmDialog,
   attachGlobalIconListeners,
-} from '../../ui/ui';
-import { COLORS } from '../../ui/theme/designTokens';
-import { ICONS } from '../../ui/Icons';
+} from '@/ui/ui';
+import { COLORS } from '@/ui/theme/designTokens';
+import { ICONS } from '@/ui/Icons';
 
 let activeTab = 'shield';
 let availableCategories: any[] = [];
@@ -45,7 +45,7 @@ export async function renderAppsPage(container: HTMLElement) {
   // Prefetch icon cache for flicker-free rendering
   await prefetchIconCache();
 
-  const { extensionVMDeps } = await import('../../lib/vmDeps');
+  const { extensionVMDeps } = await import('@/lib/vmDeps');
   const vmData = await loadAppsData(extensionVMDeps);
   const { isConfigured, rules } = vmData;
   currentIsConfigured = isConfigured;
@@ -332,7 +332,7 @@ export async function renderAppsPage(container: HTMLElement) {
         const targetState = !wasActive;
 
         if (!targetState) {
-          const { checkGuard } = await import('../../background/sessionGuard');
+          const { checkGuard } = await import('@/background/sessionGuard');
           const guard = await checkGuard('disable_blocking');
           if (!guard.allowed) {
             toast.error((guard as any).reason);
@@ -497,7 +497,7 @@ export async function renderAppsPage(container: HTMLElement) {
 }
 
 async function loadNextDNSMetadata() {
-  const { extensionVMDeps } = await import('../../lib/vmDeps');
+  const { extensionVMDeps } = await import('@/lib/vmDeps');
   const vmData: any = await loadAppsData(extensionVMDeps);
   const { isConfigured } = vmData;
   if (!isConfigured) {
@@ -542,7 +542,7 @@ async function refreshListOnly(passedRules?: any[]) {
     return;
   }
 
-  const { extensionVMDeps } = await import('../../lib/vmDeps');
+  const { extensionVMDeps } = await import('@/lib/vmDeps');
   const vmData = await loadAppsData(extensionVMDeps);
   const { rules, passes } = vmData;
   const rulesToUse = passedRules || rules;

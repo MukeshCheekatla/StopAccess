@@ -1,9 +1,9 @@
 import { FocusSessionRecord } from '@stopaccess/types';
 import { syncDNRRules } from './dnrAdapter';
-import { getEffectiveElapsed } from '../lib/sessionTimer';
+import { getEffectiveElapsed } from '@/lib/sessionTimer';
 import { nextDNSApi } from './platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
-import { RAW_COLORS } from '../ui/theme/designTokens';
+import { RAW_COLORS } from '@/ui/theme/designTokens';
 import { notifyFocusComplete } from './notifications';
 /**
  * Starts a new focus session.

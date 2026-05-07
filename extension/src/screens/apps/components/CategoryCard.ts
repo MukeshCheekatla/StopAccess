@@ -4,16 +4,12 @@
  * No module-level state — everything is passed as arguments.
  */
 import { escapeHtml } from '@stopaccess/core';
-import { getCategoryBadge } from '../../../ui/ui';
-import {
-  getRuleActiveState,
-  UI_TOKENS,
-  renderInfoTooltip,
-} from '../../../ui/ui';
+import { getCategoryBadge } from '@/ui/ui';
+import { getRuleActiveState, UI_TOKENS, renderInfoTooltip } from '@/ui/ui';
 import {
   CATEGORY_COLORS,
   DEFAULT_CATEGORY_COLOR,
-} from '../../../ui/theme/designTokens';
+} from '@/ui/theme/designTokens';
 
 const CATEGORY_DESCRIPTIONS: Record<string, { full: string; short: string }> = {
   porn: {

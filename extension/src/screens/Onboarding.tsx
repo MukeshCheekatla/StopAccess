@@ -5,15 +5,15 @@ import {
   extensionAdapter as storage,
   nextDNSApi,
   STORAGE_KEYS,
-} from '../background/platformAdapter';
-import { COLORS, COLOR_CLASSES } from '../ui/theme/designTokens';
-import { ByteCompanion, CompanionMood } from '../ui/components/companion';
-import { extensionVMDeps } from '../lib/vmDeps';
+} from '@/background/platformAdapter';
+import { COLORS, COLOR_CLASSES } from '@/ui/theme/designTokens';
+import { ByteCompanion, CompanionMood } from '@/ui/companion';
+import { extensionVMDeps } from '@/lib/vmDeps';
 import {
   signInWithOtpAction,
   signInWithGoogleAction,
 } from '@stopaccess/viewmodels/useSettingsVM';
-import { UI_ICONS } from '../ui/theme/uiTokens';
+import { UI_ICONS } from '@/ui/theme/uiTokens';
 
 type Step = 'welcome' | 'cloud' | 'connect' | 'done';
 

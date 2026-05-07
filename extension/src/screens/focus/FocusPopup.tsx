@@ -15,7 +15,7 @@ const PRESETS = [
   { m: 90, t: 'Flow' },
 ];
 
-export function FocusPopupView() {
+export function FocusPopup() {
   const [rem, setRem] = useState(0);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState<string>('idle');

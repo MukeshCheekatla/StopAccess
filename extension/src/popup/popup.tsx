@@ -3,19 +3,19 @@ import { createRoot } from 'react-dom/client';
 import {
   extensionAdapter as storage,
   nextDNSApi,
-} from '../background/platformAdapter';
+} from '@/background/platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
-import { getBrandLogoUrl } from '../ui/ui';
+import { getBrandLogoUrl } from '@/ui/ui';
 import {
   PopupShell,
   type ShellStatus,
   type ShellTab,
-} from '../ui/react/ExtensionShell';
-import { FocusPopupView } from '../screens/focus/FocusPopupView';
-import { AppsPopupView } from '../screens/apps/AppsPopupView';
-import { DashboardPopupView } from '../screens/dashboard/DashboardPopupView';
-import { applyTheme, setupThemeListener } from '../ui/theme/theme';
-import { UI_ICONS } from '../ui/ui';
+} from '@/ui/react/ExtensionShell';
+import { FocusPopupView } from '@/screens/focus/FocusPopupView';
+import { AppsPopupView } from '@/screens/apps/AppsPopupView';
+import { DashboardPopupView } from '@/screens/dashboard/DashboardPopupView';
+import { applyTheme, setupThemeListener } from '@/ui/theme/theme';
+import { UI_ICONS } from '@/ui/ui';
 
 type TabId = 'dash' | 'apps' | 'focus';
 

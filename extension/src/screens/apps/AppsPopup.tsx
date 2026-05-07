@@ -87,7 +87,7 @@ function getPassCountdown(pass: any) {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
-export const AppsPopupView: React.FC = () => {
+export const AppsPopup: React.FC = () => {
   const [rules, setRules] = useState<any[]>([]);
   const [lockedDomains, setLockedDomains] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);

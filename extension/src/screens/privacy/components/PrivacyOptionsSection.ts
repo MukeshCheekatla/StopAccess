@@ -1,17 +1,13 @@
 /**
-import { COLORS } from '../../../ui/theme/designTokens';
+import { COLORS } from '@/ui/theme/designTokens';
  * PrivacyOptionsSection
  * Disguised trackers + allow affiliate toggles — no emojis.
  */
 
 import type { NextDNSPrivacySettings } from '@stopaccess/types';
-import {
-  UI_TOKENS,
-  renderPillToggle,
-  renderSectionTitleRow,
-} from '../../../ui/ui';
-import { COLORS } from '../../../ui/theme/designTokens';
-import { ICONS } from '../../../ui/Icons';
+import { UI_TOKENS, renderPillToggle, renderSectionTitleRow } from '@/ui/ui';
+import { COLORS } from '@/ui/theme/designTokens';
+import { ICONS } from '@/ui/Icons';
 
 export function renderPrivacyOptionsSection(
   settings: NextDNSPrivacySettings,

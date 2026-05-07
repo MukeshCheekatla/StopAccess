@@ -5,9 +5,9 @@ import { AppRule } from '@stopaccess/types';
 import {
   EXTENSION_COLOR_VAR_DECLARATIONS,
   COLORS,
-} from '../ui/theme/designTokens';
-import { ByteCompanion } from '../ui/components/companion';
-import { UI_ICONS } from '../ui/ui';
+} from '@/ui/theme/designTokens';
+import { ByteCompanion } from '@/ui/companion';
+import { UI_ICONS } from '@/ui/ui';
 
 // Constants
 const TEMP_PASSES_KEY = 'fg_temp_passes';

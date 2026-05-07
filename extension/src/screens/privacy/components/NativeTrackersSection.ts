@@ -11,8 +11,8 @@ import {
   UI_TOKENS,
   UI_ICONS,
   renderBrandLogo,
-} from '../../../ui/ui';
-import { COLORS } from '../../../ui/theme/designTokens';
+} from '@/ui/ui';
+import { COLORS } from '@/ui/theme/designTokens';
 
 interface VendorMeta {
   id: string;

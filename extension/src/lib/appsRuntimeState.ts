@@ -1,4 +1,4 @@
-import { getLockedDomains } from '../background/sessionGuard';
+import { getLockedDomains } from '@/background/sessionGuard';
 import { STORAGE_KEYS } from '@stopaccess/state';
 
 declare var chrome: any;

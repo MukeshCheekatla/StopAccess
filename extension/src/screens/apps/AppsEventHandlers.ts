@@ -1,5 +1,5 @@
-import { toast } from '../../ui/toast';
-import { appsController } from '../../lib/appsController';
+import { toast } from '@/ui/toast';
+import { appsController } from '@/lib/appsController';
 import { NEXTDNS_SERVICES } from '@stopaccess/core';
 
 export interface AppsPageCallbacks {
@@ -59,7 +59,7 @@ export function setupGlobalClickHandlers(container: HTMLElement) {
         // If DISABLING a block (turning switch OFF)
         if (isActive) {
           const { showUnblockDurationDialog, confirmGuardianAction } =
-            (await import('../../ui/ui')) as any;
+            (await import('@/ui/ui')) as any;
 
           if (kind === 'category') {
             // Categories: Simple security confirmation, then full toggle OFF
@@ -124,7 +124,7 @@ export function setupGlobalClickHandlers(container: HTMLElement) {
         }
 
         // If ACTIVATING a block (turning switch ON), check guard only (no PIN needed)
-        const { checkGuard } = await import('../../background/sessionGuard');
+        const { checkGuard } = await import('@/background/sessionGuard');
         const guard = await checkGuard('modify_blocklist');
         if (!guard.allowed) {
           toast.error((guard as any).reason);
@@ -155,9 +155,9 @@ export function setupGlobalClickHandlers(container: HTMLElement) {
 
       if (id) {
         const { showUnblockDurationDialog, confirmGuardianAction } =
-          (await import('../../ui/ui')) as any;
+          (await import('@/ui/ui')) as any;
         const { extensionAdapter } = await import(
-          '../../background/platformAdapter'
+          '@/background/platformAdapter'
         );
 
         const choice = await showUnblockDurationDialog();
@@ -376,7 +376,7 @@ export async function setupHandlers(
           }
         };
 
-        const { confirmGuardianAction } = (await import('../../ui/ui')) as any;
+        const { confirmGuardianAction } = (await import('@/ui/ui')) as any;
         const confirmed = await confirmGuardianAction({
           title: 'Delete Rule?',
           body: 'Verify your security to remove this block permanently.',
@@ -514,7 +514,7 @@ export async function setupHandlers(
         return;
       }
 
-      const { checkGuard } = await import('../../background/sessionGuard');
+      const { checkGuard } = await import('@/background/sessionGuard');
       const guard = await checkGuard('modify_blocklist');
       if (!guard.allowed) {
         toast.error((guard as any).reason);
@@ -529,9 +529,7 @@ export async function setupHandlers(
         const isIncreasingLimit = val > (rule.dailyLimitMinutes || 0);
 
         if (isIncreasingLimit) {
-          const { confirmGuardianAction } = (await import(
-            '../../ui/ui'
-          )) as any;
+          const { confirmGuardianAction } = (await import('@/ui/ui')) as any;
           const confirmed = await confirmGuardianAction({
             title: 'Increase Allowance?',
             body: `Verify your security to increase allowed time for ${
@@ -544,7 +542,7 @@ export async function setupHandlers(
         }
 
         const { extensionAdapter: storage } = await import(
-          '../../background/platformAdapter'
+          '@/background/platformAdapter'
         );
         const { updateRule } = await import('@stopaccess/state/rules');
         const used = rule.usedMinutesToday || 0;
@@ -573,9 +571,7 @@ export async function setupHandlers(
         const isIncreasingPasses = val > currentPasses;
 
         if (isIncreasingPasses) {
-          const { confirmGuardianAction } = (await import(
-            '../../ui/ui'
-          )) as any;
+          const { confirmGuardianAction } = (await import('@/ui/ui')) as any;
           const confirmed = await confirmGuardianAction({
             title: 'Increase Passes?',
             body: `Verify your security to allow more pauses for ${
@@ -588,7 +584,7 @@ export async function setupHandlers(
         }
 
         const { extensionAdapter: storage } = await import(
-          '../../background/platformAdapter'
+          '@/background/platformAdapter'
         );
         const { updateRule } = await import('@stopaccess/state/rules');
         await updateRule(storage, {

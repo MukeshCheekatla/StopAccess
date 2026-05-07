@@ -1,13 +1,13 @@
 /**
-import { COLORS } from '../../../ui/theme/designTokens';
+import { COLORS } from '@/ui/theme/designTokens';
  * TldManager
  * Renders blocked TLD list with add/remove functionality.
  */
 
 import type { NextDNSTld } from '@stopaccess/types';
-import { renderInfoTooltip, renderEmptyState, UI_TOKENS } from '../../../ui/ui';
-import { COLORS } from '../../../ui/theme/designTokens';
-import { ICONS } from '../../../ui/Icons';
+import { renderInfoTooltip, renderEmptyState, UI_TOKENS } from '@/ui/ui';
+import { COLORS } from '@/ui/theme/designTokens';
+import { ICONS } from '@/ui/Icons';
 
 // Common TLDs to suggest
 const COMMON_RISKY_TLDS = [
