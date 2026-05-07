@@ -1,6 +1,6 @@
 import { escapeHtml } from '@stopaccess/core';
-import { COLORS } from '../../ui/theme/designTokens';
-import { UI_TOKENS, UI_ICONS } from '../../ui/theme/uiTokens';
+import { COLORS } from '@/ui/theme/designTokens';
+import { UI_TOKENS, UI_ICONS } from '@/ui/theme/uiTokens';
 import { renderBrandLogo } from './icons';
 
 export interface DialogOptions {
@@ -638,26 +638,24 @@ export async function showTypingChallenge(
             // Record Performance
             const elapsed = startTime ? (Date.now() - startTime) / 1000 : 0;
             if (elapsed > 0) {
-              import('../../lib/typingHistory').then(
-                ({ saveTypingSession }) => {
-                  const timeMinutes = elapsed / 60;
-                  const grossWPM = targetText.length / 5 / timeMinutes;
-                  const accuracy =
-                    ((targetText.length - mistakeCount) / targetText.length) *
-                    100;
-                  const netWPM = grossWPM - mistakeCount / timeMinutes;
+              import('@/lib/typingHistory').then(({ saveTypingSession }) => {
+                const timeMinutes = elapsed / 60;
+                const grossWPM = targetText.length / 5 / timeMinutes;
+                const accuracy =
+                  ((targetText.length - mistakeCount) / targetText.length) *
+                  100;
+                const netWPM = grossWPM - mistakeCount / timeMinutes;
 
-                  saveTypingSession({
-                    timestamp: Date.now(),
-                    duration: elapsed,
-                    wpm: Math.round(grossWPM),
-                    netWpm: Math.max(0, Math.round(netWPM)),
-                    accuracy: Math.round(accuracy),
-                    textLength: targetText.length,
-                    mistakes: mistakeCount,
-                  });
-                },
-              );
+                saveTypingSession({
+                  timestamp: Date.now(),
+                  duration: elapsed,
+                  wpm: Math.round(grossWPM),
+                  netWpm: Math.max(0, Math.round(netWPM)),
+                  accuracy: Math.round(accuracy),
+                  textLength: targetText.length,
+                  mistakes: mistakeCount,
+                });
+              });
             }
 
             overlay.classList.add('fg-opacity-0');
@@ -723,10 +721,10 @@ export async function confirmGuardianAction(options: {
     | 'change_settings';
 }): Promise<boolean> {
   const { extensionAdapter: storage } = await import(
-    '../../background/platformAdapter'
+    '@/background/platformAdapter'
   );
-  const { checkGuard } = await import('../../background/sessionGuard');
-  const { toast } = (await import('../../ui/toast')) as any;
+  const { checkGuard } = await import('@/background/sessionGuard');
+  const { toast } = (await import('@/ui/toast')) as any;
 
   // 1. System Lock Check (Focus Session / Strict Mode)
   // We check this FIRST so we don't annoy the user with a challenge that won't work.

@@ -3,8 +3,8 @@ import {
   escapeHtml,
   formatMinutes,
 } from '@stopaccess/core';
-import { COLORS } from '../../ui/theme/designTokens';
-import { UI_TOKENS, UI_ICONS } from '../../ui/theme/uiTokens';
+import { COLORS } from '@/ui/theme/designTokens';
+import { UI_TOKENS, UI_ICONS } from '@/ui/theme/uiTokens';
 import { renderBrandLogo } from './icons';
 import { renderTableProgress } from './badges';
 

@@ -3,7 +3,8 @@ import { COLOR_CLASSES } from '@/ui/theme/designTokens';
 import { UI_TOKENS } from '@/ui/ui';
 
 /**
- * Design System Components for StopAccess.
+ * Base Components / Design System for StopAccess.
+ * Foundational React UI primitives used across the entire extension.
  * All text styles sourced from UI_TOKENS (lib/ui.ts) — never hardcoded here.
  */
 

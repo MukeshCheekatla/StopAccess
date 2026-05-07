@@ -1,5 +1,5 @@
 import React from 'react';
-import { UI_ICONS } from '../theme/uiTokens';
+import { UI_ICONS } from '@/ui/theme/uiTokens';
 
 // ── Theme toggle icons ─────────────────────────────────────────
 

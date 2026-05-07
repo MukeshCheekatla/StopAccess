@@ -3,7 +3,7 @@ import {
   resolveIconUrl,
   resolveFaviconUrl,
 } from '@stopaccess/core';
-import { saveIconToCache, getCachedIconSync } from '../../lib/iconCache';
+import { saveIconToCache, getCachedIconSync } from '@/lib/iconCache';
 
 /** Resolves any domain/identifier to a favicon URL via the core iconography engine. */
 export function getBrandLogoUrl(domain: string, _sz = 128): string {
