@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { COLORS } from '@/ui/theme/designTokens';
 import { UI_ICONS, UI_TOKENS } from '@/ui/theme/uiTokens';
+import { getCachedIconSync } from '@/lib/iconCache';
+import { resolveFaviconUrl } from '@stopaccess/core';
 
 export interface ByteSignProps {
   message?: string;
@@ -155,20 +157,87 @@ export const ByteSign: React.FC<ByteSignProps> = ({
                 color: signText,
               }}
             >
-              {iconKey && UI_ICONS[iconKey as keyof typeof UI_ICONS] && (
+              {iconKey && (
                 <div
                   style={{
-                    width: '18px',
-                    height: '18px',
+                    width: '20px',
+                    height: '20px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
+                    position: 'relative',
                   }}
-                  dangerouslySetInnerHTML={{
-                    __html: UI_ICONS[iconKey as keyof typeof UI_ICONS],
-                  }}
-                />
+                >
+                  {UI_ICONS[iconKey as keyof typeof UI_ICONS] ? (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        color: signText,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      dangerouslySetInnerHTML={{
+                        __html: UI_ICONS[iconKey as keyof typeof UI_ICONS],
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        position: 'relative',
+                      }}
+                    >
+                      <div
+                        style={{
+                          position: 'absolute',
+                          inset: 0,
+                          background: signText,
+                          color: signBg,
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '10px',
+                          fontWeight: '900',
+                          opacity: 0.8,
+                        }}
+                      >
+                        {iconKey.slice(0, 1).toUpperCase()}
+                      </div>
+                      <img
+                        src={
+                          getCachedIconSync(iconKey) ||
+                          resolveFaviconUrl(iconKey)
+                        }
+                        style={{
+                          position: 'relative',
+                          zIndex: 2,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          borderRadius: '20%',
+                          background: 'white',
+                          padding: '1px',
+                          opacity: 0,
+                          transition: 'opacity 0.2s',
+                        }}
+                        onLoad={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.opacity =
+                            '1';
+                        }}
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).style.display =
+                            'none';
+                        }}
+                        alt=""
+                      />
+                    </div>
+                  )}
+                </div>
               )}
               <span
                 style={{

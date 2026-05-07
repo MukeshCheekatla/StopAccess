@@ -80,7 +80,6 @@ function buildDataMessages(
   activeTab: string,
   stats: UsageSummary | null,
   isFocusActive: boolean,
-  redirectUrl: string,
 ) {
   const messages: Array<{ msg: string; icon: string }> = [];
 
@@ -103,6 +102,19 @@ function buildDataMessages(
     return messages;
   }
 
+  // 1.5 ZERO ACTIVITY STATE (Focus on today's lack of data)
+  const isZeroToday = stats.totalTime === '0m' && stats.focusTimeToday === '0m';
+
+  if (isZeroToday && !isFocusActive) {
+    if (activeTab === 'dash' || activeTab === 'focus') {
+      messages.push({
+        msg: 'Nothing tracked yet/nStart your first session',
+        icon: 'TARGET',
+      });
+      return messages;
+    }
+  }
+
   const topSite = formatDomainLabel(stats.topApp || '');
 
   // 2. TAB-SPECIFIC CONTEXTUAL MESSAGES
@@ -112,35 +124,105 @@ function buildDataMessages(
         msg: 'I am Byte/nYour focus companion',
         icon: 'TARGET',
       });
+      if (stats.totalTime !== '0m') {
+        messages.push({
+          msg: `Today's Usage/n${stats.totalTime} total`,
+          icon: 'CHART',
+        });
+      }
+      if (stats.totalSessions > 0) {
+        messages.push({
+          msg: `Sessions/n${stats.totalSessions} times opened`,
+          icon: 'ZAP',
+        });
+      }
       if (stats.focusTimeToday !== '0m') {
         messages.push({
           msg: `Focused today/n${stats.focusTimeToday}`,
-          icon: 'ZAP',
+          icon: 'TARGET',
         });
       }
       if (topSite && stats.topTime !== '0m') {
         messages.push({
           msg: `Top site/n${topSite} ${stats.topTime}`,
+          icon: stats.topApp,
+        });
+      }
+      if (stats.avgWpm > 0) {
+        messages.push({
+          msg: `Mastery/n${stats.avgWpm} WPM average`,
+          icon: 'KEYBOARD',
+        });
+      }
+      if (stats.maxStreak > 0) {
+        const streakApp = formatDomainLabel(stats.maxStreakApp || '');
+        messages.push({
+          msg: `${streakApp} Free!/n${stats.maxStreak} day streak`,
+          icon: stats.maxStreakApp,
+        });
+      }
+      if (stats.diffPercent !== 0) {
+        const trend = stats.diffPercent > 0 ? 'higher' : 'lower';
+        messages.push({
+          msg: `Daily Trend/n${Math.abs(stats.diffPercent)}% ${trend} usage`,
           icon: 'CHART',
         });
       }
       break;
 
     case 'apps':
-      if (stats.activeRules === 0) {
+      messages.push({
+        msg: 'Shield & Rules/nManage your focus',
+        icon: 'SETTINGS',
+      });
+
+      // 1. Redirect Suggestion
+      if (!stats.redirectUrl) {
         messages.push({
-          msg: 'No blocks yet/nAdd a site or app',
-          icon: 'LOCK',
-        });
-      } else {
-        messages.push({
-          msg: `Block list/n${stats.activeRules} active rules`,
-          icon: 'LOCK',
+          msg: 'Setup Redirect/nSend blocked sites to focus.com',
+          icon: 'TARGET',
         });
       }
-      if (!redirectUrl) {
+
+      // 2. Block Suggestions (Top unblocked sites)
+      if (stats.topUnblockedSites && stats.topUnblockedSites.length > 0) {
+        const topOne = formatDomainLabel(stats.topUnblockedSites[0]);
         messages.push({
-          msg: 'Redirect is off/nBlocked tabs stay put',
+          msg: `High Usage/nConsider shielding ${topOne}`,
+          icon: stats.topUnblockedSites[0],
+        });
+      }
+
+      // 3. Specific App Count (not categories)
+      const appRulesCount = stats.activeRules;
+      if (appRulesCount > 0) {
+        const appLabel = appRulesCount === 1 ? 'App' : 'Apps';
+        messages.push({
+          msg: `Shield Active/n${appRulesCount} ${appLabel.toLowerCase()} blocked`,
+          icon: stats.topApp || 'ZAP',
+        });
+      }
+
+      // 4. Category Recommendations
+      if (stats.activeCategories === 0) {
+        messages.push({
+          msg: 'App Categories/nFilter by topic for faster setup',
+          icon: 'SETTINGS',
+        });
+      }
+
+      // 5. Streaks
+      if (stats.maxStreak > 0) {
+        const streakApp = formatDomainLabel(stats.maxStreakApp || '');
+        messages.push({
+          msg: `${streakApp} Free/n${stats.maxStreak} day streak`,
+          icon: stats.maxStreakApp,
+        });
+      }
+
+      if (stats.isStrictModeEnabled) {
+        messages.push({
+          msg: 'Strict Mode/nNo cheating possible',
           icon: 'TARGET',
         });
       }
@@ -232,12 +314,11 @@ export function useShellCompanion(status: ShellStatus, activeTab: string) {
   >(null);
   const [stats, setStats] = React.useState<UsageSummary | null>(null);
   const [rotationIdx, setRotationIdx] = React.useState(0);
-  const [nextRotationDelay, setNextRotationDelay] = React.useState(90000);
+  const [nextRotationDelay, setNextRotationDelay] = React.useState(20000);
   const [isNavigating, setIsNavigating] = React.useState(true);
   const [prevTab, setPrevTab] = React.useState(activeTab);
   const [isFocusActive, setIsFocusActive] = React.useState(false);
   const [prefs, setPrefs] = React.useState<BytePrefs>(DEFAULT_PREFS);
-  const [redirectUrl, setRedirectUrl] = React.useState('');
   const [activeToast, setActiveToast] = React.useState<QueuedToast | null>(
     null,
   );
@@ -253,13 +334,11 @@ export function useShellCompanion(status: ShellStatus, activeTab: string) {
     const data = await getUsageSummary();
     setStats(data);
     const res = await chrome.storage.local.get([
-      STORAGE_KEYS.REDIRECT_URL,
       STORAGE_KEYS.BYTE_DEFAULT_MOOD,
       STORAGE_KEYS.BYTE_NIGHT_START,
       STORAGE_KEYS.BYTE_NIGHT_END,
     ]);
     const storedMood = res[STORAGE_KEYS.BYTE_DEFAULT_MOOD] as unknown;
-    setRedirectUrl(String(res[STORAGE_KEYS.REDIRECT_URL] || ''));
     setPrefs({
       defaultMood: isCompanionMood(storedMood)
         ? storedMood
@@ -299,7 +378,7 @@ export function useShellCompanion(status: ShellStatus, activeTab: string) {
     setPrevTab(activeTab);
     setIsNavigating(true);
     setRotationIdx(0);
-    setNextRotationDelay(90000);
+    setNextRotationDelay(20000);
   }
 
   React.useEffect(() => {
@@ -360,7 +439,7 @@ export function useShellCompanion(status: ShellStatus, activeTab: string) {
     const timeoutId = setTimeout(async () => {
       await refreshContext();
       setIsNavigating(false);
-    }, 1200);
+    }, 3000);
     return () => clearTimeout(timeoutId);
   }, [activeTab, isNavigating, refreshContext]);
 
@@ -483,12 +562,7 @@ export function useShellCompanion(status: ShellStatus, activeTab: string) {
       return;
     }
 
-    const dataMessages = buildDataMessages(
-      activeTab,
-      stats,
-      isFocusActive,
-      redirectUrl,
-    );
+    const dataMessages = buildDataMessages(activeTab, stats, isFocusActive);
 
     let msg = '';
     let icon = 'TARGET';
@@ -516,7 +590,7 @@ export function useShellCompanion(status: ShellStatus, activeTab: string) {
     if (msg) {
       setMessage(msg);
       setCurrentIcon(icon);
-      setNextRotationDelay(activeToast ? 12000 : 90000);
+      setNextRotationDelay(activeToast ? 12000 : 20000);
       lastMessageRef.current = msg;
       const timeoutId = setTimeout(
         () => {
@@ -532,22 +606,14 @@ export function useShellCompanion(status: ShellStatus, activeTab: string) {
 
     setMessage('');
     setCurrentIcon(null);
-  }, [
-    activeTab,
-    activeToast,
-    isFocusActive,
-    isNavigating,
-    redirectUrl,
-    rotationIdx,
-    stats,
-  ]);
+  }, [activeTab, activeToast, isFocusActive, isNavigating, rotationIdx, stats]);
 
   const mood: CompanionMood = previewMood
     ? previewMood
     : isFocusActive
     ? 'focused'
     : isNavigating
-    ? 'thinking'
+    ? prefs.defaultMood
     : activeToast?.mood && isCompanionMood(activeToast.mood)
     ? activeToast.mood
     : action === 'fire_flare'

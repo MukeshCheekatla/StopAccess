@@ -81,7 +81,7 @@ export function FocusPopup() {
   };
 
   const ringStyles = {
-    bg: 'linear-gradient(180deg, var(--fg-surface), var(--fg-bg))',
+    bg: 'var(--fg-bg)',
     text: { color: 'var(--fg-text)', opacity: 1 },
     dim: { color: 'var(--fg-muted)', opacity: 1 },
     accent: 'var(--fg-accent)',
@@ -259,7 +259,7 @@ export function FocusPopup() {
     <div
       className="fg-flex fg-h-full fg-flex-col fg-items-center fg-justify-center fg-p-4 fg-animate-fade-in-up"
       style={{
-        background: 'linear-gradient(160deg, var(--fg-surface), var(--fg-bg))',
+        background: 'var(--fg-bg)',
         position: 'relative',
         overflow: 'hidden',
       }}

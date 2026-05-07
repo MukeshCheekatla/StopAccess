@@ -116,12 +116,10 @@ function renderAmbientShell(
   const containerHeight = isPopup ? '380px' : 'calc(100vh - 140px)';
 
   return `
-    <div style="position:relative; min-height:${containerHeight}; height: 100%; border-radius:28px; overflow:hidden; background:
-      linear-gradient(160deg, ${COLORS.surface}, ${COLORS.bg});
-      border:1px solid ${
-        COLORS.glassBorder
-      }; display: flex; flex-direction: column; box-sizing: border-box;
-      box-shadow: 0 18px 48px ${COLORS.shadowSoft};">
+    <div style="position:relative; min-height:${containerHeight}; height: 100%; overflow:hidden; background:${
+    COLORS.bg
+  };
+      display: flex; flex-direction: column; box-sizing: border-box;">
 
       <div style="position:relative; z-index:1; display:grid; grid-template-columns:${gridTemplate}; gap:16px; flex: 1; padding:${padding}; min-height:0; box-sizing: border-box;">
         <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0; min-height:0;">
@@ -226,7 +224,7 @@ function renderPresetButtons(): string {
 
 function renderIdleStateSummary(): string {
   return `
-    <div style="width:min(420px, 100%); margin-bottom:12px; padding:18px 22px; border-radius:22px; background:${COLORS.glassBg}; border:1px solid ${COLORS.glassBorder}; text-align:left; backdrop-filter:blur(12px);">
+    <div style="width:min(420px, 100%); margin-bottom:12px; padding:18px 22px; text-align:left;">
       <div style="${UI_TOKENS.TEXT.SUBTEXT}; font-size:13px; line-height:1.6;">Pick a session length and Focus will start a real countdown. Nothing shown here is simulated.</div>
     </div>
   `;
@@ -241,7 +239,7 @@ function renderActiveStateSummary(
   count: number,
 ): string {
   return `
-    <div style="width:min(440px, 100%); margin-bottom:12px; padding:18px 22px; border-radius:22px; background:${COLORS.glassBg}; border:1px solid ${COLORS.glassBorder}; text-align:left; backdrop-filter:blur(12px);">
+    <div style="width:min(440px, 100%); margin-bottom:12px; padding:18px 22px; text-align:left;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <div style="${UI_TOKENS.TEXT.LABEL}">Shielding Services</div>
         <div style="${UI_TOKENS.TEXT.BADGE}; background:${COLORS.accentSoft}; color:${COLORS.accent}; padding:2px 8px; border-radius:6px; border:1px solid ${COLORS.glassBorder};">${count} Active</div>
@@ -290,9 +288,7 @@ function renderSidePanels(
   return `
     <div class="fg-p-6 fg-rounded-[22px]" style="background:${
       COLORS.glassBg
-    }; border:1px solid ${
-    COLORS.glassBorder
-  }; backdrop-filter:blur(16px); flex-shrink:0;">
+    }; border:1px solid ${COLORS.glassBorder}; flex-shrink:0;">
       <div style="${
         UI_TOKENS.TEXT.LABEL
       }; margin-bottom: 14px;">Today's Focus Time</div>
@@ -302,9 +298,7 @@ function renderSidePanels(
     </div>
     <div class="fg-p-6 fg-rounded-[22px]" style="background:${
       COLORS.glassBg
-    }; border:1px solid ${
-    COLORS.glassBorder
-  }; backdrop-filter:blur(16px); flex-shrink:0;">
+    }; border:1px solid ${COLORS.glassBorder}; flex-shrink:0;">
       <div style="${UI_TOKENS.TEXT.LABEL}; margin-bottom: 14px;">${title}</div>
       <div style="${
         UI_TOKENS.TEXT.SUBTEXT
@@ -312,9 +306,7 @@ function renderSidePanels(
     </div>
     <div class="fg-p-6 fg-rounded-[22px] fg-flex-1 fg-flex fg-flex-col" style="background:${
       COLORS.glassBg
-    }; border:1px solid ${
-    COLORS.glassBorder
-  }; backdrop-filter:blur(16px); min-height:0;">
+    }; border:1px solid ${COLORS.glassBorder}; min-height:0;">
       <div style="${
         UI_TOKENS.TEXT.LABEL
       }; margin-bottom: 8px;">Session History</div>

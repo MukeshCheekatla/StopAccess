@@ -5,6 +5,7 @@ import {
   UI_ICONS,
   renderInfoTooltip,
   renderBrandLogo,
+  renderByteFace,
 } from '@/ui/ui';
 import { COLORS } from '@/ui/theme/designTokens';
 import { escapeHtml } from '@stopaccess/core';
@@ -118,7 +119,7 @@ export async function renderSettingsPage(container) {
           <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-flex-col fg-gap-6 fg-h-full">
             <div class="fg-flex fg-items-center fg-justify-between">
               <div class="fg-flex fg-gap-3">
-                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-amber-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-amber-text)]">
+                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-indigo-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-indigo)]">
                   ${UI_ICONS.MESSAGE_SQUARE}
                 </div>
                 <div>
@@ -126,12 +127,12 @@ export async function renderSettingsPage(container) {
                     <h2 style="${UI_TOKENS.TEXT.HEADING}">Unblock Challenge</h2>
                     <span class="fg-text-[8px] fg-font-black fg-bg-[var(--fg-emerald-soft)] fg-text-[var(--fg-green)] fg-px-1.5 fg-py-0.5 fg-rounded-md fg-tracking-widest">Recommended</span>
                     ${renderInfoTooltip(
-                      'Requires you to type a specific paragraph perfectly before settings can be unlocked.',
+                      'Requires you to type a specific paragraph perfectly before a site or rule can be unlocked.',
                     )}
                   </div>
                   <p style="${
                     UI_TOKENS.TEXT.SUBTEXT
-                  }; margin-top: 2px;">Type a paragraph perfectly to unlock settings.</p>
+                  }; margin-top: 2px;">Type a paragraph perfectly to unlock sites or rules.</p>
                 </div>
               </div>
               <label class="switch-toggle">
@@ -171,23 +172,25 @@ export async function renderSettingsPage(container) {
           <div class="fg-flex fg-flex-col fg-gap-6">
             <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-items-center fg-justify-between">
               <div class="fg-flex fg-gap-3">
-                <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-amber-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-amber-text)]">
-                  ${UI_ICONS.LOCK}
-                </div>
+                ${renderByteFace('happy', 44)}
                 <div>
                   <h2 style="${
                     UI_TOKENS.TEXT.HEADING
-                  }">Strict Mode ${renderInfoTooltip(
-    'Prevents disabling rules while a focus session is active.',
-  )}</h2>
-                  <p style="${
-                    UI_TOKENS.TEXT.SUBTEXT
-                  }; margin-top: 2px;">Immutable during active focus.</p>
+                  }">Byte: Focus Companion</h2>
+                  <div class="fg-flex fg-items-center fg-justify-between fg-mt-1">
+                    <p style="${UI_TOKENS.TEXT.SUBTEXT}">Show or hide Byte.</p>
+                    <button id="gate_byte_inline" class="fg-w-8 fg-h-8 fg-rounded-lg fg-bg-[var(--fg-surface-hover)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] fg-transition-all">
+                      ${UI_ICONS.SETTINGS.replace(
+                        'width="14"',
+                        'width="16"',
+                      ).replace('height="14"', 'height="16"')}
+                    </button>
+                  </div>
                 </div>
               </div>
               <label class="switch-toggle">
-                <input type="checkbox" id="chk_strict_toggle" ${
-                  strict ? 'checked' : ''
+                <input type="checkbox" id="chk_show_mascot" ${
+                  showMascot ? 'checked' : ''
                 }>
                 <span class="slider-toggle"></span>
               </label>
@@ -196,21 +199,22 @@ export async function renderSettingsPage(container) {
             <section class="fg-panel-premium fg-p-6 fg-rounded-[28px] fg-flex fg-items-center fg-justify-between">
               <div class="fg-flex fg-gap-3">
                 <div class="fg-w-9 fg-h-9 fg-rounded-xl fg-bg-[var(--fg-blue-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-blue)]">
-                  ${UI_ICONS.BYTE}
+                  ${UI_ICONS.LOCK}
                 </div>
                 <div>
                   <h2 style="${
                     UI_TOKENS.TEXT.HEADING
-                  }">Byte: Focus Companion</h2>
-                  <div class="fg-flex fg-items-center fg-gap-2 fg-mt-0.5">
-                    <p style="${UI_TOKENS.TEXT.SUBTEXT}">Show or hide Byte.</p>
-                    <button id="gate_byte_inline" class="fg-text-[10px] fg-font-bold fg-text-[var(--fg-accent)] hover:fg-opacity-80 fg-transition-all">Open Settings &rarr;</button>
-                  </div>
+                  }">Strict Mode ${renderInfoTooltip(
+    'Prevents adding or removing rules while active. Must be disabled first to make changes.',
+  )}</h2>
+                  <p style="${
+                    UI_TOKENS.TEXT.SUBTEXT
+                  }; margin-top: 2px;">Prevents any changes to your rules while enabled.</p>
                 </div>
               </div>
               <label class="switch-toggle">
-                <input type="checkbox" id="chk_show_mascot" ${
-                  showMascot ? 'checked' : ''
+                <input type="checkbox" id="chk_strict_toggle" ${
+                  strict ? 'checked' : ''
                 }>
                 <span class="slider-toggle"></span>
               </label>
@@ -257,7 +261,7 @@ export async function renderSettingsPage(container) {
       .slider-toggle:before { position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px; background-color: ${
         COLORS.white
       }; transition: .4s; border-radius: 50%; }
-      input:checked + .slider-toggle { background-color: var(--fg-accent); border-color: var(--fg-accent); }
+      input:checked + .slider-toggle { background-color: var(--fg-green); border-color: var(--fg-green); }
       input:checked + .slider-toggle:before { transform: translateX(20px); }
       @media (max-width: 1100px) { .settings-dual-grid { grid-template-columns: 1fr; } }
       .readonly-input { cursor: not-allowed; }

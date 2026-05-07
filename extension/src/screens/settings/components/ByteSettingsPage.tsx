@@ -1,8 +1,8 @@
-import { UI_TOKENS, attachGlobalIconListeners } from '@/ui/ui';
+import { UI_TOKENS, attachGlobalIconListeners, renderByteFace } from '@/ui/ui';
 import { COLORS } from '@/ui/theme/designTokens';
 import { toast } from '@/ui/toast';
 import { type CompanionMood } from '@/ui/companion/types';
-import { ICONS } from '@/ui/Icons';
+import { ICONS } from '@/ui/svgicons';
 
 const MOODS: Array<{
   id: CompanionMood;
@@ -52,9 +52,7 @@ export async function renderByteSettingsPage(container: HTMLElement) {
             <h1 style="${
               UI_TOKENS.TEXT.HERO
             }; font-size: 24px; letter-spacing: -0.02em;">Byte Companion</h1>
-            <div class="fg-w-7 fg-h-7 fg-rounded-lg fg-bg-[var(--fg-blue-soft)] fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-blue)]">
-              ${ICONS.BYTE}
-            </div>
+            ${renderByteFace('happy', 32)}
           </div>
           <p style="${
             UI_TOKENS.TEXT.LABEL

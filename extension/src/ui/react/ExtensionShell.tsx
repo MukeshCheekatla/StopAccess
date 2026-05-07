@@ -138,11 +138,35 @@ export function DashboardShell<T extends string>({
   onSignIn,
 }: DashboardShellProps<T>) {
   const [isInitializing, setIsInitializing] = React.useState(true);
+  const [showCloudSidebar, setShowCloudSidebar] = React.useState(() => {
+    return localStorage.getItem('sa_show_cloud_sidebar') === 'true';
+  });
   const companion = useShellCompanion(status, activeTab);
 
   React.useEffect(() => {
     const timer = setTimeout(() => setIsInitializing(false), 100);
-    return () => clearTimeout(timer);
+
+    // Initial load (sync with chrome storage)
+    chrome.storage.local.get(['fg_show_cloud_sidebar'], (res) => {
+      const val = res.fg_show_cloud_sidebar === true;
+      setShowCloudSidebar(val);
+      localStorage.setItem('sa_show_cloud_sidebar', String(val));
+    });
+
+    // Listen for changes
+    const onStorageChange = (changes: any) => {
+      if (changes.fg_show_cloud_sidebar) {
+        const val = changes.fg_show_cloud_sidebar.newValue === true;
+        setShowCloudSidebar(val);
+        localStorage.setItem('sa_show_cloud_sidebar', String(val));
+      }
+    };
+    chrome.storage.onChanged.addListener(onStorageChange);
+
+    return () => {
+      clearTimeout(timer);
+      chrome.storage.onChanged.removeListener(onStorageChange);
+    };
   }, []);
 
   const statusClassName = useMemo(
@@ -335,95 +359,97 @@ export function DashboardShell<T extends string>({
           </div>
         </div>
 
-        <div className="fg-mt-auto fg-px-2 fg-mb-2">
-          <div className="fg-px-3 fg-h-[62px] fg-flex fg-items-center fg-rounded-[14px] fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)]">
-            {!user ? (
-              <div className="fg-flex fg-items-center fg-justify-between fg-w-full fg-gap-3">
-                <div className="fg-flex fg-items-center fg-gap-3 fg-min-w-0">
-                  <div className="fg-w-9 fg-h-9 fg-rounded-full fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-flex fg-items-center fg-justify-center fg-shrink-0">
-                    <SignOutIcon className="fg-rotate-180 fg-opacity-50" />
+        {showCloudSidebar && (
+          <div className="fg-mt-auto fg-px-2 fg-mb-2">
+            <div className="fg-px-3 fg-h-[62px] fg-flex fg-items-center fg-rounded-[14px] fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)]">
+              {!user ? (
+                <div className="fg-flex fg-items-center fg-justify-between fg-w-full fg-gap-3">
+                  <div className="fg-flex fg-items-center fg-gap-3 fg-min-w-0">
+                    <div className="fg-w-9 fg-h-9 fg-rounded-full fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-flex fg-items-center fg-justify-center fg-shrink-0">
+                      <SignOutIcon className="fg-rotate-180 fg-opacity-50" />
+                    </div>
+                    <div className="fg-flex fg-flex-col fg-truncate">
+                      <div
+                        style={{
+                          ...UI_TOKENS.TEXT.R.CARD_TITLE,
+                          fontSize: '13px',
+                          lineHeight: '1.2',
+                        }}
+                      >
+                        Cloud Sync
+                      </div>
+                      <div
+                        style={{
+                          ...UI_TOKENS.TEXT.R.LABEL,
+                          fontSize: '10px',
+                          opacity: 0.5,
+                        }}
+                      >
+                        Backup active
+                      </div>
+                    </div>
                   </div>
-                  <div className="fg-flex fg-flex-col fg-truncate">
+                  <button
+                    onClick={onSignIn}
+                    className="fg-px-3 fg-py-1.5 fg-rounded-[8px] fg-bg-[var(--accent)] fg-text-[var(--fg-on-accent)] fg-text-[12px] fg-font-bold hover:fg-opacity-90 fg-transition-opacity fg-shrink-0"
+                  >
+                    Sign In
+                  </button>
+                </div>
+              ) : (
+                <div className="fg-flex fg-items-center fg-gap-3 fg-w-full">
+                  <div className="fg-relative fg-flex-shrink-0">
+                    <div className="fg-w-9 fg-h-9 fg-rounded-full fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-overflow-hidden">
+                      {user.image ? (
+                        <img
+                          src={user.image}
+                          alt=""
+                          className="fg-w-full fg-h-full fg-object-cover"
+                        />
+                      ) : (
+                        <div className="fg-w-full fg-h-full fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-muted)] fg-font-bold fg-text-[14px]">
+                          {(user.name || '?').charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="fg-absolute -fg-bottom-0.5 -fg-right-0.5 fg-w-3 fg-h-3 fg-rounded-full fg-bg-[var(--fg-green)] fg-border-2 fg-border-[var(--fg-sidebar-bg)] fg-animate-pulse" />
+                  </div>
+
+                  <div className="fg-flex fg-flex-col fg-min-w-0 fg-flex-1">
                     <div
+                      className="fg-truncate"
                       style={{
                         ...UI_TOKENS.TEXT.R.CARD_TITLE,
                         fontSize: '13px',
                         lineHeight: '1.2',
                       }}
                     >
-                      Cloud Sync
+                      {user.name || 'Cloud User'}
                     </div>
                     <div
+                      className="fg-truncate"
                       style={{
                         ...UI_TOKENS.TEXT.R.LABEL,
                         fontSize: '10px',
                         opacity: 0.5,
                       }}
                     >
-                      Backup active
+                      {user.email}
                     </div>
                   </div>
-                </div>
-                <button
-                  onClick={onSignIn}
-                  className="fg-px-3 fg-py-1.5 fg-rounded-[8px] fg-bg-[var(--accent)] fg-text-[var(--fg-on-accent)] fg-text-[12px] fg-font-bold hover:fg-opacity-90 fg-transition-opacity fg-shrink-0"
-                >
-                  Sign In
-                </button>
-              </div>
-            ) : (
-              <div className="fg-flex fg-items-center fg-gap-3 fg-w-full">
-                <div className="fg-relative fg-flex-shrink-0">
-                  <div className="fg-w-9 fg-h-9 fg-rounded-full fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-overflow-hidden">
-                    {user.image ? (
-                      <img
-                        src={user.image}
-                        alt=""
-                        className="fg-w-full fg-h-full fg-object-cover"
-                      />
-                    ) : (
-                      <div className="fg-w-full fg-h-full fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-muted)] fg-font-bold fg-text-[14px]">
-                        {(user.name || '?').charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                  </div>
-                  <div className="fg-absolute -fg-bottom-0.5 -fg-right-0.5 fg-w-3 fg-h-3 fg-rounded-full fg-bg-[var(--fg-green)] fg-border-2 fg-border-[var(--fg-sidebar-bg)] fg-animate-pulse" />
-                </div>
 
-                <div className="fg-flex fg-flex-col fg-min-w-0 fg-flex-1">
-                  <div
-                    className="fg-truncate"
-                    style={{
-                      ...UI_TOKENS.TEXT.R.CARD_TITLE,
-                      fontSize: '13px',
-                      lineHeight: '1.2',
-                    }}
+                  <button
+                    onClick={onSignOut}
+                    className="fg-p-1.5 fg-rounded-lg fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-red)] hover:fg-bg-[var(--fg-red-wash)] fg-transition-colors fg-shrink-0"
+                    title="Sign Out"
                   >
-                    {user.name || 'Cloud User'}
-                  </div>
-                  <div
-                    className="fg-truncate"
-                    style={{
-                      ...UI_TOKENS.TEXT.R.LABEL,
-                      fontSize: '10px',
-                      opacity: 0.5,
-                    }}
-                  >
-                    {user.email}
-                  </div>
+                    <SignOutIcon />
+                  </button>
                 </div>
-
-                <button
-                  onClick={onSignOut}
-                  className="fg-p-1.5 fg-rounded-lg fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-red)] hover:fg-bg-[var(--fg-red-wash)] fg-transition-colors fg-shrink-0"
-                  title="Sign Out"
-                >
-                  <SignOutIcon />
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
       <div className="fg-flex-1 fg-flex fg-flex-col fg-overflow-hidden">
         <div className="fg-flex-1 fg-overflow-y-auto fg-overflow-x-hidden">
