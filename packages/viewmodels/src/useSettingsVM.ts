@@ -57,6 +57,7 @@ export async function loadSettingsData(deps: VMPlatformDependencies) {
       'Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions.',
     cloudUser,
     byteSettings,
+    hideCloudBox: (await storage.getBoolean('fg_hide_cloud_box')) || false,
   };
 }
 
@@ -275,6 +276,16 @@ export async function toggleMascotAction(
   enabled: boolean,
 ) {
   await deps.storage.set('fg_show_mascot', enabled);
+}
+
+export async function toggleCloudBoxAction(
+  deps: VMPlatformDependencies,
+  hide: boolean,
+) {
+  await deps.storage.set('fg_hide_cloud_box', hide);
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('fg_hide_cloud_box', hide ? 'true' : 'false');
+  }
 }
 
 export async function updateChallengeTextAction(
