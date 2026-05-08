@@ -1,10 +1,17 @@
 import { toast } from '@/ui/toast';
 import { appsController } from '@/lib/appsController';
-import { NEXTDNS_SERVICES } from '@stopaccess/core';
+import {
+  handleRuleToggleFlow,
+  handleRuleDeletionFlow,
+} from './components/AppsFlow';
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { ByteCompanion } from '@/ui/companion';
 
 export interface AppsPageCallbacks {
   refreshListOnly: () => Promise<void>;
-  handleAddDomain: () => Promise<void>;
+  handleAddDomain: (input?: string) => Promise<void>;
+  renderDrawerGrid: (rules: any[], search?: string) => void;
 }
 
 /**
@@ -47,7 +54,8 @@ export function setupGlobalClickHandlers(container: HTMLElement) {
     }
 
     if (toggleBtn) {
-      const id = toggleBtn.getAttribute('data-id');
+      const id =
+        toggleBtn.getAttribute('data-id') || toggleBtn.getAttribute('data-pkg');
       const name = toggleBtn.getAttribute('data-name');
       const kind = toggleBtn.getAttribute('data-kind') as
         | 'service'
@@ -56,161 +64,119 @@ export function setupGlobalClickHandlers(container: HTMLElement) {
       const isActive = toggleBtn.getAttribute('aria-checked') === 'true';
 
       if (id && name && kind) {
-        // If DISABLING a block (turning switch OFF)
-        if (isActive) {
-          const { showUnblockDurationDialog, confirmGuardianAction } =
-            (await import('@/ui/ui')) as any;
+        const rule = currentRules.find(
+          (r: any) =>
+            (r.customDomain || r.packageName) === id &&
+            (kind !== 'service' || r.type === 'service'),
+        );
 
-          if (kind === 'category') {
-            // Categories: Simple security confirmation, then full toggle OFF
-            const confirmed = await confirmGuardianAction({
-              title: 'Unblock Category',
-              body: `Are you sure you want to disable the ${name} category? This will affect all associated apps and sites.`,
-              isDestructive: true,
-            });
-
-            if (!confirmed) {
-              return;
-            }
-            // Fall through to appsController.toggleRule below
-          } else {
-            // Apps/Domains: Duration-based unblock
-            const choice = await showUnblockDurationDialog(name);
-            if (!choice) {
-              return;
-            }
-
-            const confirmed = await confirmGuardianAction({
-              title: 'Verify Security',
-              body: `Please verify to unblock ${name}.`,
-              skipSimpleConfirm: true,
-            });
-
-            if (!confirmed) {
-              return;
-            }
-
-            // Apply unblock duration
-            let minutes = 40;
-            if (choice === 'today') {
-              minutes = appsController.minutesTillMidnight();
-            }
-
-            const rule = currentRules.find(
-              (r: any) => (r.customDomain || r.packageName) === id,
-            );
-            const maxPasses = rule?.maxDailyPasses ?? 3;
-
-            const res = await appsController.grantTempPass(
-              id,
-              minutes,
-              maxPasses,
-              true,
-            );
-            if (res.ok) {
-              toast.success(
-                `Unblocked for ${
-                  choice === '40mins' ? '40 minutes' : 'the rest of today'
-                }`,
-              );
-              if (callbacks?.refreshListOnly) {
-                await callbacks.refreshListOnly();
-              }
-            } else {
-              toast.error(res.error);
-            }
-            return;
-          }
+        if (rule) {
+          await handleRuleToggleFlow(
+            rule,
+            isActive,
+            () => {
+              callbacks?.refreshListOnly?.();
+            },
+            currentRules,
+            kind,
+          );
+        } else {
+          // Fallback if rule object doesn't exist yet (e.g. newly added)
+          await handleRuleToggleFlow(
+            id,
+            isActive,
+            () => {
+              callbacks?.refreshListOnly?.();
+            },
+            currentRules,
+            kind,
+          );
         }
-
-        // If ACTIVATING a block (turning switch ON), check guard only (no PIN needed)
-        const { checkGuard } = await import('@/background/sessionGuard');
-        const guard = await checkGuard('modify_blocklist');
-        if (!guard.allowed) {
-          toast.error((guard as any).reason);
-          return;
-        }
-      }
-
-      const res = await appsController.toggleRule(
-        kind,
-        id,
-        name,
-        !isActive,
-        currentRules,
-      );
-      if (res.ok) {
-        toast.success(`${name} ${!isActive ? 'blocked' : 'allowed'}`);
-        if (callbacks?.refreshListOnly) {
-          await callbacks.refreshListOnly();
-        }
-      } else {
-        toast.error(res.error);
       }
     }
 
     if (unblockBtn) {
-      const id = unblockBtn.getAttribute('data-id');
-      const name = unblockBtn.getAttribute('data-name');
-
+      const id =
+        unblockBtn.getAttribute('data-id') ||
+        unblockBtn.getAttribute('data-pkg');
       if (id) {
-        const { showUnblockDurationDialog, confirmGuardianAction } =
-          (await import('@/ui/ui')) as any;
-        const { extensionAdapter } = await import(
-          '@/background/platformAdapter'
+        const rule = currentRules.find(
+          (r: any) => (r.customDomain || r.packageName) === id,
         );
 
-        const choice = await showUnblockDurationDialog();
-        if (!choice) {
-          return;
+        if (rule) {
+          await handleRuleToggleFlow(
+            rule,
+            true, // Unblock button always means "disable block"
+            () => {
+              callbacks?.refreshListOnly?.();
+            },
+            currentRules,
+          );
+        }
+      }
+      return;
+    }
+
+    const quickAddBtn = target.closest(
+      '.quick-add-service, .aura-card, .quick-add-btn',
+    ) as HTMLElement;
+    if (quickAddBtn) {
+      const id = quickAddBtn.getAttribute('data-id');
+      const name = quickAddBtn.getAttribute('data-name');
+      if (id && name) {
+        await appsController.toggleRule(
+          'service',
+          id,
+          name,
+          true,
+          currentRules,
+        );
+        toast.success(`Blocked ${name}`);
+        callbacks?.refreshListOnly?.();
+
+        // 🤖 BOT INTERACTION
+        const botMessages = [
+          `${name} blocked./nGood job!`,
+          `${name} added./nYour focus is safe.`,
+          `I've handled ${name}./nStay productive!`,
+          `${name} is gone./nBack to work?`,
+          `${name} added!/nShield is stronger.`,
+        ];
+        const randomMsg =
+          botMessages[Math.floor(Math.random() * botMessages.length)];
+
+        // Find bot container and update it if possible
+        const botMount = container.querySelector('#auraBotMount');
+        if (botMount && (container as any).botRoot) {
+          (container as any).botRoot.render(
+            React.createElement(ByteCompanion, {
+              mood: 'excited',
+              message: randomMsg,
+              variant: 'sidebar',
+            }),
+          );
+
+          // Clear message after 4s
+          setTimeout(() => {
+            if ((container as any).botRoot) {
+              (container as any).botRoot.render(
+                React.createElement(ByteCompanion, {
+                  mood: 'happy',
+                  message: '',
+                  variant: 'sidebar',
+                }),
+              );
+            }
+          }, 4000);
         }
 
-        const confirmed = await confirmGuardianAction({
-          title: 'Verify Security',
-          body: `Please verify to unblock ${name || id}.`,
-          skipSimpleConfirm: true,
-        });
-
-        if (confirmed) {
-          let minutes = 40;
-          if (choice === 'today') {
-            minutes = appsController.minutesTillMidnight();
-          }
-
-          const rule = currentRules.find(
-            (r: any) => (r.customDomain || r.packageName) === id,
-          );
-          const maxPasses = rule?.maxDailyPasses ?? 3;
-
-          const res = await appsController.grantTempPass(
-            id,
-            minutes,
-            maxPasses,
-            true,
-          );
-          if (res.ok) {
-            // Reset streak
-            const { updateRule } = await import('@stopaccess/state/rules');
-            if (rule) {
-              await updateRule(extensionAdapter, {
-                ...rule,
-                streakDays: 0,
-                streakStartedAt: Date.now(),
-              });
-            }
-            toast.success(
-              `Unblocked for ${
-                choice === '40mins' ? '40 minutes' : 'the rest of today'
-              }`,
-            );
-            if (callbacks?.refreshListOnly) {
-              await callbacks.refreshListOnly();
-            }
-          } else {
-            toast.error(res.error);
-          }
-        }
-        return;
+        // DISAPPEAR ANIMATION
+        quickAddBtn.classList.add('disappearing');
+        setTimeout(() => {
+          // Re-render grid to reflect change
+          quickAddBtn.style.display = 'none';
+        }, 400);
       }
     }
   });
@@ -238,67 +204,194 @@ export async function setupHandlers(
 
   if (addBtn && !(addBtn as any).__listenerAttached) {
     (addBtn as any).__listenerAttached = true;
-    addBtn.addEventListener('click', callbacks.handleAddDomain);
+    addBtn.addEventListener('click', () => callbacks.handleAddDomain());
   }
 
   const openDrawer = () => {
     if (!overlay || !drawer) {
       return;
     }
+    overlay.classList.remove('closing');
     overlay.style.display = 'flex';
+    // Initial grid render
+    callbacks.renderDrawerGrid(rules, '');
+
+    // 🤖 INITIALIZE BOT
+    const botMount = container.querySelector('#auraBotMount');
+    if (botMount && !(container as any).botRoot) {
+      (container as any).botRoot = createRoot(botMount);
+      (container as any).botRoot.render(
+        React.createElement(ByteCompanion, {
+          mood: 'happy',
+          message: 'Explore the catalog/nto find new apps!',
+          variant: 'sidebar',
+        }),
+      );
+    }
+
     setTimeout(() => {
       drawer.style.opacity = '1';
-      drawer.style.transform = 'scale(1)';
+      const searchInput = drawer.querySelector(
+        '#drawerSearch',
+      ) as HTMLInputElement;
+      if (searchInput) {
+        searchInput.value = '';
+        searchInput.focus();
+      }
     }, 10);
   };
+
+  const drawerSearchInput = container.querySelector(
+    '#drawerSearch',
+  ) as HTMLInputElement;
+  if (drawerSearchInput && !(drawerSearchInput as any).__listenerAttached) {
+    (drawerSearchInput as any).__listenerAttached = true;
+
+    // Search filtering
+    drawerSearchInput.addEventListener('input', (e) => {
+      const val = (e.target as HTMLInputElement).value.toLowerCase();
+      callbacks.renderDrawerGrid(rules, val);
+    });
+
+    // Enter to add domain
+    drawerSearchInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const drawerAddBtn = container.querySelector(
+          '#btnAddDomainDrawer',
+        ) as HTMLElement;
+        if (drawerAddBtn) {
+          drawerAddBtn.click();
+        }
+      }
+    });
+  }
 
   const closeDrawer = () => {
     if (!overlay || !drawer) {
       return;
     }
+    overlay.classList.add('closing');
     drawer.style.opacity = '0';
-    drawer.style.transform = 'scale(0.95)';
+
+    // Clear search and reset grid
+    const searchInput = drawer.querySelector(
+      '#drawerSearch',
+    ) as HTMLInputElement;
+    if (searchInput) {
+      searchInput.value = '';
+      callbacks.renderDrawerGrid(rules, '');
+    }
+
+    // Scroll back to top
+    const grid = drawer.querySelector('#drawerGrid');
+    if (grid) {
+      grid.scrollTop = 0;
+    }
+
     setTimeout(() => {
       overlay.style.display = 'none';
     }, 300);
   };
 
+  (container as any).closeDrawer = closeDrawer;
+
   openBtn?.addEventListener('click', openDrawer);
   closeBtn?.addEventListener('click', closeDrawer);
 
-  const drawerSearch = container.querySelector(
-    '#drawerSearch',
-  ) as HTMLInputElement;
-  const serviceItems = Array.from(
-    container.querySelectorAll('.quick-add-service'),
-  ) as HTMLElement[];
-  const categoryGroups = Array.from(
-    container.querySelectorAll('.drawer-category-group'),
-  ) as HTMLElement[];
+  // Discovery Category Scroll Sync Logic
+  const gridContainer = container.querySelector('#drawerGrid');
+  const navItems = container.querySelectorAll('.aura-nav-item');
+  const indicator = container.querySelector('#auraNavIndicator') as HTMLElement;
+  const navContainer = container.querySelector(
+    '#auraNavContainer',
+  ) as HTMLElement;
 
-  drawerSearch?.addEventListener('input', (e) => {
-    const term = (e.target as HTMLInputElement).value.toLowerCase();
+  const refreshNavIndicator = () => {
+    const activeItem = container.querySelector(
+      '.aura-nav-item.active',
+    ) as HTMLElement;
+    if (activeItem && indicator && navContainer) {
+      const itemRect = activeItem.getBoundingClientRect();
+      const containerRect = navContainer.getBoundingClientRect();
 
-    // 1. Toggle item visibility
-    serviceItems.forEach((item) => {
-      const name = (item.getAttribute('data-name') || '').toLowerCase();
-      const id = (item.getAttribute('data-id') || '').toLowerCase();
-      const isMatch = name.includes(term) || id.includes(term);
-      item.style.display = isMatch ? 'flex' : 'none';
-    });
+      indicator.style.height = `${itemRect.height * 0.5}px`;
+      indicator.style.top = `${
+        itemRect.top - containerRect.top + itemRect.height * 0.25
+      }px`;
+      indicator.style.opacity = '1';
+    } else if (indicator) {
+      indicator.style.opacity = '0';
+    }
+  };
 
-    // 2. Hide category headers if no items are visible in that group
-    categoryGroups.forEach((group) => {
-      const cat = group.getAttribute('data-cat');
-      const hasVisible = serviceItems.some((item) => {
-        const itemCat =
-          NEXTDNS_SERVICES.find((s) => s.id === item.getAttribute('data-id'))
-            ?.category || 'Other';
-        return itemCat === cat && item.style.display !== 'none';
+  if (gridContainer && navItems.length > 0) {
+    // Click to scroll
+    navItems.forEach((item) => {
+      item.addEventListener('click', () => {
+        const targetCat = item.getAttribute('data-target');
+        const section = gridContainer.querySelector(
+          `.drawer-category-group[data-cat="${targetCat}"]`,
+        ) as HTMLElement;
+
+        if (section) {
+          navItems.forEach((nav) => nav.classList.remove('active'));
+          item.classList.add('active');
+          refreshNavIndicator();
+
+          const offset = section.offsetTop - 20;
+          gridContainer.scrollTo({
+            top: offset,
+            behavior: 'smooth',
+          });
+        }
       });
-      group.style.display = hasVisible ? 'flex' : 'none';
     });
-  });
+
+    // Scroll sync logic
+    gridContainer.addEventListener('scroll', () => {
+      const groups = gridContainer.querySelectorAll('.drawer-category-group');
+      let currentCat = '';
+
+      const containerRect = gridContainer.getBoundingClientRect();
+      const isAtBottom =
+        gridContainer.scrollTop + gridContainer.clientHeight >=
+        gridContainer.scrollHeight - 60;
+
+      if (isAtBottom) {
+        const lastGroup = groups[groups.length - 1];
+        currentCat = lastGroup?.getAttribute('data-cat') || '';
+      } else {
+        // Find the most relevant category (the one that is most visible at the top)
+        groups.forEach((group) => {
+          const rect = group.getBoundingClientRect();
+          if (rect.top - containerRect.top < 150) {
+            currentCat = group.getAttribute('data-cat') || '';
+          }
+        });
+      }
+
+      if (currentCat) {
+        let changed = false;
+        navItems.forEach((nav) => {
+          const target = nav.getAttribute('data-target');
+          const isMatch = target === currentCat;
+          if (isMatch && !nav.classList.contains('active')) {
+            nav.classList.add('active');
+            changed = true;
+          } else if (!isMatch && nav.classList.contains('active')) {
+            nav.classList.remove('active');
+            changed = true;
+          }
+        });
+        if (changed) {
+          refreshNavIndicator();
+        }
+      }
+    });
+
+    // Initial position
+    setTimeout(refreshNavIndicator, 100);
+  }
 
   const handleEsc = (e: KeyboardEvent) => {
     if (e.key === 'Escape' && overlay?.style.display === 'flex') {
@@ -313,27 +406,6 @@ export async function setupHandlers(
     }
   });
 
-  container.querySelectorAll('.quick-add-service').forEach((btn) => {
-    if ((btn as any).__listenerAttached) {
-      return;
-    }
-    (btn as any).__listenerAttached = true;
-    btn.addEventListener('click', async () => {
-      const id = btn.getAttribute('data-id');
-      const name = btn.getAttribute('data-name');
-      const currentRules = (container as any).currentRules || [];
-      if (id && name) {
-        await appsController.toggleRule(
-          'service',
-          id,
-          name,
-          true,
-          currentRules,
-        );
-      }
-    });
-  });
-
   container.querySelectorAll('.delete-rule').forEach((btn) => {
     if ((btn as any).__listenerAttached) {
       return;
@@ -342,50 +414,9 @@ export async function setupHandlers(
     btn.addEventListener('click', async () => {
       const pkg = btn.getAttribute('data-pkg');
       if (pkg) {
-        const row = btn.closest('.rule-table-row') as HTMLElement;
-        const performRemoval = async () => {
-          if (row) {
-            row.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
-            row.style.opacity = '0';
-            row.style.transform = 'scale(0.95) translateX(-10px)';
-            row.style.pointerEvents = 'none';
-
-            // Smoothly collapse height
-            const height = row.offsetHeight;
-            row.style.height = height + 'px';
-            requestAnimationFrame(() => {
-              row.style.height = '0px';
-              row.style.paddingTop = '0px';
-              row.style.paddingBottom = '0px';
-              row.style.borderBottomWidth = '0px';
-              row.style.marginTop = '0px';
-              row.style.marginBottom = '0px';
-            });
-          }
-
-          // Run background removal quietly
-          const result = await appsController.removeRule(pkg, rules);
-          if (!result.ok && row) {
-            // Restore if failed
-            row.style.height = '';
-            row.style.paddingTop = '';
-            row.style.paddingBottom = '';
-            row.style.opacity = '1';
-            row.style.transform = '';
-            row.style.pointerEvents = '';
-          }
-        };
-
-        const { confirmGuardianAction } = (await import('@/ui/ui')) as any;
-        const confirmed = await confirmGuardianAction({
-          title: 'Delete Rule?',
-          body: 'Verify your security to remove this block permanently.',
-          isDestructive: true,
+        await handleRuleDeletionFlow(pkg, rules, () => {
+          callbacks?.refreshListOnly?.();
         });
-
-        if (confirmed) {
-          await performRemoval();
-        }
       }
     });
   });

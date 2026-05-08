@@ -19,6 +19,7 @@ import { CHART_COLORS, COLORS } from '@/ui/theme/designTokens';
 import { attachCalendarWidget } from './components/CalendarWidget';
 import { getTypingHistory } from '@/lib/typingHistory';
 import { getRemainingMs, formatTime } from '@/lib/sessionTimer';
+import { getRuleActiveState } from '../apps/components/AppRuleRow';
 
 // Key icons
 const iconPlay = UI_ICONS.PLAY;
@@ -66,7 +67,7 @@ export async function renderDashboardPage(
 
     lastViewedDate = data.targetDate;
     container.removeAttribute('data-mastery-active');
-    const { rules, allTotalMs, domainList, isNew } = data;
+    const { rules, passes, allTotalMs, domainList, isNew } = data;
     const { focusEnd } = data;
     (window as any).__dashFocusEnd = focusEnd;
 
@@ -416,15 +417,15 @@ export async function renderDashboardPage(
               `stroke="${COLORS.muted}"`,
             ).replace('style="', 'style="opacity: 0.5; ')}
           </div>
-          <div style="margin-top: 12px;">
+          <div style="margin-top: 8px;">
             <div style="${UI_TOKENS.TEXT.STAT}">${fmtTime(
         globalAvgMs || 0,
       )}</div>
-
           </div>
-          <div style="${
-            UI_TOKENS.TEXT.LABEL
-          } opacity: 0.8; font-size: 12px;">${Math.round(
+          <div style="margin-top: auto; padding-top: 12px; border-top: 1px solid var(--fg-white-wash);">
+            <div style="${
+              UI_TOKENS.TEXT.LABEL
+            } opacity: 0.8; font-size: 12px;">${Math.round(
         globalAvgSessions || 0,
       )} <span class="fg-opacity-50 fg-font-normal">sessions/day</span></div>
           </div>
@@ -505,7 +506,7 @@ export async function renderDashboardPage(
               `stroke="${COLORS.muted}"`,
             ).replace('style="', 'style="opacity: 0.5; ')}
           </div>
-          <div style="margin-top: 12px;">
+          <div style="margin-top: 8px;">
             <div style="${UI_TOKENS.TEXT.STAT}">${data.totalSessions}</div>
             <div style="${
               UI_TOKENS.TEXT.LABEL
@@ -544,7 +545,7 @@ export async function renderDashboardPage(
               `stroke="${COLORS.muted}"`,
             ).replace('style="', 'style="opacity: 0.5; ')}
           </div>
-          <div style="margin-top: 12px;">
+          <div style="margin-top: 8px;">
             <div style="display: flex; align-items: baseline; gap: 6px;">
               <div style="${
                 UI_TOKENS.TEXT.STAT
@@ -601,7 +602,7 @@ export async function renderDashboardPage(
 
         domainList.forEach((d) => {
           const isBlocked = rules.some((r: any) => {
-            const active = r.blockedToday || r.mode === 'block';
+            const active = getRuleActiveState(r, passes);
             if (!active) {
               return false;
             }

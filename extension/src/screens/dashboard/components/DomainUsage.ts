@@ -252,7 +252,7 @@ export async function renderDomainUsage(
       };
 
       const chartTextColor = resolveToken(UI_TOKENS.COLORS.TEXT) || COLORS.text;
-      const accentColor = resolveToken(COLORS.accent) || '#3b82f6';
+      const accentColor = resolveToken(COLORS.black);
 
       // Advanced Time-Based Scaling Logic
       const rawValues = series.map((s) => Math.round(s.timeMs / 60000));

@@ -21,16 +21,48 @@ function findMatchingRule(rules: AppRule[], domain: string) {
 }
 
 export async function getActiveTempPass(domain: string) {
-  const res = await chrome.storage.local.get([TEMP_PASSES_KEY]);
+  const res = await chrome.storage.local.get([TEMP_PASSES_KEY, RULES_KEY]);
   const passes = res[TEMP_PASSES_KEY] || {};
 
+  let rules: AppRule[] = [];
+  try {
+    const rawRules = res[RULES_KEY];
+    rules =
+      typeof rawRules === 'string'
+        ? JSON.parse(rawRules || '[]')
+        : (rawRules as AppRule[]) || [];
+  } catch {}
+
+  // 1. Check if any rule matching this domain has an active pass (package or custom domain)
+  const matchingRule = findMatchingRule(rules, domain);
+  if (matchingRule) {
+    const pkgId = matchingRule.packageName;
+    if (pkgId && passes[pkgId]) {
+      const pass = passes[pkgId];
+      if (Date.now() <= pass.expiresAt) {
+        return pass;
+      }
+    }
+    const custDom = matchingRule.customDomain;
+    if (custDom && passes[custDom]) {
+      const pass = passes[custDom];
+      if (Date.now() <= pass.expiresAt) {
+        return pass;
+      }
+    }
+  }
+
+  // 2. Fallback: Direct domain/subdomain check
   const parts = domain.split('.');
   let pass = null;
   for (let i = 0; i <= parts.length - 2; i++) {
     const d = parts.slice(i).join('.');
     if (passes[d]) {
-      pass = passes[d];
-      break;
+      const p = passes[d];
+      if (Date.now() <= p.expiresAt) {
+        pass = p;
+        break;
+      }
     }
   }
 
@@ -38,13 +70,6 @@ export async function getActiveTempPass(domain: string) {
     return null;
   }
 
-  if (Date.now() > pass.expiresAt) {
-    if (passes[domain]) {
-      delete passes[domain];
-      await chrome.storage.local.set({ [TEMP_PASSES_KEY]: passes });
-    }
-    return null;
-  }
   return pass;
 }
 

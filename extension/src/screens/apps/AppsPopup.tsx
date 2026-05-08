@@ -10,10 +10,9 @@ import { toast } from '@/ui/toast';
 import {
   findServiceIdByDomain,
   getDomainForRule,
-  formatMinutes,
   resolveTargetInput,
 } from '@stopaccess/core';
-import { STORAGE_KEYS } from '@stopaccess/state';
+import { handleRuleToggleFlow } from './components/AppsFlow';
 import {
   loadAppsRuntimeState,
   subscribeAppsRuntimeState,
@@ -55,36 +54,55 @@ function ruleMatchesDomain(rule: any, domain: string | null) {
 }
 
 function isRuleBlockingEnabled(rule: any, passes: Record<string, any> = {}) {
-  if (rule?.desiredBlockingState === false || rule?.mode === 'allow') {
+  const now = Date.now();
+  const hasActivePass = Object.keys(passes).some((key) => {
+    const pass = passes[key];
+    if (!pass || Number(pass.expiresAt) <= now) {
+      return false;
+    }
+    return ruleMatchesDomain(rule, key);
+  });
+
+  if (hasActivePass) {
     return false;
   }
 
-  const pkg = rule?.packageName || rule?.appName;
-  if (pkg && passes[pkg]) {
-    const pass = passes[pkg];
-    if (pass && Number(pass.expiresAt) > Date.now()) {
-      return false;
-    }
-  }
-
   return Boolean(
-    rule?.blockedToday ||
-      rule?.mode === 'block' ||
-      rule?.mode === 'limit' ||
-      rule?.desiredBlockingState,
+    rule?.desiredBlockingState ?? rule?.blockedToday ?? rule?.mode !== 'allow',
   );
 }
 
 function getPassCountdown(pass: any) {
   const diff = Math.max(0, Number(pass?.expiresAt || 0) - Date.now());
   const mins = Math.floor(diff / 60000);
-
-  if (mins >= 60) {
-    return formatMinutes(mins);
-  }
-
   const secs = Math.floor((diff % 60000) / 1000);
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+function getPassForRule(rule: any, passes: Record<string, any>) {
+  const now = Date.now();
+  const ruleId = (rule.customDomain || rule.packageName || '').toLowerCase();
+
+  const passKey = Object.keys(passes).find((key) => {
+    const p = passes[key];
+    if (!p || Number(p.expiresAt) <= now) {
+      return false;
+    }
+
+    const k = key.toLowerCase();
+    if (k === ruleId || k.endsWith('.' + ruleId) || ruleId.endsWith('.' + k)) {
+      return true;
+    }
+    if (
+      rule.type === 'service' &&
+      findServiceIdByDomain(k) === rule.packageName
+    ) {
+      return true;
+    }
+    return false;
+  });
+
+  return passKey ? passes[passKey] : null;
 }
 
 export const AppsPopup: React.FC = () => {
@@ -112,6 +130,8 @@ export const AppsPopup: React.FC = () => {
     }
   };
 
+  const [_tick, setTick] = useState(0);
+
   useEffect(() => {
     refresh();
     const unsubscribe = subscribeAppsRuntimeState(() => {
@@ -119,6 +139,7 @@ export const AppsPopup: React.FC = () => {
     });
     const interval = setInterval(async () => {
       setCurrentDomain(await getCurrentTabDomain());
+      setTick((t) => t + 1);
     }, 1000);
     return () => {
       unsubscribe();
@@ -126,39 +147,42 @@ export const AppsPopup: React.FC = () => {
     };
   }, []);
 
-  const currentSiteBlocked = useMemo(() => {
-    if (!currentDomain) {
-      return false;
-    }
-
-    return rules.some((rule: any) => {
-      const active = isRuleBlockingEnabled(rule, passes);
-      return active && ruleMatchesDomain(rule, currentDomain);
-    });
-  }, [currentDomain, rules, passes]);
-
-  const currentSitePass = useMemo(() => {
+  const currentRule = useMemo(() => {
     if (!currentDomain) {
       return null;
     }
-    const pass = passes[currentDomain];
-    if (pass && Number(pass.expiresAt) > Date.now()) {
-      return pass;
+    return rules.find((rule: any) => ruleMatchesDomain(rule, currentDomain));
+  }, [currentDomain, rules]);
+
+  const currentSiteBlocked = useMemo(() => {
+    if (!currentRule) {
+      return false;
     }
-    return null;
-  }, [currentDomain, passes]);
+    return isRuleBlockingEnabled(currentRule, passes);
+  }, [currentRule, passes]);
+
+  const currentSitePass = useMemo(() => {
+    if (!currentRule) {
+      return null;
+    }
+    return getPassForRule(currentRule, passes);
+  }, [currentRule, passes]);
 
   const query = searchTerm.trim().toLowerCase();
 
   const activeRules = useMemo(
     () =>
       rules
-        .filter(
-          (rule: any) =>
-            (rule.type === 'service' || rule.type === 'domain' || !rule.type) &&
-            (isRuleBlockingEnabled(rule, passes) ||
-              passes[getDomainForRule(rule) || '']?.expiresAt > Date.now()),
-        )
+        .filter((rule: any) => {
+          if (rule.type !== 'service' && rule.type !== 'domain' && rule.type) {
+            return false;
+          }
+
+          const active = isRuleBlockingEnabled(rule, passes);
+          const hasPass = !!getPassForRule(rule, passes);
+
+          return active || hasPass;
+        })
         .filter((rule: any) => {
           const isCurrentSite =
             currentDomain && ruleMatchesDomain(rule, currentDomain);
@@ -216,31 +240,10 @@ export const AppsPopup: React.FC = () => {
     [rules, usage, currentDomain, passes],
   );
 
-  const handleResumeBlock = async (target: string | any) => {
-    const newPasses = { ...passes };
-
-    if (typeof target === 'string') {
-      delete newPasses[target];
-    } else {
-      const pkg = target.packageName || target.appName;
-      const domain = getDomainForRule(target);
-      if (pkg) {
-        delete newPasses[pkg];
-      }
-      if (domain) {
-        delete newPasses[domain];
-      }
-      if (currentDomain) {
-        delete newPasses[currentDomain];
-      }
-    }
-
-    await chrome.storage.local.set({
-      [STORAGE_KEYS.TEMP_PASSES]: newPasses,
-    });
-    chrome.runtime.sendMessage({ action: 'manualSync' });
-    toast.success('Block resumed');
-    refresh();
+  const handleResumeBlock = async (target: any) => {
+    // We can now use handleRuleToggleFlow with isCurrentlyActive = false
+    // to trigger a "Resume" (which is actually toggling the rule back to ON)
+    await handleRuleToggleFlow(target, false, refresh, rules);
   };
 
   const handleAddDomain = async (value?: string) => {
@@ -261,53 +264,7 @@ export const AppsPopup: React.FC = () => {
   };
 
   const handleTemporaryDisable = async (rule: any) => {
-    let targetDomain = null;
-    if (currentDomain && ruleMatchesDomain(rule, currentDomain)) {
-      targetDomain = currentDomain;
-    } else {
-      targetDomain = getDomainForRule(rule);
-    }
-
-    if (!targetDomain) {
-      toast.info('Open the blocked site first, then pause it here');
-      return;
-    }
-
-    const { confirmGuardianAction } = (await import('@/ui/ui')) as any;
-    const confirmed = await confirmGuardianAction({
-      title: 'Turn off for 40 mins?',
-      body: `Verify your security to pause ${
-        rule.appName || targetDomain
-      } for the next 40 minutes.`,
-    });
-
-    if (confirmed) {
-      const minutes = 40;
-      const result = await appsController.grantTempPass(
-        targetDomain,
-        minutes,
-        Number(rule.maxDailyPasses ?? 3),
-        true, // Always skip limit for temporary passes from popup
-      );
-
-      if (result.ok) {
-        // Reset streak for unblocking
-        const { updateRule } = await import('@stopaccess/state/rules');
-        const { extensionAdapter } = await import(
-          '@/background/platformAdapter'
-        );
-        await updateRule(extensionAdapter, {
-          ...(rule as any),
-          streakDays: 0,
-          streakStartedAt: Date.now(),
-        });
-
-        toast.success('Turned off for 40 minutes');
-        refresh();
-      } else {
-        toast.error(result.error);
-      }
-    }
+    await handleRuleToggleFlow(rule, true, refresh, rules);
   };
 
   if (loading) {
@@ -372,12 +329,16 @@ export const AppsPopup: React.FC = () => {
           </div>
           <button
             className="fg-inline-flex fg-items-center fg-rounded-[8px] fg-bg-[var(--fg-accent)] fg-px-[12px] fg-py-[7px] fg-text-[13px] fg-font-bold fg-text-white hover:fg-opacity-90"
-            onClick={() => {
+            onClick={async () => {
               if (currentSitePass) {
-                // If there's a pass on the current domain, we can resume by domain
-                handleResumeBlock(currentDomain!);
+                // Use the existing rule if found, otherwise use domain string
+                await handleResumeBlock(currentRule || currentDomain!);
+              } else if (currentRule) {
+                // If a rule exists but is disabled (not blocked), toggle it ON
+                await handleRuleToggleFlow(currentRule, false, refresh, rules);
               } else {
-                handleAddDomain(currentDomain);
+                // Otherwise add a new rule
+                await handleAddDomain(currentDomain!);
               }
             }}
             type="button"
@@ -393,15 +354,9 @@ export const AppsPopup: React.FC = () => {
 
       <div className="fg-flex fg-min-h-0 fg-flex-1 fg-flex-col fg-gap-2 fg-overflow-y-auto">
         {activeRules.map((rule: any) => {
-          const primaryDomain = getDomainForRule(rule);
+          const passData = getPassForRule(rule, passes);
+          const isTemporarilyOff = !!passData;
           const matchesCurrent = ruleMatchesDomain(rule, currentDomain);
-          const pkg = rule.packageName || rule.appName;
-          const activePass =
-            (pkg && passes[pkg]) ||
-            (primaryDomain && passes[primaryDomain]) ||
-            (matchesCurrent && currentDomain && passes[currentDomain]);
-          const isTemporarilyOff =
-            activePass && Number(activePass.expiresAt) > Date.now();
 
           return (
             <div
@@ -459,48 +414,54 @@ export const AppsPopup: React.FC = () => {
                     >
                       {rule.appName || rule.packageName}
                     </span>
-                    {isTemporarilyOff ? (
-                      <span
-                        className="fg-shrink-0"
-                        style={{
-                          ...UI_TOKENS.TEXT.R.LABEL,
-                          fontSize: '11px',
-                          color: 'var(--fg-accent)',
-                          textTransform: 'none',
-                        }}
-                      >
-                        Disabled until {getPassCountdown(activePass)}
-                      </span>
-                    ) : null}
                   </div>
                 </div>
               </div>
 
-              <button
-                style={{
-                  transform: 'scale(0.8)',
-                  transformOrigin: 'right center',
-                }}
-                className={`toggle-switch-btn ${
-                  isRuleBlockingEnabled(rule, passes) ? 'active' : ''
-                }`}
-                data-kind={rule.type || 'domain'}
-                disabled={lockedDomains.includes(
-                  (rule.packageName ?? '').toLowerCase(),
-                )}
-                onClick={async () => {
-                  if (isTemporarilyOff) {
-                    handleResumeBlock(rule);
-                  } else {
-                    handleTemporaryDisable(rule);
+              <div className="fg-flex fg-items-center fg-gap-3">
+                {isTemporarilyOff ? (
+                  <span
+                    className="fg-shrink-0 fg-font-mono"
+                    style={{
+                      ...UI_TOKENS.TEXT.R.LABEL,
+                      fontSize: '13px',
+                      color: 'var(--fg-accent)',
+                      fontWeight: '800',
+                      textTransform: 'none',
+                    }}
+                  >
+                    {getPassCountdown(passData)}
+                  </span>
+                ) : null}
+
+                <button
+                  style={{
+                    transform: 'scale(0.8)',
+                    transformOrigin: 'right center',
+                  }}
+                  className={`toggle-switch-btn ${
+                    isRuleBlockingEnabled(rule, passes) ? 'active' : ''
+                  }`}
+                  data-kind={rule.type || 'domain'}
+                  disabled={lockedDomains.includes(
+                    (rule.packageName ?? '').toLowerCase(),
+                  )}
+                  onClick={async () => {
+                    if (isTemporarilyOff) {
+                      handleResumeBlock(rule);
+                    } else {
+                      handleTemporaryDisable(rule);
+                    }
+                  }}
+                  type="button"
+                  title={
+                    isTemporarilyOff ? 'Resume Block' : 'Temporary disable'
                   }
-                }}
-                type="button"
-                title={isTemporarilyOff ? 'Resume Block' : 'Temporary disable'}
-              >
-                <span className="on-text">On</span>
-                <span className="off-text">Off</span>
-              </button>
+                >
+                  <span className="on-text">On</span>
+                  <span className="off-text">Off</span>
+                </button>
+              </div>
             </div>
           );
         })}

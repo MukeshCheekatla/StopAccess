@@ -518,6 +518,18 @@ export const appsController = {
     });
 
     chrome.runtime.sendMessage({ action: 'manualSync' });
+
+    // Notify all tabs to re-check their status immediately
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        if (tab.id) {
+          chrome.tabs
+            .sendMessage(tab.id, { action: 'checkAndBlock' })
+            .catch(() => {});
+        }
+      });
+    });
+
     return { ok: true };
   },
 };
