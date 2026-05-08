@@ -247,10 +247,9 @@ export function renderEmptyState(
           ${suggestions
             .map(
               (s) => `
-            <button class="quick-add-btn fg-px-4 fg-py-2 fg-rounded-xl fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-text)] fg-text-[12px] fg-font-bold hover:fg-bg-[var(--fg-surface-hover)] hover:fg-border-[var(--fg-muted)] fg-transition-all fg-cursor-pointer fg-flex fg-items-center fg-gap-2" data-id="${
-              s.id
-            }">
-              ${renderBrandLogo(s.id, s.label, 16)}
+            <button class="quick-add-btn fg-px-6 fg-py-3 fg-rounded-2xl fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-text)] fg-text-[14px] fg-font-bold hover:fg-bg-[var(--fg-surface-hover)] hover:fg-border-[var(--fg-muted)] fg-transition-all fg-cursor-pointer fg-flex fg-items-center fg-gap-3" 
+              data-id="${s.id}" data-name="${s.label}">
+              ${renderBrandLogo(s.id, s.label, 24)}
               <span>+ ${s.label}</span>
             </button>
           `,
@@ -262,8 +261,11 @@ export function renderEmptyState(
   }
 
   return `
-    <div style="padding: 28px 20px; border: 1px dashed var(--fg-glass-border); border-radius: 16px; color: var(--fg-muted); font-size: 13px; font-weight: 600; text-align: center; background: var(--fg-glass-bg); width: 100%; line-height: 1.5;">
-      <div>${message}</div>
+    <div style="padding: 60px 20px; border: 1px dashed var(--fg-glass-border); border-radius: 24px; color: var(--fg-muted); font-size: 14px; font-weight: 600; text-align: center; background: var(--fg-glass-bg); width: 100%; line-height: 1.6;">
+      <div style="margin-bottom: 12px; opacity: 0.8;">${message}</div>
+      <div style="margin-bottom: 40px; opacity: 0.3; font-weight: 900; letter-spacing: 0.15em; font-size: 11px; text-transform: uppercase;">
+         Press <span style="color: var(--fg-text); opacity: 1;">[ CTRL + F ]</span> to Browse Catalog
+      </div>
       ${suggestionsHtml}
     </div>
   `;

@@ -1,27 +1,30 @@
 import { loadAppsData } from '@stopaccess/viewmodels/useAppsVM';
-import { UI_EXAMPLES, NEXTDNS_SERVICES } from '@stopaccess/core';
 import { setAppsDnsHardMode } from '@stopaccess/state';
-import { escapeHtml } from '@stopaccess/core';
 import { renderCategoriesTab } from './components/CategoriesTab';
 import { setupHandlers } from './AppsEventHandlers';
 import { toast } from '@/ui/toast';
+import {
+  renderDiscoveryDrawer,
+  renderDrawerGridInternal,
+} from './components/AppDrawer';
 import { appsController } from '@/lib/appsController';
 import { getLockedDomains } from '@/background/sessionGuard';
 import { extensionAdapter } from '@/background/platformAdapter';
 import { prefetchIconCache } from '@/lib/iconCache';
 
+import { escapeHtml } from '@stopaccess/core';
 import {
-  renderAppIcon,
   UI_TOKENS,
   UI_ICONS,
   renderEmptyState,
   renderAppTableRow,
   renderInfoTooltip,
   showConfirmDialog,
+  showPromptDialog,
   attachGlobalIconListeners,
+  renderBrandLogo,
 } from '@/ui/ui';
 import { COLORS } from '@/ui/theme/designTokens';
-import { ICONS } from '@/ui/svgicons';
 
 let activeTab = 'shield';
 let availableCategories: any[] = [];
@@ -54,11 +57,6 @@ export async function renderAppsPage(container: HTMLElement) {
 
   const currentRedirectUrl =
     (await extensionAdapter.getString('fg_redirect_url', '')) || '';
-  const initialIsEditing = !currentRedirectUrl;
-  const editIcon = UI_ICONS.EDIT.replace(
-    'style="',
-    'style="margin-right: 6px; ',
-  );
 
   // Propagation Timer Logic
   const updateTimer = async () => {
@@ -105,6 +103,103 @@ export async function renderAppsPage(container: HTMLElement) {
   });
   cleanupObserver.observe(document.body, { childList: true, subtree: true });
 
+  const renderRedirectSection = (url: string) => {
+    return url
+      ? `
+      <div id="redirectChip" class="btn-premium" style="display: flex; align-items: center; gap: 12px; background: ${
+        COLORS.glassBg
+      }; border: 1px solid ${
+          COLORS.glassBorder
+        }; border-radius: 12px; padding: 10px 14px; cursor: pointer; transition: all 0.2s;">
+        <div style="width: 20px; height: 20px; flex-shrink: 0;">
+          ${renderBrandLogo(url, url, 20)}
+        </div>
+        <div style="${
+          UI_TOKENS.TEXT.CARD_TITLE
+        }; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px;">
+          ${escapeHtml(url.replace(/^https?:\/\//, '').replace(/\/$/, ''))}
+        </div>
+        <button id="btnDeleteRedirect" class="btn-trash-hover" style="background: none; border: none; cursor: pointer; color: ${
+          COLORS.red
+        }; opacity: 0.6; display: flex; align-items: center; justify-content: center; padding: 4px; transition: opacity 0.2s;">
+          ${UI_ICONS.TRASH.replace('width="14"', 'width="18"').replace(
+            'height="14"',
+            'height="18"',
+          )}
+        </button>
+      </div>
+    `
+      : `
+      <button id="btnSetRedirect" class="btn-premium" style="width: 100%; height: 44px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 12px; cursor: pointer; background: ${COLORS.glassBg}; border: 1px dashed ${COLORS.glassBorder}; color: ${COLORS.muted}; transition: all 0.2s;">
+        <div style="opacity: 0.5;">${UI_ICONS.PLUS}</div>
+        <span style="font-weight: 700; font-size: 14px;">Set Redirect</span>
+      </button>
+    `;
+  };
+
+  const setupRedirectHandlers = (parent: HTMLElement, url: string) => {
+    const btnSetRedirect = parent.querySelector('#btnSetRedirect');
+    const redirectChip = parent.querySelector('#redirectChip');
+    const btnDeleteRedirect = parent.querySelector('#btnDeleteRedirect');
+
+    if (btnSetRedirect) {
+      btnSetRedirect.addEventListener('click', async () => {
+        const val = await showPromptDialog({
+          title: 'Set Redirect',
+          body: 'Enter a productive URL to visit when a site is blocked.',
+          placeholder: 'e.g. github.com',
+        });
+        if (val !== null && val.trim()) {
+          const trimmed = val.trim();
+          await extensionAdapter.set('fg_redirect_url', trimmed);
+          toast.success('Redirect saved');
+          const uiContainer = parent.querySelector('#redirectUIContainer');
+          if (uiContainer) {
+            uiContainer.innerHTML = renderRedirectSection(trimmed);
+            setupRedirectHandlers(parent, trimmed);
+          }
+        }
+      });
+    }
+
+    if (redirectChip) {
+      redirectChip.addEventListener('click', async (e) => {
+        if ((e.target as HTMLElement).closest('#btnDeleteRedirect')) {
+          return;
+        }
+        const val = await showPromptDialog({
+          title: 'Update Redirect',
+          body: 'Change your productive destination URL.',
+          defaultValue: url || '',
+          placeholder: 'e.g. monkeytype.com',
+        });
+        if (val !== null && val.trim()) {
+          const trimmed = val.trim();
+          await extensionAdapter.set('fg_redirect_url', trimmed);
+          toast.success('Redirect updated');
+          const uiContainer = parent.querySelector('#redirectUIContainer');
+          if (uiContainer) {
+            uiContainer.innerHTML = renderRedirectSection(trimmed);
+            setupRedirectHandlers(parent, trimmed);
+          }
+        }
+      });
+    }
+
+    if (btnDeleteRedirect) {
+      btnDeleteRedirect.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        await extensionAdapter.delete('fg_redirect_url');
+        toast.success('Redirect removed');
+        const uiContainer = parent.querySelector('#redirectUIContainer');
+        if (uiContainer) {
+          uiContainer.innerHTML = renderRedirectSection('');
+          setupRedirectHandlers(parent, '');
+        }
+      });
+    }
+  };
+
   if (currentIsConfigured) {
     // Initial fetch in background, then re-render if needed
     loadNextDNSMetadata().then(() => {
@@ -115,43 +210,8 @@ export async function renderAppsPage(container: HTMLElement) {
   }
 
   if (!container.querySelector('#__fg_apps_frame')) {
-    container.innerHTML = `<style>
-        .search-input-premium {
-          width: 100%;
-          height: 60px;
-          font-size: 15px;
-          border-radius: 12px;
-          padding-left: 24px;
-          padding-right: 100px;
-          background: ${COLORS.surface} !important;
-          border: 1px solid ${COLORS.border} !important;
-          color: ${COLORS.text} !important;
-          outline: none !important;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .search-input-premium:focus {
-          background: ${COLORS.surfaceHover} !important;
-        }
-      </style>
+    container.innerHTML = `
       <div id="__fg_apps_frame" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
-        <div class="search-bar" style="margin-bottom: 32px; display: flex; gap: 12px; align-items: stretch;">
-          <div style="position: relative; flex: 1;">
-            <input type="text" placeholder="Filter or Add Domain (e.g. ${
-              UI_EXAMPLES.DOMAIN
-            })" id="appSearch" value="${escapeHtml(
-      searchTerm,
-    )}" class="search-input-premium">
-            <div id="searchBadge" style="position: absolute; right: 20px; top: 18px; ${
-              UI_TOKENS.TEXT.BADGE
-            } color: ${COLORS.muted}; background: ${
-      COLORS.surfaceHover
-    }; padding: 4px 10px; border-radius: 6px; border: 1px solid ${
-      COLORS.border
-    }; pointer-events: none; opacity: 0.8;">CTRL + F</div>
-          </div>
-          <div id="searchActionContainer"></div>
-        </div>
-
         <div class="apps-layout-container" style="flex: 1; min-height: 0; align-items: stretch; padding-bottom: 48px;">
           <div id="tabContent" style="flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column;"></div>
           
@@ -173,51 +233,35 @@ export async function renderAppsPage(container: HTMLElement) {
 
             <!-- Productive Redirect -->
             <div class="glass-card" style="padding: 20px;">
-              <div class="apps-layout-header">
+              <div class="apps-layout-header" style="margin-bottom: 12px;">
                 Redirect ${renderInfoTooltip(
-                  'Set a target URL to automatically redirect users when they attempt to visit a blocked site.',
+                  'Automatically redirect blocked attempts to a productive site.',
                 )}
               </div>
-              <input type="text" id="redirectInput" placeholder="e.g. instagram.com" value="${escapeHtml(
-                initialIsEditing
-                  ? currentRedirectUrl
-                  : currentRedirectUrl
-                      .replace(/^https?:\/\//, '')
-                      .replace(/\/$/, ''),
-              )}" ${
-      !initialIsEditing ? 'disabled' : ''
-    } style="width: 100%; height: 42px; background: ${
-      COLORS.glassBg
-    }; border: 1px solid ${
-      COLORS.glassBorder
-    }; border-radius: 12px; padding: 0 14px; ${
-      UI_TOKENS.TEXT.CARD_TITLE
-    } margin-bottom: 12px; outline: none; transition: border-color 0.2s; opacity: ${
-      initialIsEditing ? '1' : '0.8'
-    };">
-            <div style="display: flex; justify-content: flex-end; gap: 8px;">
-              <button id="btnRedirectClear" style="height: 30px; ${
-                UI_TOKENS.TEXT.SUBTEXT
-              } background: ${COLORS.glassBg}; border: 1px solid ${
-      COLORS.glassBorder
-    }; border-radius: 8px; cursor: pointer; transition: all 0.2s; padding: 0 14px; visibility: ${
-      initialIsEditing ? 'visible' : 'hidden'
-    }; display: ${initialIsEditing ? 'block' : 'none'};">Clear</button>
-              <button id="btnRedirectSave" class="${
-                !initialIsEditing ? 'btn-premium' : ''
-              }" style="${
-      initialIsEditing ? 'flex: 1;' : 'width: auto; padding: 0 16px;'
-    } height: 30px; ${UI_TOKENS.TEXT.BADGE} color: ${
-      COLORS.inAppActiveText
-    }; background: ${
-      initialIsEditing ? COLORS.inAppActiveBg : COLORS.inAppActiveBg
-    }; border-radius: 8px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; border: 1px solid ${
-      COLORS.inAppActiveBorder
-    };">
-                ${initialIsEditing ? 'Save' : editIcon + ' &nbsp; Edit'}
-              </button>
+              
+              <div id="redirectUIContainer">
+                ${renderRedirectSection(currentRedirectUrl)}
+              </div>
             </div>
-          </div>
+
+            <style>
+              .redirect-card.is-editing #redirectInput {
+                border-color: ${COLORS.inAppActiveBorder};
+                background: color-mix(in srgb, ${
+                  COLORS.inAppActiveBg
+                }, transparent 95%);
+                box-shadow: 0 0 0 4px color-mix(in srgb, ${
+                  COLORS.inAppActiveBg
+                }, transparent 90%);
+              }
+              .redirect-card:not(.is-editing) #redirectInput {
+                cursor: default;
+                opacity: 0.7;
+              }
+              .btn-trash-hover:hover {
+                opacity: 1 !important;
+              }
+            </style>
 
           <!-- DNS Hard Mode -->
           <div class="glass-card" style="padding: 20px;">
@@ -253,47 +297,83 @@ export async function renderAppsPage(container: HTMLElement) {
           </div>
         </div>
       </div>
-    `;
 
-    container.querySelector('#appSearch')?.addEventListener('input', (e) => {
-      searchTerm = (e.target as HTMLInputElement).value.toLowerCase();
-      refreshListOnly();
-    });
+      ${renderDiscoveryDrawer()}
 
-    // Ensure search is focused on load
-    setTimeout(() => {
-      const input = container.querySelector('#appSearch') as HTMLInputElement;
-      if (input) {
-        input.focus();
-      }
-    }, 50);
-
-    container
-      .querySelector('#appSearch')
-      ?.addEventListener('keydown', (e: KeyboardEvent) => {
-        if (e.key === 'Enter') {
-          const btnEl = container.querySelector(
-            '#btnAddDomainUnified',
-          ) as HTMLButtonElement;
-          if (btnEl) {
-            if (btnEl.hasAttribute('disabled')) {
-              return;
-            }
-            e.preventDefault();
-            handleAddDomain();
-          }
+      <style>
+        @keyframes fg-liquid-entry {
+          0% { opacity: 0; transform: translateY(8px); filter: blur(4px); }
+          100% { opacity: 1; transform: translateY(0); filter: blur(0); }
         }
-      });
+        .liquid-entry {
+          animation: fg-liquid-entry 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .morphing-fab {
+          width: 56px;
+          height: 56px;
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+          white-space: nowrap;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 28px;
+          box-shadow: 0 8px 24px -4px ${COLORS.shadowStrong};
+        }
+        .morphing-fab:hover {
+          width: 210px;
+          border-radius: 18px;
+          padding: 0 20px;
+          justify-content: flex-start;
+          box-shadow: 0 20px 40px -12px ${COLORS.shadowStrong};
+        }
+        .fab-icon {
+          flex-shrink: 0;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 24px;
+          height: 24px;
+        }
+        .fab-label {
+          opacity: 0;
+          max-width: 0;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+          margin-left: 0;
+          font-weight: 700;
+          font-size: 14px;
+          pointer-events: none;
+        }
+        .morphing-fab:hover .fab-label {
+          opacity: 1;
+          max-width: 160px;
+          margin-left: 12px;
+        }
+      </style>
+
+      <div style="position: fixed; bottom: 32px; right: 32px; z-index: 100;">
+        <button class="morphing-fab btn-premium" id="btnOpenTargetDrawer" style="background: ${
+          COLORS.inAppActiveBg
+        }; color: ${COLORS.inAppActiveText}; border: 1px solid ${
+      COLORS.inAppActiveBorder
+    }; cursor: pointer;">
+          <span class="fab-icon">${UI_ICONS.PLUS.replace(
+            'width="14"',
+            'width="20"',
+          ).replace('height="14"', 'height="20"')}</span>
+          <span class="fab-label">Add App or Domain</span>
+        </button>
+      </div>
+    `;
 
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
-        const searchInput = container.querySelector(
-          '#appSearch',
-        ) as HTMLInputElement;
-        if (searchInput && document.activeElement !== searchInput) {
-          e.preventDefault();
-          searchInput.focus();
-          searchInput.select();
+        e.preventDefault();
+        const btn = container.querySelector(
+          '#btnOpenTargetDrawer',
+        ) as HTMLElement;
+        if (btn) {
+          btn.click();
         }
       }
     };
@@ -314,6 +394,15 @@ export async function renderAppsPage(container: HTMLElement) {
           .querySelectorAll('.nav-item-tab')
           .forEach((b) => b.classList.remove('is-active'));
         btn.classList.add('is-active');
+
+        // Trigger liquid transition
+        const tabContent = container.querySelector('#tabContent');
+        if (tabContent) {
+          tabContent.classList.remove('liquid-entry');
+          (tabContent as HTMLElement).offsetWidth; // Force reflow
+          tabContent.classList.add('liquid-entry');
+        }
+
         refreshListOnly();
       });
     });
@@ -397,80 +486,7 @@ export async function renderAppsPage(container: HTMLElement) {
       });
     }
 
-    const redirectInput = container.querySelector(
-      '#redirectInput',
-    ) as HTMLInputElement;
-    const btnRedirectClear = container.querySelector(
-      '#btnRedirectClear',
-    ) as HTMLElement;
-    const btnRedirectSave = container.querySelector(
-      '#btnRedirectSave',
-    ) as HTMLElement;
-
-    if (redirectInput) {
-      const editIconArr = ICONS.EDIT.replace(
-        '<svg ',
-        '<svg style="margin-right: 6px;" ',
-      );
-      let isEditing = initialIsEditing;
-
-      const refreshUI = () => {
-        if (isEditing) {
-          redirectInput.disabled = false;
-          redirectInput.style.opacity = '1';
-          btnRedirectSave.innerHTML = 'Save';
-          btnRedirectSave.style.background = COLORS.inAppActiveBg;
-          btnRedirectSave.style.color = COLORS.inAppActiveText;
-          btnRedirectSave.style.border = `1px solid ${COLORS.inAppActiveBorder}`;
-          btnRedirectClear.style.visibility = 'visible';
-          btnRedirectClear.style.pointerEvents = 'auto';
-        } else {
-          redirectInput.disabled = true;
-          redirectInput.style.opacity = '0.8';
-          btnRedirectSave.innerHTML = `${editIconArr} Edit`;
-          btnRedirectSave.style.background = COLORS.inAppActiveBg;
-          btnRedirectSave.style.color = COLORS.inAppActiveText;
-          btnRedirectSave.style.border = `1px solid ${COLORS.inAppActiveBorder}`;
-          btnRedirectClear.style.visibility = 'hidden';
-          btnRedirectClear.style.pointerEvents = 'none';
-        }
-      };
-
-      // No longer need extensionAdapter.getString here as we pre-fetched it
-      // Initial value already set in HTML template
-      refreshUI();
-
-      btnRedirectSave.addEventListener('click', async () => {
-        if (!isEditing) {
-          isEditing = true;
-          refreshUI();
-          redirectInput.focus();
-          return;
-        }
-
-        const val = redirectInput.value.trim();
-        if (val) {
-          await extensionAdapter.set('fg_redirect_url', val);
-          toast.success('Redirect URL saved');
-          isEditing = false;
-          refreshUI();
-        } else {
-          await extensionAdapter.delete('fg_redirect_url');
-          toast.success('Redirect removed');
-          redirectInput.value = '';
-          isEditing = true;
-          refreshUI();
-        }
-      });
-
-      btnRedirectClear.addEventListener('click', async () => {
-        await extensionAdapter.delete('fg_redirect_url');
-        redirectInput.value = '';
-        toast.success('Redirect removed');
-        isEditing = true;
-        refreshUI();
-      });
-    }
+    setupRedirectHandlers(container, currentRedirectUrl);
   }
 
   await refreshListOnly(rules);
@@ -567,39 +583,6 @@ async function refreshListOnly(passedRules?: any[]) {
     searchBadge.style.opacity = searchTerm ? '0' : '1';
   }
 
-  const actionContainer = globalContainer.querySelector(
-    '#searchActionContainer',
-  ) as HTMLElement;
-  if (actionContainer) {
-    const isInputValid = searchTerm.trim().length > 1;
-    actionContainer.innerHTML = `
-      <button id="btnAddDomainUnified" class="btn-premium" 
-        ${
-          !isInputValid
-            ? 'disabled style="opacity: 0.5; cursor: not-allowed;"'
-            : ''
-        }
-        style="height: 60px; padding: 0 32px; border-radius: 12px; font-weight: 900; font-size: 13px; letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 8px; background: ${
-          isInputValid ? COLORS.inAppActiveBg : COLORS.surface
-        }; color: ${
-      isInputValid ? COLORS.inAppActiveText : COLORS.text
-    }; border: 1px solid ${
-      isInputValid ? COLORS.inAppActiveBorder : COLORS.border
-    };">
-        Block
-        ${UI_ICONS.PLUS.replace('width="14"', 'width="16"').replace(
-          'height="14"',
-          'height="16"',
-        )}
-      </button>
-    `;
-
-    // Re-attach listener since we replaced innerHTML
-    actionContainer
-      .querySelector('#btnAddDomainUnified')
-      ?.addEventListener('click', handleAddDomain);
-  }
-
   if (tabContent) {
     tabContent.style.display = 'flex';
     tabContent.style.flexDirection = 'column';
@@ -623,52 +606,31 @@ async function refreshListOnly(passedRules?: any[]) {
       (ruleList as HTMLElement).style.display = 'flex';
       (ruleList as HTMLElement).style.flexDirection = 'column';
       const html = await renderSubTab(rulesToUse, lockedDomains, passes);
-      if (ruleList.innerHTML !== html) {
-        ruleList.innerHTML = html;
-        await setupHandlers(globalContainer, rulesToUse, {
-          refreshListOnly,
-          handleAddDomain,
-        });
-      }
+      ruleList.innerHTML = html;
+      await setupHandlers(globalContainer, rulesToUse, {
+        refreshListOnly,
+        handleAddDomain,
+        renderDrawerGrid,
+      });
     }
 
     attachGlobalIconListeners(globalContainer);
   }
 }
 
-async function handleAddDomain() {
+async function handleAddDomain(input?: string) {
   if (!globalContainer) {
     return;
   }
-  const input = searchTerm.trim().toLowerCase();
-  if (!input) {
+  const domain = input || searchTerm.trim().toLowerCase();
+  if (!domain) {
     return;
   }
 
-  const btn = globalContainer.querySelector(
-    '#btnAddDomainUnified',
-  ) as HTMLButtonElement;
-  if (btn) {
-    btn.innerText = 'Blocking...';
-    btn.disabled = true;
-  }
-
-  const result = await appsController.addDomainRule(input);
+  const result = await appsController.addDomainRule(domain);
   if (result.ok) {
     searchTerm = '';
-    const searchInput = globalContainer.querySelector(
-      '#appSearch',
-    ) as HTMLInputElement;
-    if (searchInput) {
-      searchInput.value = '';
-    }
     await refreshListOnly();
-  } else if (btn) {
-    btn.innerText = 'Failed';
-    setTimeout(() => {
-      btn.innerText = 'Add Rule';
-      btn.disabled = false;
-    }, 2000);
   }
 }
 
@@ -699,6 +661,14 @@ async function renderSubTab(
       .filter((r) => r.type === 'domain' || r.type === 'service' || !r.type)
       .filter(matchesSearch)
       .sort((a, b) => {
+        // 1. Sort by usage (DESC) — Most used apps float to top
+        const usageA = a.usedMinutesToday || 0;
+        const usageB = b.usedMinutesToday || 0;
+        if (usageB !== usageA) {
+          return usageB - usageA;
+        }
+
+        // 2. Fallback to existing logic (Services first, then name)
         const typeA = (a.type || 'domain').toLowerCase();
         const typeB = (b.type || 'domain').toLowerCase();
         if (typeA === 'service' && typeB !== 'service') {
@@ -722,152 +692,41 @@ async function renderSubTab(
         return nameA.localeCompare(nameB);
       });
 
+    const getTimeUntilReset = () => {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      const diff = midnight.getTime() - now.getTime();
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      return `${hours}h ${minutes}m`;
+    };
+
     return `
       <div style="display: flex; flex: 1; min-height: 0; flex-direction: column;">
-      <!-- Centered App Discovery Drawer -->
-      <div id="targetDrawerOverlay" class="fg-fixed fg-inset-0 fg-z-[1000] fg-transition-all fg-duration-300 fg-flex fg-items-center fg-justify-center" 
-        style="display: none; background: ${
-          COLORS.overlayStrong
-        }; backdrop-filter: blur(12px);">
-        
-        <div id="targetDrawer" class="fg-relative fg-w-[680px] fg-max-h-[80vh] fg-bg-[${
-          COLORS.surface
-        }] fg-border fg-border-[${
-      COLORS.glassBorder
-    }] fg-rounded-[32px] fg-shadow-[0_32px_64px_${
-      COLORS.shadowStrong
-    }] fg-transition-all fg-duration-300 fg-scale-95 fg-opacity-0 fg-flex fg-flex-col fg-overflow-hidden">
-          
-          <!-- Header -->
-          <div class="fg-px-8 fg-pt-8 fg-pb-6 fg-border-b fg-border-[${
-            COLORS.glassBorder
-          }]">
-             <div class="fg-flex fg-items-center fg-justify-between fg-mb-5">
-               <div>
-                 <div class="fg-text-[10px] fg-font-bold fg-tracking-[0.2em] fg-text-[${
-                   COLORS.blue
-                 }] fg-mb-1 fg-uppercase">Catalog Discovery</div>
-                 <div class="fg-text-xl fg-font-bold fg-tracking-tight fg-text-[${
-                   COLORS.text
-                 }]">Select Common Apps</div>
-               </div>
-               <button id="btnCloseTargetDrawer" class="fg-p-2 fg-rounded-xl hover:fg-bg-[${
-                 COLORS.surfaceHover
-               }] fg-text-[var(--muted)] fg-transition-all">
-                 ${UI_ICONS.CLOSE.replace('width="14"', 'width="20"').replace(
-                   'height="14"',
-                   'height="20"',
-                 )}
-               </button>
-             </div>
-             
-             <!-- Interior Search Bar -->
-             <div class="fg-relative">
-               <input type="text" id="drawerSearch" placeholder="Find a service (e.g. Netflix, LinkedIn...)" 
-                  class="fg-w-full fg-h-11 fg-bg-[${
-                    COLORS.glassBg
-                  }] fg-border fg-border-[${
-      COLORS.glassBorder
-    }] fg-rounded-xl fg-pl-11 fg-pr-4 fg-text-[13px] fg-text-[${
-      COLORS.text
-    }] fg-outline-none focus:fg-border-[${COLORS.blue}] fg-transition-all">
-               <div class="fg-absolute fg-left-4 fg-top-3.5 fg-text-[var(--muted)]">
-                 ${UI_ICONS.SEARCH}
-               </div>
-             </div>
-          </div>
-
-          <!-- Scrollable Grid -->
-          <div id="drawerGrid" class="fg-flex-1 fg-overflow-y-auto fg-p-8 fg-grid fg-grid-cols-5 fg-gap-2">
-            ${(() => {
-              const drawerServices = NEXTDNS_SERVICES.filter(
-                (s) =>
-                  !rules.some(
-                    (r: any) => (r.customDomain || r.packageName) === s.id,
-                  ),
-              );
-              // Group by category
-              const groups: Record<string, typeof drawerServices> = {};
-              drawerServices.forEach((s) => {
-                const cat = s.category || 'Other';
-                if (!groups[cat]) {
-                  groups[cat] = [];
-                }
-                groups[cat].push(s);
-              });
-
-              const order = [
-                'Social',
-                'Entertainment',
-                'Gaming',
-                'Productivity',
-                'Lifestyle',
-                'Other',
-              ];
-              const sortedCategories = Object.keys(groups).sort((a, b) => {
-                const idxA = order.indexOf(a);
-                const idxB = order.indexOf(b);
-                return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
-              });
-
-              return sortedCategories
-                .map((category) => {
-                  const items = groups[category];
-                  return `
-                  <div class="fg-col-span-5 ${
-                    category === sortedCategories[0] ? '' : 'fg-mt-3'
-                  } fg-mb-1 drawer-category-group" data-cat="${category}">
-                    <div class="fg-text-[9px] fg-font-bold fg-tracking-[0.15em] fg-text-[${
-                      COLORS.muted
-                    }] fg-uppercase">${category}</div>
-                  </div>
-                  ${items
-                    .map(
-                      (s) => `
-                    <button class="quick-add-service fg-p-3 fg-flex-col fg-items-center fg-flex fg-gap-2 fg-bg-[${
-                      COLORS.glassBg
-                    }] fg-border fg-border-[${
-                        COLORS.glassBorder
-                      }] fg-rounded-[18px] fg-cursor-pointer fg-text-[${
-                        COLORS.text
-                      }] fg-transition-all hover:fg-bg-[${
-                        COLORS.surfaceHover
-                      }] hover:fg-scale-[1.02] fg-group" data-id="${
-                        s.id
-                      }" data-name="${s.name}">
-                      <div class="fg-scale-[0.8] fg-transition-transform group-hover:fg-scale-90">${renderAppIcon(
-                        s.id,
-                        s.name,
-                      )}</div>
-                      <div class="fg-text-[10px] fg-font-bold fg-tracking-tight fg-text-[${
-                        COLORS.text
-                      }] fg-truncate fg-w-full fg-text-center">${s.name}</div>
-                    </button>`,
-                    )
-                    .join('')}
-                `;
-                })
-                .join('');
-            })()}
-          </div>
-
-          <!-- Footer -->
-          <div class="fg-px-8 fg-py-4 fg-bg-[${
-            COLORS.glassBg
-          }] fg-border-t fg-border-[${
-      COLORS.glassBorder
-    }] fg-flex fg-justify-between fg-items-center">
-            <div class="fg-text-[9px] fg-font-bold fg-text-[var(--muted)] fg-tracking-[0.1em] fg-uppercase">
-              <span class="fg-text-[${COLORS.text}]">${
-      NEXTDNS_SERVICES.length
-    }</span> Available Services
-            </div>
-            <div class="fg-text-[9px] fg-font-bold fg-text-[var(--muted)] fg-tracking-[0.1em] fg-uppercase">
-              Click Outside to Dismiss
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+          <div>
+            <div style="font-size: 20px; font-weight: 800; color: ${
+              COLORS.text
+            }; letter-spacing: -0.5px;">Active Rules</div>
+            <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+              <div style="${UI_TOKENS.TEXT.SUBTEXT}">
+                Managing ${visibleRules.length} enforcement rules 
+              </div>
+              <div style="width: 3px; height: 3px; border-radius: 50%; background: ${
+                COLORS.glassBorder
+              }; opacity: 0.5;"></div>
+              <div style="${
+                UI_TOKENS.TEXT.LABEL
+              }; font-size: 11px; color: var(--fg-muted); opacity: 0.8; display: flex; align-items: center; gap: 4px;">
+                <span style="display: flex; transform: scale(0.8);">${
+                  UI_ICONS.CLOCK
+                }</span>
+                Reset in ${getTimeUntilReset()}
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
       <!-- Scrollable Table Section -->
       <div class="rule-table-scroll-container" style="
@@ -1018,13 +877,6 @@ async function renderSubTab(
       </div>
       </div>
 
-      <div style="position: fixed; bottom: 32px; right: 32px; z-index: 100;">
-        <button class="btn-premium fg-transition-transform hover:fg-scale-110 active:fg-scale-95" id="btnOpenTargetDrawer" style="width: 64px; height: 64px; font-size: 28px; display:flex; align-items:center; justify-content:center; border-radius: 12px; padding: 0; box-shadow: 0 10px 25px ${
-          COLORS.shadowStrong
-        }; cursor: pointer; background: ${COLORS.inAppActiveBg}; color: ${
-      COLORS.inAppActiveText
-    }; border: 1px solid ${COLORS.inAppActiveBorder};">+</button>
-      </div>
     `;
   }
 
@@ -1038,4 +890,25 @@ async function renderSubTab(
     );
   }
   return '';
+}
+
+export function renderDrawerGrid(rules: any[], search: string = '') {
+  const container = globalContainer?.querySelector(
+    '#drawerGrid',
+  ) as HTMLElement;
+  const footerText = globalContainer?.querySelector(
+    '#drawerFooterText',
+  ) as HTMLElement;
+  if (container) {
+    renderDrawerGridInternal(container, footerText, rules, search, (domain) => {
+      handleAddDomain(domain);
+      // Close drawer
+      const overlay = globalContainer?.querySelector(
+        '#targetDrawerOverlay',
+      ) as HTMLElement;
+      if (overlay) {
+        overlay.click();
+      }
+    });
+  }
 }

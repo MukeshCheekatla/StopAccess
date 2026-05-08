@@ -123,6 +123,19 @@ const TOKEN_DEFS = {
     letterSpacing: '0',
     color: 'var(--fg-text)',
   },
+  TITLE_XL: {
+    fontSize: '2rem',
+    fontWeight: '800',
+    color: 'var(--fg-text)',
+    letterSpacing: '-0.02em',
+    lineHeight: '1.1',
+  },
+  NAV_ITEM: {
+    fontSize: '13px',
+    fontWeight: '600',
+    color: 'var(--fg-muted)',
+    letterSpacing: '0.01em',
+  },
 };
 
 export const UI_ICONS = {
@@ -252,6 +265,8 @@ export const UI_TOKENS = {
     MODAL_TITLE: toCSS(TOKEN_DEFS.MODAL_TITLE),
     MODAL_BODY: toCSS(TOKEN_DEFS.MODAL_BODY),
     BUTTON_TEXT: toCSS(TOKEN_DEFS.BUTTON_TEXT),
+    TITLE_XL: toCSS(TOKEN_DEFS.TITLE_XL),
+    NAV_ITEM: toCSS(TOKEN_DEFS.NAV_ITEM),
 
     // React-compatible objects
     R: TOKEN_DEFS,

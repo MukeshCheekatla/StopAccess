@@ -37,33 +37,45 @@ export function renderTableProgress(
 ) {
   if (!active) {
     return `
-      <div style="width: 100%; height: 4px; background: var(--fg-glass-border); border-radius: 3px; overflow: hidden; opacity: 0.3;">
-        <div style="height: 100%; width: 0%; background: var(--fg-muted); border-radius: 3px;"></div>
+      <div style="width: 100%; height: 5px; background: var(--fg-glass-border); border-radius: 100px; overflow: hidden; opacity: 0.3;">
+        <div style="height: 100%; width: 0%; background: var(--fg-muted);"></div>
       </div>
     `;
   }
 
   let percent = 0;
-  let color: string = COLORS.green;
+  let gradient: string = `linear-gradient(90deg, ${COLORS.blue}, ${COLORS.accent})`;
 
   if (used <= 0) {
     percent = 0;
-    color = 'var(--fg-green)';
   } else if (limit <= 0) {
     percent = 100;
-    color = 'var(--fg-red)';
+    gradient = `linear-gradient(90deg, ${COLORS.red}, #ff4d4d)`;
   } else {
     percent = Math.min(100, Math.max(0, (used / limit) * 100));
     if (percent >= 80) {
-      color = 'var(--fg-red)';
+      gradient = `linear-gradient(90deg, ${COLORS.red}, #ff4d4d)`;
     } else if (percent >= 50) {
-      color = 'var(--fg-progress-yellow)';
+      gradient = `linear-gradient(90deg, ${COLORS.yellow}, #ffcc00)`;
     }
   }
 
   return `
-    <div style="width: 100%; height: 4px; background: var(--fg-glass-border); border-radius: 3px; overflow: hidden;">
-      <div style="height: 100%; width: ${percent}%; background: ${color}; border-radius: 3px; transition: width 0.4s ease, background-color 0.4s ease;"></div>
+    <div class="progress-bar-container" style="width: 100%; height: 5px; background: var(--fg-glass-border); border-radius: 100px; overflow: hidden; position: relative;">
+      <style>
+        @keyframes fg-shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .progress-bar-fill {
+          height: 100%;
+          border-radius: 100px;
+          transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1), background 0.6s ease;
+          background-size: 200% 100% !important;
+          animation: fg-shimmer 3s linear infinite;
+        }
+      </style>
+      <div class="progress-bar-fill" style="width: ${percent}%; background: ${gradient};"></div>
     </div>
   `;
 }
