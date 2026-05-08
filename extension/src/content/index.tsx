@@ -20,7 +20,6 @@ import {
   prewarnActive,
   injectPrewarn,
   removeOverlay,
-  injectCompanionWarning,
   setPassCountdownInterval,
   OVERLAY_ID,
 } from './overlay';
@@ -233,22 +232,6 @@ async function checkAndBlock() {
       }
     } else {
       removeOverlay();
-
-      // 5-min companion warning (limit mode only)
-      if (
-        matchingRule?.mode === 'limit' &&
-        matchingRule.dailyLimitMinutes > 0
-      ) {
-        const remainingMs =
-          Math.max(
-            0,
-            matchingRule.dailyLimitMinutes -
-              (matchingRule.usedMinutesToday || 0),
-          ) * 60000;
-        if (remainingMs > 0 && remainingMs <= 5 * 60 * 1000) {
-          injectCompanionWarning(remainingMs);
-        }
-      }
     }
   } catch (error: any) {
     if (error.message?.includes('Extension context invalidated')) {

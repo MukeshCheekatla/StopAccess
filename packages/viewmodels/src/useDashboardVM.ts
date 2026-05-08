@@ -133,8 +133,11 @@ export async function loadDashboardData(
 ) {
   const { storage, nextDNSApi } = deps;
   let rules: any[] = [];
+  let passes: any = {};
   try {
-    rules = (await loadAppsData(deps)).rules;
+    const appsData = await loadAppsData(deps);
+    rules = appsData.rules;
+    passes = appsData.passes;
   } catch {}
 
   const storageData = await storage.getMultiple([
@@ -229,6 +232,7 @@ export async function loadDashboardData(
 
   return {
     rules,
+    passes,
     fgLogs,
     allTotalMs,
     totalSessions,

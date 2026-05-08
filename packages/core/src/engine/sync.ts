@@ -12,6 +12,7 @@ export class SyncOrchestrator {
   isSyncing = false;
   pendingSyncRequested = false;
   pendingSyncForcePush = false;
+  private readonly PULL_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours
 
   constructor(engineCtx: SyncContext) {
     this.ctx = engineCtx;
@@ -109,6 +110,15 @@ export class SyncOrchestrator {
   }
 
   async onLaunch() {
+    const state = await this.ctx.storage.getSyncState();
+    const lastPullAt = state.lastPull ? new Date(state.lastPull).getTime() : 0;
+    const now = Date.now();
+
+    if (now - lastPullAt < this.PULL_INTERVAL) {
+      // Skip pull on launch if we synced recently
+      return;
+    }
+
     return this.performSync();
   }
 
