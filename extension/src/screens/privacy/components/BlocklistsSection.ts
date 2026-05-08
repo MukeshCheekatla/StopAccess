@@ -11,8 +11,8 @@ import {
   renderSectionTitleRow,
   UI_TOKENS,
   UI_ICONS,
+  renderBrandLogo,
 } from '@/ui/ui';
-import { getCachedIconSync } from '@/lib/iconCache';
 
 export function renderBlocklistsSection(
   activeBlocklists: NextDNSBlocklist[],
@@ -237,29 +237,14 @@ function getIconHtml(
   iconUrl: string | null,
   domainCandidate: string | null,
   sizePx: number = 24,
-  imgSizePx: number = 20,
 ): string {
-  const cachedUrl = domainCandidate ? getCachedIconSync(domainCandidate) : null;
-  const primaryUrl = cachedUrl || iconUrl;
-
-  return `
-    <div class="global-brand-logo fg-relative fg-flex fg-items-center fg-justify-center" data-domain="${
-      domainCandidate || ''
-    }" style="width: ${sizePx}px; height: ${sizePx}px;">
-      <div class="logo-fallback placeholder-icon fg-absolute fg-inset-0 fg-flex fg-items-center fg-justify-center fg-text-[${
-        COLORS.text
-      }]" style="opacity: ${primaryUrl ? '0' : '0.5'}; z-index: 1;">
-        ${UI_ICONS.DATABASE}
-      </div>
-      <img src="${primaryUrl || ''}"
-           data-domain="${domainCandidate || ''}"
-           class="brand-logo-image"
-           style="width: ${imgSizePx}px; height: ${imgSizePx}px; object-fit: contain; z-index: 2; border-radius: 20%; opacity: ${
-    primaryUrl ? '1' : '0'
-  }; display: ${primaryUrl ? 'block' : 'none'};"
-           crossorigin="anonymous">
-    </div>
-  `;
+  return renderBrandLogo(
+    domainCandidate || 'unknown',
+    undefined,
+    sizePx,
+    iconUrl || undefined,
+    UI_ICONS.DATABASE,
+  );
 }
 
 function renderBlocklistCard(list: any, active: boolean): string {
@@ -275,7 +260,7 @@ function renderBlocklistCard(list: any, active: boolean): string {
   const updatedDate = getUpdateDate(list);
   const updatedStr = updatedDate ? formatDateRelative(updatedDate) : 'Recently';
 
-  const iconHtml = getIconHtml(iconUrl, domain, 24, 20);
+  const iconHtml = getIconHtml(iconUrl, domain, 24);
 
   return `
     <div
@@ -344,7 +329,7 @@ function renderBlocklistRow(list: any, active: boolean): string {
   const updatedDate = getUpdateDate(list);
   const updatedStr = updatedDate ? formatDateRelative(updatedDate) : 'Recently';
 
-  const iconHtml = getIconHtml(iconUrl, domain, 32, 28);
+  const iconHtml = getIconHtml(iconUrl, domain, 32);
   const websiteHtml = domain
     ? `<span class="fg-text-[var(--fg-primary-blue)] fg-mr-1.5">${domain}</span>`
     : '';

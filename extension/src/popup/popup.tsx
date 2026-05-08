@@ -5,7 +5,7 @@ import {
   nextDNSApi,
 } from '@/background/platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
-import { getBrandLogoUrl } from '@/ui/ui';
+// import { getBrandLogoUrl } from '@/ui/ui';
 import {
   PopupShell,
   type ShellStatus,
@@ -32,34 +32,12 @@ const TABS: Array<ShellTab<TabId>> = [
 
 const TAB_SET = new Set<string>(TABS.map((tab) => tab.id));
 
-const clockIcon = (
-  <span
-    className="pass-timer-clock"
-    dangerouslySetInnerHTML={{ __html: UI_ICONS.CLOCK }}
-    style={{ display: 'flex', alignItems: 'center' }}
-  />
-);
-
 function resolveInitialTab(): TabId {
   const params = new URLSearchParams(window.location.search);
   const deepTab = params.get('tab');
   const storedTab = localStorage.getItem('fg_tab');
   const candidate = deepTab || storedTab || 'dash';
   return TAB_SET.has(candidate) ? (candidate as TabId) : 'dash';
-}
-
-function formatCountdown(expiresAt: number) {
-  const diffMs = Math.max(0, expiresAt - Date.now());
-  const mins = Math.floor(diffMs / 60000);
-  const secs = Math.floor((diffMs % 60000) / 1000);
-
-  if (mins >= 60) {
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    return `${h}h ${m}m`;
-  }
-
-  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
 }
 
 function PopupApp() {
@@ -70,7 +48,7 @@ function PopupApp() {
     label: 'Local',
     tone: 'muted',
   });
-  const [passEntries, setPassEntries] = useState<PassEntry[]>([]);
+  const [, setPassEntries] = useState<PassEntry[]>([]);
 
   useEffect(() => {
     applyTheme();
@@ -283,39 +261,6 @@ function PopupApp() {
     <PopupShell
       activeTab={activeTab}
       onTabChange={(tab) => setActiveTab(tab)}
-      passHud={
-        passEntries.length > 0 ? (
-          <div
-            id="passHUD"
-            className="fg-flex fg-gap-2 fg-px-4 fg-py-2 fg-bg-transparent fg-no-scrollbar fg-overflow-x-auto"
-          >
-            {passEntries.map((entry) => (
-              <div
-                key={entry.domain}
-                className="fg-flex fg-items-center fg-gap-2 fg-px-3 fg-py-1.5 fg-rounded-lg fg-shrink-0 fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)]"
-              >
-                <img
-                  src={getBrandLogoUrl(entry.domain, 48)}
-                  className="fg-h-5 fg-w-5 fg-rounded-sm fg-object-contain"
-                  alt=""
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const fallback = document.createElement('div');
-                    fallback.className =
-                      'fg-text-[10px] fg-font-bold fg-opacity-50';
-                    fallback.innerText = entry.domain.slice(0, 2).toUpperCase();
-                    e.currentTarget.parentElement?.prepend(fallback);
-                  }}
-                />
-                <div className="fg-flex fg-items-center fg-gap-1.5 fg-text-[12px] fg-font-black fg-text-[var(--fg-accent)] fg-whitespace-nowrap">
-                  {clockIcon}
-                  {formatCountdown(entry.expiresAt)}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : undefined
-      }
       status={status}
       tabs={TABS}
       topbarRight={
