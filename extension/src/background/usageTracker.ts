@@ -7,10 +7,7 @@ import { recordDailySnapshot, getDomainForRule } from '@stopaccess/core';
 import { getRules, saveRules } from '@stopaccess/state/rules';
 import { extensionAdapter, extensionLogger } from './platformAdapter';
 import { STORAGE_KEYS } from '@stopaccess/state';
-import {
-  notifyLimitApproaching,
-  notifyServiceDistraction,
-} from './notifications';
+import { notifyServiceDistraction } from './notifications';
 import { performDailyReset } from './dailyReset';
 
 export const SAFETY_MAX_DURATION = 15 * 60 * 1000;
@@ -205,11 +202,8 @@ export async function syncRulesWithUsage() {
           `Limit increased for ${rules[i].packageName}. Releasing block.`,
         );
       } else if (!isOverLimit && limit > 0 && limit - used <= 5) {
-        notifyLimitApproaching(
-          rules[i].appName || rules[i].packageName,
-          limit - used,
-          limit,
-        ).catch(() => {});
+        // Logic kept for background state awareness as requested.
+        // (Notification call removed to prevent OS alerts).
       }
     }
   }
@@ -237,10 +231,30 @@ export async function flushActiveTabUsage() {
   const current = await getActiveTabState();
   if (current && current.domain) {
     const now = Date.now();
+
+    // 🔍 DEFENSIVE CHECK: Is the browser actually being used?
+    const focusedWindows = await chrome.windows.getAll({
+      windowTypes: ['normal'],
+    });
+    const chromeHasFocus = focusedWindows.some((w) => w.focused);
+
+    let isAudible = false;
+    try {
+      const tab = await chrome.tabs.get(current.tabId);
+      isAudible = tab.audible;
+    } catch {
+      // Tab may have been closed
+    }
+
     const duration = now - current.start;
     if (duration > 1000) {
       try {
-        await saveUsage(current.domain, duration);
+        // Only record usage if browser is focused OR site is playing audio (e.g. music/video)
+        if (chromeHasFocus || isAudible) {
+          await saveUsage(current.domain, duration);
+        }
+
+        // Always update the start marker so "stale" time doesn't accumulate for later
         current.start = now;
         await setActiveTabState(current);
       } catch (error) {

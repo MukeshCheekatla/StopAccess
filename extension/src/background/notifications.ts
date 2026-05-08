@@ -175,27 +175,6 @@ export function notifyFocusStopped(minutesDone: number): void {
   );
 }
 
-export async function notifyLimitApproaching(
-  appName: string,
-  remainingMins: number,
-  limitMins?: number,
-): Promise<void> {
-  const key = `limit_near_${appName}_${Math.floor(remainingMins)}`;
-  if (await _hasSent(key)) {
-    return;
-  }
-
-  await _markSent(key);
-  _notify(
-    key,
-    `${appName}: Limit Approaching`,
-    `You have ${formatMinutes(remainingMins)} left (Limit: ${formatMinutes(
-      limitMins || 0,
-    )}) for ${appName} today. Mind your focus!`,
-    1,
-  );
-}
-
 export async function notifyServiceDistraction(
   appName: string,
   sessionMins: number,

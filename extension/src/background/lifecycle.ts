@@ -57,9 +57,6 @@ function parseMaybeJson(value: any) {
 }
 
 async function restoreCloudBackup(force = false) {
-  await pullState(force);
-  await pullUsageFromCloud(force);
-
   const rules = await getRules(extensionAdapter);
   const localRes = await chrome.storage.local.get([
     STORAGE_KEYS.SCHEDULES,
@@ -68,10 +65,21 @@ async function restoreCloudBackup(force = false) {
   const schedules = parseMaybeJson(localRes[STORAGE_KEYS.SCHEDULES]) || [];
   const focusSession = parseMaybeJson(localRes[STORAGE_KEYS.SESSION]) || null;
 
-  await pushNextDNSConfig(force);
-  await pushState('rules', rules, force);
-  await pushState('schedules', schedules, force);
-  await pushState('focus', focusSession, force);
+  // 1. If we have local state, push it FIRST.
+  // This ensures local deletions/changes are mirrored before any pull occurs.
+  if (rules.length > 0 || schedules.length > 0) {
+    await pushNextDNSConfig(force);
+    await pushState('rules', rules, force);
+    await pushState('schedules', schedules, force);
+    await pushState('focus', focusSession, force);
+  }
+
+  // 2. Only pull if forced OR if we have no local state (onboarding case)
+  const shouldPull = force || (rules.length === 0 && schedules.length === 0);
+  if (shouldPull) {
+    await pullState(force);
+    await pullUsageFromCloud(force);
+  }
 
   subscribeToSync();
 }
@@ -185,6 +193,10 @@ chrome.windows.onFocusChanged.addListener((windowId) => {
     chrome.tabs.query({ active: true, windowId }, (tabs) => {
       if (tabs[0]) {
         switchTab(tabs[0].id);
+      } else {
+        // If the focused window is not in this profile, stop tracking here.
+        // This prevents double-counting when using multiple browser profiles.
+        switchTab(-1);
       }
     });
   }
@@ -332,10 +344,25 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   }
 
   if (msg.action === 'manualSync') {
-    restoreCloudBackup(true)
-      .then(() => runCycle(true))
-      .then(() => sendResponse({ ok: true }))
-      .catch(() => sendResponse({ ok: false }));
+    (async () => {
+      try {
+        // 1. Push current local state first to ensure deletions/changes are mirrored to cloud
+        // before we pull. This prevents the "deleted rules coming back" race condition.
+        const rules = await getRules(extensionAdapter);
+        const lastPull = await chrome.storage.local.get(['last_cloud_pull_at']);
+        if (lastPull.last_cloud_pull_at) {
+          await pushState('rules', rules, true);
+        }
+
+        // 2. Perform full sync (pull then push others)
+        await restoreCloudBackup(true);
+        await runCycle(true);
+        sendResponse({ ok: true });
+      } catch (e) {
+        console.error('[StopAccess] Manual sync failed', e);
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
     return true;
   }
 

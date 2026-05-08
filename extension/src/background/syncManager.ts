@@ -15,9 +15,9 @@ const KEY_LAST_SYNC_AT = 'last_cloud_sync_at';
 // Optimized intervals for cloud interaction
 const PUSH_INTERVALS: Record<string, number> = {
   usage: 10 * 60 * 1000, // 10 minutes
-  rules: 60 * 1000, // 1 minute (backup)
-  schedules: 60 * 1000,
-  nextdns: 60 * 1000,
+  rules: 60 * 60 * 1000, // 1 hour
+  schedules: 60 * 60 * 1000,
+  nextdns: 24 * 60 * 60 * 1000, // 24 hours
   default: 24 * 60 * 60 * 1000,
 };
 
