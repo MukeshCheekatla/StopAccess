@@ -1,7 +1,7 @@
 import { escapeHtml } from '@stopaccess/core';
 import { COLORS } from '@/ui/theme/designTokens';
 import { UI_TOKENS, UI_ICONS } from '@/ui/theme/uiTokens';
-import { renderBrandLogo } from './icons';
+import { renderBrandLogo, renderByteFace } from './icons';
 
 export interface DialogOptions {
   title: string;
@@ -92,6 +92,103 @@ export async function showConfirmDialog(
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
         cleanup(false);
+      }
+    });
+  });
+}
+
+/**
+ * Show a premium input/prompt dialog.
+ * Returns a promise that resolves to the input value if confirmed, null otherwise.
+ */
+export async function showPromptDialog(options: {
+  title: string;
+  body: string;
+  placeholder?: string;
+  defaultValue?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+}): Promise<string | null> {
+  const {
+    title,
+    body,
+    placeholder = '',
+    defaultValue = '',
+    confirmLabel = 'Save',
+    cancelLabel = 'Cancel',
+  } = options;
+
+  return new Promise((resolve) => {
+    const dialogId = `__fg_prompt_${Date.now()}`;
+    const overlay = document.createElement('div');
+    overlay.id = dialogId;
+    overlay.className =
+      'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay)] fg-backdrop-blur-sm fg-opacity-0 fg-scale-105 fg-transition-all fg-duration-300';
+
+    overlay.innerHTML = `
+      <div class="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[32px] fg-p-8 fg-max-w-[420px] fg-w-full fg-shadow-2xl">
+        <div style="${UI_TOKENS.TEXT.HERO}; margin-bottom: 12px;">${escapeHtml(
+      title,
+    )}</div>
+        <div style="${
+          UI_TOKENS.TEXT.SUBTEXT
+        }; font-size: 14px; margin-bottom: 24px; opacity: 0.8; line-height: 1.6;">${escapeHtml(
+      body,
+    )}</div>
+        
+        <input type="text" id="promptInput" placeholder="${escapeHtml(
+          placeholder,
+        )}" value="${escapeHtml(defaultValue)}"
+               style="width: 100%; height: 48px; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 16px; padding: 0 16px; color: var(--fg-text); font-size: 14px; outline: none; margin-bottom: 32px; transition: border-color 0.2s;">
+        
+        <div class="fg-flex fg-gap-3 fg-justify-end">
+          <button class="dialog-cancel-btn fg-px-6 fg-py-3 fg-rounded-2xl fg-text-sm fg-font-bold fg-text-[var(--fg-muted)] hover:fg-bg-[var(--fg-surface-hover)] fg-transition-all">${escapeHtml(
+            cancelLabel,
+          )}</button>
+          <button class="dialog-confirm-btn btn-premium fg-px-6 fg-py-3 fg-rounded-2xl fg-text-sm" style="font-weight: 800;">${escapeHtml(
+            confirmLabel,
+          )}</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector('#promptInput') as HTMLInputElement;
+
+    setTimeout(() => {
+      overlay.classList.remove('fg-opacity-0', 'fg-scale-105');
+      overlay.classList.add('fg-opacity-100', 'fg-scale-100');
+      input.focus();
+      input.select();
+    }, 10);
+
+    const cleanup = (result: string | null) => {
+      overlay.classList.add('fg-opacity-0', 'fg-scale-[0.98]');
+      setTimeout(() => {
+        overlay.remove();
+        resolve(result);
+      }, 250);
+    };
+
+    overlay
+      .querySelector('.dialog-cancel-btn')
+      ?.addEventListener('click', () => cleanup(null));
+    overlay
+      .querySelector('.dialog-confirm-btn')
+      ?.addEventListener('click', () => cleanup(input.value));
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        cleanup(input.value);
+      }
+      if (e.key === 'Escape') {
+        cleanup(null);
+      }
+    });
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        cleanup(null);
       }
     });
   });
@@ -351,27 +448,40 @@ export function showPinModal(
 /**
  * Show a 'What's New' discovery modal for recent updates.
  */
+/**
+ * Show a high-fidelity 'What's New' dialog.
+ * Redesigned to match the Apps Page aesthetic with glassmorphism and Byte integration.
+ */
 export async function showWhatsNew(version: string, features: any[]) {
   const overlay = document.createElement('div');
   overlay.className =
-    'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay)] fg-backdrop-blur-[20px] fg-opacity-0 fg-transition-all fg-duration-500';
+    'fg-fixed fg-inset-0 fg-z-[99999] fg-flex fg-items-center fg-justify-center fg-bg-[var(--fg-overlay-strong)] fg-backdrop-blur-[30px] fg-opacity-0 fg-transition-all fg-duration-700';
 
   const featureList = features
     .map((f) => {
       const iconKey = f.iconId as keyof typeof UI_ICONS;
       const iconSvg = UI_ICONS[iconKey] || f.icon || '';
+      // Ensure SVG is sized correctly
+      const sizedIcon = iconSvg
+        .replace(/width="\d+"/, 'width="32"')
+        .replace(/height="\d+"/, 'height="32"');
+
       return `
-    <div class="fg-flex fg-gap-5 fg-p-6 fg-rounded-[32px] fg-bg-[var(--fg-white-wash)] fg-border fg-border-[var(--fg-white-wash)] fg-transition-all hover:fg-bg-[var(--fg-surface-hover)]">
-      <div class="fg-text-4xl fg-shrink-0 fg-flex fg-items-center fg-justify-center fg-text-[var(--fg-accent)]" style="width: 48px; height: 48px;">
-        <div style="transform: scale(2.5);">${iconSvg}</div>
+    <div class="fg-flex fg-gap-6 fg-p-8 fg-rounded-[36px] fg-bg-[var(--fg-white-wash)] fg-border fg-border-[var(--fg-glass-border)] fg-transition-all hover:fg-bg-[var(--fg-glass-bg)] hover:fg-border-[var(--fg-accent-soft)] group">
+      <div class="fg-shrink-0 fg-flex fg-items-center fg-justify-center fg-rounded-[24px] fg-bg-[var(--fg-accent-soft)] fg-transition-all group-hover:fg-scale-110 group-hover:fg-shadow-[0_0_20px_var(--fg-accent-soft)]" style="width: 72px; height: 72px;">
+        <div class="fg-text-[var(--fg-accent)] fg-flex fg-items-center fg-justify-center" style="width: 32px; height: 32px;">
+          ${sizedIcon}
+        </div>
       </div>
-      <div>
-        <div class="fg-text-[16px] fg-font-bold fg-text-[var(--fg-text)]">${escapeHtml(
-          f.label,
-        )}</div>
-        <div class="fg-text-[13px] fg-text-[var(--fg-muted)] fg-mt-1 fg-font-medium" style="line-height: 1.5;">${escapeHtml(
-          f.desc,
-        )}</div>
+      <div class="fg-flex fg-flex-col fg-justify-center">
+        <div style="${
+          UI_TOKENS.TEXT.CARD_TITLE
+        }" class="fg-text-[16px] fg-font-bold">${escapeHtml(f.label)}</div>
+        <div style="${
+          UI_TOKENS.TEXT.SUBTEXT
+        }" class="fg-mt-1.5 fg-text-[14px]" style="line-height: 1.6; opacity: 0.8;">${escapeHtml(
+        f.desc,
+      )}</div>
       </div>
     </div>
   `;
@@ -379,26 +489,31 @@ export async function showWhatsNew(version: string, features: any[]) {
     .join('');
 
   overlay.innerHTML = `
-    <div class="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[48px] fg-p-12 fg-max-w-[1000px] fg-w-[90%] fg-shadow-2xl fg-scale-95 fg-transition-all fg-duration-500 fg-flex fg-flex-col">
-      <div class="fg-mb-10 fg-flex fg-items-end fg-justify-between">
+    <div class="fg-bg-[var(--fg-surface)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[48px] fg-p-16 fg-max-w-[1040px] fg-w-[92%] fg-shadow-[0_24px_80px_rgba(0,0,0,0.5)] fg-scale-[0.9] fg-transition-all fg-duration-700 fg-flex fg-flex-col">
+      <div class="fg-mb-12 fg-flex fg-items-start fg-justify-between">
         <div>
-          <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-accent)] fg-mb-2">${chrome.i18n.getMessage(
-            'whats_new_kicker',
-          )}</div>
-          <h2 class="fg-text-4xl fg-font-black fg-text-[var(--fg-text)]">${chrome.i18n.getMessage(
-            'whats_new_title',
-            [version],
-          )}</h2>
+          <div class="fg-flex fg-items-center fg-gap-3 fg-mb-3">
+             <div style="opacity: 0.8;">${renderByteFace('happy', 24)}</div>
+             <div class="fg-text-[13px] fg-font-bold fg-tracking-widest fg-uppercase fg-text-[var(--fg-accent)]">${chrome.i18n.getMessage(
+               'whats_new_kicker',
+             )}</div>
+          </div>
+          <h2 style="${
+            UI_TOKENS.TEXT.TITLE_XL
+          }" class="fg-max-w-[600px]">${chrome.i18n.getMessage(
+    'whats_new_title',
+    [version],
+  )}</h2>
         </div>
-        <div class="fg-text-[12px] fg-font-bold fg-text-[var(--fg-muted)] fg-opacity-70">Build ${version}</div>
+        <div class="fg-bg-[var(--fg-accent-soft)] fg-text-[var(--fg-accent)] fg-px-4 fg-py-1.5 fg-rounded-full fg-text-[12px] fg-font-bold fg-tracking-tight">v${version}</div>
       </div>
       
-      <div class="fg-grid fg-grid-cols-2 fg-gap-5 fg-mb-12">
+      <div class="fg-grid fg-grid-cols-1 md:fg-grid-cols-2 fg-gap-6 fg-mb-14">
         ${featureList}
       </div>
       
       <div class="fg-flex fg-justify-center">
-        <button id="btn_close_whats_new" class="btn-premium fg-px-20 fg-h-16 fg-rounded-3xl fg-font-bold fg-text-base">${chrome.i18n.getMessage(
+        <button id="btn_close_whats_new" class="btn-premium fg-px-24 fg-h-16 fg-rounded-3xl fg-font-bold fg-text-base fg-transition-all hover:fg-scale-105 active:fg-scale-95 shadow-lg">${chrome.i18n.getMessage(
           'whats_new_cta',
         )}</button>
       </div>
@@ -408,15 +523,15 @@ export async function showWhatsNew(version: string, features: any[]) {
   document.body.appendChild(overlay);
 
   // Animate in
-  setTimeout(() => {
+  requestAnimationFrame(() => {
     overlay.classList.remove('fg-opacity-0');
-    overlay.firstElementChild?.classList.remove('fg-scale-95');
-  }, 10);
+    overlay.firstElementChild?.classList.remove('fg-scale-[0.9]');
+  });
 
   return new Promise<void>((resolve) => {
     const close = () => {
       overlay.classList.add('fg-opacity-0');
-      overlay.firstElementChild?.classList.add('fg-scale-95');
+      overlay.firstElementChild?.classList.add('fg-scale-[0.9]');
       setTimeout(() => {
         overlay.remove();
         resolve();

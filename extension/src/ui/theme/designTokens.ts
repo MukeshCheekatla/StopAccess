@@ -11,6 +11,7 @@ export const COLORS = {
   red: 'var(--fg-red)',
   surface: 'var(--fg-surface)',
   surfaceHover: 'var(--fg-surface-hover)',
+  sidebarBg: 'var(--fg-sidebar-bg)',
   text: 'var(--fg-text)',
   yellow: 'var(--fg-yellow)',
 
@@ -156,7 +157,10 @@ export const EXTENSION_COLOR_VAR_DECLARATIONS = `
   --fg-black: #000000;
   --fg-muted: #a1a1aa;
   --fg-text: #ececec;
-  --fg-host-bg: #0b0b0b;
+  --fg-host-bg: #09090b;
+  --fg-bg: #09090b;
+  --fg-surface: #111114;
+  --fg-sidebar-bg: #020202;
   --fg-guide-bg: #ffffff;
   --fg-guide-text: #111827;
   --fg-guide-muted: rgba(0, 0, 0, 0.7);
@@ -176,6 +180,7 @@ export const EXTENSION_COLOR_VAR_DECLARATIONS = `
   --fg-chart-purple: #bdb2ff;
   --fg-chart-pink: #ffc6ff;
   --fg-shadow-soft: rgba(0, 0, 0, 0.12);
+  --fg-shadow-strong: rgba(0, 0, 0, 0.4);
   --fg-white-wash: rgba(255, 255, 255, 0.05);
   --fg-white-wash-strong: rgba(255, 255, 255, 0.25);
   --fg-black-wash: rgba(0, 0, 0, 0.05);
@@ -183,6 +188,10 @@ export const EXTENSION_COLOR_VAR_DECLARATIONS = `
   --fg-overlay: rgba(0, 0, 0, 0.6);
   --fg-overlay-strong: rgba(0, 0, 0, 0.8);
   --fg-overlay-subtle: rgba(0, 0, 0, 0.4);
+  
+  --fg-accent-soft: rgba(255, 59, 48, 0.1);
+  --fg-glass-bg: rgba(255, 255, 255, 0.03);
+  --fg-glass-border: rgba(255, 255, 255, 0.08);
   
   /* Base Scales */
   --fg-zinc-950: #09090b;

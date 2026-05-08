@@ -64,6 +64,7 @@ export function renderBrandLogo(
   name?: string,
   size = 44,
   cachedUrl?: string,
+  fallbackHtml?: string,
 ) {
   const targetDomain = resolveIconDomain(identifier, name);
   const iconFromCache = getCachedIconSync(targetDomain);
@@ -82,7 +83,7 @@ export function renderBrandLogo(
             )}px; font-weight: 700; color: var(--fg-text); opacity: ${
     hasCache ? '0' : '0.3'
   }; z-index: 1;">
-         ${(name || identifier).slice(0, 2).toUpperCase()}
+         ${fallbackHtml || (name || identifier).slice(0, 2).toUpperCase()}
        </div>
        <img src="${primaryIconUrl}" 
             data-domain="${targetDomain}"
