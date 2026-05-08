@@ -1,5 +1,31 @@
 export const CHANGELOG = [
   {
+    version: '1.1.4',
+    title: 'Engine Stability & UX Hardening',
+    features: [
+      {
+        iconId: 'SPARKLES',
+        label: 'Centralized Icon Registry',
+        desc: 'Optimized icon fetching with a centralized registry for faster loading and maximum cache efficiency.',
+      },
+      {
+        iconId: 'SHIELD',
+        label: 'Shadow DOM Mascot Isolation',
+        desc: 'Isolated mascot UI using Shadow DOM to prevent CSS leakage and fix layout issues on complex sites.',
+      },
+      {
+        iconId: 'ZAP',
+        label: 'Notification Pipeline Purge',
+        desc: 'Removed all intrusive background and on-site alerts for a silent, zero-distraction workflow.',
+      },
+      {
+        iconId: 'ROCKET',
+        label: 'Core Infrastructure Hardening',
+        desc: 'Fixed viewport positioning and layout interference on infinite-scroll platforms like LinkedIn.',
+      },
+    ],
+  },
+  {
     version: '1.1.3',
     title: 'Intelligence & Sync Mastery',
     features: [
