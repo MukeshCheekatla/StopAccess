@@ -927,7 +927,11 @@ export const ByteBody: React.FC<ByteBodyProps> = ({
             {!isFiring && (
               <g
                 style={{
-                  transform: `translate(21px, 94px) rotate(${-angles.leftArm}deg) scaleX(${flip})`,
+                  transform: `translate(21px, 94px) rotate(${-angles.leftArm}deg) scaleX(${flip}) translateY(${
+                    -angles.bodyBob * 0.85
+                  }px) rotate(${-angles.bodyTilt * 0.9 * flip}deg) scaleY(${
+                    1 / angles.scaleY
+                  })`,
                 }}
               >
                 <foreignObject

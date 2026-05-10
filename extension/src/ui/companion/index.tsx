@@ -388,20 +388,34 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
         }
       }
 
+      const readingLockMultiplier = sm ? 0.4 : 1.0;
+
       setAngles((prev) => ({
         eyeX: lerp(prev.eyeX, targets.current.eyeX, 0.25),
         eyeY: lerp(prev.eyeY, targets.current.eyeY, 0.25),
-        headTilt: lerp(prev.headTilt, targets.current.headTilt, 0.15),
+        headTilt: lerp(
+          prev.headTilt,
+          targets.current.headTilt * readingLockMultiplier,
+          0.15,
+        ),
         leftArm: lerp(prev.leftArm, targets.current.leftArm, 0.25),
         rightArm: lerp(prev.rightArm, targets.current.rightArm, 0.25),
         leftLeg: lerp(prev.leftLeg, targets.current.leftLeg, 0.3),
         rightLeg: lerp(prev.rightLeg, targets.current.rightLeg, 0.3),
         leftLegY: lerp(prev.leftLegY, targets.current.leftLegY, 0.4),
         rightLegY: lerp(prev.rightLegY, targets.current.rightLegY, 0.4),
-        bodyBob: lerp(prev.bodyBob, targets.current.bodyBob, 0.3),
-        bodyTilt: lerp(prev.bodyTilt, targets.current.bodyTilt, 0.3),
-        scaleY: lerp(prev.scaleY, targets.current.scaleY, 0.2),
-        scaleX: lerp(prev.scaleX, targets.current.scaleX, 0.2),
+        bodyBob: lerp(
+          prev.bodyBob,
+          targets.current.bodyBob * readingLockMultiplier,
+          0.3,
+        ),
+        bodyTilt: lerp(
+          prev.bodyTilt,
+          targets.current.bodyTilt * readingLockMultiplier,
+          0.3,
+        ),
+        scaleY: lerp(prev.scaleY, sm ? 1 : targets.current.scaleY, 0.2),
+        scaleX: lerp(prev.scaleX, sm ? 1 : targets.current.scaleX, 0.2),
         mouthOpen: lerp(prev.mouthOpen, targets.current.mouthOpen, 0.25),
         pupilScale: lerp(prev.pupilScale, targets.current.pupilScale, 0.2),
         headNod: 0,
@@ -501,13 +515,11 @@ export const ByteCompanion: React.FC<ByteCompanionProps> = ({
       style={{
         position: 'relative',
         width: '100%',
-        height: '140px',
-        marginBottom: '16px',
-        borderRadius: '16px',
+        height: '110px',
         overflow: 'visible',
-        background: 'var(--fg-glass-bg)',
-        border: '1px solid var(--fg-glass-border)',
-        boxShadow: '0 4px 12px var(--fg-shadow-soft)',
+        background: 'transparent',
+        border: 'none',
+        boxShadow: 'none',
         cursor: 'pointer',
         display: 'flex',
         justifyContent: 'center',

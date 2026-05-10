@@ -10,7 +10,7 @@ interface FocusBuddyProps {
 
 export function FocusBuddy({ xp, wiltUntil }: FocusBuddyProps) {
   const isWilted = wiltUntil ? wiltUntil > Date.now() : false;
-  const level = Math.floor(xp / 100);
+  const level = Math.floor(xp / 25);
 
   let stage: BuddyStage = 'seed';
   if (level >= 4) {
@@ -176,14 +176,14 @@ export function FocusBuddy({ xp, wiltUntil }: FocusBuddyProps) {
         {renderStage()}
       </div>
       <div className="fg-text-[10px] fg-font-bold fg-uppercase fg-tracking-wider fg-text-slate-500">
-        Level {level} {isWilted ? '(Wilted)' : ''}
+        Level {level}
       </div>
       <div className="fg-h-1 fg-w-12 fg-overflow-hidden fg-rounded-full fg-bg-slate-200">
         <div
           className={`fg-h-full ${
             isWilted ? 'fg-bg-slate-400' : 'fg-bg-green-500'
           }`}
-          style={{ width: `${xp % 100}%` }}
+          style={{ width: `${(xp % 25) * 4}%` }}
         />
       </div>
     </div>

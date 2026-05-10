@@ -64,7 +64,6 @@ export const ByteSign: React.FC<ByteSignProps> = ({
         bottom: '0px',
         left: '50%',
         transform: 'translateX(-50%)',
-        perspective: '400px',
         pointerEvents: 'none',
         zIndex: 10,
         display: 'flex',
@@ -74,12 +73,11 @@ export const ByteSign: React.FC<ByteSignProps> = ({
     >
       <div
         style={{
-          transformStyle: 'preserve-3d',
-          transform: visible ? 'rotateY(0deg)' : 'rotateY(90deg)',
-          transition: visible
-            ? 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)'
-            : 'transform 0.25s ease-in',
-          transformOrigin: 'bottom center',
+          opacity: visible ? 1 : 0,
+          transform: visible
+            ? 'translateY(0px) scale(1)'
+            : 'translateY(10px) scale(0.95)',
+          transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -89,52 +87,22 @@ export const ByteSign: React.FC<ByteSignProps> = ({
         <div
           style={{
             background: signBg,
-            border: `2.5px solid ${signBorder}`,
-            borderRadius: 8,
-            padding: '12px 16px',
-            minWidth: 130,
-            maxWidth: 280,
+            border: `1.5px solid ${signBorder}`,
+            borderRadius: 12,
+            padding: '14px 22px',
+            minWidth: 160,
+            maxWidth: 320,
+            minHeight: 52,
             width: 'max-content',
-            boxShadow: `0 10px 20px ${
-              COLORS.shadow
-            }, inset 0 2px 4px rgba(255,255,255,${
-              theme === 'dark' ? '0.05' : '0.5'
-            })`,
+            boxShadow:
+              theme === 'light' ? 'none' : `0 8px 24px ${COLORS.shadow}`,
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {/* Wood Grain */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              borderRadius: 6,
-              background:
-                'repeating-linear-gradient(0deg, transparent, transparent 5px, rgba(0,0,0,0.05) 5px, rgba(0,0,0,0.05) 6px)',
-              pointerEvents: 'none',
-            }}
-          />
-          {/* Nails */}
-          {[
-            { top: 6, left: 8 },
-            { top: 6, right: 8 },
-          ].map((s, i) => (
-            <div
-              key={i}
-              style={{
-                position: 'absolute',
-                ...s,
-                width: 5,
-                height: 5,
-                borderRadius: '50%',
-                background: COLORS.muted,
-                boxShadow: 'inset 0 1px 1px rgba(0,0,0,0.3)',
-              }}
-            />
-          ))}
           {/* Content Container */}
           <div
             style={{
@@ -246,10 +214,8 @@ export const ByteSign: React.FC<ByteSignProps> = ({
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
-                  textShadow:
-                    theme === 'dark'
-                      ? '0 1px 2px rgba(0,0,0,0.5)'
-                      : '0 1px 1px rgba(255,255,255,0.3)',
+                  fontSize: '16px',
+                  fontWeight: 700,
                 }}
               >
                 {displayMsg.split('/n')[0]}
@@ -265,10 +231,9 @@ export const ByteSign: React.FC<ByteSignProps> = ({
                   width: '100%',
                   textAlign: 'center',
                   padding: '0 4px',
-                  textShadow:
-                    theme === 'dark'
-                      ? '0 1px 2px rgba(0,0,0,0.4)'
-                      : '0 1px 1px rgba(255,255,255,0.2)',
+                  fontSize: '13px',
+                  opacity: 0.8,
+                  marginTop: '2px',
                 }}
               >
                 {displayMsg.split('/n')[1]}
@@ -318,13 +283,12 @@ export const ByteSign: React.FC<ByteSignProps> = ({
         {/* Post Stick */}
         <div
           style={{
-            width: 6,
+            width: 4,
             height: 65,
             background: stickColor,
             margin: '0 auto',
-            borderRadius: 3,
-            border: `1px solid ${signBorder}`,
-            borderTop: 'none',
+            borderRadius: 2,
+            opacity: 0.5,
           }}
         />
       </div>
