@@ -248,6 +248,37 @@ export async function renderSettingsPage(container) {
           </div>
 
         </div>
+        <!-- Product Signature Footer -->
+        <div class="fg-mt-auto fg-pt-16 fg-pb-6 fg-flex fg-flex-col fg-items-center">
+          <div class="fg-flex fg-items-center fg-gap-3 fg-mb-5 fg-opacity-40 hover:fg-opacity-80 fg-transition-opacity">
+             <img src="/assets/icon-128.png" class="fg-w-5 fg-h-5 fg-grayscale fg-opacity-80">
+             <div class="fg-flex fg-items-center fg-gap-2">
+                <span class="fg-text-[10px] fg-font-black fg-tracking-[0.15em] fg-uppercase">StopAccess</span>
+                <span class="fg-text-[10px] fg-font-bold fg-opacity-70">v${
+                  chrome.runtime.getManifest().version
+                }</span>
+             </div>
+             <span class="fg-w-0.5 fg-h-0.5 fg-rounded-full fg-bg-[var(--fg-muted)]"></span>
+             <span class="fg-text-[9px] fg-font-bold fg-text-[var(--fg-muted)] fg-uppercase fg-tracking-wider">Open Source</span>
+          </div>
+          
+          <div class="fg-flex fg-items-center fg-gap-3">
+            <a href="https://stopaccess.pages.dev" target="_blank" class="fg-px-4 fg-py-2 fg-rounded-xl fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-flex fg-items-center fg-gap-2 fg-text-[11px] fg-font-bold fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface-hover)] fg-no-underline fg-transition-all">
+              ${UI_ICONS.GLOBE.replace('width="14"', 'width="15"').replace(
+                'height="14"',
+                'height="15"',
+              )}
+              Website
+            </a>
+            <a href="https://github.com/MukeshCheekatla/StopAccess" target="_blank" class="fg-px-4 fg-py-2 fg-rounded-xl fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-flex fg-items-center fg-gap-2 fg-text-[11px] fg-font-bold fg-text-[var(--fg-muted)] hover:fg-text-[var(--fg-text)] hover:fg-bg-[var(--fg-surface-hover)] fg-no-underline fg-transition-all">
+              ${UI_ICONS.GITHUB.replace('width="14"', 'width="15"').replace(
+                'height="14"',
+                'height="15"',
+              )}
+              GitHub
+            </a>
+          </div>
+        </div>
       </main>
     </div>
 

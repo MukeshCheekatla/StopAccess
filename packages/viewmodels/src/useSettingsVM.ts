@@ -51,7 +51,7 @@ export async function loadSettingsData(deps: VMPlatformDependencies) {
     syncState,
     pinResetStatus: await checkPinResetStatus(deps),
     challengeEnabled: await storage.getBoolean('challenge_enabled'),
-    showMascot: await storage.getBoolean('fg_show_mascot'),
+    showMascot: await storage.getBoolean('fg_show_mascot', true),
     challengeText:
       (await storage.getString('challenge_text')) ||
       'Success is not final, failure is not fatal: it is the courage to continue that counts. I will stay focused on my goals and avoid distractions.',

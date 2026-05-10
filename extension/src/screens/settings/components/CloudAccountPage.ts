@@ -195,7 +195,7 @@ export async function renderCloudAccountPage(container: HTMLElement) {
 
     if (sidebarToggle) {
       chrome.storage.local.get(['fg_show_cloud_sidebar'], (res) => {
-        sidebarToggle.checked = res.fg_show_cloud_sidebar !== false;
+        sidebarToggle.checked = res.fg_show_cloud_sidebar === true;
       });
 
       sidebarToggle.addEventListener('change', () => {
