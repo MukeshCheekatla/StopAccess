@@ -211,13 +211,14 @@ export async function runCycle(forceSync = false) {
         }),
       });
     });
-  } catch (e) {
-    extensionLogger.add('error', 'Lifecycle Engine Fail', String(e));
+  } catch (e: any) {
+    const errorMsg = e?.message || e?.details || String(e);
+    extensionLogger.add('error', 'Lifecycle Engine Fail', errorMsg);
     await chrome.storage.local.set({
       [STORAGE_KEYS.BLOCK_DEBUG]: JSON.stringify({
         at: new Date().toISOString(),
         ok: false,
-        error: String(e),
+        error: errorMsg,
       }),
     });
   } finally {

@@ -346,21 +346,16 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.action === 'manualSync') {
     (async () => {
       try {
-        // 1. Push current local state first to ensure deletions/changes are mirrored to cloud
-        // before we pull. This prevents the "deleted rules coming back" race condition.
-        const rules = await getRules(extensionAdapter);
-        const lastPull = await chrome.storage.local.get(['last_cloud_pull_at']);
-        if (lastPull.last_cloud_pull_at) {
-          await pushState('rules', rules, true);
-        }
-
-        // 2. Perform full sync (pull then push others)
+        console.log('[StopAccess] Manual sync requested');
+        // Perform full sync (pull then push others).
+        // restoreCloudBackup(true) handles both pushing local changes and pulling cloud data.
         await restoreCloudBackup(true);
         await runCycle(true);
         sendResponse({ ok: true });
-      } catch (e) {
-        console.error('[StopAccess] Manual sync failed', e);
-        sendResponse({ ok: false, error: String(e) });
+      } catch (e: any) {
+        const errorMsg = e?.message || e?.details || String(e);
+        console.error('[StopAccess] Manual sync failed:', errorMsg, e);
+        sendResponse({ ok: false, error: errorMsg });
       }
     })();
     return true;

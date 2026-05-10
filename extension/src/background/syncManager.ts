@@ -241,6 +241,11 @@ export async function pushState(entity: string, payload: any, force = false) {
     return;
   }
 
+  if (data === null) {
+    logSync(`push_${entity}_skipped_null`);
+    return;
+  }
+
   try {
     if (entity === 'rules' && Array.isArray(data)) {
       await pushRules(user.id, profile_id, device_id, data);
@@ -275,8 +280,10 @@ export async function pushState(entity: string, payload: any, force = false) {
     await markSyncSuccess(entity);
     logSync(`push_${entity}_success`);
   } catch (err: any) {
-    logSync(`push_${entity}_failed`, err.message);
-    throw err;
+    const errorMsg = err?.message || err?.details || String(err);
+    logSync(`push_${entity}_failed`, errorMsg);
+    // Rethrow as a proper Error if it's just an object
+    throw err instanceof Error ? err : new Error(errorMsg);
   }
 }
 
@@ -556,6 +563,18 @@ export async function pullState(force = false) {
       .eq('user_id', user.id)
       .eq('profile_id', profile_id),
   ]);
+
+  const errors = [
+    rulesRes.error,
+    schedulesRes.error,
+    nextdnsRes.error,
+    legacyRes.error,
+  ].filter(Boolean);
+  if (errors.length > 0) {
+    const msg = errors.map((e) => e?.message).join(', ');
+    logSync('pull_state_failed', msg);
+    throw new Error(`Cloud pull failed: ${msg}`);
+  }
 
   if (rulesRes.data && rulesRes.data.length > 0) {
     const rules = rulesRes.data.map((r) => ({

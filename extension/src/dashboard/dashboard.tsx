@@ -459,7 +459,7 @@ function DashboardApp() {
                 key={`bridge-${tab.id}`}
                 renderFn={tab.renderFn}
                 isVisible={activeTab === tab.id}
-                refreshKey={authVersion}
+                // REMOVED refreshKey={authVersion} to prevent unnecessary re-renders
               />
             </div>
           );
