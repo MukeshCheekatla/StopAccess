@@ -13,6 +13,7 @@
     "android:bundle": "react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res --max-workers 1",
     "ios": "react-native run-ios",
     "start": "npx react-native start --reset-cache",
+    "zip": "powershell -Command \"Compress-Archive -Path extension/dist/* -DestinationPath extension.zip -Force\"",
     "dev": "turbo run dev",
     "build": "npm run lint:root && npm run typecheck:root && turbo run build",
     "build:ex": "turbo run build --filter=stopaccess-extension",

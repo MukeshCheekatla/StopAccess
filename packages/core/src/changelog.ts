@@ -1,5 +1,31 @@
 export const CHANGELOG = [
   {
+    version: '1.1.5',
+    title: 'Intelligence & Operational Density',
+    features: [
+      {
+        iconId: 'CHART',
+        label: 'Workspace Monitor 2.0',
+        desc: 'Overhauled Browser Health into a dense, 2-column operational grid featuring Open, Sleeping, Inactive tabs, and raw Browser Load metrics.',
+      },
+      {
+        iconId: 'SPARKLES',
+        label: 'Tab Pressure Intelligence',
+        desc: 'Implemented adaptive dashboard columns that dynamically surface critical insights only when browser thresholds (like high tab counts) are reached.',
+      },
+      {
+        iconId: 'TARGET',
+        label: 'Operational Telemetry',
+        desc: 'Replaced synthetic efficiency scores with grounded system telemetry, standardized at high-density scales for instant glanceability.',
+      },
+      {
+        iconId: 'SETTINGS',
+        label: 'Theme-Aware Aesthetics',
+        desc: 'Decoupled sidebar navigation for Light/Dark modes and standardized UI tokens (24px radius, 48px gaps) across all dashboard components.',
+      },
+    ],
+  },
+  {
     version: '1.1.4',
     title: 'Engine Stability & UX Hardening',
     features: [
