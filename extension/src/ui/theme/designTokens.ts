@@ -159,7 +159,7 @@ export const EXTENSION_COLOR_VAR_DECLARATIONS = `
   --fg-text: #ececec;
   --fg-host-bg: #09090b;
   --fg-bg: #09090b;
-  --fg-surface: #111114;
+  --fg-surface: #18181b;
   --fg-sidebar-bg: #020202;
   --fg-guide-bg: #ffffff;
   --fg-guide-text: #111827;
@@ -222,4 +222,5 @@ export const EXTENSION_COLOR_VAR_DECLARATIONS = `
   --fg-security-ai: #a855f7;
   --fg-security-safebrowsing: #10b981;
   --fg-security-crypto: #f59e0b;
+  --fg-amber-text: #f59e0b;
 `;

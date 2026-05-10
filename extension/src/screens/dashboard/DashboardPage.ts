@@ -20,6 +20,7 @@ import { attachCalendarWidget } from './components/CalendarWidget';
 import { getTypingHistory } from '@/lib/typingHistory';
 import { getRemainingMs, formatTime } from '@/lib/sessionTimer';
 import { getRuleActiveState } from '../apps/components/AppRuleRow';
+import { renderBrowserActivity } from './components/BrowserActivity';
 
 // Key icons
 const iconPlay = UI_ICONS.PLAY;
@@ -173,14 +174,14 @@ export async function renderDashboardPage(
                 <div class="fg-hidden"></div>
                 
                 <!-- Expanded Timer Card -->
-                <div class="fg-panel fg-rounded-[14px] fg-px-[18px] fg-flex fg-items-center fg-gap-[14px] fg-h-[42px] fg-border fg-border-[var(--fg-glass-border)]">
+                <div class="fg-panel fg-rounded-full fg-px-[12px] fg-flex fg-items-center fg-gap-[12px] fg-h-[32px] fg-border fg-border-[var(--fg-glass-border)]">
                    <div id="timerDot" style="width: 8px; height: 8px; border-radius: 50%; background: ${timerDotColor}; transition: all 0.3s; box-shadow: 0 0 10px ${timerDotColor}44;"></div>
-                   <div id="focusStatusLabel" style="font-size: 18px; font-weight: 700; color: ${
+                   <div id="focusStatusLabel" style="font-size: 15px; font-weight: 600; color: ${
                      isPaused ? COLORS.yellow : COLORS.text
                    }; letter-spacing: -0.01em; margin-right: -2px;">${focusStatusText}</div>
-                   <div id="timerDisplay" style="font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: ${
+                   <div id="timerDisplay" style="font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 600; color: ${
                      isFocusing ? timerTextColor : COLORS.text
-                   }; min-width: 52px; letter-spacing: -0.01em;">${timerDisplay}</div>
+                   }; min-width: 44px; letter-spacing: -0.01em;">${timerDisplay}</div>
                    
                    <div style="display: flex; align-items: center; gap: 6px;">
                      <button id="btn_toggle_focus" style="width: 24px; height: 24px; border-radius: 8px; background: transparent; border: none; color: ${
@@ -221,10 +222,11 @@ export async function renderDashboardPage(
                <div class="section-label" style="${
                  UI_TOKENS.TEXT.LABEL
                } margin-bottom: 20px;">Usage Breakdown</div>
-               <div class="fg-panel fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center fg-rounded-[20px] fg-h-[280px] fg-transition-opacity fg-duration-400 fg-ease-out fg-opacity-100 fg-border fg-border-[var(--fg-glass-border)]" id="chartSlot">
-                  <canvas id="liveUsageChart" style="width: 100% !important; height: 230px !important;"></canvas>
+               <div class="fg-panel fg-p-6 fg-relative fg-overflow-hidden fg-flex fg-items-center fg-justify-center fg-rounded-[20px] fg-h-[250px] fg-transition-opacity fg-duration-400 fg-ease-out fg-opacity-100 fg-border fg-border-[var(--fg-glass-border)]" id="chartSlot">
+                  <canvas id="liveUsageChart" style="width: 100% !important; height: 200px !important;"></canvas>
                </div>
                
+               <div id="browserActivityWidget" class="fg-mt-8"></div>
 
             </div>
           </div>
@@ -407,7 +409,7 @@ export async function renderDashboardPage(
     if (avgW) {
       const { globalAvgMs, globalAvgSessions } = data;
       avgW.innerHTML = `
-        <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+        <div style="display: flex; flex-direction: column; gap: 8px; height: 100%;">
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <div class="widget-title" style="${
               UI_TOKENS.TEXT.WIDGET_LABEL
@@ -417,7 +419,7 @@ export async function renderDashboardPage(
               `stroke="${COLORS.muted}"`,
             ).replace('style="', 'style="opacity: 0.5; ')}
           </div>
-          <div style="margin-top: 8px;">
+          <div>
             <div style="${UI_TOKENS.TEXT.STAT}">${fmtTime(
         globalAvgMs || 0,
       )}</div>
@@ -464,7 +466,7 @@ export async function renderDashboardPage(
       }
 
       engagementW.innerHTML = `
-        <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+        <div style="display: flex; flex-direction: column; gap: 8px; height: 100%;">
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <div class="widget-title" style="${
               UI_TOKENS.TEXT.WIDGET_LABEL
@@ -474,7 +476,7 @@ export async function renderDashboardPage(
               `stroke="${COLORS.muted}"`,
             ).replace('style="', 'style="opacity: 0.5; ')}
           </div>
-          <div style="margin-top: 12px;">
+          <div>
             <div style="${UI_TOKENS.TEXT.STAT}">${fmtTime(
         allTotalMs as number,
       )}</div>
@@ -496,7 +498,7 @@ export async function renderDashboardPage(
     const sessionsW = container.querySelector('#sessionsWidget');
     if (sessionsW) {
       sessionsW.innerHTML = `
-        <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+        <div style="display: flex; flex-direction: column; gap: 8px; height: 100%;">
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <div class="widget-title" style="${
               UI_TOKENS.TEXT.WIDGET_LABEL
@@ -506,7 +508,7 @@ export async function renderDashboardPage(
               `stroke="${COLORS.muted}"`,
             ).replace('style="', 'style="opacity: 0.5; ')}
           </div>
-          <div style="margin-top: 8px;">
+          <div>
             <div style="${UI_TOKENS.TEXT.STAT}">${data.totalSessions}</div>
             <div style="${
               UI_TOKENS.TEXT.LABEL
@@ -535,7 +537,7 @@ export async function renderDashboardPage(
         : 'Awaiting Data...';
 
       timerW.innerHTML = `
-        <div style="display: flex; flex-direction: column; justify-content: space-between; height: 100%;">
+        <div style="display: flex; flex-direction: column; gap: 8px; height: 100%;">
           <div style="display: flex; align-items: center; justify-content: space-between;">
             <div class="widget-title" style="${
               UI_TOKENS.TEXT.WIDGET_LABEL
@@ -545,7 +547,7 @@ export async function renderDashboardPage(
               `stroke="${COLORS.muted}"`,
             ).replace('style="', 'style="opacity: 0.5; ')}
           </div>
-          <div style="margin-top: 8px;">
+          <div>
             <div style="display: flex; align-items: baseline; gap: 6px;">
               <div style="${
                 UI_TOKENS.TEXT.STAT
@@ -601,11 +603,7 @@ export async function renderDashboardPage(
         }
 
         domainList.forEach((d) => {
-          const isBlocked = rules.some((r: any) => {
-            const active = getRuleActiveState(r, passes);
-            if (!active) {
-              return false;
-            }
+          const matchingRule = rules.find((r: any) => {
             if ((r.customDomain || r.packageName) === d.domain) {
               return true;
             }
@@ -618,14 +616,39 @@ export async function renderDashboardPage(
             return false;
           });
 
+          const active = matchingRule
+            ? getRuleActiveState(matchingRule, passes)
+            : false;
+
           const cached = iconLookup[d.domain];
 
           const existingItem = activityG.querySelector(
             `.rule-item[data-domain="${d.domain}"]`,
           ) as HTMLElement;
-          const badgeHtml = isBlocked
-            ? '<div class="fg-text-[var(--fg-red)] fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-rounded-[6px] fg-px-[7px] fg-py-[3px] fg-uppercase fg-text-[10px] fg-font-black">Blocked</div>'
-            : `<button class="quick-block-btn fg-w-[26px] fg-h-[26px] fg-rounded-[8px] fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-accent)] fg-text-[16px] fg-font-black fg-cursor-pointer fg-flex fg-items-center fg-justify-center fg-shrink-0" data-domain="${d.domain}" title="Block ${d.domain}">+</button>`;
+
+          let badgeHtml = '';
+          if (!matchingRule) {
+            badgeHtml = `<button class="quick-block-btn fg-w-[32px] fg-h-[32px] fg-rounded-[10px] fg-bg-[var(--fg-glass-bg)] fg-border fg-border-[var(--fg-glass-border)] fg-text-[var(--fg-accent)] fg-cursor-pointer fg-flex fg-items-center fg-justify-center fg-shrink-0" data-domain="${
+              d.domain
+            }" title="Block ${d.domain}">${UI_ICONS.PLUS.replace(
+              'width="14"',
+              'width="20"',
+            ).replace('height="14"', 'height="20"')}</button>`;
+          } else if (active) {
+            badgeHtml = `<div style="color: ${
+              COLORS.red
+            }; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 10px;">${UI_ICONS.SHIELD.replace(
+              'width="14"',
+              'width="20"',
+            ).replace('height="14"', 'height="20"')}</div>`;
+          } else {
+            badgeHtml = `<div style="color: ${
+              COLORS.green
+            }; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; background: var(--fg-glass-bg); border: 1px solid var(--fg-glass-border); border-radius: 10px;">${UI_ICONS.UNLOCK.replace(
+              'width="14"',
+              'width="20"',
+            ).replace('height="14"', 'height="20"')}</div>`;
+          }
           const statusLabelHtml = `<span style="opacity: 0.7;">${
             d.sessions || 0
           } Session${d.sessions !== 1 ? 's' : ''}</span>`;
@@ -681,8 +704,8 @@ export async function renderDashboardPage(
               }
             }
             // Update border indicator
-            existingItem.style.borderLeftColor = isBlocked
-              ? 'var(--red)'
+            existingItem.style.borderLeftColor = active
+              ? 'var(--fg-red)'
               : 'transparent';
           } else {
             const div = document.createElement('div');
@@ -690,7 +713,7 @@ export async function renderDashboardPage(
               'rule-item domain-activity-card fg-panel fg-p-4 fg-rounded-[12px] fg-mb-2 fg-transition-all fg-cursor-pointer fg-max-w-full';
             div.setAttribute('data-domain', d.domain);
             div.style.borderLeft = `3px solid ${
-              isBlocked ? 'var(--fg-red)' : 'transparent'
+              active ? 'var(--fg-red)' : 'transparent'
             }`;
             div.innerHTML = cardInner;
             activityG.appendChild(div);
@@ -717,6 +740,13 @@ export async function renderDashboardPage(
       '#liveUsageChart',
     ) as HTMLCanvasElement;
     attachGlobalIconListeners(container);
+
+    const baW = container.querySelector(
+      '#browserActivityWidget',
+    ) as HTMLElement;
+    if (baW) {
+      renderBrowserActivity(baW);
+    }
 
     const ctx = canvas?.getContext('2d');
     if (ctx && domainList.length > 0) {
@@ -788,8 +818,8 @@ export async function renderDashboardPage(
               labels: {
                 color: chartTextColor,
                 usePointStyle: true,
-                padding: 16,
-                font: { size: 12, weight: '600' as any },
+                padding: 12,
+                font: { size: 13, weight: '700' as any },
               },
             },
             tooltip: {
